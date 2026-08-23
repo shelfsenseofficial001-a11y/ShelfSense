@@ -1,0 +1,305 @@
+/* ==========================================================================
+   SUPPLIER MODULE — shared styles
+   Status badges, stat cards, requisition/invoice/product cards, timeline.
+   Loaded once from views/layouts/supplier.php.
+   ========================================================================== */
+
+/* ---------- Stat cards ---------- */
+.sp-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.sp-stat-card {
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+.sp-stat-card:hover {
+    border-color: var(--brand-yellow);
+    transform: translateY(-2px);
+}
+.sp-stat-card .sp-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.sp-stat-card .sp-stat-number {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.sp-stat-card .sp-stat-icon {
+    font-size: 1.6rem;
+}
+.sp-stat-number.primary { color: #2563eb; }
+.sp-stat-number.warning { color: #d97706; }
+.sp-stat-number.danger { color: #dc2626; }
+.sp-stat-number.success { color: #059669; }
+.sp-stat-number.purple { color: #7c3aed; }
+
+/* ---------- Status badges (same mapping used in Store Manager) ---------- */
+.sp-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.sp-status-badge.status-draft { background: #e5e7eb; color: #374151; }
+.sp-status-badge.status-pending_supplier,
+.sp-status-badge.status-sent_to_supplier,
+.sp-status-badge.status-partial_received { background: #fef3c7; color: #92400e; }
+.sp-status-badge.status-supplier_processed,
+.sp-status-badge.status-awaiting_finance_staff { background: #dbeafe; color: #1e40af; }
+.sp-status-badge.status-awaiting_finance { background: #ffedd5; color: #9a3412; }
+.sp-status-badge.status-finance_approved,
+.sp-status-badge.status-paid,
+.sp-status-badge.status-completed,
+.sp-status-badge.status-verified { background: #d1fae5; color: #065f46; }
+.sp-status-badge.status-finance_rejected,
+.sp-status-badge.status-rejected { background: #fecaca; color: #991b1b; }
+.sp-status-badge.status-shipped { background: #ede9fe; color: #5b21b6; }
+.sp-status-badge.status-pending { background: #fef3c7; color: #92400e; }
+
+[data-bs-theme="dark"] .sp-status-badge.status-draft { background: #374151; color: #d1d5db; }
+[data-bs-theme="dark"] .sp-status-badge.status-pending_supplier,
+[data-bs-theme="dark"] .sp-status-badge.status-sent_to_supplier,
+[data-bs-theme="dark"] .sp-status-badge.status-partial_received { background: #78350f; color: #fcd34d; }
+[data-bs-theme="dark"] .sp-status-badge.status-supplier_processed,
+[data-bs-theme="dark"] .sp-status-badge.status-awaiting_finance_staff { background: #1e3a5f; color: #93c5fd; }
+[data-bs-theme="dark"] .sp-status-badge.status-awaiting_finance { background: #7c2d12; color: #fdba74; }
+[data-bs-theme="dark"] .sp-status-badge.status-finance_approved,
+[data-bs-theme="dark"] .sp-status-badge.status-paid,
+[data-bs-theme="dark"] .sp-status-badge.status-completed,
+[data-bs-theme="dark"] .sp-status-badge.status-verified { background: #064e3b; color: #6ee7b7; }
+[data-bs-theme="dark"] .sp-status-badge.status-finance_rejected,
+[data-bs-theme="dark"] .sp-status-badge.status-rejected { background: #7f1d1d; color: #fca5a5; }
+[data-bs-theme="dark"] .sp-status-badge.status-shipped { background: #4c1d95; color: #c4b5fd; }
+[data-bs-theme="dark"] .sp-status-badge.status-pending { background: #78350f; color: #fcd34d; }
+
+/* ---------- Requisition / invoice cards ---------- */
+.sp-card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 14px;
+}
+.sp-req-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+.sp-req-card:hover {
+    border-color: var(--brand-yellow);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+.sp-req-card .sp-req-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.sp-req-card .sp-req-number {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+.sp-req-card .sp-req-store {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+.sp-req-card .sp-req-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 10px 0;
+}
+.sp-req-card .sp-req-meta strong {
+    color: var(--text-main);
+    font-weight: 600;
+}
+.sp-req-card .sp-req-items-box {
+    background: var(--bg-card-subtle);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 8px 0;
+}
+.sp-req-card .sp-req-total {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--brand-yellow-hover);
+}
+.sp-req-card .sp-req-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ---------- Product cards ---------- */
+.sp-product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+@media (max-width: 1199.98px) and (min-width: 768px) {
+    .sp-product-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 767.98px) {
+    .sp-product-grid { grid-template-columns: 1fr; }
+}
+.sp-product-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px;
+    transition: all 0.2s ease;
+}
+.sp-product-card:hover {
+    border-color: var(--brand-yellow);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+.sp-product-card .sp-product-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+.sp-product-card .sp-product-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 4px 0 8px;
+}
+.sp-product-card .sp-product-price {
+    font-weight: 700;
+    color: var(--brand-yellow-hover);
+    font-size: 1.05rem;
+}
+.sp-mapping-warning {
+    font-size: 0.72rem;
+    color: #92400e;
+    background: #fef3c7;
+    border-radius: 8px;
+    padding: 6px 10px;
+    margin-top: 8px;
+}
+[data-bs-theme="dark"] .sp-mapping-warning { background: #78350f; color: #fcd34d; }
+
+/* ---------- Tabs (scroll on narrow screens) ---------- */
+.sp-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+.sp-tabs .nav-link {
+    white-space: nowrap;
+}
+
+/* ---------- Activity bars ---------- */
+.sp-activity-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.sp-activity-label {
+    width: 110px;
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.sp-activity-track {
+    flex: 1;
+    height: 10px;
+    border-radius: 6px;
+    background: var(--bg-card-subtle);
+    overflow: hidden;
+}
+.sp-activity-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: var(--brand-yellow);
+    transition: width 0.4s ease;
+}
+.sp-activity-count {
+    width: 32px;
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* ---------- Empty / error states ---------- */
+.sp-empty-state, .sp-error-state {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--text-muted);
+    grid-column: 1 / -1;
+}
+.sp-empty-state i, .sp-error-state i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+}
+.sp-error-state { color: #dc2626; }
+[data-bs-theme="dark"] .sp-error-state { color: #f87171; }
+
+/* ---------- Timeline (invoice / requisition detail) ---------- */
+.sp-timeline {
+    position: relative;
+    padding-left: 28px;
+}
+.sp-timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--border-color);
+}
+.sp-timeline-item {
+    position: relative;
+    padding-bottom: 16px;
+}
+.sp-timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 3px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--brand-yellow);
+    border: 2px solid var(--bg-card);
+}
+.sp-timeline-item .sp-timeline-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.sp-timeline-item .sp-timeline-date {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 767.98px) {
+    .sp-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .sp-card-grid { grid-template-columns: 1fr; }
+    .sp-req-card .sp-req-meta { grid-template-columns: 1fr; }
+}
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .sp-card-grid { grid-template-columns: repeat(2, 1fr); }
+}

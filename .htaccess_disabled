@@ -1,0 +1,14 @@
+RewriteEngine On
+
+# Redirect all requests to public/index.php
+RewriteRule ^(.*)$ public/index.php?path=$1 [QSA,L]
+
+# Security: Prevent access to sensitive folders
+RedirectMatch 403 ^/ShelfSense/app/.*$
+RedirectMatch 403 ^/ShelfSense/database/.*$
+RedirectMatch 403 ^/ShelfSense/vendor/.*$
+RedirectMatch 403 ^/ShelfSense/logs/.*$
+RedirectMatch 403 ^/ShelfSense/\.env$
+
+# Security: Prevent directory listing
+Options -Indexes

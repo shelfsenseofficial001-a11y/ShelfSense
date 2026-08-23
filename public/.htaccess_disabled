@@ -1,0 +1,19 @@
+RewriteEngine On
+
+# Handle API routes
+RewriteRule ^api/(.*)$ index.php?path=api/$1 [QSA,L]
+
+# Handle frontend routes
+RewriteRule ^login$ index.php?path=login [L]
+RewriteRule ^apply$ index.php?path=apply [L]
+RewriteRule ^logout$ index.php?path=logout [L]
+RewriteRule ^dashboard$ index.php?path=dashboard [L]
+RewriteRule ^dashboard/$ index.php?path=dashboard [L]
+RewriteRule ^hr/(.*)$ index.php?path=hr/$1 [QSA,L]
+
+# Catch all other routes
+RewriteRule ^$ index.php?path=/ [L]
+RewriteRule ^(.*)$ index.php?path=$1 [QSA,L]
+
+# Security: Prevent directory listing
+Options -Indexes

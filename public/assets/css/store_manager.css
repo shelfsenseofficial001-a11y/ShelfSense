@@ -1,0 +1,338 @@
+/* ==========================================================================
+   STORE MANAGER MODULE — shared styles
+   Status badges, stat cards, requisition cards, product grid, tabs, states.
+   Loaded once from views/layouts/store_manager.php so every Store Manager
+   page (dashboard, requisitions, inventory) shares the same look.
+   ========================================================================== */
+
+/* ---------- Stat cards ---------- */
+.sm-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.sm-stat-card {
+    padding: 16px 18px;
+    border-radius: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    transition: all 0.2s ease;
+}
+.sm-stat-card:hover {
+    border-color: var(--brand-yellow);
+    transform: translateY(-2px);
+}
+.sm-stat-card .sm-stat-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+.sm-stat-card .sm-stat-number {
+    font-size: 1.8rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.sm-stat-card .sm-stat-icon {
+    font-size: 1.6rem;
+}
+.sm-stat-number.primary { color: #2563eb; }
+.sm-stat-number.warning { color: #d97706; }
+.sm-stat-number.danger { color: #dc2626; }
+.sm-stat-number.success { color: #059669; }
+.sm-stat-number.muted { color: var(--text-muted); }
+
+/* ---------- Status badges (centralized mapping) ---------- */
+.sm-status-badge {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+.sm-status-badge.status-draft { background: #e5e7eb; color: #374151; }
+.sm-status-badge.status-pending_supplier,
+.sm-status-badge.status-sent_to_supplier,
+.sm-status-badge.status-partial_received { background: #fef3c7; color: #92400e; }
+.sm-status-badge.status-supplier_processed,
+.sm-status-badge.status-awaiting_finance_staff { background: #dbeafe; color: #1e40af; }
+.sm-status-badge.status-awaiting_finance { background: #ffedd5; color: #9a3412; }
+.sm-status-badge.status-finance_approved,
+.sm-status-badge.status-paid,
+.sm-status-badge.status-completed { background: #d1fae5; color: #065f46; }
+.sm-status-badge.status-finance_rejected { background: #fecaca; color: #991b1b; }
+.sm-status-badge.status-shipped { background: #ede9fe; color: #5b21b6; }
+
+[data-bs-theme="dark"] .sm-status-badge.status-draft { background: #374151; color: #d1d5db; }
+[data-bs-theme="dark"] .sm-status-badge.status-pending_supplier,
+[data-bs-theme="dark"] .sm-status-badge.status-sent_to_supplier,
+[data-bs-theme="dark"] .sm-status-badge.status-partial_received { background: #78350f; color: #fcd34d; }
+[data-bs-theme="dark"] .sm-status-badge.status-supplier_processed,
+[data-bs-theme="dark"] .sm-status-badge.status-awaiting_finance_staff { background: #1e3a5f; color: #93c5fd; }
+[data-bs-theme="dark"] .sm-status-badge.status-awaiting_finance { background: #7c2d12; color: #fdba74; }
+[data-bs-theme="dark"] .sm-status-badge.status-finance_approved,
+[data-bs-theme="dark"] .sm-status-badge.status-paid,
+[data-bs-theme="dark"] .sm-status-badge.status-completed { background: #064e3b; color: #6ee7b7; }
+[data-bs-theme="dark"] .sm-status-badge.status-finance_rejected { background: #7f1d1d; color: #fca5a5; }
+[data-bs-theme="dark"] .sm-status-badge.status-shipped { background: #4c1d95; color: #c4b5fd; }
+
+/* ---------- Requisition cards ---------- */
+.sm-requisition-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 14px;
+}
+.sm-req-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    transition: all 0.2s ease;
+}
+.sm-req-card:hover {
+    border-color: var(--brand-yellow);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+.sm-req-card .sm-req-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+.sm-req-card .sm-req-number {
+    font-weight: 700;
+    font-size: 0.95rem;
+}
+.sm-req-card .sm-req-supplier {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+.sm-req-card .sm-req-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 10px 0;
+}
+.sm-req-card .sm-req-meta strong {
+    color: var(--text-main);
+    font-weight: 600;
+}
+.sm-req-card .sm-req-total {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--brand-yellow-hover);
+}
+.sm-req-card .sm-req-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+/* ---------- Product grid (Inventory + Create Requisition) ---------- */
+.sm-product-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+}
+@media (max-width: 1199.98px) and (min-width: 768px) {
+    .sm-product-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 767.98px) {
+    .sm-product-grid { grid-template-columns: 1fr; }
+}
+.sm-product-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+.sm-product-card:hover {
+    border-color: var(--brand-yellow);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+}
+.sm-product-card .sm-product-image {
+    width: 100%;
+    height: 130px;
+    background: var(--bg-card-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 2.2rem;
+    overflow: hidden;
+}
+.sm-product-card .sm-product-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.sm-product-card .sm-product-body {
+    padding: 12px;
+}
+.sm-product-card .sm-product-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sm-product-card .sm-product-category {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+.sm-product-card .sm-product-price {
+    font-weight: 700;
+    color: var(--brand-yellow-hover);
+    font-size: 1rem;
+}
+.sm-product-card .sm-product-stock-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.sm-stock-badge {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
+.sm-stock-badge.out { background: #fecaca; color: #991b1b; }
+.sm-stock-badge.low { background: #fef3c7; color: #92400e; }
+.sm-stock-badge.in { background: #d1fae5; color: #065f46; }
+[data-bs-theme="dark"] .sm-stock-badge.out { background: #7f1d1d; color: #fca5a5; }
+[data-bs-theme="dark"] .sm-stock-badge.low { background: #78350f; color: #fcd34d; }
+[data-bs-theme="dark"] .sm-stock-badge.in { background: #064e3b; color: #6ee7b7; }
+
+/* ---------- Sortable column header (Inventory) ---------- */
+.sm-sort-toggle {
+    cursor: pointer;
+    user-select: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.sm-sort-toggle:hover { color: var(--brand-yellow-hover); }
+.sm-sort-toggle .bi { font-size: 0.75rem; opacity: 0.5; }
+.sm-sort-toggle.active .bi { opacity: 1; color: var(--brand-yellow-hover); }
+
+/* ---------- Activity bars (dashboard) ---------- */
+.sm-activity-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.sm-activity-label {
+    width: 110px;
+    flex-shrink: 0;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.sm-activity-track {
+    flex: 1;
+    height: 10px;
+    border-radius: 6px;
+    background: var(--bg-card-subtle);
+    overflow: hidden;
+}
+.sm-activity-fill {
+    height: 100%;
+    border-radius: 6px;
+    background: var(--brand-yellow);
+    transition: width 0.4s ease;
+}
+.sm-activity-count {
+    width: 32px;
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+
+/* ---------- Tabs (scroll on narrow screens instead of wrapping) ---------- */
+.sm-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+}
+.sm-tabs .nav-link {
+    white-space: nowrap;
+}
+
+/* ---------- Empty / error / loading states ---------- */
+.sm-empty-state, .sm-error-state {
+    text-align: center;
+    padding: 40px 16px;
+    color: var(--text-muted);
+}
+.sm-empty-state i, .sm-error-state i {
+    font-size: 2rem;
+    display: block;
+    margin-bottom: 10px;
+}
+.sm-error-state { color: #dc2626; }
+[data-bs-theme="dark"] .sm-error-state { color: #f87171; }
+
+/* ---------- Timeline (requisition detail) ---------- */
+.sm-timeline {
+    position: relative;
+    padding-left: 28px;
+}
+.sm-timeline::before {
+    content: '';
+    position: absolute;
+    left: 8px;
+    top: 4px;
+    bottom: 4px;
+    width: 2px;
+    background: var(--border-color);
+}
+.sm-timeline-item {
+    position: relative;
+    padding-bottom: 16px;
+}
+.sm-timeline-item::before {
+    content: '';
+    position: absolute;
+    left: -24px;
+    top: 3px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--brand-yellow);
+    border: 2px solid var(--bg-card);
+}
+.sm-timeline-item .sm-timeline-title {
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+.sm-timeline-item .sm-timeline-date {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+}
+
+/* ---------- Responsive breakpoints per spec ---------- */
+@media (max-width: 767.98px) {
+    .sm-stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .sm-requisition-grid { grid-template-columns: 1fr; }
+    .sm-req-card .sm-req-meta { grid-template-columns: 1fr; }
+}
+@media (min-width: 768px) and (max-width: 1199.98px) {
+    .sm-requisition-grid { grid-template-columns: repeat(2, 1fr); }
+}
