@@ -205,6 +205,56 @@ if ($page === 'hr_applicants') {
     exit;
 }
 
+if ($page === 'hr_job_postings') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isHR() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/hr/job_postings.php';
+    exit;
+}
+
+// ============================================
+// HR JOB POSTINGS API ROUTES
+// ============================================
+
+if ($page === 'api_hr_get_job_postings') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/get_job_postings.php';
+    exit;
+}
+if ($page === 'api_hr_get_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/get_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_create_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/create_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_update_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/update_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_submit_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/submit_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_review_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/review_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_archive_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/archive_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_reuse_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/reuse_job_posting.php';
+    exit;
+}
+
 // ============================================
 // PUBLIC HTML ROUTES
 // ============================================
@@ -300,6 +350,9 @@ if ($page === 'api_update_trainee') {
     exit;
 }
 
+// api_submit_report / api_review_reports (monthly report_1/2/3 model) are kept
+// routed for backward compatibility with any historical data/links, but the
+// UI now uses the weekly, department-routed trainee_reports workflow below.
 if ($page === 'api_submit_report') {
     require_once __DIR__ . '/../app/handlers/hr/submit_report.php';
     exit;
@@ -307,6 +360,31 @@ if ($page === 'api_submit_report') {
 
 if ($page === 'api_review_reports') {
     require_once __DIR__ . '/../app/handlers/hr/review_reports.php';
+    exit;
+}
+
+// ============================================
+// WEEKLY TRAINEE REPORTS (department-routed)
+// ============================================
+
+if ($page === 'api_trainee_submit_report') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/submit_report.php';
+    exit;
+}
+if ($page === 'api_trainee_add_observation') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/add_observation.php';
+    exit;
+}
+if ($page === 'api_trainee_get_reports') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/get_reports.php';
+    exit;
+}
+if ($page === 'api_trainee_hr_head_review_report') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/hr_head_review_report.php';
+    exit;
+}
+if ($page === 'api_trainee_respond_to_contract') {
+    require_once __DIR__ . '/../app/handlers/trainee/respond_to_contract.php';
     exit;
 }
 

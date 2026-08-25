@@ -79,7 +79,9 @@ function renderDashboard(data) {
                 </div>
             </div>
         </div>
-        
+
+        ${data.pending_contract && data.pending_contract.status === 'pending' ? renderContractCard(data.pending_contract) : ''}
+
         <!-- Stats Row -->
         <div class="row g-3 mb-4">
             <div class="col-md-3 col-6">
@@ -224,4 +226,91 @@ function renderDashboard(data) {
             </div>
         </div>
     `;
+
+    if (data.pending_contract && data.pending_contract.status === 'pending') {
+        wireContractButtons(data.pending_contract.id);
+    }
+}
+
+function traineeEscapeHtml(text) {
+    if (text === null || text === undefined) return '';
+    const div = document.createElement('div');
+    div.textContent = String(text);
+    return div.innerHTML;
+}
+
+function renderContractCard(c) {
+    const salary = c.salary ? '₱' + parseFloat(c.salary).toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '—';
+    const restDays = c.rest_days ? c.rest_days.split(',').map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') : '—';
+    return `
+        <div class="modern-card p-4 mb-4" style="border:2px solid var(--brand-yellow);">
+            <h5 class="fw-bold mb-2"><i class="bi bi-file-earmark-text text-yellow me-2"></i>You Have a Hired Contract Waiting</h5>
+            <p class="text-muted mb-3">Review the terms below and accept or decline. Accepting will activate your official employee account.</p>
+            <div class="row g-2 mb-3">
+                <div class="col-md-4"><small class="text-muted d-block">Shift</small><strong>${traineeEscapeHtml(c.shift)}</strong></div>
+                <div class="col-md-4"><small class="text-muted d-block">Monthly Salary</small><strong>${salary}</strong></div>
+                <div class="col-md-4"><small class="text-muted d-block">Start Date</small><strong>${traineeEscapeHtml(c.start_date)}</strong></div>
+                <div class="col-md-4"><small class="text-muted d-block">Rest Days</small><strong>${restDays}</strong></div>
+                <div class="col-md-4"><small class="text-muted d-block">Decision Deadline</small><strong>${traineeEscapeHtml(c.decision_deadline || '—')}</strong></div>
+            </div>
+            ${c.job_details ? `<p class="small"><strong>Job Details:</strong> ${traineeEscapeHtml(c.job_details)}</p>` : ''}
+            <div id="contractResponseAlert"></div>
+            <div class="d-flex gap-2 mt-2">
+                <button class="btn btn-success" id="acceptContractBtn"><i class="bi bi-check-circle me-1"></i> Accept Contract</button>
+                <button class="btn btn-outline-danger" id="declineContractBtn"><i class="bi bi-x-circle me-1"></i> Decline</button>
+            </div>
+            <div class="mt-2" id="declineNotesWrap" style="display:none;">
+                <textarea id="declineNotes" class="form-control form-control-sm mb-2" rows="2" maxlength="500" placeholder="Optional reason for declining..."></textarea>
+                <button class="btn btn-danger btn-sm" id="confirmDeclineBtn">Confirm Decline</button>
+                <button class="btn btn-secondary btn-sm" id="cancelDeclineBtn">Cancel</button>
+            </div>
+        </div>
+    `;
+}
+
+function wireContractButtons(contractId) {
+    document.getElementById('acceptContractBtn')?.addEventListener('click', function () {
+        if (!confirm('Accept this contract? This will activate your official employee account.')) return;
+        respondToContract(contractId, 'accept', '');
+    });
+    document.getElementById('declineContractBtn')?.addEventListener('click', function () {
+        document.getElementById('declineNotesWrap').style.display = 'block';
+        this.style.display = 'none';
+        document.getElementById('acceptContractBtn').style.display = 'none';
+    });
+    document.getElementById('cancelDeclineBtn')?.addEventListener('click', function () {
+        document.getElementById('declineNotesWrap').style.display = 'none';
+        document.getElementById('acceptContractBtn').style.display = 'inline-block';
+        document.getElementById('declineContractBtn').style.display = 'inline-block';
+    });
+    document.getElementById('confirmDeclineBtn')?.addEventListener('click', function () {
+        respondToContract(contractId, 'decline', document.getElementById('declineNotes').value.trim());
+    });
+}
+
+let traineeContractBusy = false;
+function respondToContract(contractId, action, responseNotes) {
+    if (traineeContractBusy) return;
+    traineeContractBusy = true;
+    const alertBox = document.getElementById('contractResponseAlert');
+
+    fetch('?page=api_trainee_respond_to_contract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contract_id: contractId, action, response_notes: responseNotes })
+    })
+        .then(r => r.json())
+        .then(data => {
+            traineeContractBusy = false;
+            if (data.success) {
+                alertBox.innerHTML = `<div class="alert alert-success small">${traineeEscapeHtml(data.message)} Reloading...</div>`;
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                alertBox.innerHTML = `<div class="alert alert-danger small">${traineeEscapeHtml(data.message)}</div>`;
+            }
+        })
+        .catch(() => {
+            traineeContractBusy = false;
+            alertBox.innerHTML = `<div class="alert alert-danger small">Something went wrong. Please try again.</div>`;
+        });
 }

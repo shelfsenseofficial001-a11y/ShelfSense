@@ -1,7 +1,94 @@
 <?php
 // views/pages/landing.php
+require_once __DIR__ . '/../../app/core/Database.php';
+require_once __DIR__ . '/../../app/models/JobPosting.php';
+
+use App\Models\JobPosting;
+
 $title = 'ShelfSense | Smart Retail Operations & HR Platform';
+
+// Real, approved, currently-hiring job postings only -- never fabricated.
+$publicJobs = [];
+try {
+    $publicJobs = (new JobPosting())->getPublicListings();
+} catch (Exception $e) {
+    error_log('landing.php: failed to load public job postings: ' . $e->getMessage());
+}
+
+$jobCardsHtml = '';
+if (empty($publicJobs)) {
+    $jobCardsHtml = '
+        <div class="col-lg-10">
+            <div class="modern-card p-4 text-center text-muted">
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                No job openings are currently available. Please check back later.
+            </div>
+        </div>
+    ';
+} else {
+    foreach ($publicJobs as $i => $job) {
+        $delay = 'delay-' . min(5, $i + 1);
+        $salary = '';
+        if ($job['salary_range_min'] || $job['salary_range_max']) {
+            $salary = '<span class="job-badge job-badge-yellow">₱' . number_format((float)$job['salary_range_min'], 0)
+                . ' - ₱' . number_format((float)$job['salary_range_max'], 0) . '</span>';
+        }
+        $jobCardsHtml .= '
+            <div class="col-lg-10 animate-reveal ' . $delay . '">
+                <div class="modern-card job-card p-4">
+                    <div class="row align-items-center gy-3">
+                        <div class="col-md-7">
+                            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                <span class="job-badge">' . htmlspecialchars($job['department']) . '</span>
+                                ' . $salary . '
+                            </div>
+                            <h4 class="mb-2">' . htmlspecialchars($job['title']) . '</h4>
+                            <p class="text-muted small mb-1">' . nl2br(htmlspecialchars(mb_strimwidth($job['description'], 0, 220, '...'))) . '</p>
+                            <small class="text-muted"><i class="bi bi-calendar-x me-1"></i>Applications close ' . date('M j, Y', strtotime($job['open_until'])) . '</small>
+                        </div>
+                        <div class="col-md-5 text-md-end">
+                            <a href="?page=apply&role=' . urlencode($job['role']) . '" class="btn btn-yellow-primary px-4 py-2 rounded-2">
+                                Apply Now <i class="bi bi-box-arrow-up-right ms-2"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        ';
+    }
+}
+
+$additional_css = '
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+';
+
 $additional_js = '
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+// Approximate coordinate for NCST, Dasmarinas Aguinaldo Highway (documented
+// estimate -- not a surveyed/precise pin). Update if an exact coordinate
+// becomes available.
+const SHELFSENSE_BRANCH = { lat: 14.3294, lng: 120.9372, label: "NCST - Dasmarinas Aguinaldo Highway Branch" };
+
+function initShelfSenseMap() {
+    const el = document.getElementById("branchMap");
+    if (!el || typeof L === "undefined") return;
+    try {
+        const map = L.map("branchMap", { scrollWheelZoom: false }).setView([SHELFSENSE_BRANCH.lat, SHELFSENSE_BRANCH.lng], 15);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "&copy; OpenStreetMap contributors",
+            maxZoom: 19
+        }).addTo(map);
+        L.marker([SHELFSENSE_BRANCH.lat, SHELFSENSE_BRANCH.lng]).addTo(map)
+            .bindPopup("<strong>ShelfSense</strong><br>" + SHELFSENSE_BRANCH.label + "<br><small>Dasmarinas Aguinaldo Highway, NCST</small>")
+            .openPopup();
+    } catch (e) {
+        console.error("Map failed to load:", e);
+        el.innerHTML = "<div class=\'d-flex align-items-center justify-content-center h-100 text-muted small text-center p-3\'><i class=\'bi bi-exclamation-triangle me-2\'></i>Map could not be loaded. Branch address: Dasmarinas Aguinaldo Highway, NCST.</div>";
+    }
+}
+document.addEventListener("DOMContentLoaded", initShelfSenseMap);
+</script>
 <script>
 // Role-based apply function
 function applyForRole(role) {
@@ -252,36 +339,25 @@ $content = '
                     </div>
                     
                     <div class="row g-3">
-                        <div class="col-6">
-                            <div class="p-3 rounded-3 bg-subtle-yellow border">
-                                <small class="text-muted d-block fw-medium">Real-Time POS Volume</small>
-                                <span class="fs-4 font-heading text-yellow">$18,420.00</span>
-                                <div class="progress mt-2" style="height: 6px;">
-                                    <div class="progress-bar progress-bar-yellow progress-bar-animated" data-progress="75%"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="p-3 rounded-3 bg-subtle-yellow border">
-                                <small class="text-muted d-block fw-medium">Active Shift Workforce</small>
-                                <span class="fs-4 font-heading">34 / 36 On-Clock</span>
-                                <div class="progress mt-2" style="height: 6px;">
-                                    <div class="progress-bar progress-bar-yellow opacity-75 progress-bar-animated" data-progress="94%"></div>
-                                </div>
-                            </div>
-                        </div>
                         <div class="col-12">
                             <div class="p-3 rounded-3 bg-subtle-yellow border">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <small class="text-muted fw-medium">Stock Sync Monitor (Bookstores & Merchandise)</small>
-                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Optimal</span>
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <small class="text-muted fw-medium"><i class="bi bi-diagram-3 me-1"></i>Integrated Business Systems</small>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle">Connected</span>
                                 </div>
-                                <div class="d-flex align-items-baseline gap-2 mb-1">
-                                    <span class="fs-5 font-heading">99.8% Sync Efficiency</span>
-                                </div>
-                                <div class="progress" style="height: 6px;">
-                                    <div class="progress-bar progress-bar-yellow progress-bar-animated" data-progress="99.8%"></div>
-                                </div>
+                                <span class="fs-6">POS &bull; Inventory &bull; HR &bull; Procurement &bull; Finance</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-subtle-yellow border h-100">
+                                <small class="text-muted d-block fw-medium"><i class="bi bi-person-badge me-1"></i>HR Recruitment</small>
+                                <span class="fs-6">Application &rarr; Interviews &rarr; Contract &rarr; Hired</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 bg-subtle-yellow border h-100">
+                                <small class="text-muted d-block fw-medium"><i class="bi bi-arrow-left-right me-1"></i>Procurement Flow</small>
+                                <span class="fs-6">Requisition &rarr; Supplier &rarr; Finance &rarr; Delivery</span>
                             </div>
                         </div>
                     </div>
@@ -301,8 +377,27 @@ $content = '
             <div class="col-lg-8">
                 <h2 class="fs-1 fw-bold mb-3">Architected for <span class="text-yellow">Modern Retail</span></h2>
                 <p class="text-muted fs-5">
-                    ShelfSense is an integrated, role-based retail ecosystem engineered specifically for high-SKU operations—such as bookstores, school supply chains, and general merchandise hubs.
+                    ShelfSense connects Point of Sale, Inventory, HR, Procurement, and Finance into one system, so information that used to live in separate spreadsheets and separate teams flows automatically between them&mdash;a requisition raised in-store reaches the right supplier and the right approver without anyone re-typing it, and a new hire moves through interviews and onboarding on one shared record.
                 </p>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-md-6 animate-reveal delay-1">
+                <div class="modern-card p-4 h-100">
+                    <h5 class="mb-2"><i class="bi bi-bullseye text-yellow me-2"></i>Our Mission</h5>
+                    <p class="text-muted mb-0">
+                        To give growing retail operations a single, automated system that connects point-of-sale, inventory, procurement, HR, and finance&mdash;removing manual handoffs and disconnected spreadsheets between departments.
+                    </p>
+                </div>
+            </div>
+            <div class="col-md-6 animate-reveal delay-2">
+                <div class="modern-card p-4 h-100">
+                    <h5 class="mb-2"><i class="bi bi-eye text-yellow me-2"></i>Our Vision</h5>
+                    <p class="text-muted mb-0">
+                        A retail business where every department&mdash;from the cashier counter to the finance office&mdash;works from the same real-time data, so decisions are made on facts, not guesswork.
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -427,123 +522,7 @@ $content = '
         </div>
 
         <div class="row g-4 justify-content-center">
-            <!-- Job Card 1 - Head HR -->
-            <div class="col-lg-10 animate-reveal delay-1">
-                <div class="modern-card job-card p-4">
-                    <div class="row align-items-center gy-3">
-                        <div class="col-md-7">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="job-badge">Leadership</span>
-                                <span class="job-badge job-badge-yellow">Full-Time</span>
-                                <span class="badge bg-danger">Senior Role</span>
-                            </div>
-                            <h4 class="mb-2">Head of Human Resources</h4>
-                            <p class="text-muted small mb-0">
-                                Lead our HR department, develop people strategies, oversee recruitment, employee relations, and organizational development.
-                            </p>
-                        </div>
-                        <div class="col-md-5 text-md-end">
-                            <a href="?page=apply&role=hr_head" class="btn btn-yellow-primary px-4 py-2 rounded-2">
-                                Apply Now <i class="bi bi-box-arrow-up-right ms-2"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Job Card 2 - Head Finance -->
-            <div class="col-lg-10 animate-reveal delay-2">
-                <div class="modern-card job-card p-4">
-                    <div class="row align-items-center gy-3">
-                        <div class="col-md-7">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="job-badge">Leadership</span>
-                                <span class="job-badge job-badge-yellow">Full-Time</span>
-                                <span class="badge bg-danger">Senior Role</span>
-                            </div>
-                            <h4 class="mb-2">Head of Finance</h4>
-                            <p class="text-muted small mb-0">
-                                Lead our finance team, manage financial strategy, budgeting, forecasting, payroll oversight, and compliance.
-                            </p>
-                        </div>
-                        <div class="col-md-5 text-md-end">
-                            <a href="?page=apply&role=finance_head" class="btn btn-yellow-primary px-4 py-2 rounded-2">
-                                Apply Now <i class="bi bi-box-arrow-up-right ms-2"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Job Card 3 - Cashier -->
-            <div class="col-lg-10 animate-reveal delay-3">
-                <div class="modern-card job-card p-4">
-                    <div class="row align-items-center gy-3">
-                        <div class="col-md-7">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="job-badge">Store Operations</span>
-                                <span class="job-badge job-badge-yellow">Full-Time</span>
-                            </div>
-                            <h4 class="mb-2">Retail Cashier</h4>
-                            <p class="text-muted small mb-0">
-                                Handle daily sales transactions, customer service, and maintain accurate cash handling procedures.
-                            </p>
-                        </div>
-                        <div class="col-md-5 text-md-end">
-                            <a href="?page=apply&role=cashier" class="btn btn-yellow-primary px-4 py-2 rounded-2">
-                                Apply Now <i class="bi bi-box-arrow-up-right ms-2"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Job Card 4 - HR Staff -->
-            <div class="col-lg-10 animate-reveal delay-4">
-                <div class="modern-card job-card p-4">
-                    <div class="row align-items-center gy-3">
-                        <div class="col-md-7">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="job-badge">Human Resources</span>
-                                <span class="job-badge job-badge-yellow">Full-Time</span>
-                            </div>
-                            <h4 class="mb-2">HR Staff</h4>
-                            <p class="text-muted small mb-0">
-                                Manage recruitment, employee records, onboarding, and support HR operations across the organization.
-                            </p>
-                        </div>
-                        <div class="col-md-5 text-md-end">
-                            <a href="?page=apply&role=hr_staff" class="btn btn-yellow-primary px-4 py-2 rounded-2">
-                                Apply Now <i class="bi bi-box-arrow-up-right ms-2"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Job Card 5 - Finance Staff -->
-            <div class="col-lg-10 animate-reveal delay-5">
-                <div class="modern-card job-card p-4">
-                    <div class="row align-items-center gy-3">
-                        <div class="col-md-7">
-                            <div class="d-flex align-items-center gap-2 mb-2">
-                                <span class="job-badge">Finance</span>
-                                <span class="job-badge job-badge-yellow">Full-Time</span>
-                            </div>
-                            <h4 class="mb-2">Finance Staff</h4>
-                            <p class="text-muted small mb-0">
-                                Handle financial transactions, payroll processing, budget monitoring, and financial reporting.
-                            </p>
-                        </div>
-                        <div class="col-md-5 text-md-end">
-                            <a href="?page=apply&role=finance_staff" class="btn btn-yellow-primary px-4 py-2 rounded-2">
-                                Apply Now <i class="bi bi-box-arrow-up-right ms-2"></i>
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
+        ' . $jobCardsHtml . '
         </div>
     </div>
 </section>
@@ -577,28 +556,26 @@ $content = '
                         </div>
                     </div>
 
-                    <div class="d-flex align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3 mb-3">
                         <div class="icon-box mb-0"><i class="bi bi-geo-alt"></i></div>
                         <div>
-                            <small class="text-muted d-block">Global Headquarters</small>
-                            <span class="fw-semibold">Cyber Hub Tower 4, Tech District, CA</span>
+                            <small class="text-muted d-block">Branch Location</small>
+                            <span class="fw-semibold">Dasmarinas Aguinaldo Highway, NCST</span>
                         </div>
+                    </div>
+
+                    <div class="d-flex justify-content-start gap-3 fs-4 mt-4">
+                        <a href="#" class="text-muted"><i class="bi bi-linkedin"></i></a>
+                        <a href="#" class="text-muted"><i class="bi bi-twitter-x"></i></a>
+                        <a href="#" class="text-muted"><i class="bi bi-github"></i></a>
+                        <a href="#" class="text-muted"><i class="bi bi-discord"></i></a>
                     </div>
                 </div>
 
-                <div class="col-lg-6 d-flex flex-column justify-content-center">
-                    <div class="p-4 rounded-3 bg-light-yellow border border-warning-subtle text-center">
-                        <i class="bi bi-headset fs-1 text-yellow mb-3 d-block"></i>
-                        <h4 class="mb-2">Need Immediate Support?</h4>
-                        <p class="text-muted small mb-4">Our systems engineers are available 24/7 for store onboarding and assistance.</p>
-                        
-                        <div class="d-flex justify-content-center gap-3 fs-4">
-                            <a href="#" class="text-muted"><i class="bi bi-linkedin"></i></a>
-                            <a href="#" class="text-muted"><i class="bi bi-twitter-x"></i></a>
-                            <a href="#" class="text-muted"><i class="bi bi-github"></i></a>
-                            <a href="#" class="text-muted"><i class="bi bi-discord"></i></a>
-                        </div>
-                    </div>
+                <div class="col-lg-6">
+                    <h5 class="mb-2"><i class="bi bi-pin-map text-yellow me-2"></i>Find Us</h5>
+                    <p class="text-muted small mb-2">Approximate location &mdash; Dasmarinas Aguinaldo Highway, NCST.</p>
+                    <div id="branchMap" style="height:280px; border-radius:12px; overflow:hidden; border:1px solid var(--border-color, #ddd); background:#f3f3f3;"></div>
                 </div>
 
             </div>

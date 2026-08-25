@@ -62,8 +62,13 @@ if ($scheduledDateTime > $maxDate) {
     Response::error('Date cannot exceed 3 months from now.', 400);
 }
 
-if (!in_array($interviewType, ['initial', 'final', 'contract'])) {
-    Response::error('Invalid interview type', 400);
+// The separate "Contract Interview" stage has been removed from the recruitment
+// workflow: Trainee Contract now follows the Initial Interview directly, and
+// Regular Contract follows the Final Interview. Historical 'contract'-type
+// interview records remain in the database for audit purposes, but no new
+// ones can be created.
+if (!in_array($interviewType, ['initial', 'final'])) {
+    Response::error('Invalid interview type. Contract Interview is a legacy stage and can no longer be scheduled.', 400);
 }
 
 $currentUserId = Auth::userId();
@@ -86,10 +91,11 @@ if (!$applicant) {
     Response::notFound('Applicant not found');
 }
 
+// Final Interview now happens after the Trainee Contract (training) period
+// completes, not immediately after the Initial Interview.
 $validStatuses = [
     'initial' => ['pending', 'initial_scheduled'],
-    'final' => ['initial_passed'],
-    'contract' => ['screening_success']
+    'final' => ['screening_success']
 ];
 
 if (!in_array($applicant['status'], $validStatuses[$interviewType])) {
@@ -164,6 +170,12 @@ if ($interviewType === 'initial') {
 
 $notificationMessage = "{$interviewType} interview " . (isset($existingFinal) ? 'updated' : 'scheduled') . " for {$applicant['first_name']} {$applicant['last_name']}";
 createNotification($currentUserId, 'interview_scheduled', $notificationMessage);
+
+require_once __DIR__ . '/../../helpers/functions.php';
+logRecruitmentEvent('applicant', $applicantId, $interviewType . '_interview_scheduled', [
+    'previous_status' => $applicant['status'],
+    'new_status' => $interviewType === 'initial' ? 'initial_scheduled' : 'final_scheduled'
+]);
 
 try {
     $mailer = new Mailer();

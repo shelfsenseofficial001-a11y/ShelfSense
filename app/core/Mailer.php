@@ -3,6 +3,8 @@
 
 namespace App\Core;
 
+require_once __DIR__ . '/Database.php';
+
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\SMTP;
 use PHPMailer\PHPMailer\Exception;
@@ -41,6 +43,7 @@ class Mailer
         // If not enabled, just log
         if (!$this->enabled) {
             error_log("📧 [MAIL DISABLED] To: $to, Subject: $subject");
+            $this->logEmail($to, $subject, 'failed');
             return ['success' => true, 'message' => 'Email disabled (testing)'];
         }
 
@@ -59,12 +62,29 @@ class Mailer
             }
 
             $this->mail->send();
-            
+
             error_log("📧 [MAIL SENT] To: $to, Subject: $subject");
+            $this->logEmail($to, $subject, 'sent');
             return ['success' => true, 'message' => 'Email sent successfully'];
         } catch (Exception $e) {
             error_log('📧 [MAIL ERROR] ' . $e->getMessage());
+            $this->logEmail($to, $subject, 'failed');
             return ['success' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Truthful record of every email attempt (sent or failed) in the existing
+     * email_logs table -- never includes SMTP credentials or secrets.
+     */
+    private function logEmail($to, $subject, $status)
+    {
+        try {
+            $db = Database::getInstance()->getConnection();
+            $stmt = $db->prepare("INSERT INTO email_logs (recipient_email, subject, status) VALUES (?, ?, ?)");
+            $stmt->execute([$to, $subject, $status]);
+        } catch (\Exception $e) {
+            error_log('email_logs insert failed: ' . $e->getMessage());
         }
     }
 
@@ -96,6 +116,7 @@ class Mailer
     public function sendApplicantStatusUpdate($applicant, $status, $message = null)
     {
         $statusLabels = [
+            'application_received' => 'Application Received',
             'initial_scheduled' => 'Initial Interview Scheduled',
             'final_scheduled' => 'Final Interview Scheduled',
             'contract_offered' => 'Contract Offered',

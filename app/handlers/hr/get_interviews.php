@@ -104,10 +104,12 @@ try {
         $traineeMap[$row['applicant_id']] = true;
     }
 
+    // 'contract' is a removed stage kept only for historical records -- no
+    // new interviews of this type can be created (see schedule_interview.php).
     $typeLabels = [
         'initial' => 'Initial Interview',
         'final' => 'Final Interview',
-        'contract' => 'Contract Interview'
+        'contract' => 'Contract Interview (Legacy)'
     ];
 
     $statusColors = [

@@ -2,10 +2,13 @@
 // app/handlers/hr/create_contract.php
 
 require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../core/Mailer.php';
+require_once __DIR__ . '/../../helpers/functions.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\Mailer;
 
 header('Content-Type: application/json');
 
@@ -52,13 +55,14 @@ if (!empty($restDays)) {
 try {
     $db = Database::getInstance()->getConnection();
     
-    // Verify applicant exists and is screening_success
-    $stmt = $db->prepare("SELECT id, first_name, last_name, email, target_role FROM applicants WHERE id = ? AND status = 'screening_success'");
+    // Regular Contract follows a passed Final Interview (which itself only
+    // happens after the Trainee Contract/training period is complete).
+    $stmt = $db->prepare("SELECT id, first_name, last_name, email, target_role FROM applicants WHERE id = ? AND status = 'final_passed'");
     $stmt->execute([$applicantId]);
     $applicant = $stmt->fetch();
-    
+
     if (!$applicant) {
-        Response::error('Applicant not eligible for contract. They must have completed training.', 400);
+        Response::error('Applicant not eligible for a regular contract. They must have passed the Final Interview.', 400);
     }
     
     // Get the trainee user_id
@@ -94,6 +98,17 @@ try {
     // Create notification
     $notificationMessage = "Contract offered to {$applicant['first_name']} {$applicant['last_name']}";
     createNotification(Auth::userId(), 'contract_offered', $notificationMessage);
+    logRecruitmentEvent('applicant', $applicantId, 'regular_contract_offered', [
+        'previous_status' => 'final_passed',
+        'new_status' => 'contract_offered'
+    ]);
+
+    try {
+        $mailer = new Mailer();
+        $mailer->sendApplicantStatusUpdate($applicant, 'contract_offered');
+    } catch (Exception $e) {
+        error_log('create_contract.php: offer email failed: ' . $e->getMessage());
+    }
     
     Response::success([
         'contract_id' => $contractId,

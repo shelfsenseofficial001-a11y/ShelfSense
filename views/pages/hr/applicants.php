@@ -13,19 +13,20 @@ $content = '
     <div class="col-md-3">
         <select id="filterStatus" class="form-select searchable-select" data-placeholder="Filter by status..." maxlength="40">
             <option value="all">All Status</option>
-            <option value="pending" selected>Pending Review</option>
-            <option value="initial_scheduled">Initial Interview Scheduled</option>
-            <option value="initial_passed">Passed Initial</option>
-            <option value="initial_failed">Failed Initial</option>
-            <option value="final_scheduled">Final Interview Scheduled</option>
-            <option value="final_passed">Passed Final</option>
-            <option value="final_failed">Failed Final</option>
-            <option value="screening">In Training</option>
-            <option value="screening_success">Training Completed</option>
-            <option value="screening_failed">Training Failed</option>
-            <option value="contract_offered">Contract Offered</option>
-            <option value="contract_declined">Contract Declined</option>
+            <option value="pending" selected>New Applicant</option>
+            <option value="initial_scheduled">Initial Interview Pending</option>
+            <option value="initial_passed">Initial Interview Passed</option>
+            <option value="initial_failed">Initial Interview Failed</option>
+            <option value="screening">Trainee Contract (In Training)</option>
+            <option value="screening_success">Trainee Contract Completed</option>
+            <option value="screening_failed">Trainee Contract Failed</option>
+            <option value="final_scheduled">Final Interview Pending</option>
+            <option value="final_passed">Final Interview Passed</option>
+            <option value="final_failed">Final Interview Failed</option>
+            <option value="contract_offered">Job Offer Pending</option>
+            <option value="contract_declined">Offer Declined</option>
             <option value="hired">Hired</option>
+            <option value="withdrawn">Withdrawn</option>
         </select>
     </div>
     <div class="col-md-3">

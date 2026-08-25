@@ -237,6 +237,10 @@ $content = '
     </div>
 </div>
 
+<script>
+    window.CURRENT_USER_ID = ' . (int)($_SESSION['user_id'] ?? 0) . ';
+    window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
+</script>
 <script src="/ShelfSense/public/assets/js/hr/trainees.js"></script>
 ';
 

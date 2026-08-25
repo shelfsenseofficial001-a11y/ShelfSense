@@ -118,6 +118,159 @@ function createNotification($userId, $type, $message, $link = null)
     return $stmt->execute([$userId, $type, $message, $link]);
 }
 
+// ============================================
+// TRAINEE DEPARTMENT ROUTING
+// ============================================
+
+/**
+ * Maps a trainee's real target_role to the department bucket that decides
+ * who reviews their weekly reports. Store is the safe default since most
+ * trainees are store-facing roles (cashier, general store employee).
+ */
+function mapRoleToDepartment($targetRole)
+{
+    $role = strtolower(trim((string)$targetRole));
+    if (in_array($role, ['finance_staff', 'finance_head', 'finance'], true)) {
+        return 'finance';
+    }
+    if (in_array($role, ['hr_staff', 'hr_head', 'hr'], true)) {
+        return 'hr';
+    }
+    return 'store';
+}
+
+/**
+ * Who is authorized to add an observation and forward a department's weekly
+ * trainee reports to HR Head. For HR trainees this is HR Staff (forwarding
+ * directly, per the simpler HR-internal path); for Store/Finance it's the
+ * department head/manager (never the Trainer themselves).
+ */
+function mapDepartmentToReviewerRole($department)
+{
+    $map = [
+        'store' => 'store_manager',
+        'finance' => 'finance_head',
+        'hr' => 'hr_staff'
+    ];
+    return $map[$department] ?? null;
+}
+
+// ============================================
+// HIRED CONTRACT ACCEPTANCE
+// ============================================
+
+/**
+ * Shared "accept a Hired Contract" logic, called both when HR accepts on the
+ * trainee's behalf (offline signature, etc.) and when the trainee/applicant
+ * accepts it themselves from their own dashboard. Activates the employee
+ * account (role upgrade + employee number + schedule) exactly once -- the
+ * caller must have already verified the contract is still 'pending' under a
+ * row lock so this can never run twice for the same contract.
+ *
+ * $contract must include: id, applicant_id, employee_user_id (or user_id),
+ * target_role, first_name, applicant_email, shift, rest_days.
+ */
+function activateEmployeeFromAcceptedContract($db, $contract)
+{
+    $userId = $contract['employee_user_id'] ?? $contract['user_id'];
+    $targetRole = $contract['target_role'];
+
+    $roleMap = [
+        'Employee' => 'employee', 'HR Staff' => 'hr_staff', 'Finance Staff' => 'finance_staff',
+        'Head HR' => 'hr_head', 'Head Finance' => 'finance_head'
+    ];
+    $dbRole = $roleMap[$targetRole] ?? 'employee';
+
+    $rolePrefixes = [
+        'Employee' => 'EM', 'HR Staff' => 'HS', 'Finance Staff' => 'FS',
+        'Head HR' => 'HH', 'Head Finance' => 'FH'
+    ];
+    $prefix = $rolePrefixes[$targetRole] ?? 'USR';
+
+    $unique = false;
+    $attempts = 0;
+    $newEmployeeNumber = null;
+    while (!$unique && $attempts < 10) {
+        $number = str_pad((string)random_int(1, 999), 3, '0', STR_PAD_LEFT);
+        $newEmployeeNumber = $prefix . '-' . $number;
+        $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE employee_number = ?");
+        $stmt->execute([$newEmployeeNumber]);
+        if ($stmt->fetchColumn() == 0) {
+            $unique = true;
+        }
+        $attempts++;
+    }
+    if (!$unique) {
+        $newEmployeeNumber = $prefix . '-' . substr((string)time(), -3);
+    }
+
+    $db->prepare("UPDATE contracts SET status = 'accepted', accepted_at = NOW(), updated_at = NOW() WHERE id = ?")
+        ->execute([$contract['id']]);
+
+    $db->prepare("UPDATE applicants SET status = 'hired', updated_at = NOW() WHERE id = ?")
+        ->execute([$contract['applicant_id']]);
+
+    $db->prepare("
+        UPDATE users SET role = ?, employee_number = ?, can_train = 1, is_first_login = 1, hired_date = NOW(), updated_at = NOW()
+        WHERE user_id = ?
+    ")->execute([$dbRole, $newEmployeeNumber, $userId]);
+
+    $shift = $contract['shift'];
+    $restDaysArray = !empty($contract['rest_days']) ? explode(',', $contract['rest_days']) : [];
+    $shiftHours = [
+        'opening' => ['08:00:00', '17:00:00'],
+        'closing' => ['14:00:00', '22:00:00'],
+        'midshift' => ['10:00:00', '18:00:00']
+    ];
+    $hours = $shiftHours[$shift] ?? ['08:00:00', '17:00:00'];
+
+    $db->prepare("DELETE FROM schedules WHERE user_id = ?")->execute([$userId]);
+    $stmt = $db->prepare("INSERT INTO schedules (user_id, day_of_week, time_in, time_out, is_rest_day) VALUES (?, ?, ?, ?, ?)");
+    foreach (['monday','tuesday','wednesday','thursday','friday','saturday','sunday'] as $day) {
+        $isRestDay = in_array($day, $restDaysArray, true) ? 1 : 0;
+        $timeIn = $isRestDay ? '00:00:00' : $hours[0];
+        $timeOut = $isRestDay ? '00:00:00' : $hours[1];
+        $stmt->execute([$userId, $day, $timeIn, $timeOut, $isRestDay]);
+    }
+
+    logRecruitmentEvent('applicant', $contract['applicant_id'], 'hired', [
+        'previous_status' => 'contract_offered', 'new_status' => 'hired'
+    ]);
+
+    return ['employee_number' => $newEmployeeNumber, 'role' => $dbRole];
+}
+
+// ============================================
+// RECRUITMENT / JOB-POSTING AUDIT LOG
+// ============================================
+
+/**
+ * Truthful audit trail for job-posting and recruitment events. Never logs
+ * passwords, credentials, or tokens -- only ids/status/reasons/notes.
+ */
+function logRecruitmentEvent($entityType, $entityId, $action, $options = [])
+{
+    $db = \App\Core\Database::getInstance()->getConnection();
+    $userId = $options['user_id'] ?? (\App\Core\Auth::userId() ?? null);
+    $role = $options['role'] ?? (\App\Core\Auth::role() ?? null);
+
+    $stmt = $db->prepare("
+        INSERT INTO recruitment_logs (entity_type, entity_id, user_id, role, action, previous_status, new_status, reason, notes)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ");
+    return $stmt->execute([
+        $entityType,
+        $entityId,
+        $userId,
+        $role,
+        $action,
+        $options['previous_status'] ?? null,
+        $options['new_status'] ?? null,
+        $options['reason'] ?? null,
+        $options['notes'] ?? null
+    ]);
+}
+
 function getUnreadNotifications($userId)
 {
     $db = \App\Core\Database::getInstance()->getConnection();

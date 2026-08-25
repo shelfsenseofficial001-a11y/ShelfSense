@@ -96,6 +96,18 @@ try {
     $stmt->execute([$userId]);
     $used = $stmt->fetch();
 
+    // Pending Hired Contract awaiting this trainee's own response, if any.
+    $stmt = $db->prepare("
+        SELECT c.*, u2.first_name as offered_by_first, u2.last_name as offered_by_last
+        FROM contracts c
+        LEFT JOIN users u2 ON c.offered_by = u2.user_id
+        WHERE c.user_id = ?
+        ORDER BY c.created_at DESC
+        LIMIT 1
+    ");
+    $stmt->execute([$userId]);
+    $pendingContract = $stmt->fetch() ?: null;
+
     // Get recent activity (last 3 notifications)
     $stmt = $db->prepare("
         SELECT * FROM notifications 
@@ -183,6 +195,7 @@ try {
             ]
         ],
         'module' => $module,
+        'pending_contract' => $pendingContract,
         'leave_balances' => [
             'sick' => [
                 'entitled' => (float)($balances['sick_leave_balance'] ?? 0),

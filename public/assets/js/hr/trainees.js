@@ -385,13 +385,8 @@ function renderTrainees(trainees) {
                     <button class="btn btn-sm btn-outline-success review-btn review-eligible" data-id="${trainee.id}" data-name="${escapeHtml(trainee.trainee_name)}"><i class="bi bi-check2-circle"></i></button>
                     <button class="btn btn-sm btn-outline-danger review-btn review-terminate" data-id="${trainee.id}" data-name="${escapeHtml(trainee.trainee_name)}"><i class="bi bi-x-circle"></i></button>
                 ` : ''}
-                ${trainee.eligible_for_contract && !trainee.has_contract_interview ? `
-                    <button class="btn btn-sm btn-outline-primary schedule-contract-interview-btn"
-                            data-id="${trainee.id}"
-                            data-applicant-id="${trainee.applicant_id}"
-                            data-name="${escapeHtml(trainee.trainee_name)}">
-                        <i class="bi bi-calendar-plus"></i> Contract Interview
-                    </button>
+                ${trainee.eligible_for_contract ? `
+                    <span class="badge bg-success ms-1" title="Schedule their Final Interview from the Interviews page">Ready for Final Interview</span>
                 ` : ''}
             </td>
         </tr>
@@ -575,18 +570,21 @@ function openReportsModal(traineeId, traineeName) {
         </div>
     `;
     new bootstrap.Modal(document.getElementById('reportsModal')).show();
-    fetch(`?page=api_get_trainees&p=1&status=all&role=all&search=`)
+    loadWeeklyReports(traineeId);
+}
+
+function loadWeeklyReports(traineeId) {
+    fetch(`?page=api_trainee_get_reports&trainee_id=${traineeId}`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const trainee = data.data.trainees.find(t => t.id == traineeId);
-                if (trainee) {
-                    currentTraineeReports = trainee;
-                    renderReportsWithForm(trainee);
-                }
+                currentTraineeReports = data.data;
+                renderWeeklyReports(traineeId, data.data);
+            } else {
+                document.getElementById('reportsBody').innerHTML = `<div class="text-center text-danger py-4">${escapeHtml(data.message || 'Failed to load reports.')}</div>`;
             }
         })
-        .catch(error => {
+        .catch(() => {
             document.getElementById('reportsBody').innerHTML = `
                 <div class="text-center text-danger py-4">
                     <i class="bi bi-exclamation-triangle fs-3 d-block"></i>
@@ -596,141 +594,157 @@ function openReportsModal(traineeId, traineeName) {
         });
 }
 
-function renderReportsWithForm(trainee) {
+function renderWeeklyReports(traineeId, data) {
     const body = document.getElementById('reportsBody');
-    const monthLabels = ['Month 1 (30 days)', 'Month 2 (60 days)', 'Month 3 (90 days)'];
-    const reports = [trainee.report_1, trainee.report_2, trainee.report_3];
+    const role = window.CURRENT_USER_ROLE;
+    const userId = window.CURRENT_USER_ID;
+
     let html = `
-        <div class="mb-3">
-            <span class="badge bg-${trainee.reports_status === 'completed' ? 'success' : trainee.reports_status === 'reviewed' ? 'warning' : 'secondary'}">
-                Reports Status: ${trainee.reports_status ? trainee.reports_status.charAt(0).toUpperCase() + trainee.reports_status.slice(1) : 'Pending'}
-            </span>
-            ${trainee.eligible_for_contract ? '<span class="badge bg-success ms-2">✅ Eligible for Contract</span>' : ''}
+        <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <span class="badge bg-${data.all_reports_complete ? 'success' : 'secondary'}">${data.submitted_weeks}/${data.expected_weeks} weeks submitted</span>
+                ${data.all_forwarded && data.reports.length ? '<span class="badge bg-info ms-1">All forwarded to HR Head</span>' : ''}
+                ${data.missing_weeks.length ? `<span class="badge bg-warning text-dark ms-1">Missing: ${data.missing_weeks.join(', ')}</span>` : ''}
+            </div>
+            <button class="btn btn-sm btn-yellow-primary" id="openSubmitReportBtn"><i class="bi bi-plus-circle"></i> Submit Weekly Report</button>
+        </div>
+        <div id="submitReportFormWrap" class="modern-card p-3 mb-3" style="display:none;">
+            <div class="mb-2">
+                <label class="form-label fw-semibold">Week Number</label>
+                <input type="number" id="reportWeekNumber" class="form-control form-control-sm" min="1" max="${data.expected_weeks}" style="max-width:120px;" value="${data.missing_weeks[0] || 1}">
+            </div>
+            <div class="mb-2"><label class="form-label fw-semibold">Report Content</label><textarea id="reportContentInput" class="form-control" rows="3" maxlength="5000"></textarea></div>
+            <div class="row g-2">
+                <div class="col-md-6"><label class="form-label small">Strengths</label><textarea id="reportStrengths" class="form-control form-control-sm" rows="2" maxlength="2000"></textarea></div>
+                <div class="col-md-6"><label class="form-label small">Areas for Improvement</label><textarea id="reportImprovements" class="form-control form-control-sm" rows="2" maxlength="2000"></textarea></div>
+            </div>
+            <div class="row g-2 mt-1">
+                <div class="col-md-6"><label class="form-label small">Attendance/Punctuality Notes</label><input type="text" id="reportAttendance" class="form-control form-control-sm" maxlength="1000"></div>
+                <div class="col-md-6">
+                    <label class="form-label small">Performance Rating</label>
+                    <select id="reportRating" class="form-select form-select-sm">
+                        <option value="">-- none --</option>
+                        <option value="excellent">Excellent</option>
+                        <option value="good">Good</option>
+                        <option value="satisfactory">Satisfactory</option>
+                        <option value="needs_improvement">Needs Improvement</option>
+                        <option value="poor">Poor</option>
+                    </select>
+                </div>
+            </div>
+            <div class="text-muted small mt-2">Once submitted, this report cannot be edited.</div>
+            <button class="btn btn-yellow-primary btn-sm mt-2" id="submitWeeklyReportBtn"><i class="bi bi-save"></i> Submit</button>
         </div>
     `;
-    const allSubmitted = reports.every(r => r !== null);
-    let firstMissingMonth = -1;
-    for (let i = 0; i < 3; i++) {
-        if (!reports[i]) {
-            firstMissingMonth = i;
-            break;
-        }
-    }
-    for (let i = 0; i < 3; i++) {
-        const report = reports[i];
-        const isLocked = report !== null;
-        const isCurrentMonth = (i === firstMissingMonth && !allSubmitted);
-        html += `
-            <div class="modern-card p-3 mb-3">
+
+    if (!data.reports.length) {
+        html += `<div class="text-center text-muted py-3">No weekly reports submitted yet.</div>`;
+    } else {
+        html += data.reports.map(r => {
+            const canObserve = r.status === 'submitted' && role === mapDeptToReviewerRoleJs(r.department) && Number(r.trainer_id) !== Number(userId);
+            const canHrReview = (r.status === 'forwarded' || r.status === 'hr_reviewed') && (role === 'hr_head');
+            return `
+            <div class="modern-card p-3 mb-2">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0">${monthLabels[i]}</h6>
-                    ${report ? '<span class="badge bg-success">✅ Submitted</span>' : '<span class="badge bg-secondary">Not Submitted</span>'}
-                    ${report ? '<span class="badge bg-secondary">🔒 Locked</span>' : ''}
+                    <h6 class="mb-0">Week ${r.week_number} <small class="text-muted">(${r.period_start} to ${r.period_end})</small></h6>
+                    <span class="badge bg-${r.status === 'submitted' ? 'secondary' : r.status === 'forwarded' ? 'info' : 'success'}">${escapeHtml(r.status)}</span>
                 </div>
-                ${report ? `
-                    <div class="p-2 bg-light rounded" style="white-space:pre-wrap;">${escapeHtml(report)}</div>
-                ` : isCurrentMonth ? `
-                    <div class="mb-2">
-                        <label class="form-label fw-semibold">Report for ${monthLabels[i]}</label>
-                        <textarea id="reportTextInput" class="form-control" rows="5" placeholder="Enter report details..."></textarea>
-                        <div class="text-muted small mt-1">Include attendance, performance, and any incidents.</div>
-                    </div>
-                    <button class="btn btn-yellow-primary btn-sm submit-report-btn" data-month="${i + 1}">
-                        <i class="bi bi-save"></i> Submit Report
-                    </button>
-                    <span class="text-muted small ms-2">Once submitted, this report cannot be edited.</span>
-                ` : `
-                    <div class="text-muted small">Waiting for previous month's report.</div>
-                `}
-            </div>
-        `;
+                <div class="p-2 bg-light rounded mb-2" style="white-space:pre-wrap;">${escapeHtml(r.report_content)}</div>
+                <div class="small text-muted mb-2">By ${escapeHtml(r.trainer_first)} ${escapeHtml(r.trainer_last)} on ${new Date(r.submitted_at).toLocaleDateString()}
+                    ${r.performance_rating ? ' &middot; Rating: ' + escapeHtml(r.performance_rating) : ''}</div>
+                ${r.reviewer_observation ? `<div class="alert alert-secondary py-1 px-2 small mb-2"><strong>${escapeHtml(r.reviewer_role)} observation (${escapeHtml(r.reviewer_first)} ${escapeHtml(r.reviewer_last)}):</strong> ${escapeHtml(r.reviewer_observation)}</div>` : ''}
+                ${r.hr_head_notes ? `<div class="alert alert-info py-1 px-2 small mb-2"><strong>HR Head notes:</strong> ${escapeHtml(r.hr_head_notes)}</div>` : ''}
+                ${canObserve ? `
+                    <textarea class="form-control form-control-sm mb-1 observation-input" data-report-id="${r.id}" rows="2" maxlength="3000" placeholder="Add your observation (optional)..."></textarea>
+                    <button class="btn btn-sm btn-outline-primary forward-report-btn" data-report-id="${r.id}"><i class="bi bi-send"></i> Add Observation &amp; Forward to HR Head</button>
+                ` : ''}
+                ${canHrReview ? `
+                    <textarea class="form-control form-control-sm mb-1 hrhead-input" data-report-id="${r.id}" rows="2" maxlength="2000" placeholder="HR Head notes (optional)..."></textarea>
+                    <button class="btn btn-sm btn-outline-success hrhead-review-btn" data-report-id="${r.id}"><i class="bi bi-check2"></i> Save Review Note</button>
+                ` : ''}
+            </div>`;
+        }).join('');
     }
+
     body.innerHTML = html;
-    body.querySelectorAll('.submit-report-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const month = parseInt(this.dataset.month);
-            submitReport(month);
-        });
+
+    document.getElementById('openSubmitReportBtn')?.addEventListener('click', function () {
+        const wrap = document.getElementById('submitReportFormWrap');
+        wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
     });
+    document.getElementById('submitWeeklyReportBtn')?.addEventListener('click', () => submitWeeklyReport(traineeId));
+    body.querySelectorAll('.forward-report-btn').forEach(btn => btn.addEventListener('click', function () {
+        const reportId = this.dataset.reportId;
+        const obs = body.querySelector(`.observation-input[data-report-id="${reportId}"]`).value.trim();
+        forwardReport(reportId, obs, traineeId);
+    }));
+    body.querySelectorAll('.hrhead-review-btn').forEach(btn => btn.addEventListener('click', function () {
+        const reportId = this.dataset.reportId;
+        const notes = body.querySelector(`.hrhead-input[data-report-id="${reportId}"]`).value.trim();
+        hrHeadReviewReport(reportId, notes, traineeId);
+    }));
 }
 
-// ============================================
-// SUBMIT REPORT
-// ============================================
+function mapDeptToReviewerRoleJs(department) {
+    return { store: 'store_manager', finance: 'finance_head', hr: 'hr_staff' }[department] || null;
+}
 
-function submitReport(month) {
-    const textarea = document.getElementById('reportTextInput');
-    const reportText = textarea.value.trim();
-    if (!reportText) {
-        Swal.fire({ icon: 'warning', title: 'Report Cannot Be Empty', text: 'Please enter the report details.', confirmButtonText: 'OK' });
+function submitWeeklyReport(traineeId) {
+    const payload = {
+        trainee_id: traineeId,
+        week_number: parseInt(document.getElementById('reportWeekNumber').value),
+        report_content: document.getElementById('reportContentInput').value.trim(),
+        strengths: document.getElementById('reportStrengths').value.trim(),
+        improvements: document.getElementById('reportImprovements').value.trim(),
+        attendance_notes: document.getElementById('reportAttendance').value.trim(),
+        performance_rating: document.getElementById('reportRating').value
+    };
+    if (!payload.report_content) {
+        Swal.fire({ icon: 'warning', title: 'Report Cannot Be Empty', text: 'Please enter the report details.' });
         return;
     }
-    if (reportText.length < 10) {
-        Swal.fire({ icon: 'warning', title: 'Report Too Short', text: 'Please provide at least 10 characters.', confirmButtonText: 'OK' });
-        return;
-    }
-    const modal = bootstrap.Modal.getInstance(document.getElementById('reportsModal'));
-    Swal.fire({
-        title: 'Submit Report?',
-        html: `
-            <div style="text-align:left;">
-                <p><strong>⚠️ Warning:</strong> This action cannot be undone.</p>
-                <p class="text-muted small">Once submitted, this report will be locked and cannot be edited for recording purposes.</p>
-            </div>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ffc414',
-        confirmButtonText: 'Yes, Submit Report',
-        cancelButtonText: 'Cancel',
-        backdrop: true,
-        allowOutsideClick: true
-    }).then(result => {
-        if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-            if (modal) modal.show();
-            return;
-        }
-        if (result.isConfirmed) {
-            if (modal) modal.hide();
-            const data = { trainee_id: currentTraineeId, month: month, report_text: reportText };
-            Swal.fire({
-                title: 'Submitting...',
-                text: 'Please wait.',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-            fetch('?page=api_submit_report', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                Swal.close();
-                if (result.success) {
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Report Submitted!',
-                        html: `
-                            <p>Monthly report has been saved and locked.</p>
-                            <p class="text-muted">${currentTraineeReports.reports_status === 'completed' ? 'All 3 reports are now submitted. You can now review the trainee.' : 'Please submit the next month\'s report when ready.'}</p>
-                        `,
-                        timer: 3000,
-                        showConfirmButton: false
-                    }).then(() => {
-                        openReportsModal(currentTraineeId, document.getElementById('reportsTraineeName').textContent);
-                        loadTrainees(currentPage);
-                    });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Submission Failed', text: result.message || 'Please try again.' });
-                }
-            })
-            .catch(error => {
-                Swal.close();
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
-            });
-        }
-    });
+    fetch('?page=api_trainee_submit_report', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Report Submitted', text: data.message, timer: 2000, showConfirmButton: false });
+                loadWeeklyReports(traineeId);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Submission Failed', text: data.message || 'Please try again.' });
+            }
+        });
+}
+
+function forwardReport(reportId, observation, traineeId) {
+    fetch('?page=api_trainee_add_observation', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ report_id: reportId, observation })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Forwarded', text: data.message, timer: 2000, showConfirmButton: false });
+                loadWeeklyReports(traineeId);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Failed', text: data.message || 'Please try again.' });
+            }
+        });
+}
+
+function hrHeadReviewReport(reportId, notes, traineeId) {
+    fetch('?page=api_trainee_hr_head_review_report', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ report_id: reportId, notes })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Saved', text: data.message, timer: 2000, showConfirmButton: false });
+                loadWeeklyReports(traineeId);
+            } else {
+                Swal.fire({ icon: 'error', title: 'Failed', text: data.message || 'Please try again.' });
+            }
+        });
 }
 
 // ============================================
@@ -739,68 +753,90 @@ function submitReport(month) {
 
 function reviewReports(traineeId, action, traineeName) {
     const modal = bootstrap.Modal.getInstance(document.getElementById('reportsModal'));
-    Swal.fire({
-        title: action === 'eligible' ? 'Mark as Eligible for Contract?' : 'Terminate Trainee?',
-        html: action === 'eligible'
-            ? `<p>Mark <strong>${escapeHtml(traineeName)}</strong> as eligible for contract?</p><p class="text-muted small">This will make the trainee eligible for a contract offer.</p>`
-            : `<p>Terminate <strong>${escapeHtml(traineeName)}</strong>?</p><p class="text-danger">This action cannot be undone.</p>`,
-        icon: action === 'eligible' ? 'question' : 'warning',
-        showCancelButton: true,
-        confirmButtonColor: action === 'eligible' ? '#198754' : '#dc3545',
-        confirmButtonText: action === 'eligible' ? 'Yes, Mark Eligible' : 'Yes, Terminate',
-        cancelButtonText: 'Cancel',
-        backdrop: true,
-        allowOutsideClick: true
-    }).then(result => {
-        if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-            if (modal) modal.show();
-            return;
-        }
-        if (result.isConfirmed) {
-            if (modal) modal.hide();
-            const data = { trainee_id: traineeId, action: action };
-            Swal.fire({
-                title: 'Processing...',
-                text: 'Please wait.',
-                allowOutsideClick: false,
-                didOpen: () => Swal.showLoading()
-            });
-            fetch('?page=api_review_reports', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            })
-            .then(response => response.json())
-            .then(result => {
-                Swal.close();
-                if (result.success) {
-                    const msg = action === 'eligible'
-                        ? `<p><strong>${escapeHtml(traineeName)}</strong> is now eligible for a contract.</p><p class="text-muted">Next step: Go to <strong>Trainees tab</strong> and click <strong>"Contract Interview"</strong> to schedule the contract discussion.</p>`
-                        : `<p><strong>${escapeHtml(traineeName)}</strong> has been terminated.</p><p class="text-muted">The trainee account has been deactivated.</p>`;
-                    Swal.fire({
-                        icon: 'success',
-                        title: action === 'eligible' ? 'Trainee Marked Eligible!' : 'Trainee Terminated',
-                        html: msg,
-                        confirmButtonText: 'OK'
-                    }).then(() => {
+    const doSubmit = (override, reason) => {
+        Swal.fire({ title: 'Processing...', text: 'Please wait.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        fetch('?page=api_update_trainee', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ trainee_id: traineeId, action: action === 'eligible' ? 'complete' : 'terminate', override, reason })
+        })
+        .then(response => response.json())
+        .then(result => {
+            Swal.close();
+            if (result.success) {
+                const msg = action === 'eligible'
+                    ? `<p><strong>${escapeHtml(traineeName)}</strong> is now eligible for the Final Interview.</p><p class="text-muted">Next step: go to the <strong>Interviews</strong> page and schedule their Final Interview.</p>`
+                    : `<p><strong>${escapeHtml(traineeName)}</strong> has been terminated.</p><p class="text-muted">The trainee account has been deactivated and the trainer released.</p>`;
+                Swal.fire({ icon: 'success', title: action === 'eligible' ? 'Trainee Marked Eligible!' : 'Trainee Terminated', html: msg, confirmButtonText: 'OK' })
+                    .then(() => {
                         loadTrainees(currentPage);
                         const modalInstance = bootstrap.Modal.getInstance(document.getElementById('reportsModal'));
                         if (modalInstance) modalInstance.hide();
                     });
-                } else {
-                    Swal.fire({ icon: 'error', title: 'Action Failed', text: result.message || 'Please try again.' });
-                }
-            })
-            .catch(error => {
-                Swal.close();
-                Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
-            });
-        }
+            } else if (result.data && result.data.missing_weeks && action === 'eligible') {
+                // Missing/unforwarded reports -- offer an explicit override.
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Reports Incomplete',
+                    html: `<p>${escapeHtml(result.message)}</p><textarea id="overrideReason" class="swal2-textarea" placeholder="Reason for overriding..."></textarea>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Override & Mark Eligible',
+                    preConfirm: () => {
+                        const reason = document.getElementById('overrideReason').value.trim();
+                        if (!reason) { Swal.showValidationMessage('An override reason is required.'); return false; }
+                        return reason;
+                    }
+                }).then(r2 => {
+                    if (r2.isConfirmed) doSubmit(true, r2.value);
+                    else if (modal) modal.show();
+                });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Action Failed', text: result.message || 'Please try again.' });
+            }
+        })
+        .catch(() => {
+            Swal.close();
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+        });
+    };
+
+    if (action === 'terminate') {
+        Swal.fire({
+            title: 'Terminate Trainee?',
+            html: `<p>Terminate <strong>${escapeHtml(traineeName)}</strong>?</p><p class="text-danger">This action cannot be undone.</p><textarea id="terminateReason" class="swal2-textarea" placeholder="Reason for termination (required)..."></textarea>`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#dc3545',
+            confirmButtonText: 'Yes, Terminate',
+            preConfirm: () => {
+                const reason = document.getElementById('terminateReason').value.trim();
+                if (!reason) { Swal.showValidationMessage('A termination reason is required.'); return false; }
+                return reason;
+            }
+        }).then(result => {
+            if (result.isConfirmed) doSubmit(false, result.value);
+            else if (modal) modal.show();
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Mark as Eligible for Final Interview?',
+        html: `<p>Mark <strong>${escapeHtml(traineeName)}</strong> as eligible?</p><p class="text-muted small">This releases the trainer and prepares the trainee for the Final Interview.</p>`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#198754',
+        confirmButtonText: 'Yes, Mark Eligible',
+        cancelButtonText: 'Cancel'
+    }).then(result => {
+        if (result.isConfirmed) doSubmit(false, '');
+        else if (modal) modal.show();
     });
 }
 
 // ============================================
-// SCHEDULE CONTRACT INTERVIEW
+// SCHEDULE CONTRACT INTERVIEW (legacy stage -- no longer triggered from the UI;
+// kept only so any lingering reference doesn't throw a ReferenceError)
 // ============================================
 
 function openScheduleContractInterview(traineeId, applicantId, traineeName) {

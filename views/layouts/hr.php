@@ -61,6 +61,9 @@ use App\Core\Auth;
                 <a href="?page=hr_contracts" class="nav-item <?php echo $activePage === 'contracts' ? 'active' : ''; ?>" title="Contracts">
                     <span class="nav-icon-wrap"><i class="bi bi-file-text-fill"></i></span> <span class="nav-label">Contracts</span>
                 </a>
+                <a href="?page=hr_job_postings" class="nav-item <?php echo $activePage === 'job_postings' ? 'active' : ''; ?>" title="Job Postings">
+                    <span class="nav-icon-wrap"><i class="bi bi-megaphone-fill"></i><span class="badge bg-danger nav-badge" id="jobPostingsPendingBadge">0</span></span> <span class="nav-label">Job Postings</span>
+                </a>
                 <hr>
                 <a href="?page=hr_schedules" class="nav-item <?php echo $activePage === 'schedules' ? 'active' : ''; ?>" title="Schedules">
                     <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Schedules</span>

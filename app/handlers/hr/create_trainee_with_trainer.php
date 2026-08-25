@@ -59,8 +59,9 @@ try {
         Response::error('Applicant not found.', 404);
     }
 
-    if ($applicant['status'] !== 'final_passed') {
-        Response::error('Applicant must have passed the final interview (status: final_passed). Current status: ' . $applicant['status'], 400);
+    // Trainee Contract now follows the Initial Interview directly.
+    if ($applicant['status'] !== 'initial_passed') {
+        Response::error('Applicant must have passed the initial interview (status: initial_passed). Current status: ' . $applicant['status'], 400);
     }
 
     $roleMap = [
@@ -139,6 +140,9 @@ try {
     ]);
     $traineeId = $db->lastInsertId();
 
+    $db->prepare("INSERT INTO trainer_assignments (trainee_id, trainer_id, assigned_by) VALUES (?, ?, ?)")
+        ->execute([$traineeId, $trainerId, Auth::userId()]);
+
     $days = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
     $restDaysArray = !empty($restDays) ? explode(',', $restDays) : ['saturday','sunday'];
     
@@ -163,6 +167,11 @@ try {
 
     $notificationMessage = "Trainee account created for {$applicant['first_name']} {$applicant['last_name']}. Trainer {$trainer['first_name']} {$trainer['last_name']} is locked.";
     createNotification(Auth::userId(), 'trainee_created', $notificationMessage);
+    logRecruitmentEvent('applicant', $applicantId, 'trainee_contract_assigned', [
+        'previous_status' => 'initial_passed',
+        'new_status' => 'screening',
+        'notes' => "Trainer #{$trainerId} assigned"
+    ]);
 
     $trainerName = trim(($trainer['first_name'] ?? '') . ' ' . ($trainer['last_name'] ?? ''));
     if (empty($trainerName)) {

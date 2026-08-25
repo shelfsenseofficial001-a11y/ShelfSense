@@ -46,19 +46,20 @@ try {
     $result = $applicantModel->getAll($page, $limit, $filters);
 
     $statusLabels = [
-        'pending' => 'Pending Review',
-        'initial_scheduled' => 'Initial Interview Scheduled',
-        'initial_passed' => 'Passed Initial Interview',
-        'initial_failed' => 'Failed Initial Interview',
-        'final_scheduled' => 'Final Interview Scheduled',
-        'final_passed' => 'Passed Final Interview',
-        'final_failed' => 'Failed Final Interview',
-        'screening' => 'In Training',
-        'screening_success' => 'Training Completed',
-        'screening_failed' => 'Training Failed',
-        'contract_offered' => 'Contract Offered',
-        'contract_declined' => 'Contract Declined',
-        'hired' => 'Hired'
+        'pending' => 'New Applicant',
+        'initial_scheduled' => 'Initial Interview Pending',
+        'initial_passed' => 'Initial Interview Passed',
+        'initial_failed' => 'Initial Interview Failed (Rejected)',
+        'final_scheduled' => 'Final Interview Pending',
+        'final_passed' => 'Final Interview Passed',
+        'final_failed' => 'Final Interview Failed (Rejected)',
+        'screening' => 'Trainee Contract (In Training)',
+        'screening_success' => 'Trainee Contract Completed',
+        'screening_failed' => 'Trainee Contract Failed (Rejected)',
+        'contract_offered' => 'Job Offer Pending',
+        'contract_declined' => 'Offer Declined',
+        'hired' => 'Hired',
+        'withdrawn' => 'Withdrawn'
     ];
 
     foreach ($result['applicants'] as &$applicant) {

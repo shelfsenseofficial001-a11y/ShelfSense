@@ -3,9 +3,10 @@
 
 require_once __DIR__ . '/../helpers/functions.php';
 require_once __DIR__ . '/../core/Database.php';
-// Mailer is disabled for now
+require_once __DIR__ . '/../core/Mailer.php';
 
 use App\Core\Database;
+use App\Core\Mailer;
 
 header('Content-Type: application/json');
 
@@ -115,9 +116,26 @@ try {
     $applicantId = $db->lastInsertId();
 
     // ============================================
-    // SEND CONFIRMATION EMAIL (DISABLED FOR NOW)
+    // SEND CONFIRMATION EMAIL
     // ============================================
-    error_log("📧 Application received: $firstName $lastName <$email> for $targetRole");
+    // A fresh INSERT above guarantees this runs at most once per application
+    // (the duplicate-email check above already rejects a resubmission), so a
+    // page refresh cannot trigger a second confirmation email.
+    try {
+        $mailer = new Mailer();
+        $mailer->sendApplicantStatusUpdate(
+            ['email' => $email, 'first_name' => $firstName, 'last_name' => $lastName],
+            'application_received',
+            "Thank you for applying for the {$targetRole} position at ShelfSense. Our HR team will review your application and contact you regarding next steps."
+        );
+    } catch (Exception $e) {
+        error_log('api_apply.php: confirmation email failed: ' . $e->getMessage());
+    }
+
+    logRecruitmentEvent('applicant', $applicantId, 'application_received', [
+        'new_status' => 'pending',
+        'notes' => 'source: public application form'
+    ]);
 
     // ============================================
     // NOTIFY HR
