@@ -28,7 +28,10 @@ $monthYear = isset($input['month_year']) ? trim($input['month_year']) : '';
 $amount = isset($input['allocated_budget']) ? $input['allocated_budget'] : null;
 $reason = isset($input['reason']) ? trim($input['reason']) : '';
 
-if ($department === '' || strlen($department) > 20 || !preg_match('/^[a-z_]+$/', $department)) {
+// Departments are never hard-coded — they come live from real budgets/requisitions
+// (Budget::getAllDepartments()), so this only guards length/character sanity, not
+// a fixed lowercase-only naming scheme that could reject a real department name.
+if ($department === '' || strlen($department) > 20 || !preg_match('/^[a-zA-Z0-9_ -]+$/', $department)) {
     Response::error('A valid department is required', 400);
 }
 if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $monthYear)) {

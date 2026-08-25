@@ -105,10 +105,14 @@ try {
     $budgetModel = new Budget();
     foreach ($requests as &$req) {
         if ($req['status'] === 'pending') {
+            // Exclude this row's own requisition from "reserved" — it's the same
+            // pending request being displayed, not a competing reservation, so it
+            // must not be subtracted from availability twice.
             $req['budget_status'] = $budgetModel->getBudgetStatus(
                 $req['department'] ?: 'store',
                 $req['budget_month_year'] ?: date('Y-m'),
-                (float)$req['requisition_total']
+                (float)$req['requisition_total'],
+                $req['requisition_id']
             );
         } else {
             $req['budget_status'] = null;

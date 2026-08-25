@@ -65,11 +65,18 @@ try {
     // Live, authoritative budget status for this requisition's department/period —
     // reused by both Finance Staff (creating a request) and Finance Head (reviewing
     // one), so the numbers shown are always freshly computed, never fabricated.
+    // If this requisition already has its own pending payment request, exclude it
+    // from "reserved" — it's the same request being displayed, not a competing
+    // one, so it must not be subtracted from availability twice.
     $budgetModel = new Budget();
+    $excludeId = ($requisition['payment_request'] && $requisition['payment_request']['status'] === 'pending')
+        ? $requisition['id']
+        : null;
     $requisition['budget_status'] = $budgetModel->getBudgetStatus(
         $requisition['department'] ?: 'store',
         $requisition['budget_month_year'] ?: date('Y-m'),
-        (float)$requisition['total']
+        (float)$requisition['total'],
+        $excludeId
     );
 
     Response::success([

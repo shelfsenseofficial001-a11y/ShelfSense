@@ -135,7 +135,7 @@ function buildCard(r) {
                     <div class="fn-req-number">${fnPRNumber(r.id)} &nbsp;${fnEscapeHtml(r.requisition_number)}</div>
                     <div class="fn-req-sub">${fnEscapeHtml(r.company_name)}</div>
                 </div>
-                ${exceeded ? '<span class="fn-status-badge status-exceeded">⚠️ Budget Exceeded</span>' : fnPaymentStatusBadge(r.status)}
+                ${exceeded ? fnBudgetStatusBadge('exceeded') : fnPaymentStatusBadge(r.status)}
             </div>
             <div class="small text-muted mb-2">Requested by ${fnEscapeHtml(r.requested_first)} ${fnEscapeHtml(r.requested_last)} — ${fnFormatDate(r.requested_at, true)}</div>
 

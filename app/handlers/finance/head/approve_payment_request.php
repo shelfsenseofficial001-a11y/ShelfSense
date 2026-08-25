@@ -83,8 +83,10 @@ try {
     if ($action === 'approve') {
         // Recalculated fresh, right now, under the row lock — never trust the
         // budget_exceeded flag the client (or even the original request) carried.
+        // Exclude this same requisition's own (still-pending) reservation from
+        // "reserved" so its amount isn't subtracted from availability twice.
         $budgetModel = new Budget();
-        $budgetStatus = $budgetModel->getBudgetStatus($department, $monthYear, $amount);
+        $budgetStatus = $budgetModel->getBudgetStatus($department, $monthYear, $amount, $request['requisition_id']);
 
         if ($budgetStatus['exceeded'] && $notes === '') {
             $db->rollBack();
