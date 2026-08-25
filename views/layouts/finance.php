@@ -19,7 +19,6 @@ $role = Auth::role();
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/finance.css">
     <?= $additional_css ?? '' ?>

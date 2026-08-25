@@ -203,11 +203,171 @@ class Budget
     public function getAllForMonth($monthYear)
     {
         $stmt = $this->db->prepare("
-            SELECT department, allocated_budget, used_budget 
-            FROM budgets 
+            SELECT department, allocated_budget, used_budget
+            FROM budgets
             WHERE month_year = ?
         ");
         $stmt->execute([$monthYear]);
         return $stmt->fetchAll();
+    }
+
+    /**
+     * Real department list: every department that has ever had a budget allocation
+     * or a store requisition, so Finance Head only ever sees departments that
+     * actually exist in the data (never a hard-coded/fabricated list).
+     */
+    public function getAllDepartments()
+    {
+        $stmt = $this->db->query("
+            SELECT department FROM budgets
+            UNION
+            SELECT department FROM store_requisitions
+            ORDER BY department ASC
+        ");
+        return array_column($stmt->fetchAll(), 'department');
+    }
+
+    /**
+     * Full getBudgetStatus() for every real department, for a given period.
+     * This is the single source of truth reused by the Finance Head dashboard
+     * and Budget Management page — same definitions as Finance Staff.
+     */
+    public function getAllDepartmentsStatus($monthYear)
+    {
+        $departments = $this->getAllDepartments();
+        $out = [];
+        foreach ($departments as $dept) {
+            $out[] = $this->getBudgetStatus($dept, $monthYear);
+        }
+        return $out;
+    }
+
+    /**
+     * Departments at or above a usage warning threshold (default 80%), among
+     * departments that actually have an allocation. Uses the same used_percentage
+     * ((used + reserved) / allocated) computed by getBudgetStatus().
+     */
+    public function getDepartmentsNearLimit($monthYear, $thresholdPercent = 80.0)
+    {
+        $all = $this->getAllDepartmentsStatus($monthYear);
+        return array_values(array_filter($all, function ($d) use ($thresholdPercent) {
+            return $d['has_allocation'] && $d['used_percentage'] !== null && $d['used_percentage'] >= $thresholdPercent;
+        }));
+    }
+
+    /**
+     * Create or adjust a department/period's allocated budget, with a truthful
+     * history record (previous/new/adjustment amount, used+reserved at the time,
+     * who made it, and why). Transaction + row lock so concurrent adjustments to
+     * the same budget can't interleave and lose an update.
+     */
+    public function adjustAllocation($department, $monthYear, $newAmount, $userId, $reason = null)
+    {
+        $this->db->beginTransaction();
+        try {
+            // Lock (or create) the budget row first so concurrent adjustments serialize.
+            $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department = ? AND month_year = ? FOR UPDATE");
+            $stmt->execute([$department, $monthYear]);
+            $budget = $stmt->fetch();
+
+            if (!$budget) {
+                $stmt = $this->db->prepare("
+                    INSERT INTO budgets (department, month_year, allocated_budget, used_budget)
+                    VALUES (?, ?, 0, 0)
+                ");
+                $stmt->execute([$department, $monthYear]);
+                $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department = ? AND month_year = ? FOR UPDATE");
+                $stmt->execute([$department, $monthYear]);
+                $budget = $stmt->fetch();
+            }
+
+            $previousAllocated = (float)$budget['allocated_budget'];
+            $used = (float)$budget['used_budget'];
+
+            // Reserved (live, pending payment requests) at the moment of this adjustment.
+            $stmt = $this->db->prepare("
+                SELECT COALESCE(SUM(r.total), 0) as reserved
+                FROM payment_requests pr
+                JOIN store_requisitions r ON pr.requisition_id = r.id
+                WHERE pr.status = 'pending' AND r.department = ? AND r.budget_month_year = ?
+            ");
+            $stmt->execute([$department, $monthYear]);
+            $reserved = (float)$stmt->fetch()['reserved'];
+
+            $stmt = $this->db->prepare("UPDATE budgets SET allocated_budget = ? WHERE id = ?");
+            $stmt->execute([$newAmount, $budget['id']]);
+
+            $stmt = $this->db->prepare("
+                INSERT INTO budget_adjustments
+                    (budget_id, department, month_year, previous_allocated, new_allocated,
+                     adjustment_amount, used_at_adjustment, reserved_at_adjustment, adjusted_by, reason)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ");
+            $stmt->execute([
+                $budget['id'], $department, $monthYear, $previousAllocated, $newAmount,
+                round($newAmount - $previousAllocated, 2), $used, $reserved, $userId, $reason
+            ]);
+
+            $this->db->commit();
+
+            return [
+                'previous_allocated' => round($previousAllocated, 2),
+                'new_allocated' => round($newAmount, 2),
+                'adjustment_amount' => round($newAmount - $previousAllocated, 2),
+                'used' => round($used, 2),
+                'reserved' => round($reserved, 2),
+                'below_committed' => $newAmount < ($used + $reserved)
+            ];
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+    }
+
+    /**
+     * Adjustment history, most recent first.
+     */
+    public function getAdjustmentHistory($filters = [], $limit = 20, $offset = 0)
+    {
+        $where = "1=1";
+        $params = [];
+        if (!empty($filters['department'])) {
+            $where .= " AND ba.department = ?";
+            $params[] = $filters['department'];
+        }
+        if (!empty($filters['month_year'])) {
+            $where .= " AND ba.month_year = ?";
+            $params[] = $filters['month_year'];
+        }
+        $sql = "
+            SELECT ba.*, u.first_name, u.last_name
+            FROM budget_adjustments ba
+            JOIN users u ON ba.adjusted_by = u.user_id
+            WHERE $where
+            ORDER BY ba.created_at DESC
+            LIMIT ? OFFSET ?
+        ";
+        $params[] = $limit;
+        $params[] = $offset;
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll();
+    }
+
+    public function getAdjustmentHistoryCount($filters = [])
+    {
+        $where = "1=1";
+        $params = [];
+        if (!empty($filters['department'])) {
+            $where .= " AND department = ?";
+            $params[] = $filters['department'];
+        }
+        if (!empty($filters['month_year'])) {
+            $where .= " AND month_year = ?";
+            $params[] = $filters['month_year'];
+        }
+        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM budget_adjustments WHERE $where");
+        $stmt->execute($params);
+        return (int)$stmt->fetch()['count'];
     }
 }

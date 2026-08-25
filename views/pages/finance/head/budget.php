@@ -1,111 +1,85 @@
 <?php
-$title = 'Budget - Finance Head';
+$title = 'Budget Management - Finance Head';
 $pageTitle = 'Budget Management';
 $activePage = 'head_budget';
 $additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/budget.js"></script>';
 
 $defaultMonth = date('Y-m');
 
-$additional_css = '
-<style>
-    .budget-card {
-        padding: 20px;
-        border-radius: 12px;
-        background: var(--bg-card);
-        border: 1px solid var(--border-color);
-        text-align: center;
-    }
-    .budget-card .amount {
-        font-size: 2rem;
-        font-weight: 700;
-    }
-    .budget-card .label {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-    }
-    .budget-card .amount.positive { color: #059669; }
-    .budget-card .amount.negative { color: #dc2626; }
-    .budget-card .amount.warning { color: #d97706; }
-
-    /* ✅ CRITICAL FIX: Prevent infinite height expansion */
-    #budgetChartWrapper {
-        position: relative;
-        height: 300px !important;
-        width: 100% !important;
-        overflow: hidden !important;
-    }
-    #budgetChart {
-        max-height: 300px !important;
-        width: 100% !important;
-    }
-    /* ✅ Prevent table from expanding */
-    .finance-page-content table,
-    .finance-page-content .table,
-    .finance-page-content .modern-card {
-        height: auto !important;
-        max-height: none !important;
-    }
-    /* ✅ Prevent any inline height from being set */
-    .finance-page-content * {
-        max-height: none !important;
-    }
-</style>
-';
-
 $content = <<<EOT
-<div class="row g-3 mb-4">
-    <div class="col-md-4">
-        <div class="budget-card">
-            <div class="label">Total Budget</div>
-            <div class="amount" id="totalBudget">₱0.00</div>
-        </div>
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+        <label class="form-label fw-semibold mb-0">Period:</label>
+        <input type="month" id="monthFilter" class="form-control form-control-sm" style="max-width:180px;" value="{$defaultMonth}">
+        <label class="form-label fw-semibold mb-0 ms-2">Department:</label>
+        <select id="departmentFilter" class="form-select form-select-sm searchable-select" style="min-width:160px;" data-placeholder="All departments"></select>
     </div>
-    <div class="col-md-4">
-        <div class="budget-card">
-            <div class="label">Used Budget</div>
-            <div class="amount" id="usedBudget">₱0.00</div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="budget-card">
-            <div class="label">Remaining Budget</div>
-            <div class="amount" id="remainingBudget">₱0.00</div>
-        </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+        <button class="btn btn-yellow-outline btn-sm" id="exportBtn"><i class="bi bi-download"></i> Export CSV</button>
+        <button class="btn btn-yellow-outline btn-sm" id="printBtn"><i class="bi bi-printer"></i> Print</button>
     </div>
 </div>
 
-<div class="modern-card p-3">
-    <h6 class="fw-bold mb-3"><i class="bi bi-pencil text-yellow me-2"></i>Set Budget</h6>
-    <div class="row g-3">
-        <div class="col-md-3">
-            <label class="form-label fw-semibold">Department</label>
-            <select id="budgetDepartment" class="form-select">
-                <option value="store">Store</option>
-                <option value="hr">Human Resources</option>
-                <option value="finance">Finance</option>
-                <option value="general">General</option>
-            </select>
-        </div>
-        <div class="col-md-3">
-            <label class="form-label fw-semibold">Month</label>
-            <input type="month" id="budgetMonth" class="form-control" value="{$defaultMonth}">
-        </div>
-        <div class="col-md-3">
-            <label class="form-label fw-semibold">Allocated Budget</label>
-            <input type="number" id="budgetAmount" class="form-control" step="0.01" placeholder="0.00">
-        </div>
-        <div class="col-md-3 d-flex align-items-end">
-            <button class="btn btn-yellow-primary btn-sm w-100" id="setBudgetBtn">Set Budget</button>
-        </div>
+<div id="fn-near-limit-box"></div>
+
+<div class="modern-card p-3 mb-3">
+    <h6 class="fw-bold mb-3"><i class="bi bi-building text-yellow me-2"></i>Budget Overview — All Departments</h6>
+    <div id="fn-overview-table">
+        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
     </div>
-    <div id="budgetMessage" class="mt-2"></div>
+    <p class="text-muted small mb-0 mt-2" id="lastUpdated"></p>
 </div>
 
-<!-- ✅ WRAPPED IN FIXED CONTAINER -->
-<div class="modern-card p-3 mt-3">
-    <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart text-yellow me-2"></i>Budget Usage</h6>
-    <div id="budgetChartWrapper">
-        <canvas id="budgetChart"></canvas>
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="modern-card p-3 mb-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square text-yellow me-2"></i>Set / Adjust Budget</h6>
+            <form id="setBudgetForm">
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Department</label>
+                    <select id="budgetDepartment" class="form-select searchable-select" required></select>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">Month</label>
+                    <input type="month" id="budgetMonth" class="form-control" value="{$defaultMonth}" required>
+                </div>
+                <div id="currentBudgetInfo" class="small text-muted mb-2"></div>
+                <div class="mb-2">
+                    <label class="form-label fw-semibold">New Allocated Budget</label>
+                    <input type="number" id="budgetAmount" class="form-control" step="0.01" min="0" placeholder="0.00" required>
+                </div>
+                <div id="adjustmentPreview" class="small mb-2"></div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Reason / Notes (Optional)</label>
+                    <textarea id="budgetReason" class="form-control" rows="2" placeholder="e.g. Increased for Q3 restocking"></textarea>
+                </div>
+                <button type="submit" class="btn btn-yellow-primary btn-sm w-100" id="setBudgetBtn">
+                    <i class="bi bi-save"></i> Save Budget
+                </button>
+            </form>
+            <div id="budgetMessage" class="mt-2"></div>
+        </div>
+
+        <div class="modern-card p-3">
+            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-yellow me-2"></i>Allocation Adjustment History</h6>
+            <div id="fn-adjustment-history">
+                <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <span class="text-muted small" id="historyInfo"></span>
+                <nav><ul class="pagination pagination-sm mb-0" id="historyPagination"></ul></nav>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="modern-card p-3" id="budgetReportSection">
+            <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-bar-graph text-yellow me-2"></i>Budget Usage by Requisition</h6>
+            <div id="fn-usage-table">
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+        </div>
     </div>
 </div>
 EOT;

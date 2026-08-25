@@ -1,15 +1,21 @@
 <?php
 // app/handlers/finance/head/get_budget.php
+// Finance Head Budget Management data: real per-department status for the
+// selected period, near-limit warnings, and real usage-by-requisition for the
+// currently selected department. Same Budget::getBudgetStatus() definitions
+// used by Finance Staff — allocated / used / reserved / available / shortfall.
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/Budget.php';
+require_once __DIR__ . '/../../../models/StoreRequisition.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 use App\Models\Budget;
+use App\Models\StoreRequisition;
 
 header('Content-Type: application/json');
 
@@ -21,38 +27,56 @@ if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
     Response::forbidden('Access denied. Finance Head role required.');
 }
 
-$department = isset($_GET['department']) ? trim($_GET['department']) : 'store';
 $monthYear = isset($_GET['month']) ? trim($_GET['month']) : date('Y-m');
+if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $monthYear)) {
+    Response::error('Invalid month format. Use YYYY-MM.', 400);
+}
+$department = isset($_GET['department']) ? trim($_GET['department']) : '';
 
 try {
     $budgetModel = new Budget();
+    $departments = $budgetModel->getAllDepartments();
+    $departmentStatuses = $budgetModel->getAllDepartmentsStatus($monthYear);
+    $nearLimit = $budgetModel->getDepartmentsNearLimit($monthYear, 80.0);
 
-    // ✅ Get summary without auto-creating
-    $summary = $budgetModel->getSummary($department, $monthYear);
+    if ($department === '' && !empty($departments)) {
+        $department = $departments[0];
+    }
 
-    // Get all departments budgets for this month for chart
-    $allBudgets = $budgetModel->getAllForMonth($monthYear);
+    $selected = $department !== '' ? $budgetModel->getBudgetStatus($department, $monthYear) : null;
 
-    // If no budgets exist for this month, return empty array
-    if (!$allBudgets) {
-        $allBudgets = [];
+    // Real usage by requisition for the selected department/month — every
+    // requisition actually booked against that period, with its real payment
+    // status. No fabricated rows: an empty result just means none exist yet.
+    $usage = [];
+    if ($department !== '') {
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("
+            SELECT r.id, r.requisition_number, r.order_date, r.total, r.status,
+                   s.company_name,
+                   pr.status as payment_request_status
+            FROM store_requisitions r
+            JOIN suppliers s ON r.supplier_id = s.id
+            LEFT JOIN payment_requests pr ON pr.requisition_id = r.id
+            WHERE r.department = ? AND r.budget_month_year = ?
+            ORDER BY r.order_date DESC
+        ");
+        $stmt->execute([$department, $monthYear]);
+        $usage = $stmt->fetchAll();
     }
 
     Response::success([
-        'budget' => [
-            'allocated_budget' => $summary['allocated'],
-            'used_budget' => $summary['used'],
-            'department' => $summary['department'],
-            'month_year' => $summary['month_year']
-        ],
-        'remaining' => $summary['remaining'],
-        'department' => $department,
+        'departments' => $departments,
+        'department_statuses' => $departmentStatuses,
+        'departments_near_limit' => $nearLimit,
+        'selected_department' => $department,
         'month_year' => $monthYear,
-        'all_budgets' => $allBudgets,
-        'exists' => $summary['exists']
+        'selected' => $selected,
+        'usage' => $usage,
+        'generated_at' => date('Y-m-d H:i:s')
     ], 'Budget fetched');
 
 } catch (Exception $e) {
-    error_log('get_budget.php error: ' . $e->getMessage());
+    error_log('finance/head/get_budget.php error: ' . $e->getMessage());
     Response::error('Error: ' . $e->getMessage());
 }

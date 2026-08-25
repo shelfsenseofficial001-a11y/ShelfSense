@@ -987,6 +987,11 @@ if ($page === 'api_finance_set_budget') {
     exit;
 }
 
+if ($page === 'api_finance_get_budget_adjustments') {
+    require_once __DIR__ . '/../app/handlers/finance/head/get_budget_adjustments.php';
+    exit;
+}
+
 // ============================================
 // SHARED MODULE ROUTES
 // ============================================

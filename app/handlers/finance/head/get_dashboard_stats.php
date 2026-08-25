@@ -24,52 +24,69 @@ if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
 }
 
 try {
+    $db = Database::getInstance()->getConnection();
     $paymentRequestModel = new PaymentRequest();
     $budgetModel = new Budget();
-
-    // Stats
-    $pending = $paymentRequestModel->getCountByStatus('pending');
-    $approved = $paymentRequestModel->getCountByStatus('approved');
-    $rejected = $paymentRequestModel->getCountByStatus('rejected');
-
-    // Budget stats (store department, current month)
-    $department = 'store';
     $monthYear = date('Y-m');
-    $budget = $budgetModel->getOrCreate($department, $monthYear);
-    $usedPercentage = $budget['allocated_budget'] > 0 
-        ? round(($budget['used_budget'] / $budget['allocated_budget']) * 100) 
-        : 0;
 
-    // Recent approvals (last 5 approved/rejected by this head)
-    $db = Database::getInstance()->getConnection();
+    $pending = (int)$paymentRequestModel->getCountByStatus('pending');
+
+    $stmt = $db->prepare("SELECT COUNT(*) as c FROM payment_requests WHERE status = 'approved' AND DATE_FORMAT(approved_at, '%Y-%m') = ?");
+    $stmt->execute([$monthYear]);
+    $approvedThisMonth = (int)$stmt->fetch()['c'];
+
+    // No dedicated rejected_at column — updated_at reflects the moment status was
+    // last changed, which for a rejected request is truthfully the rejection time.
+    $stmt = $db->prepare("SELECT COUNT(*) as c FROM payment_requests WHERE status = 'rejected' AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
+    $stmt->execute([$monthYear]);
+    $rejectedThisMonth = (int)$stmt->fetch()['c'];
+
+    // Real per-department budget status (same definitions as Finance Staff's budget model).
+    $departments = $budgetModel->getAllDepartmentsStatus($monthYear);
+    $nearLimit = $budgetModel->getDepartmentsNearLimit($monthYear, 80.0);
+
+    $allocatedSum = 0.0;
+    $committedSum = 0.0; // used + reserved, across departments that have an allocation
+    foreach ($departments as $d) {
+        if ($d['has_allocation']) {
+            $allocatedSum += $d['allocated'];
+            $committedSum += $d['used'] + $d['reserved'];
+        }
+    }
+    $overallUsedPercentage = $allocatedSum > 0 ? round(($committedSum / $allocatedSum) * 100, 1) : null;
+
+    // Recent activity: the most recently touched payment requests, regardless of
+    // status — a truthful mix of pending/approved/rejected, exactly reflecting
+    // real updated_at timestamps (no fabricated timeline).
     $stmt = $db->prepare("
-        SELECT pr.*, 
-               r.requisition_number,
-               u.first_name, u.last_name
+        SELECT pr.id, pr.status, pr.approved_at, pr.rejection_reason, pr.updated_at, pr.requested_at,
+               r.requisition_number, r.total as requisition_total,
+               s.company_name,
+               u2.first_name as approved_first, u2.last_name as approved_last
         FROM payment_requests pr
         JOIN store_requisitions r ON pr.requisition_id = r.id
-        JOIN users u ON pr.requested_by = u.user_id
-        WHERE pr.approved_by = ? OR pr.status IN ('approved', 'rejected')
+        JOIN suppliers s ON r.supplier_id = s.id
+        LEFT JOIN users u2 ON pr.approved_by = u2.user_id
         ORDER BY pr.updated_at DESC
         LIMIT 5
     ");
-    $stmt->execute([Auth::userId()]);
+    $stmt->execute();
     $recentActivity = $stmt->fetchAll();
 
     Response::success([
         'stats' => [
             'pending' => $pending,
-            'approved' => $approved,
-            'rejected' => $rejected,
-            'budget_used_percentage' => $usedPercentage,
-            'budget_remaining' => $budget['allocated_budget'] - $budget['used_budget'],
-            'budget_used' => $budget['used_budget'],
-            'budget_total' => $budget['allocated_budget']
+            'approved_this_month' => $approvedThisMonth,
+            'rejected_this_month' => $rejectedThisMonth,
+            'budget_used_percentage' => $overallUsedPercentage,
+            'month_year' => $monthYear
         ],
+        'budget_departments' => $departments,
+        'departments_near_limit' => $nearLimit,
         'recent_activity' => $recentActivity
     ], 'Dashboard stats fetched');
 
 } catch (Exception $e) {
-    error_log('get_dashboard_stats.php error: ' . $e->getMessage());
+    error_log('finance/head/get_dashboard_stats.php error: ' . $e->getMessage());
     Response::error('Error: ' . $e->getMessage());
 }

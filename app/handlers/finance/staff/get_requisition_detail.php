@@ -6,11 +6,13 @@ require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/StoreRequisition.php';
+require_once __DIR__ . '/../../../models/Budget.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 use App\Models\StoreRequisition;
+use App\Models\Budget;
 
 header('Content-Type: application/json');
 
@@ -59,6 +61,16 @@ try {
     ");
     $stmt->execute([$id]);
     $requisition['payment_request'] = $stmt->fetch() ?: null;
+
+    // Live, authoritative budget status for this requisition's department/period —
+    // reused by both Finance Staff (creating a request) and Finance Head (reviewing
+    // one), so the numbers shown are always freshly computed, never fabricated.
+    $budgetModel = new Budget();
+    $requisition['budget_status'] = $budgetModel->getBudgetStatus(
+        $requisition['department'] ?: 'store',
+        $requisition['budget_month_year'] ?: date('Y-m'),
+        (float)$requisition['total']
+    );
 
     Response::success([
         'requisition' => $requisition

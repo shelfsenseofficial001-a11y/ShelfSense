@@ -29,42 +29,91 @@ $input = json_decode(file_get_contents('php://input'), true);
 $paymentRequestId = isset($input['payment_request_id']) ? intval($input['payment_request_id']) : 0;
 $action = isset($input['action']) ? trim($input['action']) : '';
 $reason = isset($input['reason']) ? trim($input['reason']) : '';
+$notes = isset($input['notes']) ? trim($input['notes']) : '';
 
-if ($paymentRequestId <= 0 || !in_array($action, ['approve', 'reject'])) {
+if ($paymentRequestId <= 0 || !in_array($action, ['approve', 'reject'], true)) {
     Response::error('Invalid request', 400);
 }
-
-if ($action === 'reject' && empty($reason)) {
+if ($action === 'reject' && $reason === '') {
     Response::error('Rejection reason is required', 400);
 }
+if (strlen($reason) > 500 || strlen($notes) > 500) {
+    Response::error('Notes/reason cannot exceed 500 characters', 400);
+}
+
+$db = Database::getInstance()->getConnection();
 
 try {
-    $db = Database::getInstance()->getConnection();
     $db->beginTransaction();
 
-    $paymentRequestModel = new PaymentRequest();
-    $request = $paymentRequestModel->getById($paymentRequestId);
+    // Row-lock the payment request for the duration of this transaction so a
+    // double-click, page refresh, or genuinely concurrent request from another
+    // tab cannot both pass the "still pending" check before either commits.
+    $stmt = $db->prepare("SELECT * FROM payment_requests WHERE id = ? FOR UPDATE");
+    $stmt->execute([$paymentRequestId]);
+    $request = $stmt->fetch();
 
-    if (!$request || $request['status'] !== 'pending') {
-        Response::error('Payment request not found or already processed.', 400);
+    if (!$request) {
+        $db->rollBack();
+        Response::error('Payment request not found.', 404);
+    }
+    if ($request['status'] !== 'pending') {
+        $db->rollBack();
+        Response::error('This payment request has already been ' . $request['status'] . ' — it cannot be processed again.', 400);
     }
 
     $requisitionModel = new StoreRequisition();
     $requisition = $requisitionModel->getById($request['requisition_id']);
 
     if (!$requisition) {
+        $db->rollBack();
         Response::error('Requisition not found.', 400);
     }
+    if ($requisition['status'] !== 'awaiting_finance') {
+        // Defense in depth: the requisition's own status should always track the
+        // payment request's, but never trust that without checking.
+        $db->rollBack();
+        Response::error('Requisition is not currently awaiting Finance Head approval. Current status: ' . $requisition['status'], 400);
+    }
+
+    $department = $requisition['department'] ?: 'store';
+    $monthYear = $requisition['budget_month_year'] ?: date('Y-m');
+    $amount = (float)$requisition['total'];
 
     if ($action === 'approve') {
-        // 1. Update payment request status
-        $paymentRequestModel->updateStatus($paymentRequestId, 'approved', Auth::userId());
+        // Recalculated fresh, right now, under the row lock — never trust the
+        // budget_exceeded flag the client (or even the original request) carried.
+        $budgetModel = new Budget();
+        $budgetStatus = $budgetModel->getBudgetStatus($department, $monthYear, $amount);
+
+        if ($budgetStatus['exceeded'] && $notes === '') {
+            $db->rollBack();
+            Response::error(
+                'This request exceeds the available budget (short by ₱' . number_format($budgetStatus['shortfall'], 2) . '). '
+                    . 'A Finance Head justification is required before approving an over-budget request.',
+                400,
+                ['notes' => 'Justification is required for over-budget approval.']
+            );
+        }
+
+        // 1. Update payment request status + approval notes/justification.
+        $stmt = $db->prepare("
+            UPDATE payment_requests
+            SET status = 'approved', approved_by = ?, approved_at = NOW(), approval_notes = ?
+            WHERE id = ? AND status = 'pending'
+        ");
+        $stmt->execute([Auth::userId(), $notes !== '' ? $notes : null, $paymentRequestId]);
+        if ($stmt->rowCount() === 0) {
+            // Someone else resolved it between our lock check and this update — should be
+            // impossible under FOR UPDATE, but fail safely instead of proceeding.
+            $db->rollBack();
+            Response::error('This payment request has already been processed.', 400);
+        }
 
         // 2. Get invoice
-        $stmt = $db->prepare("SELECT * FROM supplier_invoices WHERE requisition_id = ? ORDER BY created_at DESC LIMIT 1");
-        $stmt->execute([$request['requisition_id']]);
+        $stmt = $db->prepare("SELECT * FROM supplier_invoices WHERE id = ?");
+        $stmt->execute([$request['supplier_invoice_id']]);
         $invoice = $stmt->fetch();
-
         if (!$invoice) {
             throw new Exception('No invoice found for this requisition.');
         }
@@ -73,28 +122,30 @@ try {
         $stmt = $db->prepare("UPDATE supplier_invoices SET status = 'paid', paid_by = ?, paid_at = NOW() WHERE id = ?");
         $stmt->execute([Auth::userId(), $invoice['id']]);
 
-        // 4. Insert payment record
+        // 4. Insert payment record. uniq_invoice_payment (UNIQUE on supplier_invoice_id)
+        // is the hard DB-level guarantee against a duplicate payment for this invoice —
+        // if a race slipped past the row lock above, this INSERT throws and the whole
+        // transaction (including the status update above) rolls back.
         $stmt = $db->prepare("
             INSERT INTO payments (supplier_invoice_id, amount, payment_method, reference_number, paid_by, paid_at, notes)
             VALUES (?, ?, ?, ?, ?, NOW(), ?)
         ");
         $stmt->execute([
             $invoice['id'],
-            $requisition['total'],
+            $amount,
             'bank_transfer',
             'AUTO-' . date('YmdHis'),
             Auth::userId(),
             'Auto-recorded after Finance Head approval'
         ]);
 
-        // ✅ 5. Update requisition status to PAID
+        // 5. Update requisition status to PAID
         $requisitionModel->updateStatus($request['requisition_id'], 'paid');
 
-        // 6. Update budget used — department comes from the requisition's own record,
-        // never hard-coded, so this can never post usage against the wrong department.
-        $budgetModel = new Budget();
-        $department = $requisition['department'] ?? 'store';
-        $monthYear = $requisition['budget_month_year'] ?: date('Y-m');
+        // 6. Convert reservation to used budget. Reserved is computed live from
+        // pending payment_requests, so now that this one is 'approved' it naturally
+        // drops out of "reserved" and updateUsedBudget() picks it up as "used" via
+        // the requisition's now-'paid' status — no double count possible.
         $budgetModel->updateUsedBudget($department, $monthYear);
 
         // 7. Notify Supplier (Ship Goods button will appear)
@@ -131,11 +182,25 @@ try {
         Response::success([
             'payment_request_id' => $paymentRequestId,
             'status' => 'approved',
-            'requisition_status' => 'paid'
-        ], 'Payment request approved. Payment recorded. Supplier notified.');
+            'requisition_status' => 'paid',
+            'budget_exceeded' => $budgetStatus['exceeded']
+        ], 'Payment request approved. Payment recorded. Supplier notified.' . ($budgetStatus['exceeded'] ? ' Approved over budget.' : ''));
 
     } else { // reject
-        $paymentRequestModel->updateStatus($paymentRequestId, 'rejected', null, $reason);
+        $stmt = $db->prepare("
+            UPDATE payment_requests
+            SET status = 'rejected', rejection_reason = ?
+            WHERE id = ? AND status = 'pending'
+        ");
+        $stmt->execute([$reason, $paymentRequestId]);
+        if ($stmt->rowCount() === 0) {
+            $db->rollBack();
+            Response::error('This payment request has already been processed.', 400);
+        }
+
+        // Return to Finance Staff for correction. No invoice/payment change — and the
+        // rejected request immediately stops counting toward "reserved" budget since
+        // that figure is always computed live from status = 'pending' rows.
         $requisitionModel->updateStatus($request['requisition_id'], 'awaiting_finance_staff');
 
         createNotification(
@@ -150,11 +215,23 @@ try {
         Response::success([
             'payment_request_id' => $paymentRequestId,
             'status' => 'rejected'
-        ], 'Payment request rejected.');
+        ], 'Payment request rejected. Returned to Finance Staff for correction.');
     }
 
+} catch (\PDOException $e) {
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
+    if ($e->getCode() === '23000') {
+        error_log('approve_payment_request.php duplicate-key race: ' . $e->getMessage());
+        Response::error('This payment has already been recorded for this invoice.', 400);
+    }
+    error_log('approve_payment_request.php error: ' . $e->getMessage());
+    Response::error('Error: ' . $e->getMessage());
 } catch (Exception $e) {
-    $db->rollBack();
-    error_log('❌ approve_payment_request.php error: ' . $e->getMessage());
+    if ($db->inTransaction()) {
+        $db->rollBack();
+    }
+    error_log('approve_payment_request.php error: ' . $e->getMessage());
     Response::error('Error: ' . $e->getMessage());
 }
