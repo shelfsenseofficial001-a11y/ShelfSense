@@ -21,11 +21,6 @@ $additional_css = '
         background: var(--bg-card-subtle);
         border: 1px solid var(--border-color);
         text-align: center;
-        transition: all 0.2s ease;
-    }
-    .leave-balance-card:hover {
-        border-color: var(--brand-yellow);
-        transform: translateY(-2px);
     }
     .leave-balance-card .balance-number {
         font-size: 2rem;

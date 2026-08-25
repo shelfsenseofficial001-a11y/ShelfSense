@@ -1,0 +1,663 @@
+/* ============================================
+   HR MODULE — STRUCTURAL OVERRIDES
+   Scoped to body.hr-theme. Palette tokens (colors, radii,
+   --on-dark, etc.) now live in the shared
+   public/assets/css/dashboard-theme.css (body.dashboard-theme),
+   loaded before this file — hr.php applies both classes to
+   <body>. This file only keeps what's genuinely HR-specific:
+   hover-glow cleanup for HR-only card classes, the nav-icon
+   badge, the bottom-pinned sidebar profile, and the collapse
+   button. app.css's original palette still backs everything
+   else in the site (landing, cashier, finance, store-manager,
+   supplier) wherever dashboard-theme.css hasn't been added yet.
+   ============================================ */
+
+body.hr-theme {
+    --space-sm: 12px;
+    --space-md: 16px;
+    --space-lg: 20px;
+}
+
+/* ==========================================================================
+   2. REMOVE GLOW / MOVEMENT ON HOVER (containers only — sidebar nav excluded)
+   ========================================================================== */
+
+body.hr-theme .modern-card,
+body.hr-theme .leave-balance-card,
+body.hr-theme .payslip-card,
+body.hr-theme .payroll-stats-card,
+body.hr-theme .product-card {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transition: border-color 0.15s ease;
+}
+
+body.hr-theme .modern-card:hover,
+body.hr-theme .leave-balance-card:hover,
+body.hr-theme .payslip-card:hover,
+body.hr-theme .payroll-stats-card:hover,
+body.hr-theme .product-card:hover {
+    border-color: var(--border-color);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    transform: none;
+}
+
+body.hr-theme .cycle-row:hover,
+body.hr-theme .attendance-cell:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+body.hr-theme .theme-toggle-btn {
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+body.hr-theme .theme-toggle-btn:hover {
+    transform: none;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+/* ==========================================================================
+   3. BUTTON SYSTEM — each variant reads as a distinct action, not a random
+      Bootstrap default. Filled brand buttons = primary commit actions,
+      outline = secondary/neutral, semantic colors kept for danger/success
+      but normalized in weight/radius so they feel part of one family.
+   ========================================================================== */
+
+body.hr-theme .btn {
+    border-radius: 10px;
+    font-weight: 600;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+body.hr-theme .btn:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+body.hr-theme .btn-yellow-primary {
+    background: var(--brand-dark);
+    color: var(--on-dark) !important;
+    border: 1px solid var(--brand-dark);
+    box-shadow: none;
+}
+
+body.hr-theme .btn-yellow-primary:hover {
+    background: var(--brand-dark-hover);
+    border-color: var(--brand-dark-hover);
+    color: var(--on-dark) !important;
+    box-shadow: none;
+}
+
+body.hr-theme .btn-yellow-outline {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+
+body.hr-theme .btn-yellow-outline:hover {
+    background: var(--bg-card-subtle);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+/* Bootstrap "primary" (used sparingly, e.g. DTR upload/view) reads as the
+   orange accent — a secondary call to action distinct from the black
+   primary button */
+body.hr-theme .btn-primary,
+body.hr-theme .btn-outline-primary {
+    --bs-btn-color: var(--brand-yellow);
+    --bs-btn-border-color: var(--brand-yellow);
+    --bs-btn-hover-bg: var(--brand-yellow);
+    --bs-btn-hover-border-color: var(--brand-yellow);
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-bg: var(--brand-yellow-hover);
+    --bs-btn-active-border-color: var(--brand-yellow-hover);
+}
+body.hr-theme .btn-primary {
+    --bs-btn-bg: var(--brand-yellow);
+    --bs-btn-border-color: var(--brand-yellow);
+    --bs-btn-color: #fff;
+}
+
+/* Secondary / cancel actions: quiet, neutral outline — never competes with
+   the primary black button next to it */
+body.hr-theme .btn-secondary,
+body.hr-theme .btn-outline-secondary {
+    --bs-btn-color: var(--text-muted);
+    --bs-btn-bg: var(--bg-card);
+    --bs-btn-border-color: var(--border-color);
+    --bs-btn-hover-color: var(--text-main);
+    --bs-btn-hover-bg: var(--bg-card-subtle);
+    --bs-btn-hover-border-color: var(--border-color);
+    --bs-btn-active-color: var(--text-main);
+    --bs-btn-active-bg: var(--bg-card-subtle);
+    --bs-btn-active-border-color: var(--border-color);
+}
+
+/* Success = confirm / save-and-commit actions (e.g. schedule Save, Send to
+   Head HR) — kept green (semantic), toned to sit next to black/orange */
+body.hr-theme .btn-success {
+    --bs-btn-bg: #1f8a5c;
+    --bs-btn-border-color: #1f8a5c;
+    --bs-btn-hover-bg: #187048;
+    --bs-btn-hover-border-color: #187048;
+    --bs-btn-active-bg: #187048;
+}
+
+/* Danger = destructive actions only */
+body.hr-theme .btn-danger,
+body.hr-theme .btn-outline-danger {
+    --bs-btn-bg: #d64545;
+    --bs-btn-border-color: #d64545;
+    --bs-btn-hover-bg: #b83636;
+    --bs-btn-hover-border-color: #b83636;
+    --bs-btn-color: #fff;
+}
+body.hr-theme .btn-outline-danger {
+    --bs-btn-bg: transparent;
+    --bs-btn-color: #d64545;
+    --bs-btn-hover-color: #fff;
+}
+
+/* Warning = needs-attention / pending actions */
+body.hr-theme .btn-warning {
+    --bs-btn-bg: #e8a33d;
+    --bs-btn-border-color: #e8a33d;
+    --bs-btn-color: #1a1a1a;
+    --bs-btn-hover-bg: #d6912c;
+    --bs-btn-hover-border-color: #d6912c;
+}
+
+/* Filter-chip toggle buttons (interviews page: Scheduled / Completed, etc.)
+   — inactive = quiet outline, active = filled brand color per meaning */
+body.hr-theme [class*="filter-btn-"] {
+    border-radius: 20px;
+    font-weight: 600;
+}
+body.hr-theme [class*="filter-btn-"].btn-outline-warning {
+    --bs-btn-color: var(--text-muted);
+    --bs-btn-border-color: var(--border-color);
+    --bs-btn-hover-bg: var(--light-yellow-subtle);
+    --bs-btn-hover-color: var(--text-main);
+}
+body.hr-theme [class*="filter-btn-"].btn-outline-warning.active {
+    background: var(--brand-yellow) !important;
+    border-color: var(--brand-yellow) !important;
+    color: #fff !important;
+}
+body.hr-theme [class*="filter-btn-"].btn-outline-success {
+    --bs-btn-color: var(--text-muted);
+    --bs-btn-border-color: var(--border-color);
+    --bs-btn-hover-bg: var(--bg-card-subtle);
+    --bs-btn-hover-color: var(--text-main);
+}
+body.hr-theme [class*="filter-btn-"].btn-outline-success.active {
+    background: var(--brand-dark) !important;
+    border-color: var(--brand-dark) !important;
+    color: var(--on-dark) !important;
+}
+
+/* ==========================================================================
+   4. TYPOGRAPHY / ICON BOXES / BADGES
+   ========================================================================== */
+
+body.hr-theme .icon-box,
+body.hr-theme .icon-box-sm {
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow);
+}
+
+body.hr-theme .badge.bg-primary {
+    background-color: var(--brand-dark) !important;
+    color: var(--on-dark) !important;
+}
+
+body.hr-theme .spinner-border.text-primary {
+    color: var(--brand-yellow) !important;
+}
+
+body.hr-theme .nav-pills .nav-link {
+    color: var(--text-muted);
+    border-radius: 10px;
+    font-weight: 600;
+}
+
+body.hr-theme .nav-pills .nav-link.active {
+    background: var(--brand-dark);
+    color: var(--on-dark);
+}
+
+body.hr-theme .page-link {
+    color: var(--text-main);
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+body.hr-theme .page-item.active .page-link {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: var(--on-dark);
+}
+
+body.hr-theme .alert-info {
+    background: var(--light-yellow-subtle);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+body.hr-theme .alert-warning {
+    background: var(--light-yellow-subtle);
+    border-color: #e8c99a;
+    color: var(--text-main);
+}
+html[data-bs-theme="dark"] body.hr-theme .alert-warning {
+    border-color: #6b4f26;
+}
+
+body.hr-theme .table-hover > tbody > tr:hover > * {
+    background-color: var(--bg-card-subtle);
+}
+
+body.hr-theme .table {
+    color: var(--text-main);
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+body.hr-theme .table > :not(caption) > * > * {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border: none;
+    box-shadow: inset 0 -1px 0 var(--border-color);
+}
+
+body.hr-theme .table > tbody > tr:last-child > * {
+    box-shadow: none;
+}
+
+/* Dark-mode variants for status/role pills that were only defined for light
+   mode across the HR pages (payroll, attendance review, generic bs-info) */
+html[data-bs-theme="dark"] body.hr-theme .payroll-status-badge.draft,
+html[data-bs-theme="dark"] body.hr-theme .week-status-badge.draft { background: #3f3f46; color: #d4d4d8; }
+html[data-bs-theme="dark"] body.hr-theme .payroll-status-badge.pending_approval,
+html[data-bs-theme="dark"] body.hr-theme .week-status-badge.sent { background: #78350f; color: #fcd34d; }
+html[data-bs-theme="dark"] body.hr-theme .payroll-status-badge.approved { background: #1e3a5f; color: #93c5fd; }
+html[data-bs-theme="dark"] body.hr-theme .payroll-status-badge.verified,
+html[data-bs-theme="dark"] body.hr-theme .payroll-status-badge.processed,
+html[data-bs-theme="dark"] body.hr-theme .week-status-badge.locked,
+html[data-bs-theme="dark"] body.hr-theme .week-status-badge.approved { background: #064e3b; color: #6ee7b7; }
+html[data-bs-theme="dark"] body.hr-theme .payroll-status-badge.cancelled,
+html[data-bs-theme="dark"] body.hr-theme .week-status-badge.rejected { background: #7f1d1d; color: #fca5a5; }
+
+body.hr-theme .badge.bg-info {
+    background-color: var(--light-yellow-accent) !important;
+    color: var(--brand-yellow-hover) !important;
+}
+html[data-bs-theme="dark"] body.hr-theme .badge.bg-info {
+    color: var(--brand-yellow) !important;
+}
+
+/* ==========================================================================
+   5. FORM CONTROLS — consistent height/coloring, dark-mode aware
+   ========================================================================== */
+
+body.hr-theme .form-select,
+body.hr-theme .form-control {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: 10px;
+}
+
+body.hr-theme .form-select:focus,
+body.hr-theme .form-control:focus {
+    border-color: var(--brand-yellow);
+    box-shadow: 0 0 0 0.2rem rgba(242, 99, 43, 0.15);
+    background-color: var(--bg-card);
+    color: var(--text-main);
+}
+
+body.hr-theme .form-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+}
+
+body.hr-theme .form-check-input:checked {
+    background-color: var(--brand-dark);
+    border-color: var(--brand-dark);
+}
+
+/* A button placed beside a default-size form-select/form-control (a
+   "btn-sm w-100" filter action button) must match the control's height —
+   otherwise its top edge floats independent of the select's bottom edge. */
+body.hr-theme .btn-sm.w-100 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+/* ==========================================================================
+   6. SPACING SCALE — bump generic Bootstrap gutters/padding used throughout
+      the HR pages to a roomier, more consistent rhythm.
+   ========================================================================== */
+
+body.hr-theme .hr-page-content .row.g-2 {
+    --bs-gutter-x: 1rem;
+    --bs-gutter-y: 1rem;
+}
+
+body.hr-theme .modern-card.p-2 { padding: 14px !important; }
+body.hr-theme .modern-card.p-3 { padding: var(--space-lg) !important; }
+
+body.hr-theme .card-header,
+body.hr-theme .card-footer {
+    padding: var(--space-md) var(--space-lg);
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+body.hr-theme .modal-header,
+body.hr-theme .modal-footer {
+    padding: var(--space-md) var(--space-lg);
+}
+
+body.hr-theme .modal-body {
+    padding: var(--space-lg);
+}
+
+/* ==========================================================================
+   7. MODALS — brand the plain default Bootstrap modal
+   ========================================================================== */
+
+body.hr-theme .modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+body.hr-theme .modal-header {
+    background: var(--bg-card-subtle);
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.hr-theme .modal-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+}
+
+body.hr-theme .modal-footer {
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-card-subtle);
+}
+
+body.hr-theme .btn-close {
+    opacity: 0.6;
+}
+html[data-bs-theme="dark"] body.hr-theme .btn-close {
+    filter: invert(1) grayscale(100%);
+}
+
+/* ==========================================================================
+   8. SIDEBAR
+   ========================================================================== */
+
+body.hr-theme .hr-sidebar {
+    background: var(--bg-card);
+    border-right: 1px solid var(--border-color);
+    transition: width 0.2s ease;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+body.hr-theme .hr-sidebar .sidebar-brand {
+    display: flex;
+    align-items: center;
+    border-color: var(--border-color);
+}
+
+body.hr-theme .hr-sidebar .sidebar-brand .brand-mark {
+    background-color: var(--brand-dark);
+    border-radius: 4px;
+}
+
+body.hr-theme .hr-sidebar .sidebar-brand .text-yellow {
+    color: var(--brand-yellow) !important;
+}
+
+body.hr-theme .hr-sidebar .badge.bg-primary {
+    background-color: var(--brand-yellow) !important;
+    color: #fff !important;
+}
+
+/* Floating collapse button on the sidebar's right edge, not crammed next
+   to the brand title */
+body.hr-theme .sidebar-collapse-btn {
+    position: absolute;
+    top: 28px;
+    right: -13px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    cursor: pointer;
+    font-size: 0.75rem;
+    z-index: 5;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+body.hr-theme .sidebar-collapse-btn:hover {
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+}
+
+/* Nav item icon + badge: badge sits above the icon's corner, not beside
+   the label */
+body.hr-theme .hr-sidebar .sidebar-nav .nav-item .nav-icon-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    flex-shrink: 0;
+}
+
+body.hr-theme .hr-sidebar .sidebar-nav .nav-item .nav-icon-wrap .nav-badge {
+    position: absolute;
+    top: -7px;
+    right: -6px;
+    font-size: 0.55rem;
+    line-height: 1;
+    padding: 2.5px 4.5px;
+    min-width: 15px;
+    text-align: center;
+    border-radius: 999px;
+    font-weight: 700;
+}
+
+body.hr-theme .hr-sidebar .sidebar-nav .nav-item.active .nav-icon-wrap .nav-badge {
+    background-color: var(--on-dark) !important;
+    color: var(--brand-dark) !important;
+}
+
+/* Sidebar user block lives at the bottom, pinned via margin-top:auto on
+   the nav's parent flex column */
+body.hr-theme .hr-sidebar .sidebar-user {
+    background: var(--bg-card-subtle);
+}
+
+body.hr-theme .hr-sidebar .sidebar-user .avatar-sm {
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow);
+}
+
+body.hr-theme .hr-sidebar .sidebar-user .avatar-sm i {
+    color: var(--brand-yellow) !important;
+}
+
+body.hr-theme .hr-sidebar .sidebar-user .user-logout-btn {
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+body.hr-theme .hr-sidebar .sidebar-user .user-logout-btn:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+
+body.hr-theme .hr-sidebar .sidebar-nav .nav-item.active {
+    background: var(--brand-dark);
+    color: var(--on-dark);
+    font-weight: 600;
+}
+
+body.hr-theme .hr-sidebar .sidebar-nav .nav-item.active i {
+    color: var(--on-dark);
+}
+
+body.hr-theme .hr-sidebar .sidebar-nav .nav-item.text-danger {
+    color: #b91c1c !important;
+}
+
+body.hr-theme .hr-sidebar .sidebar-nav .nav-item.text-danger:hover {
+    background: #fef2f2;
+    color: #991b1b !important;
+}
+
+/* Collapsed state */
+body.hr-theme .hr-sidebar.collapsed {
+    width: 76px;
+}
+
+body.hr-theme .hr-sidebar.collapsed .sidebar-brand .brand-label,
+body.hr-theme .hr-sidebar.collapsed .sidebar-brand .badge,
+body.hr-theme .hr-sidebar.collapsed .sidebar-user .user-info,
+body.hr-theme .hr-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.hr-theme .hr-sidebar.collapsed .sidebar-nav .nav-item .nav-label {
+    display: none;
+}
+
+body.hr-theme .hr-sidebar.collapsed .sidebar-brand {
+    justify-content: center;
+    padding: 0 8px 20px;
+}
+
+body.hr-theme .hr-sidebar.collapsed .sidebar-collapse-btn {
+    transform: rotate(180deg);
+}
+
+body.hr-theme .hr-sidebar.collapsed .sidebar-user {
+    justify-content: center;
+    padding: 14px 8px;
+}
+
+body.hr-theme .hr-sidebar.collapsed .sidebar-nav .nav-item {
+    justify-content: center;
+    padding: 10px;
+}
+
+/* ==========================================================================
+   9. TOPBAR
+   ========================================================================== */
+
+body.hr-theme .hr-content {
+    background: var(--bg-body);
+}
+
+body.hr-theme .hr-topbar {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+body.hr-theme .notification-dropdown {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+body.hr-theme .notification-dropdown .notification-item:hover {
+    background: var(--bg-card-subtle);
+}
+
+body.hr-theme .autocomplete-dropdown {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+body.hr-theme .autocomplete-dropdown .item:hover,
+body.hr-theme .autocomplete-dropdown .item.selected {
+    background: var(--bg-card-subtle);
+}
+
+/* ==========================================================================
+   10. ATTENDANCE GRID — visual pass (see attendance.php for markup)
+   ========================================================================== */
+
+body.hr-theme .attendance-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--space-sm);
+}
+
+body.hr-theme .attendance-toolbar .attendance-search {
+    position: relative;
+    flex: 1 1 220px;
+    min-width: 200px;
+}
+
+body.hr-theme .attendance-toolbar .attendance-search i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+}
+
+body.hr-theme .attendance-toolbar .attendance-search input {
+    padding-left: 34px;
+}
+
+body.hr-theme .attendance-grid-table thead th {
+    background: var(--bg-card-subtle);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.hr-theme .attendance-grid-table .employee-name-cell .employee-complete-badge {
+    margin-right: 8px;
+}
+
+body.hr-theme .attendance-cell {
+    border: 1px solid transparent;
+    font-weight: 600;
+}

@@ -19,11 +19,15 @@ $role = Auth::role();
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/finance.css">
     <?= $additional_css ?? '' ?>
 </head>
-<body>
+<body class="dashboard-theme">
+    <div class="dashboard-page">
+    <div class="dashboard-shell">
     <div class="d-flex">
         <!-- Sidebar -->
         <div class="finance-sidebar" id="financeSidebar">
@@ -117,6 +121,8 @@ $role = Auth::role();
             </div>
         </div>
     </div>
+    </div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -128,7 +134,7 @@ $role = Auth::role();
     <style>
         .finance-sidebar {
             width: 250px;
-            min-height: 100vh;
+            min-height: 100%;
             background: var(--bg-card);
             border-right: 1px solid var(--border-color);
             padding: 20px 0;
@@ -204,7 +210,7 @@ $role = Auth::role();
         }
         .finance-content {
             padding: 0;
-            min-height: 100vh;
+            min-height: 100%;
             background: var(--bg-body);
         }
         .finance-topbar {

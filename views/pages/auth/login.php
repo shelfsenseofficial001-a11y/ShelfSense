@@ -162,8 +162,11 @@ $content = '
                 <input type="email" name="email" class="form-control" placeholder="you@company.com" required>
             </div>
             <div class="mb-3">
-                <label class="form-label fw-semibold">Password</label>
-                <div class="input-group">
+                <div class="d-flex justify-content-between align-items-center">
+                    <label class="form-label fw-semibold mb-0">Password</label>
+                    <a href="?page=forgot_password" class="auth-link text-decoration-none small">Forgot password?</a>
+                </div>
+                <div class="input-group mt-1">
                     <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
                     <button class="btn btn-outline-secondary" type="button" id="togglePassword">
                         <i class="bi bi-eye"></i>

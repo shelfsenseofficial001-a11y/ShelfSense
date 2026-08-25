@@ -19,11 +19,17 @@ use App\Core\Auth;
     <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css">
     <?= $additional_css ?? '' ?>
 </head>
-<body>
+<body class="dashboard-theme">
+    <div class="dashboard-page">
+    <div class="dashboard-shell">
     <div class="d-flex">
         <!-- Sidebar -->
         <div class="pos-sidebar" id="posSidebar">
@@ -109,7 +115,9 @@ use App\Core\Auth;
             <?php endif; ?>
         </div>
     </div>
-    
+    </div>
+    </div>
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     
@@ -131,7 +139,7 @@ use App\Core\Auth;
         
         .pos-sidebar {
             width: 250px;
-            min-height: 100vh;
+            min-height: 100%;
             background: var(--bg-card);
             border-right: 1px solid var(--border-color);
             padding: 20px 0;
@@ -215,7 +223,7 @@ use App\Core\Auth;
         
         .pos-content {
             padding: 0;
-            min-height: 100vh;
+            min-height: 100%;
             background: var(--bg-body);
         }
         

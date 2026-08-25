@@ -24,73 +24,87 @@ use App\Core\Auth;
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css">
     <?php echo $additional_css ?? ''; ?>
 </head>
-<body>
+<body class="hr-theme dashboard-theme">
+    <div class="dashboard-page">
+    <div class="dashboard-shell">
     <div class="d-flex">
         <!-- Sidebar -->
         <div class="hr-sidebar" id="hrSidebar">
             <div class="sidebar-brand">
-                <span class="brand-mark"></span>
-                Shelf<span class="text-yellow">Sense</span>
-                <span class="badge bg-primary ms-2">HR</span>
+                <span>
+                    <span class="brand-mark"></span>
+                    <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
+                    <span class="badge bg-primary ms-2">HR</span>
+                </span>
             </div>
-
-            <div class="sidebar-user">
-                <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
-                    <i class="bi bi-person-fill text-dark"></i>
-                </div>
-                <div>
-                    <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'HR Staff'); ?></div>
-                    <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? 'hr_staff'); ?></small>
-                </div>
-            </div>
+            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse sidebar">
+                <i class="bi bi-chevron-left"></i>
+            </button>
 
             <nav class="sidebar-nav">
-                <a href="?page=hr_dashboard" class="nav-item <?php echo $activePage === 'dashboard' ? 'active' : ''; ?>">
-                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                <a href="?page=hr_dashboard" class="nav-item <?php echo $activePage === 'dashboard' ? 'active' : ''; ?>" title="Dashboard">
+                    <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">Dashboard</span>
                 </a>
-                <a href="?page=hr_applicants" class="nav-item <?php echo $activePage === 'applicants' ? 'active' : ''; ?>">
-                    <i class="bi bi-people-fill"></i> Applicants
-                    <span class="badge bg-danger ms-auto" id="pendingBadge">0</span>
+                <a href="?page=hr_applicants" class="nav-item <?php echo $activePage === 'applicants' ? 'active' : ''; ?>" title="Applicants">
+                    <span class="nav-icon-wrap"><i class="bi bi-people-fill"></i><span class="badge bg-danger nav-badge" id="pendingBadge">0</span></span> <span class="nav-label">Applicants</span>
                 </a>
-                <a href="?page=hr_interviews" class="nav-item <?php echo $activePage === 'interviews' ? 'active' : ''; ?>">
-                    <i class="bi bi-calendar-event-fill"></i> Interviews
+                <a href="?page=hr_interviews" class="nav-item <?php echo $activePage === 'interviews' ? 'active' : ''; ?>" title="Interviews">
+                    <span class="nav-icon-wrap"><i class="bi bi-calendar-event-fill"></i></span> <span class="nav-label">Interviews</span>
                 </a>
-                <a href="?page=hr_trainees" class="nav-item <?php echo $activePage === 'trainees' ? 'active' : ''; ?>">
-                    <i class="bi bi-mortarboard-fill"></i> Trainees
+                <a href="?page=hr_trainees" class="nav-item <?php echo $activePage === 'trainees' ? 'active' : ''; ?>" title="Trainees">
+                    <span class="nav-icon-wrap"><i class="bi bi-mortarboard-fill"></i></span> <span class="nav-label">Trainees</span>
                 </a>
-                <a href="?page=hr_contracts" class="nav-item <?php echo $activePage === 'contracts' ? 'active' : ''; ?>">
-                    <i class="bi bi-file-text-fill"></i> Contracts
+                <a href="?page=hr_contracts" class="nav-item <?php echo $activePage === 'contracts' ? 'active' : ''; ?>" title="Contracts">
+                    <span class="nav-icon-wrap"><i class="bi bi-file-text-fill"></i></span> <span class="nav-label">Contracts</span>
                 </a>
                 <hr>
-                <a href="?page=hr_schedules" class="nav-item <?php echo $activePage === 'schedules' ? 'active' : ''; ?>">
-                    <i class="bi bi-clock-history"></i> Schedules
+                <a href="?page=hr_schedules" class="nav-item <?php echo $activePage === 'schedules' ? 'active' : ''; ?>" title="Schedules">
+                    <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Schedules</span>
                 </a>
-                <a href="?page=hr_attendance" class="nav-item <?php echo $activePage === 'attendance' ? 'active' : ''; ?>">
-                    <i class="bi bi-calendar-check-fill"></i> Attendance
+                <a href="?page=hr_attendance" class="nav-item <?php echo $activePage === 'attendance' ? 'active' : ''; ?>" title="Attendance">
+                    <span class="nav-icon-wrap"><i class="bi bi-calendar-check-fill"></i></span> <span class="nav-label">Attendance</span>
                 </a>
                 <?php if (Auth::isHRHead() || Auth::isOwner()): ?>
-                <a href="?page=hr_attendance_review" class="nav-item <?php echo $activePage === 'attendance_review' ? 'active' : ''; ?>">
-                    <i class="bi bi-clipboard-check"></i> Review
+                <a href="?page=hr_attendance_review" class="nav-item <?php echo $activePage === 'attendance_review' ? 'active' : ''; ?>" title="Review">
+                    <span class="nav-icon-wrap"><i class="bi bi-clipboard-check"></i></span> <span class="nav-label">Review</span>
                 </a>
                 <?php endif; ?>
                 <hr>
-                <a href="?page=hr_payroll" class="nav-item <?php echo $activePage === 'payroll' ? 'active' : ''; ?>">
-                    <i class="bi bi-cash-coin"></i> Payroll
+                <a href="?page=hr_payroll" class="nav-item <?php echo $activePage === 'payroll' ? 'active' : ''; ?>" title="Payroll">
+                    <span class="nav-icon-wrap"><i class="bi bi-cash-coin"></i></span> <span class="nav-label">Payroll</span>
                 </a>
                 <hr>
-                <a href="?page=my_leaves" class="nav-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>">
-                    <i class="bi bi-calendar2-week"></i> My Leaves
+                <a href="?page=my_leaves" class="nav-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>" title="My Leaves">
+                    <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
                 </a>
-                <a href="?page=my_payslip" class="nav-item <?php echo $activePage === 'payslip' ? 'active' : ''; ?>">
-                    <i class="bi bi-wallet2"></i> My Payslip
+                <a href="?page=my_payslip" class="nav-item <?php echo $activePage === 'payslip' ? 'active' : ''; ?>" title="My Payslip">
+                    <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span> <span class="nav-label">My Payslip</span>
                 </a>
                 <hr>
-                <a href="?page=logout" class="nav-item text-danger">
-                    <i class="bi bi-box-arrow-right"></i> Logout
+                <a href="?page=logout" class="nav-item text-danger" title="Logout">
+                    <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Logout</span>
                 </a>
             </nav>
+
+            <!-- Profile block pinned to the bottom of the sidebar -->
+            <div class="sidebar-user">
+                <a href="?page=profile" class="user-profile-link" title="Profile">
+                    <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person-fill text-dark"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'HR Staff'); ?></div>
+                        <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? 'hr_staff'); ?></small>
+                    </div>
+                </a>
+                <a href="?page=logout" class="user-logout-btn" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
+            </div>
         </div>
 
         <!-- Main Content -->
@@ -119,19 +133,6 @@ use App\Core\Auth;
                             </div>
                         </div>
                     </div>
-
-                    <!-- User -->
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1"></i>
-                            <?php echo htmlspecialchars($_SESSION['first_name'] ?? 'HR'); ?>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="?page=profile"><i class="bi bi-person me-2"></i>Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="?page=logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
-                    </div>
                 </div>
             </div>
 
@@ -140,6 +141,8 @@ use App\Core\Auth;
                 <?php echo $content ?? ''; ?>
             </div>
         </div>
+    </div>
+    </div>
     </div>
 
     <!-- Bootstrap 5 JS Bundle -->
@@ -162,7 +165,7 @@ use App\Core\Auth;
 
         .hr-sidebar {
             width: 250px;
-            min-height: 100vh;
+            min-height: 100%;
             background: var(--bg-card);
             border-right: 1px solid var(--border-color);
             padding: 20px 0;
@@ -196,18 +199,43 @@ use App\Core\Auth;
             align-items: center;
             gap: 12px;
             padding: 16px 20px;
-            border-bottom: 1px solid var(--border-color);
+            border-top: 1px solid var(--border-color);
+            margin-top: auto;
         }
 
         .hr-sidebar .sidebar-user .avatar-sm {
             width: 36px;
             height: 36px;
+            flex-shrink: 0;
             background: var(--light-yellow-accent);
             color: var(--brand-yellow-btn-text);
         }
 
+        .hr-sidebar .sidebar-user .user-profile-link {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex: 1;
+            min-width: 0;
+            text-decoration: none;
+            color: inherit;
+        }
+
+        .hr-sidebar .sidebar-user .user-info {
+            flex: 1;
+            min-width: 0;
+            overflow: hidden;
+        }
+
+        .hr-sidebar .sidebar-user .user-info .fw-semibold {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
         .hr-sidebar .sidebar-nav {
             padding: 16px 12px;
+            flex: 1 1 auto;
         }
 
         .hr-sidebar .sidebar-nav .nav-item {
@@ -251,7 +279,7 @@ use App\Core\Auth;
 
         .hr-content {
             padding: 0;
-            min-height: 100vh;
+            min-height: 100%;
             background: var(--bg-body);
         }
 
@@ -405,6 +433,19 @@ use App\Core\Auth;
                     document.getElementById('hrSidebar').classList.toggle('open');
                 });
                 topbar.prepend(toggleBtn);
+            }
+
+            // Sidebar collapse (desktop), persisted across reloads
+            const sidebar = document.getElementById('hrSidebar');
+            const collapseBtn = document.getElementById('sidebarCollapseBtn');
+            if (sidebar && collapseBtn) {
+                if (localStorage.getItem('hrSidebarCollapsed') === '1') {
+                    sidebar.classList.add('collapsed');
+                }
+                collapseBtn.addEventListener('click', function() {
+                    const collapsed = sidebar.classList.toggle('collapsed');
+                    localStorage.setItem('hrSidebarCollapsed', collapsed ? '1' : '0');
+                });
             }
         });
     </script>

@@ -27,8 +27,7 @@ for ($y = $cy - 1; $y <= $cy + 1; $y++) {
 
 $content = <<<HTML
 <style>
-    .payroll-stats-card { transition: all 0.2s ease; cursor: default; }
-    .payroll-stats-card:hover { border-color: var(--brand-yellow); transform: translateY(-2px); }
+    .payroll-stats-card { cursor: default; }
     .payroll-status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 12px; }
     .payroll-status-badge.draft { background: #e5e7eb; color: #4b5563; }
     .payroll-status-badge.pending_approval { background: #fef3c7; color: #92400e; }

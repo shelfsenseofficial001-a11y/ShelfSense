@@ -15,8 +15,7 @@ $activePage = 'payslip';
 $additional_js = '<script src="/ShelfSense/public/assets/js/payslip.js"></script>';
 $additional_css = '
 <style>
-    .payslip-card { cursor: pointer; transition: all 0.2s ease; border-left: 4px solid var(--brand-yellow); }
-    .payslip-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+    .payslip-card { cursor: pointer; border-left: 4px solid var(--brand-yellow); }
     .payslip-amount { font-weight: 600; }
     .payslip-amount.positive { color: #059669; }
     .payslip-amount.negative { color: #dc2626; }

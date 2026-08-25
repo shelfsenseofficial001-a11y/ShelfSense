@@ -1,0 +1,499 @@
+/* ============================================
+   SHELFSENSE DASHBOARD THEME
+   Shared design system for every authenticated portal
+   (HR, Store Manager, Finance, POS, Supplier, Trainee).
+   Scoped to body.dashboard-theme so the public landing
+   page and auth screens are unaffected.
+   ============================================ */
+
+/* ==========================================================================
+   1. TOKENS
+   ========================================================================== */
+
+body.dashboard-theme {
+    --app-bg: #f4f4f2;
+    --bg-body: #f4f4f2;
+    --bg-card: #ffffff;
+    --bg-card-subtle: #f8f8f7;
+    --border-color: #ebebe7;
+
+    --brand-yellow: #f45b35;       /* accent */
+    --brand-yellow-hover: #df4d29; /* accent-hover */
+    --brand-yellow-btn-text: #ffffff;
+    --light-yellow-accent: #fbe9e3;
+    --light-yellow-subtle: #faf4f2;
+
+    --brand-dark: #20201d;         /* dark */
+    --brand-dark-hover: #34342f;
+    --on-dark: #ffffff;
+
+    --text-main: #20201d;
+    --text-muted: #73736f;
+
+    --success: #5baa7a;
+    --warning: #e6b64c;
+    --danger: #df5b55;
+
+    --radius-shell: 28px;
+    --radius-card: 18px;
+    --radius-control: 12px;
+
+    --grid-opacity: 0;
+    --glow-opacity: 0;
+}
+
+html[data-bs-theme="dark"] body.dashboard-theme,
+body.dashboard-theme[data-bs-theme="dark"] {
+    --app-bg: #161615;
+    --bg-body: #161615;
+    --bg-card: #201f1d;
+    --bg-card-subtle: #262523;
+    --border-color: #35342f;
+
+    --brand-yellow: #f45b35;
+    --brand-yellow-hover: #ff6d45;
+    --brand-yellow-btn-text: #ffffff;
+    --light-yellow-accent: #33241d;
+    --light-yellow-subtle: #241d1a;
+
+    --brand-dark: #f4f4f2;
+    --brand-dark-hover: #ffffff;
+    --on-dark: #20201d;
+
+    --text-main: #f4f4f2;
+    --text-muted: #a8a8a2;
+}
+
+body.dashboard-theme::before,
+body.dashboard-theme .ambient-glow-1,
+body.dashboard-theme .ambient-glow-2 {
+    display: none;
+}
+
+body.dashboard-theme {
+    background: var(--app-bg);
+}
+
+/* ==========================================================================
+   2. SHELL — centered white rounded workspace on the muted gray page bg
+   ========================================================================== */
+
+body.dashboard-theme .dashboard-page {
+    background: var(--app-bg);
+    min-height: 100vh;
+    padding: 20px;
+}
+
+body.dashboard-theme .dashboard-shell {
+    background: var(--bg-card);
+    border-radius: var(--radius-shell);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+    overflow: hidden;
+    min-height: calc(100vh - 40px);
+}
+
+@media (max-width: 768px) {
+    body.dashboard-theme .dashboard-page { padding: 0; }
+    body.dashboard-theme .dashboard-shell { border-radius: 0; min-height: 100vh; }
+}
+
+/* Sidebars/content inside the shell should fill it, not the raw viewport
+   (the original full-bleed layouts used min-height:100vh) */
+body.dashboard-theme .dashboard-shell .hr-sidebar,
+body.dashboard-theme .dashboard-shell .store-manager-sidebar,
+body.dashboard-theme .dashboard-shell .finance-sidebar,
+body.dashboard-theme .dashboard-shell .pos-sidebar,
+body.dashboard-theme .dashboard-shell .supplier-sidebar,
+body.dashboard-theme .dashboard-shell .trainee-sidebar,
+body.dashboard-theme .dashboard-shell .hr-content,
+body.dashboard-theme .dashboard-shell .store-manager-content,
+body.dashboard-theme .dashboard-shell .finance-content,
+body.dashboard-theme .dashboard-shell .pos-content,
+body.dashboard-theme .dashboard-shell .supplier-content,
+body.dashboard-theme .dashboard-shell .trainee-content {
+    min-height: auto !important;
+}
+body.dashboard-theme .dashboard-shell > .d-flex {
+    min-height: calc(100vh - 40px);
+    align-items: stretch;
+}
+@media (max-width: 768px) {
+    body.dashboard-theme .dashboard-shell > .d-flex { min-height: 100vh; }
+}
+
+/* Sidebar sticks to the viewport as the page scrolls — it never gets its
+   own scrollbar, and never scrolls away with the content column */
+body.dashboard-theme .dashboard-shell .hr-sidebar,
+body.dashboard-theme .dashboard-shell .store-manager-sidebar,
+body.dashboard-theme .dashboard-shell .finance-sidebar,
+body.dashboard-theme .dashboard-shell .pos-sidebar,
+body.dashboard-theme .dashboard-shell .supplier-sidebar,
+body.dashboard-theme .dashboard-shell .trainee-sidebar {
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    height: calc(100vh - 40px);
+    overflow: visible;
+}
+body.dashboard-theme .dashboard-shell .sidebar-nav {
+    overflow-y: visible !important;
+}
+@media (max-width: 768px) {
+    body.dashboard-theme .dashboard-shell .hr-sidebar,
+    body.dashboard-theme .dashboard-shell .store-manager-sidebar,
+    body.dashboard-theme .dashboard-shell .finance-sidebar,
+    body.dashboard-theme .dashboard-shell .pos-sidebar,
+    body.dashboard-theme .dashboard-shell .supplier-sidebar,
+    body.dashboard-theme .dashboard-shell .trainee-sidebar {
+        position: fixed;
+        height: 100vh;
+    }
+}
+
+/* Cards that host a full-bleed table (card-body.p-0) must clip their
+   content to the card's rounded corners, otherwise the table header's
+   rectangular background pokes out past the rounded edge */
+body.dashboard-theme .modern-card:has(> .card-body.p-0) {
+    overflow: hidden;
+}
+
+/* ==========================================================================
+   3. REMOVE GLOW / MOVEMENT ON HOVER (every portal's card classes)
+   ========================================================================== */
+
+body.dashboard-theme .modern-card,
+body.dashboard-theme .sm-stat-card,
+body.dashboard-theme .sm-req-card,
+body.dashboard-theme .sm-product-card,
+body.dashboard-theme .fn-stat-card,
+body.dashboard-theme .fn-req-card,
+.stat-card,
+body.dashboard-theme .sp-stat-card,
+body.dashboard-theme .sp-req-card,
+body.dashboard-theme .sp-product-card,
+body.dashboard-theme .trainee-stat-card,
+body.dashboard-theme .leave-balance-card,
+body.dashboard-theme .payslip-card,
+body.dashboard-theme .payroll-stats-card,
+body.dashboard-theme .metric-card,
+body.dashboard-theme .mini-card {
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    transition: border-color 0.15s ease !important;
+}
+
+body.dashboard-theme .modern-card:hover,
+body.dashboard-theme .sm-stat-card:hover,
+body.dashboard-theme .sm-req-card:hover,
+body.dashboard-theme .sm-product-card:hover,
+body.dashboard-theme .fn-stat-card:hover,
+body.dashboard-theme .fn-req-card:hover,
+body.dashboard-theme .stat-card:hover,
+body.dashboard-theme .sp-stat-card:hover,
+body.dashboard-theme .sp-req-card:hover,
+body.dashboard-theme .sp-product-card:hover,
+body.dashboard-theme .trainee-stat-card:hover,
+body.dashboard-theme .leave-balance-card:hover,
+body.dashboard-theme .payslip-card:hover,
+body.dashboard-theme .payroll-stats-card:hover {
+    border-color: var(--border-color) !important;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04) !important;
+    transform: none !important;
+}
+
+body.dashboard-theme .theme-toggle-btn {
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+body.dashboard-theme .theme-toggle-btn:hover {
+    transform: none;
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+/* ==========================================================================
+   4. BUTTON SYSTEM (shared across portals)
+   ========================================================================== */
+
+body.dashboard-theme .btn {
+    border-radius: var(--radius-control);
+    font-weight: 600;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+body.dashboard-theme .btn:hover { transform: none; box-shadow: none; }
+
+body.dashboard-theme .btn-yellow-primary,
+body.dashboard-theme .btn-primary {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: var(--on-dark) !important;
+    box-shadow: none;
+}
+body.dashboard-theme .btn-yellow-primary:hover,
+body.dashboard-theme .btn-primary:hover {
+    background: var(--brand-dark-hover);
+    border-color: var(--brand-dark-hover);
+    color: var(--on-dark) !important;
+}
+
+body.dashboard-theme .btn-yellow-outline,
+body.dashboard-theme .btn-outline-secondary,
+body.dashboard-theme .btn-secondary {
+    background: var(--bg-card);
+    color: var(--text-main);
+    border: 1px solid var(--border-color);
+}
+body.dashboard-theme .btn-yellow-outline:hover,
+body.dashboard-theme .btn-outline-secondary:hover,
+body.dashboard-theme .btn-secondary:hover {
+    background: var(--bg-card-subtle);
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+body.dashboard-theme .btn-outline-primary {
+    color: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+}
+body.dashboard-theme .btn-outline-primary:hover {
+    background: var(--brand-yellow);
+    color: #fff;
+}
+
+body.dashboard-theme .btn-success {
+    --bs-btn-bg: var(--success);
+    --bs-btn-border-color: var(--success);
+    --bs-btn-hover-bg: #4a9268;
+    --bs-btn-hover-border-color: #4a9268;
+}
+body.dashboard-theme .btn-danger,
+body.dashboard-theme .btn-outline-danger {
+    --bs-btn-bg: var(--danger);
+    --bs-btn-border-color: var(--danger);
+    --bs-btn-color: #fff;
+}
+body.dashboard-theme .btn-warning {
+    --bs-btn-bg: var(--warning);
+    --bs-btn-border-color: var(--warning);
+    --bs-btn-color: #20201d;
+}
+
+body.dashboard-theme .btn-sm.w-100 {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+/* ==========================================================================
+   5. FORM CONTROLS / BADGES / TABLES
+   ========================================================================== */
+
+body.dashboard-theme .form-select,
+body.dashboard-theme .form-control {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-main);
+    border-radius: var(--radius-control);
+}
+body.dashboard-theme .form-select:focus,
+body.dashboard-theme .form-control:focus {
+    border-color: var(--brand-yellow);
+    box-shadow: 0 0 0 0.2rem rgba(244, 91, 53, 0.15);
+}
+
+body.dashboard-theme .badge.bg-primary {
+    background-color: var(--brand-dark) !important;
+    color: var(--on-dark) !important;
+}
+body.dashboard-theme .nav-pills .nav-link.active {
+    background: var(--brand-dark);
+    color: var(--on-dark);
+}
+body.dashboard-theme .page-item.active .page-link {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: var(--on-dark);
+}
+body.dashboard-theme .spinner-border.text-primary {
+    color: var(--brand-yellow) !important;
+}
+body.dashboard-theme .table {
+    color: var(--text-main);
+    border-collapse: separate;
+    border-spacing: 0;
+}
+body.dashboard-theme .table > :not(caption) > * > * {
+    background-color: var(--bg-card);
+    color: var(--text-main);
+    border: none;
+    box-shadow: inset 0 -1px 0 var(--border-color);
+}
+body.dashboard-theme .table > tbody > tr:last-child > * {
+    box-shadow: none;
+}
+body.dashboard-theme .table-hover > tbody > tr:hover > * {
+    background-color: var(--bg-card-subtle);
+}
+
+/* ==========================================================================
+   6. SIDEBAR (generic rail treatment, applies to every portal's own
+      .{portal}-sidebar via the shared .nav-item structure)
+   ========================================================================== */
+
+body.dashboard-theme .sidebar-nav .nav-item.active,
+body.dashboard-theme [class$="-sidebar"] .nav-item.active {
+    background: var(--brand-dark) !important;
+    color: var(--on-dark) !important;
+    font-weight: 600;
+}
+body.dashboard-theme .sidebar-nav .nav-item.active i,
+body.dashboard-theme [class$="-sidebar"] .nav-item.active i {
+    color: var(--on-dark) !important;
+}
+body.dashboard-theme .sidebar-nav .nav-item:hover,
+body.dashboard-theme [class$="-sidebar"] .nav-item:hover {
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+}
+
+/* ==========================================================================
+   7. DASHBOARD HERO COMPONENTS (greeting, metric grid, chart, mini cards)
+   ========================================================================== */
+
+body.dashboard-theme .dash-greeting h1,
+body.dashboard-theme .dash-greeting .dash-greeting-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--text-main);
+}
+body.dashboard-theme .dash-greeting .dash-greeting-subtitle {
+    color: var(--text-muted);
+    font-size: 0.95rem;
+}
+
+body.dashboard-theme .metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 14px;
+}
+
+body.dashboard-theme .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-card);
+    padding: 18px;
+    position: relative;
+}
+body.dashboard-theme .metric-card .metric-label {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+body.dashboard-theme .metric-card .metric-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-main);
+    margin-top: 6px;
+}
+body.dashboard-theme .metric-card .metric-icon {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+body.dashboard-theme .metric-card.featured {
+    background: linear-gradient(160deg, var(--brand-yellow), var(--brand-yellow-hover));
+    border-color: transparent;
+}
+body.dashboard-theme .metric-card.featured .metric-label,
+body.dashboard-theme .metric-card.featured .metric-value {
+    color: #ffffff;
+}
+body.dashboard-theme .metric-card.featured .metric-icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+body.dashboard-theme .chart-card,
+body.dashboard-theme .progress-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-card);
+    padding: 18px;
+}
+body.dashboard-theme .chart-card .chart-card-title {
+    font-weight: 700;
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+}
+
+body.dashboard-theme .mini-card {
+    border-radius: var(--radius-card);
+    padding: 18px;
+    color: #fff;
+}
+body.dashboard-theme .mini-card.dark { background: var(--brand-dark); color: var(--on-dark); }
+body.dashboard-theme .mini-card.accent { background: linear-gradient(160deg, var(--brand-yellow), var(--brand-yellow-hover)); }
+body.dashboard-theme .mini-card .mini-card-label {
+    font-size: 0.75rem;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+body.dashboard-theme .mini-card .mini-card-title {
+    font-weight: 700;
+    margin-top: 4px;
+}
+
+body.dashboard-theme .progress-track {
+    height: 8px;
+    border-radius: 999px;
+    background: var(--bg-card-subtle);
+    overflow: hidden;
+}
+body.dashboard-theme .progress-track .progress-fill-accent {
+    height: 100%;
+    background: var(--brand-yellow);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+}
+
+body.dashboard-theme .activity-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-card);
+    overflow: hidden;
+}
+body.dashboard-theme .activity-table-card .activity-table-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 18px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+}
+
+body.dashboard-theme .status-dot {
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+body.dashboard-theme .status-dot.success { background: var(--success); }
+body.dashboard-theme .status-dot.warning { background: var(--warning); }
+body.dashboard-theme .status-dot.danger { background: var(--danger); }
+body.dashboard-theme .status-dot.muted { background: var(--text-muted); }

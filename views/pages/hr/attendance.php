@@ -22,16 +22,27 @@ for ($y = $currentYear-1; $y <= $currentYear+1; $y++) {
 
 $content = <<<HTML
 <style>
+    .attendance-grid-table {
+        border-collapse: separate;
+        border-spacing: 0;
+    }
     .attendance-grid-table th, .attendance-grid-table td {
         text-align: center;
         vertical-align: middle;
-        padding: 6px 4px;
+        padding: 8px 6px;
         font-size: 0.85rem;
+        border: none;
+    }
+    .attendance-grid-table tbody tr td {
+        box-shadow: inset 0 -1px 0 var(--border-color);
+    }
+    .attendance-grid-table tbody tr:last-child td {
+        box-shadow: none;
     }
     .attendance-grid-table .employee-name-cell { text-align: left; font-weight: 500; white-space: nowrap; }
     .attendance-grid-table .employee-role-cell { font-size: 0.7rem; color: var(--text-muted); }
-    .attendance-cell { cursor: pointer; border-radius: 4px; padding: 4px 8px; transition: all 0.2s ease; min-width: 60px; display: inline-block; }
-    .attendance-cell:hover { transform: scale(1.05); box-shadow: 0 2px 8px rgba(0,0,0,0.15); }
+    .attendance-cell { cursor: pointer; border-radius: 4px; padding: 4px 8px; transition: filter 0.15s ease; min-width: 60px; display: inline-block; }
+    .attendance-cell:hover { filter: brightness(0.96); }
     .attendance-cell.status-present { background: #d1fae5; color: #065f46; }
     .attendance-cell.status-late { background: #fef3c7; color: #92400e; }
     .attendance-cell.status-absent { background: #fecaca; color: #991b1b; }
@@ -52,6 +63,45 @@ $content = <<<HTML
     .week-progress { height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
     .week-progress .progress-fill { height: 100%; background: var(--brand-yellow); transition: width 0.3s ease; }
     .employee-complete-badge { font-size: 0.6rem; padding: 1px 6px; border-radius: 10px; }
+
+    /* Edit Attendance modal */
+    .edit-attendance-modal .modal-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+    .edit-employee-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--bg-card-subtle);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 12px 14px;
+    }
+    .edit-employee-avatar {
+        width: 40px; height: 40px; border-radius: 50%;
+        background: var(--light-yellow-accent); color: var(--brand-yellow);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.1rem; flex-shrink: 0;
+    }
+    .edit-toggle-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+    .edit-toggle-pill {
+        position: relative;
+        display: flex; flex-direction: column; align-items: center; gap: 4px;
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 10px 6px;
+        font-size: 0.72rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        cursor: pointer;
+        text-align: center;
+        transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+    }
+    .edit-toggle-pill i { font-size: 1.1rem; }
+    .edit-toggle-pill .form-check-input { position: absolute; opacity: 0; width: 0; height: 0; }
+    .edit-toggle-pill:has(.form-check-input:checked) {
+        background: var(--brand-dark);
+        border-color: var(--brand-dark);
+        color: var(--on-dark);
+    }
 </style>
 
 <!-- Filters -->
@@ -83,6 +133,25 @@ $content = <<<HTML
         <button class="btn btn-yellow-primary btn-sm w-100" id="loadAttendanceBtn"><i class="bi bi-refresh"></i> Load</button>
         <button class="btn btn-yellow-outline btn-sm" id="refreshBtn" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
     </div>
+</div>
+
+<!-- Search / Role toolbar -->
+<div class="attendance-toolbar mb-3">
+    <div class="attendance-search">
+        <i class="bi bi-search"></i>
+        <input type="text" id="attendanceSearch" class="form-control" placeholder="Search employee by name or employee #...">
+    </div>
+    <select id="attendanceRoleFilter" class="form-select" style="max-width:220px;">
+        <option value="all">All Roles</option>
+        <option value="owner">Owner</option>
+        <option value="hr_head">HR Head</option>
+        <option value="hr_staff">HR Staff</option>
+        <option value="store_manager">Store Manager</option>
+        <option value="finance_head">Finance Head</option>
+        <option value="finance_staff">Finance Staff</option>
+        <option value="employee">Cashier</option>
+        <option value="trainee">Trainee</option>
+    </select>
 </div>
 
 <!-- Stats Row -->
@@ -132,36 +201,70 @@ $content = <<<HTML
 <!-- Edit Attendance Modal -->
 <div class="modal fade" id="editAttendanceModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Edit Attendance</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+        <div class="modal-content edit-attendance-modal">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title">Edit Attendance</h5>
+                    <div class="modal-subtitle" id="editDateDisplay">-</div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
             <form id="editAttendanceForm">
                 <div class="modal-body">
                     <input type="hidden" id="editUserId" name="user_id">
                     <input type="hidden" id="editDate" name="date">
                     <input type="hidden" id="editScheduledIn" name="scheduled_in">
                     <input type="hidden" id="editScheduledOut" name="scheduled_out">
-                    <div class="row">
-                        <div class="col-md-6"><label class="form-label fw-semibold">Employee</label><p id="editEmployeeName" class="fw-semibold mb-0">-</p></div>
-                        <div class="col-md-6"><label class="form-label fw-semibold">Date</label><p id="editDateDisplay" class="fw-semibold mb-0">-</p></div>
+
+                    <div class="edit-employee-row">
+                        <div class="edit-employee-avatar"><i class="bi bi-person-fill"></i></div>
+                        <div>
+                            <div class="fw-semibold" id="editEmployeeName">-</div>
+                            <div class="text-muted small">Scheduled: <span id="editScheduledShift">-</span></div>
+                        </div>
+                        <div class="ms-auto" id="editStatusDisplay"><span class="badge bg-secondary">Auto-calculated</span></div>
                     </div>
-                    <div class="mb-3"><label class="form-label fw-semibold">Scheduled Shift</label><p id="editScheduledShift" class="text-muted small">-</p></div>
-                    <div class="row g-2">
-                        <div class="col-5"><label class="form-label fw-semibold">Time In</label><input type="time" id="editTimeIn" name="time_in" class="form-control"></div>
-                        <div class="col-5"><label class="form-label fw-semibold">Time Out</label><input type="time" id="editTimeOut" name="time_out" class="form-control"></div>
-                        <div class="col-2"><label class="form-label fw-semibold">OT (hrs)</label><input type="number" id="editOvertime" name="overtime_hours" class="form-control" step="0.5" min="0" max="24" readonly><small class="text-muted">Auto</small></div>
+
+                    <div class="row g-2 mt-1">
+                        <div class="col-5">
+                            <label class="form-label fw-semibold">Time In</label>
+                            <input type="time" id="editTimeIn" name="time_in" class="form-control">
+                        </div>
+                        <div class="col-5">
+                            <label class="form-label fw-semibold">Time Out</label>
+                            <input type="time" id="editTimeOut" name="time_out" class="form-control">
+                        </div>
+                        <div class="col-2">
+                            <label class="form-label fw-semibold">OT (hrs)</label>
+                            <input type="number" id="editOvertime" name="overtime_hours" class="form-control" step="0.5" min="0" max="24" readonly>
+                            <small class="text-muted">Auto</small>
+                        </div>
                     </div>
-                    <div class="row g-2 mt-2">
-                        <div class="col-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="editOnLeave" name="on_leave"><label class="form-check-label" for="editOnLeave">On Leave</label></div></div>
-                        <div class="col-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="editRestDay" name="is_rest_day"><label class="form-check-label" for="editRestDay">Rest Day</label></div></div>
-                        <div class="col-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="editHoliday" name="is_holiday"><label class="form-check-label" for="editHoliday">Holiday</label></div></div>
-                        <div class="col-3"><div class="form-check form-switch"><input class="form-check-input" type="checkbox" id="editAbsent" name="is_absent"><label class="form-check-label" for="editAbsent">Absent</label></div></div>
+
+                    <div class="edit-toggle-grid mt-3">
+                        <label class="edit-toggle-pill" for="editOnLeave">
+                            <input class="form-check-input" type="checkbox" id="editOnLeave" name="on_leave">
+                            <i class="bi bi-calendar2-week"></i> On Leave
+                        </label>
+                        <label class="edit-toggle-pill" for="editRestDay">
+                            <input class="form-check-input" type="checkbox" id="editRestDay" name="is_rest_day">
+                            <i class="bi bi-moon-stars"></i> Rest Day
+                        </label>
+                        <label class="edit-toggle-pill" for="editHoliday">
+                            <input class="form-check-input" type="checkbox" id="editHoliday" name="is_holiday">
+                            <i class="bi bi-stars"></i> Holiday
+                        </label>
+                        <label class="edit-toggle-pill" for="editAbsent">
+                            <input class="form-check-input" type="checkbox" id="editAbsent" name="is_absent">
+                            <i class="bi bi-x-circle"></i> Absent
+                        </label>
                     </div>
-                    <div class="mb-3 mt-3"><label class="form-label fw-semibold">Status</label><p id="editStatusDisplay" class="mb-0"><span class="badge bg-secondary">Auto-calculated</span></p></div>
-                    <div class="mb-3"><label class="form-label fw-semibold">Notes</label><textarea id="editNotes" name="notes" class="form-control" rows="2"></textarea></div>
+
+                    <div class="mt-3"><label class="form-label fw-semibold">Notes</label><textarea id="editNotes" name="notes" class="form-control" rows="2" placeholder="Optional note about this day..."></textarea></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-yellow-primary btn-sm">Save</button>
+                    <button type="submit" class="btn btn-yellow-primary btn-sm"><i class="bi bi-check2"></i> Save</button>
                 </div>
             </form>
         </div>

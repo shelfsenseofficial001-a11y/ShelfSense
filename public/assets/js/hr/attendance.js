@@ -80,7 +80,7 @@ function fetchWeekStatus(monthYear, weekNum, callback){
                 else badge.textContent = '📝 Draft';
             }
             if(attendanceEmployees.length > 0){
-                renderAttendanceGrid(attendanceEmployees);
+                renderAttendanceGrid(getFilteredEmployees());
                 checkSendToHeadHR(attendanceEmployees);
             }
             if(callback) callback();
@@ -110,7 +110,7 @@ function loadAttendance(){
             if(data.success){
                 attendanceEmployees=data.data.employees||[];
                 buildWeekDays();
-                renderAttendanceGrid(attendanceEmployees);
+                renderAttendanceGrid(getFilteredEmployees());
                 renderStats(attendanceEmployees);
                 updateProgress(attendanceEmployees);
                 checkSendToHeadHR(attendanceEmployees);
@@ -130,6 +130,23 @@ function buildWeekDays(){
         weekDays.push({date:cur.toISOString().split('T')[0], day_name:cur.toLocaleDateString('en-US',{weekday:'short'}), day_number:cur.getDate()});
         cur.setDate(cur.getDate()+1);
     }
+}
+
+// ===== SEARCH / ROLE FILTER (client-side, over the loaded week's employees) =====
+function getFilteredEmployees(){
+    let term = (document.getElementById('attendanceSearch')?.value || '').trim().toLowerCase();
+    let role = document.getElementById('attendanceRoleFilter')?.value || 'all';
+    return attendanceEmployees.filter(emp => {
+        if (role !== 'all' && emp.role !== role) return false;
+        if (!term) return true;
+        let name = `${emp.first_name} ${emp.last_name}`.toLowerCase();
+        let empNum = (emp.employee_number || '').toLowerCase();
+        return name.includes(term) || empNum.includes(term);
+    });
+}
+
+function applyAttendanceFilters(){
+    renderAttendanceGrid(getFilteredEmployees());
 }
 
 // ===== RENDER GRID =====
@@ -640,6 +657,8 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     document.getElementById('refreshBtn').addEventListener('click', loadAttendance);
     document.getElementById('filterDepartment').addEventListener('change', loadAttendance);
+    document.getElementById('attendanceSearch')?.addEventListener('input', applyAttendanceFilters);
+    document.getElementById('attendanceRoleFilter')?.addEventListener('change', applyAttendanceFilters);
 
     let month=document.getElementById('monthSelect').value, year=document.getElementById('yearSelect').value;
     loadWeeksForMonth(year, month);

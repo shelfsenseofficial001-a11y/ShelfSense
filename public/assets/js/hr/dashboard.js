@@ -104,8 +104,8 @@ function renderMonthlyChart(data) {
             datasets: [{
                 label: 'Applications',
                 data: values,
-                backgroundColor: 'rgba(255, 196, 20, 0.6)',
-                borderColor: '#ffc414',
+                backgroundColor: 'rgba(242, 99, 43, 0.7)',
+                borderColor: '#f2632b',
                 borderWidth: 2,
                 borderRadius: 4
             }]
@@ -137,8 +137,8 @@ function renderPipelineChart(data) {
     const values = data.map(item => item.count);
     
     const colors = [
-        '#ffc107', '#17a2b8', '#28a745', '#007bff', 
-        '#fd7e14', '#20c997', '#6f42c1', '#dc3545'
+        '#1a1a1a', '#f2632b', '#c2c2c5', '#dc5220',
+        '#71717a', '#f7b98c', '#3f3f46', '#e8935f'
     ];
     
     pipelineChartInstance = new Chart(ctx, {
