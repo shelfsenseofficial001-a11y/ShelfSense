@@ -4,9 +4,11 @@
 require_once __DIR__ . '/../helpers/functions.php';
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Mailer.php';
+require_once __DIR__ . '/../models/JobPosting.php';
 
 use App\Core\Database;
 use App\Core\Mailer;
+use App\Models\JobPosting;
 
 header('Content-Type: application/json');
 
@@ -14,31 +16,19 @@ header('Content-Type: application/json');
 // GET POST DATA
 // ============================================
 
-$firstName = $_POST['first_name'] ?? '';
-$lastName = $_POST['last_name'] ?? '';
-$middleName = $_POST['middle_name'] ?? '';
-$email = $_POST['email'] ?? '';
-$phone = $_POST['phone'] ?? '';
-$targetRole = $_POST['target_role'] ?? '';
-
-// ✅ ROLE MAPPING - Convert lowercase to display names
-$roleMap = [
-    'cashier' => 'Cashier',
-    'hr_staff' => 'HR Staff',
-    'finance_staff' => 'Finance Staff',
-    'hr_head' => 'Head HR',
-    'finance_head' => 'Head Finance'
-];
-
-// If the role is in lowercase format, convert it
-$targetRole = $roleMap[$targetRole] ?? $targetRole;
+$firstName = trim($_POST['first_name'] ?? '');
+$lastName = trim($_POST['last_name'] ?? '');
+$middleName = trim($_POST['middle_name'] ?? '');
+$email = trim($_POST['email'] ?? '');
+$phone = trim($_POST['phone'] ?? '');
+$jobPostingId = isset($_POST['job_posting_id']) ? intval($_POST['job_posting_id']) : 0;
 
 // ============================================
 // VALIDATION
 // ============================================
 
-if (empty($firstName) || empty($lastName) || empty($email) || empty($phone) || empty($targetRole)) {
-    echo json_encode(['success' => false, 'message' => 'All required fields must be filled']);
+if (empty($firstName) || empty($lastName) || empty($email) || empty($phone) || $jobPostingId <= 0) {
+    echo json_encode(['success' => false, 'message' => 'All required fields must be filled, including a position.']);
     exit;
 }
 
@@ -49,6 +39,47 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
 if (!preg_match('/^[0-9]{10,12}$/', $phone)) {
     echo json_encode(['success' => false, 'message' => 'Invalid phone number. Must be 10-12 digits.']);
+    exit;
+}
+
+// ============================================
+// AUTHORITATIVE JOB-POSTING RE-CHECK
+// ============================================
+// Never trust the job title/department/salary/slots the browser last
+// rendered -- another applicant may have been hired (consuming the last
+// slot) or HR may have closed/archived the posting since the page loaded.
+// This re-runs the exact same eligibility rule the public listing used.
+
+$jobPostingModel = new JobPosting();
+$job = $jobPostingModel->getEligibleJobById($jobPostingId);
+
+if (!$job) {
+    echo json_encode(['success' => false, 'message' => 'This position is no longer accepting applications. Please choose another position.']);
+    exit;
+}
+
+// target_role is derived from the job posting's controlled department value,
+// never taken from the browser, so it always matches a real role the rest
+// of the system (trainer lookup, trainee creation, contract activation) knows.
+$targetRole = jobPostingDepartmentToTargetRole($job['department']);
+
+// ============================================
+// DUPLICATE-EMAIL CHECK
+// ============================================
+// Checked before the resume is even uploaded, so a rejected duplicate
+// submission never leaves an orphaned file on disk.
+
+try {
+    $db = Database::getInstance()->getConnection();
+    $stmt = $db->prepare("SELECT id FROM applicants WHERE email = ?");
+    $stmt->execute([$email]);
+    if ($stmt->fetch()) {
+        echo json_encode(['success' => false, 'message' => 'An application with this email already exists.']);
+        exit;
+    }
+} catch (Exception $e) {
+    error_log('api_apply.php: duplicate-email check failed: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'An error occurred while processing your application. Please try again.']);
     exit;
 }
 
@@ -70,13 +101,18 @@ if (!is_dir($uploadDir)) {
     }
 }
 
-// ✅ Upload file using helper
+// ✅ Upload file using helper (validates extension, real MIME type, size,
+// and writes to a fully random filename -- see app/helpers/functions.php)
 $uploadResult = uploadFile($_FILES['resume'], $uploadDir, ['pdf', 'doc', 'docx']);
 
 if (!$uploadResult['success']) {
     echo json_encode(['success' => false, 'message' => $uploadResult['message']]);
     exit;
 }
+
+// Stored relative to public/ so it matches how HR's resume_url is built
+// (get_applicant.php / get_applicants.php prepend '/ShelfSense/public/').
+$resumeRelativePath = 'uploads/resumes/' . $uploadResult['filename'];
 
 // ============================================
 // SAVE TO DATABASE
@@ -85,7 +121,9 @@ if (!$uploadResult['success']) {
 try {
     $db = Database::getInstance()->getConnection();
 
-    // ✅ Check if email already exists
+    // Re-check for a duplicate email one more time immediately before the
+    // insert -- guards the narrow race between two concurrent submissions
+    // with the same email that both passed the earlier check.
     $stmt = $db->prepare("SELECT id FROM applicants WHERE email = ?");
     $stmt->execute([$email]);
     if ($stmt->fetch()) {
@@ -93,9 +131,19 @@ try {
         exit;
     }
 
+    // Re-check slot availability one more time immediately before the
+    // insert, closest possible to the write, to shrink the race window
+    // further without needing a row lock for what is a rare event (a hire
+    // completing at the exact moment someone else submits).
+    $job = $jobPostingModel->getEligibleJobById($jobPostingId);
+    if (!$job) {
+        echo json_encode(['success' => false, 'message' => 'This position is no longer accepting applications. Please choose another position.']);
+        exit;
+    }
+
     $stmt = $db->prepare("
-        INSERT INTO applicants (first_name, last_name, middle_name, email, phone, target_role, resume_path) 
-        VALUES (?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO applicants (first_name, last_name, middle_name, email, phone, target_role, job_posting_id, resume_path)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     ");
 
     $result = $stmt->execute([
@@ -105,7 +153,8 @@ try {
         $email,
         $phone,
         $targetRole,
-        $uploadResult['path']
+        $jobPostingId,
+        $resumeRelativePath
     ]);
 
     if (!$result) {
@@ -126,7 +175,7 @@ try {
         $mailer->sendApplicantStatusUpdate(
             ['email' => $email, 'first_name' => $firstName, 'last_name' => $lastName],
             'application_received',
-            "Thank you for applying for the {$targetRole} position at ShelfSense. Our HR team will review your application and contact you regarding next steps."
+            "Thank you for applying for the {$job['title']} position at ShelfSense. Our HR team will review your application and contact you regarding next steps."
         );
     } catch (Exception $e) {
         error_log('api_apply.php: confirmation email failed: ' . $e->getMessage());
@@ -134,7 +183,7 @@ try {
 
     logRecruitmentEvent('applicant', $applicantId, 'application_received', [
         'new_status' => 'pending',
-        'notes' => 'source: public application form'
+        'notes' => 'source: public application form (job_posting_id ' . $jobPostingId . ')'
     ]);
 
     // ============================================
@@ -148,7 +197,7 @@ try {
         createNotification(
             $hr['user_id'],
             'new_application',
-            "New application from {$firstName} {$lastName} for {$targetRole} position",
+            "New application from {$firstName} {$lastName} for {$job['title']} position",
             "?page=hr_applicants"
         );
     }
@@ -164,7 +213,7 @@ try {
 } catch (Exception $e) {
     error_log('api_apply.php error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
     echo json_encode([
-        'success' => false, 
+        'success' => false,
         'message' => 'An error occurred while processing your application. Please try again.'
     ]);
 }

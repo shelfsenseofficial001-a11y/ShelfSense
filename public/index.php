@@ -350,19 +350,6 @@ if ($page === 'api_update_trainee') {
     exit;
 }
 
-// api_submit_report / api_review_reports (monthly report_1/2/3 model) are kept
-// routed for backward compatibility with any historical data/links, but the
-// UI now uses the weekly, department-routed trainee_reports workflow below.
-if ($page === 'api_submit_report') {
-    require_once __DIR__ . '/../app/handlers/hr/submit_report.php';
-    exit;
-}
-
-if ($page === 'api_review_reports') {
-    require_once __DIR__ . '/../app/handlers/hr/review_reports.php';
-    exit;
-}
-
 // ============================================
 // WEEKLY TRAINEE REPORTS (department-routed)
 // ============================================

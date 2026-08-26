@@ -1,32 +1,60 @@
 <?php
 // views/pages/auth/apply.php
+require_once __DIR__ . '/../../../app/core/Database.php';
+require_once __DIR__ . '/../../../app/models/JobPosting.php';
+require_once __DIR__ . '/../../../app/helpers/functions.php';
+
+use App\Models\JobPosting;
+
 $title = 'Apply Now - ShelfSense';
-$subtitle = 'Start Your Career with ShelfSense';
 
-// Get role from URL parameter
-$selectedRole = isset($_GET['role']) ? htmlspecialchars($_GET['role'], ENT_QUOTES, 'UTF-8') : '';
+// Real, approved, currently-hiring job postings with remaining slots only --
+// the exact same eligibility rule the public Landing Page uses, so the two
+// pages can never disagree about what's open.
+$eligibleJobs = [];
+try {
+    $eligibleJobs = (new JobPosting())->getPublicListings();
+} catch (Exception $e) {
+    error_log('apply.php: failed to load eligible job postings: ' . $e->getMessage());
+}
 
-// Role display names
-$roleDisplayNames = [
-    'cashier' => 'Cashier',
-    'hr_staff' => 'HR Staff',
-    'finance_staff' => 'Finance Staff',
-    'hr_head' => 'Head of Human Resources',
-    'finance_head' => 'Head of Finance'
-];
+// A landing-page "Apply Now" card links here with the specific job's id.
+$preselectId = isset($_GET['job_posting_id']) ? intval($_GET['job_posting_id']) : 0;
 
-$displayRole = htmlspecialchars($roleDisplayNames[$selectedRole] ?? 'Position', ENT_QUOTES, 'UTF-8');
+$positionOptionsHtml = '';
+foreach ($eligibleJobs as $job) {
+    $labelParts = [$job['title']];
+    if (!empty($job['department'])) $labelParts[] = $job['department'];
+    if (!empty($job['location'])) $labelParts[] = $job['location'];
+    if (!empty($job['employment_type'])) $labelParts[] = $job['employment_type'];
+    if ($job['remaining_slots'] !== null) {
+        $labelParts[] = $job['remaining_slots'] . ' slot' . ($job['remaining_slots'] == 1 ? '' : 's') . ' left';
+    }
+    $label = htmlspecialchars(implode(' — ', [$labelParts[0]]) . (count($labelParts) > 1 ? ' (' . implode(' • ', array_slice($labelParts, 1)) . ')' : ''), ENT_QUOTES, 'UTF-8');
+    $positionOptionsHtml .= '<option value="' . (int)$job['id'] . '">' . $label . '</option>';
+}
 
-// Role-specific header messages
-$roleMessages = [
-    'cashier' => "Join our store team! We're looking for friendly and efficient cashiers.",
-    'hr_staff' => "Help us build a great workplace! We're hiring HR professionals.",
-    'finance_staff' => "Join our finance team and help us manage the numbers.",
-    'hr_head' => "Lead our HR department and shape our company culture.",
-    'finance_head' => "Lead our finance team and drive financial strategy."
-];
+// All job data the left panel/carousel need, for client-side rendering when
+// the user switches jobs (no page reload). Content is passed as data, never
+// as raw HTML -- the JS below escapes everything before inserting it.
+$jobsJson = json_encode(array_map(function ($j) {
+    return [
+        'id' => (int)$j['id'],
+        'title' => $j['title'],
+        'department' => $j['department'],
+        'location' => $j['location'],
+        'employment_type' => $j['employment_type'],
+        'description' => $j['description'],
+        'requirements' => $j['requirements'],
+        'responsibilities' => $j['responsibilities'],
+        'salary_min' => $j['salary_range_min'],
+        'salary_max' => $j['salary_range_max'],
+        'slots' => $j['slots'],
+        'remaining_slots' => $j['remaining_slots'],
+    ];
+}, $eligibleJobs), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 
-$message = htmlspecialchars($roleMessages[$selectedRole] ?? "We're excited to receive your application.", ENT_QUOTES, 'UTF-8');
+$hasJobs = !empty($eligibleJobs);
 
 $content = '
 <style>
@@ -41,10 +69,6 @@ $content = '
         --input-text: #111827;
         --brand-accent: #f59e0b;
         --brand-accent-hover: #d97706;
-        --alert-bg: #fffbeb;
-        --alert-border: #fcd34d;
-        --alert-title: #b45309;
-        --alert-desc: #78350f;
 
         /* Visual Panel Variables (Light Mode) */
         --panel-bg: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
@@ -57,6 +81,8 @@ $content = '
         --panel-footer-text: #6b7280;
         --panel-divider: rgba(107, 114, 128, 0.2);
         --panel-glow: rgba(245, 158, 11, 0.35);
+        --panel-card-bg: rgba(255, 255, 255, 0.55);
+        --panel-dot-inactive: rgba(107, 114, 128, 0.35);
     }
 
     [data-bs-theme="dark"] {
@@ -67,10 +93,6 @@ $content = '
         --input-bg: #1f1c13;
         --input-border: #383321;
         --input-text: #f4f4f5;
-        --alert-bg: rgba(245, 158, 11, 0.1);
-        --alert-border: rgba(245, 158, 11, 0.3);
-        --alert-title: #fbbf24;
-        --alert-desc: #f3f4f6;
 
         /* Visual Panel Variables (Dark Mode) */
         --panel-bg: linear-gradient(135deg, #262018 0%, #18130e 100%);
@@ -83,11 +105,13 @@ $content = '
         --panel-footer-text: #9ca3af;
         --panel-divider: rgba(255, 255, 255, 0.15);
         --panel-glow: rgba(245, 158, 11, 0.2);
+        --panel-card-bg: rgba(0, 0, 0, 0.2);
+        --panel-dot-inactive: rgba(255, 255, 255, 0.25);
     }
 
     /* Container Alignment */
     .auth-card {
-        max-width: 920px !important;
+        max-width: 1040px !important;
         width: 100% !important;
         margin: 0 auto;
     }
@@ -105,9 +129,9 @@ $content = '
 
     /* Adaptive Visual Panel */
     .left-visual-panel {
-        flex: 0.85;
+        flex: 1;
         background: var(--panel-bg);
-        padding: 40px 32px;
+        padding: 32px 28px;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -143,63 +167,174 @@ $content = '
         letter-spacing: 0.5px;
         text-transform: uppercase;
         width: fit-content;
+        position: relative;
+        z-index: 1;
     }
 
-    .left-visual-panel h2 {
+    .job-panel-scroll {
+        position: relative;
+        z-index: 1;
+        max-height: 420px;
+        overflow-y: auto;
+        padding-right: 4px;
+    }
+
+    #jobDetailPanel {
+        background: var(--panel-card-bg);
+        border-radius: 12px;
+        padding: 18px;
+        margin-top: 16px;
+    }
+
+    #jobDetailPanel h2 {
         font-family: "Space Grotesk", sans-serif;
         color: var(--panel-title);
-        font-size: 1.75rem;
+        font-size: 1.4rem;
         font-weight: 700;
-        margin-top: 16px;
-        margin-bottom: 8px;
-        line-height: 1.2;
+        margin-bottom: 10px;
+        line-height: 1.25;
     }
 
-    .left-visual-panel p {
+    .job-meta-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+        margin-bottom: 14px;
+    }
+
+    .job-meta-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        background: var(--panel-badge-bg);
+        border: 1px solid var(--panel-badge-border);
+        color: var(--panel-badge-text);
+        padding: 3px 10px;
+        border-radius: 20px;
+        font-size: 0.72rem;
+        font-weight: 600;
+    }
+
+    .job-detail-section {
+        margin-bottom: 14px;
+    }
+
+    .job-detail-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .job-detail-section h6 {
+        color: var(--panel-title);
+        font-size: 0.8rem;
+        font-weight: 700;
+        margin-bottom: 4px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .job-detail-section p,
+    .job-detail-section .job-detail-list {
         color: var(--panel-text);
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         margin: 0;
         line-height: 1.5;
     }
 
-    .left-visual-panel .feature-list {
+    .job-detail-list {
         list-style: none;
         padding: 0;
-        margin: 24px 0 0 0;
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 6px;
     }
 
-    .left-visual-panel .feature-list li {
+    .job-detail-list li {
         color: var(--panel-feature-text);
-        font-size: 0.85rem;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 8px;
     }
 
-    .left-visual-panel .feature-list li i {
+    .job-detail-list li::before {
+        content: "\2713";
         color: #d97706;
+        font-weight: 700;
+        flex-shrink: 0;
     }
 
-    [data-bs-theme="dark"] .left-visual-panel .feature-list li i {
+    [data-bs-theme="dark"] .job-detail-list li::before {
         color: #f59e0b;
     }
 
+    /* Carousel Dots */
+    .carousel-dots {
+        display: flex;
+        gap: 8px;
+        margin-top: 16px;
+        flex-wrap: wrap;
+        position: relative;
+        z-index: 1;
+    }
+
+    .carousel-dot {
+        border: none;
+        background: var(--panel-dot-inactive);
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        padding: 0;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+
+    .carousel-dot:hover {
+        background: var(--brand-accent-hover);
+    }
+
+    .carousel-dot:focus-visible {
+        outline: 2px solid var(--brand-accent);
+        outline-offset: 2px;
+    }
+
+    .carousel-dot[aria-current="true"] {
+        background: var(--brand-accent);
+        width: 26px;
+        border-radius: 6px;
+    }
+
     .left-visual-panel .panel-footer {
-        margin-top: 24px;
-        padding-top: 16px;
+        margin-top: 20px;
+        padding-top: 14px;
         border-top: 1px solid var(--panel-divider);
+        position: relative;
+        z-index: 1;
     }
 
     .left-visual-panel .panel-footer small {
         color: var(--panel-footer-text);
+        display: block;
+    }
+
+    .empty-jobs-state {
+        text-align: center;
+        padding: 32px 12px;
+        color: var(--panel-text);
+        position: relative;
+        z-index: 1;
+    }
+
+    .empty-jobs-state i {
+        font-size: 2rem;
+        display: block;
+        margin-bottom: 10px;
+        color: var(--panel-badge-text);
     }
 
     /* Right Form Panel */
     .right-form-panel {
-        flex: 1.15;
+        flex: 1.1;
         padding: 36px;
         display: flex;
         flex-direction: column;
@@ -279,22 +414,6 @@ $content = '
         color: #ffffff;
     }
 
-    /* Theme Alert Banner */
-    #roleAlertBanner {
-        background-color: var(--alert-bg) !important;
-        border: 1px solid var(--alert-border) !important;
-        border-left: 4px solid var(--brand-accent) !important;
-        border-radius: 8px;
-    }
-
-    #bannerRoleTitle {
-        color: var(--alert-title) !important;
-    }
-
-    #bannerRoleDesc {
-        color: var(--alert-desc) !important;
-    }
-
     /* Submit Button */
     .btn-yellow-primary {
         background-color: var(--brand-accent) !important;
@@ -311,6 +430,10 @@ $content = '
         color: #ffffff !important;
     }
 
+    .btn-yellow-primary:disabled {
+        opacity: 0.6;
+    }
+
     @media (max-width: 768px) {
         .two-column-wrapper {
             flex-direction: column;
@@ -319,8 +442,8 @@ $content = '
             min-height: auto;
             padding: 24px;
         }
-        .left-visual-panel .feature-list {
-            display: none;
+        .job-panel-scroll {
+            max-height: 320px;
         }
         .right-form-panel {
             padding: 24px;
@@ -329,24 +452,27 @@ $content = '
 </style>
 
 <div class="two-column-wrapper">
-    <!-- Left Column: Visual Brand Card -->
+    <!-- Left Column: Dynamic Job Details Panel -->
     <div class="left-visual-panel">
-        <div>
+        <div class="job-panel-scroll">
             <div class="brand-badge">
-                <i class="bi bi-box-seam-fill"></i> ShelfSense
+                <i class="bi bi-box-seam-fill"></i> ShelfSense Careers
             </div>
-            <h2>Smart Retail & Career Hub</h2>
-            <p>Empowering teams with intelligent inventory systems and seamless workflow tools.</p>
-            
-            <ul class="feature-list">
-                <li><i class="bi bi-check-circle-fill"></i> Real-time operational management</li>
-                <li><i class="bi bi-check-circle-fill"></i> Collaborative team environments</li>
-                <li><i class="bi bi-check-circle-fill"></i> Continuous growth opportunities</li>
-            </ul>
+
+            <div id="jobDetailPanel" style="display: ' . ($hasJobs ? 'block' : 'none') . ';"></div>
+
+            <div id="noJobsMessage" class="empty-jobs-state" style="display: ' . ($hasJobs ? 'none' : 'block') . ';">
+                <i class="bi bi-inbox"></i>
+                No positions are currently open for applications. Please check back later.
+            </div>
         </div>
 
-        <div class="panel-footer">
-            <small>&copy; ShelfSense Portal. All rights reserved.</small>
+        <div>
+            <nav class="carousel-dots" id="carouselDots" aria-label="Select a job posting"></nav>
+            <div class="panel-footer">
+                <small>ShelfSense Portal &mdash; Smart inventory control at your fingertips.</small>
+                <small>&copy; ShelfSense Portal. All rights reserved.</small>
+            </div>
         </div>
     </div>
 
@@ -363,175 +489,265 @@ $content = '
             <p>Fill in your details below to submit an application.</p>
         </div>
 
-        <!-- Dynamic Banner Alert Container -->
-        <div class="mb-3">
-            <div class="alert py-2 px-3 m-0" id="roleAlertBanner" style="display: ' . ($selectedRole ? 'block' : 'none') . ';">
-                <strong id="bannerRoleTitle">Applying for: ' . $displayRole . '</strong>
-                <br>
-                <small id="bannerRoleDesc">' . $message . '</small>
-            </div>
-        </div>
-
+        ' . ($hasJobs ? '
         <form method="POST" action="?page=api_apply" enctype="multipart/form-data" id="applyForm">
+            <input type="hidden" name="job_posting_id" id="jobPostingIdInput" value="">
             <div class="row g-2">
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">First Name *</label>
-                    <input type="text" name="first_name" class="form-control" required maxlength="50">
+                    <label class="form-label fw-semibold" for="applyFirstName">First Name *</label>
+                    <input type="text" id="applyFirstName" name="first_name" class="form-control" required maxlength="50">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Last Name *</label>
-                    <input type="text" name="last_name" class="form-control" required maxlength="50">
+                    <label class="form-label fw-semibold" for="applyLastName">Last Name *</label>
+                    <input type="text" id="applyLastName" name="last_name" class="form-control" required maxlength="50">
                 </div>
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold">Middle Name</label>
-                    <input type="text" name="middle_name" class="form-control" maxlength="50">
+                    <label class="form-label fw-semibold" for="applyMiddleName">Middle Name</label>
+                    <input type="text" id="applyMiddleName" name="middle_name" class="form-control" maxlength="50">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Email *</label>
-                    <input type="email" name="email" class="form-control" required maxlength="100">
+                    <label class="form-label fw-semibold" for="applyEmail">Email *</label>
+                    <input type="email" id="applyEmail" name="email" class="form-control" required maxlength="100">
                 </div>
                 <div class="col-md-6">
-                    <label class="form-label fw-semibold">Phone Number *</label>
-                    <input type="text" name="phone" class="form-control" placeholder="09123456789" required maxlength="12" pattern="[0-9]{10,12}">
+                    <label class="form-label fw-semibold" for="applyPhone">Phone Number *</label>
+                    <input type="text" id="applyPhone" name="phone" class="form-control" placeholder="09123456789" required maxlength="12" pattern="[0-9]{10,12}">
                 </div>
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold">Position Applying For *</label>
-                    <select name="target_role" id="targetRoleSelect" class="form-select" required>
-                        <option value="" hidden>Select a position...</option>
-                        <option value="hr_head" ' . ($selectedRole === 'hr_head' ? 'selected' : '') . '>Head of Human Resources</option>
-                        <option value="finance_head" ' . ($selectedRole === 'finance_head' ? 'selected' : '') . '>Head of Finance</option>
-                        <option value="cashier" ' . ($selectedRole === 'cashier' ? 'selected' : '') . '>Cashier</option>
-                        <option value="hr_staff" ' . ($selectedRole === 'hr_staff' ? 'selected' : '') . '>HR Staff</option>
-                        <option value="finance_staff" ' . ($selectedRole === 'finance_staff' ? 'selected' : '') . '>Finance Staff</option>
+                    <label class="form-label fw-semibold" for="positionSelect">Position Applying For *</label>
+                    <select id="positionSelect" class="form-select searchable-select" data-placeholder="Search for a position..." required>
+                        <option value=""></option>
+                        ' . $positionOptionsHtml . '
                     </select>
+                    <div class="form-text">Type to search. Selecting a position updates the details panel.</div>
                 </div>
                 <div class="col-md-12">
-                    <label class="form-label fw-semibold">Upload Resume *</label>
-                    <input type="file" 
-                        name="resume" 
-                        class="form-control custom-file-input" 
-                        accept=".pdf,.doc,.docx" 
+                    <label class="form-label fw-semibold" for="applyResume">Upload Resume *</label>
+                    <input type="file"
+                        id="applyResume"
+                        name="resume"
+                        class="form-control custom-file-input"
+                        accept=".pdf,.doc,.docx"
                         required>
                     <small class="text-muted d-block mt-1">PDF, DOC, DOCX files only. Max 5MB.</small>
                 </div>
             </div>
-            <button type="submit" class="btn btn-yellow-primary w-100 mt-3 rounded-3">
+            <button type="submit" id="applySubmitBtn" class="btn btn-yellow-primary w-100 mt-3 rounded-3">
                 <i class="bi bi-send me-2"></i>Submit Application
             </button>
         </form>
+        ' : '
+        <div class="alert alert-warning small mb-0">
+            <i class="bi bi-exclamation-triangle me-1"></i>
+            There are no open positions to apply for right now. Please check back later.
+        </div>
+        ') . '
     </div>
 </div>
 
+<script src="/ShelfSense/public/assets/js/components/searchable-select.js"></script>
 <script>
-// ✅ Role mapping for backend (lowercase → display name)
-const roleMapToDisplay = {
-    "cashier": "Cashier",
-    "hr_staff": "HR Staff",
-    "finance_staff": "Finance Staff",
-    "hr_head": "Head HR",
-    "finance_head": "Head Finance"
-};
+(function () {
+    var APPLY_JOBS = ' . $jobsJson . ';
+    var PRESELECT_ID = ' . (int)$preselectId . ';
 
-// Role metadata for banner
-const roleInfoMap = {
-    "cashier": {
-        title: "Cashier",
-        message: "Join our store team! We\'re looking for friendly and efficient cashiers."
-    },
-    "hr_staff": {
-        title: "HR Staff",
-        message: "Help us build a great workplace! We\'re hiring HR professionals."
-    },
-    "finance_staff": {
-        title: "Finance Staff",
-        message: "Join our finance team and help us manage the numbers."
-    },
-    "hr_head": {
-        title: "Head of Human Resources",
-        message: "Lead our HR department and shape our company culture."
-    },
-    "finance_head": {
-        title: "Head of Finance",
-        message: "Lead our finance team and drive financial strategy."
+    if (!APPLY_JOBS.length) {
+        return; // Empty state already rendered server-side; nothing to wire up.
     }
-};
 
-// Handle real-time alert updates on option selection
-document.getElementById("targetRoleSelect").addEventListener("change", function() {
-    const banner = document.getElementById("roleAlertBanner");
-    const bannerTitle = document.getElementById("bannerRoleTitle");
-    const bannerDesc = document.getElementById("bannerRoleDesc");
-    const selected = this.value;
+    var jobsById = {};
+    APPLY_JOBS.forEach(function (j) { jobsById[j.id] = j; });
 
-    if (selected && roleInfoMap[selected]) {
-        bannerTitle.textContent = "Applying for: " + roleInfoMap[selected].title;
-        bannerDesc.textContent = roleInfoMap[selected].message;
-        banner.style.display = "block";
-    } else {
-        banner.style.display = "none";
+    function escapeHtml(str) {
+        var div = document.createElement("div");
+        div.textContent = str == null ? "" : String(str);
+        return div.innerHTML;
     }
-});
 
-// ✅ Form Submission - Convert role to display name before sending
-document.getElementById("applyForm").addEventListener("submit", async function(e) {
-    e.preventDefault();
-    
-    const submitBtn = this.querySelector("button[type=submit]");
-    const originalText = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = \'<span class="spinner-border spinner-border-sm me-2"></span>Submitting...\';
-    
-    try {
-        // ✅ Get form data and convert role
-        const formData = new FormData(this);
-        const roleValue = formData.get("target_role");
-        
-        // ✅ Convert lowercase role to display name for backend
-        if (roleValue && roleMapToDisplay[roleValue]) {
-            formData.set("target_role", roleMapToDisplay[roleValue]);
+    // Mirrors the server-side rendering rule for requirements/responsibilities:
+    // multiple non-empty lines become a bullet list, a single line/paragraph
+    // stays as escaped text with line breaks preserved. Never inserts raw HTML.
+    function renderListOrParagraph(text, fallback) {
+        text = (text || "").trim();
+        if (!text) {
+            return \'<p class="text-muted mb-0 small fst-italic">\' + escapeHtml(fallback) + "</p>";
         }
-        
-        const response = await fetch(this.action, {
-            method: "POST",
-            body: formData
+        var lines = text.split(/\\r\\n|\\r|\\n/).map(function (l) { return l.trim(); }).filter(Boolean);
+        if (!lines.length) {
+            return \'<p class="text-muted mb-0 small fst-italic">\' + escapeHtml(fallback) + "</p>";
+        }
+        if (lines.length > 1) {
+            var items = lines.map(function (l) {
+                return "<li>" + escapeHtml(l.replace(/^[-\\u2022*]\\s+/, "")) + "</li>";
+            }).join("");
+            return \'<ul class="job-detail-list mb-0">\' + items + "</ul>";
+        }
+        return \'<p class="mb-0">\' + escapeHtml(lines[0]).replace(/\\n/g, "<br>") + "</p>";
+    }
+
+    function formatMoney(n) {
+        return "₱" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
+    }
+
+    function renderPanel(job) {
+        var badges = [];
+        if (job.department) badges.push(\'<span class="job-meta-badge"><i class="bi bi-building"></i> \' + escapeHtml(job.department) + "</span>");
+        if (job.location) badges.push(\'<span class="job-meta-badge"><i class="bi bi-geo-alt"></i> \' + escapeHtml(job.location) + "</span>");
+        if (job.employment_type) badges.push(\'<span class="job-meta-badge"><i class="bi bi-briefcase"></i> \' + escapeHtml(job.employment_type) + "</span>");
+        if (job.remaining_slots !== null && job.remaining_slots !== undefined) {
+            badges.push(\'<span class="job-meta-badge"><i class="bi bi-people"></i> \' + job.remaining_slots + " slot" + (job.remaining_slots == 1 ? "" : "s") + " left</span>");
+        }
+
+        var salaryHtml = "";
+        if (job.salary_min || job.salary_max) {
+            salaryHtml = \'<div class="job-detail-section"><h6><i class="bi bi-cash-stack"></i> Salary Range</h6><p>\'
+                + formatMoney(job.salary_min || 0) + " - " + formatMoney(job.salary_max || 0) + " per month</p></div>";
+        }
+
+        var responsibilitiesHtml = "";
+        if ((job.responsibilities || "").trim()) {
+            responsibilitiesHtml = \'<div class="job-detail-section"><h6><i class="bi bi-list-check"></i> Responsibilities</h6>\'
+                + renderListOrParagraph(job.responsibilities, "Responsibilities not provided.") + "</div>";
+        }
+
+        document.getElementById("jobDetailPanel").innerHTML =
+            "<h2>" + escapeHtml(job.title) + "</h2>" +
+            \'<div class="job-meta-badges">\' + badges.join("") + "</div>" +
+            \'<div class="job-detail-section"><h6><i class="bi bi-file-text"></i> Job Description</h6>\'
+                + renderListOrParagraph(job.description, "Description not provided.") + "</div>" +
+            \'<div class="job-detail-section"><h6><i class="bi bi-check2-square"></i> Requirements</h6>\'
+                + renderListOrParagraph(job.requirements, "Requirements not provided.") + "</div>" +
+            responsibilitiesHtml +
+            salaryHtml;
+    }
+
+    function renderDots(activeId) {
+        var nav = document.getElementById("carouselDots");
+        nav.innerHTML = "";
+        APPLY_JOBS.forEach(function (job, idx) {
+            var dot = document.createElement("button");
+            dot.type = "button";
+            dot.className = "carousel-dot";
+            dot.setAttribute("aria-label", "View " + job.title + " position details");
+            dot.setAttribute("aria-current", job.id === activeId ? "true" : "false");
+            dot.dataset.jobId = job.id;
+            dot.addEventListener("click", function () { selectJob(job.id, true); });
+            nav.appendChild(dot);
         });
-        const result = await response.json();
-        
-        if (result.success) {
-            Swal.fire({
-                icon: "success",
-                title: "Application Submitted!",
-                html: `
-                    <p>Thank you, <strong>${formData.get("first_name")}</strong>!</p>
-                    <p>Our HR team will review your application for the <strong>${formData.get("target_role")}</strong> position.</p>
-                    <p class="text-muted mt-2">You will receive a confirmation email shortly.</p>
-                `,
-                confirmButtonText: "OK"
-            }).then(() => {
-                window.location.href = "?page=home";
-            });
-        } else {
+    }
+
+    // Reflects a job selection in the panel, dots, and hidden form field.
+    // Does NOT touch the select element value -- callers that need the
+    // select synced (the carousel) do that separately to avoid a feedback loop
+    // with the selects own change listener below.
+    function applySelection(jobId) {
+        jobId = parseInt(jobId, 10);
+        var job = jobsById[jobId];
+        if (!job) return;
+        renderPanel(job);
+        document.getElementById("jobPostingIdInput").value = jobId;
+        Array.prototype.forEach.call(document.querySelectorAll(".carousel-dot"), function (dot) {
+            dot.setAttribute("aria-current", parseInt(dot.dataset.jobId, 10) === jobId ? "true" : "false");
+        });
+    }
+
+    // Keeps the panel, dots, and hidden field from showing a stale job after
+    // the searchable-selects own "clear" (X) button empties the select --
+    // that button is a generic filter-clear affordance from the shared
+    // component, not aware this field requires exactly one selection.
+    function clearSelectionState() {
+        document.getElementById("jobDetailPanel").innerHTML =
+            \'<p class="text-muted mb-0 small fst-italic">Select a position above to see its details.</p>\';
+        document.getElementById("jobPostingIdInput").value = "";
+        Array.prototype.forEach.call(document.querySelectorAll(".carousel-dot"), function (dot) {
+            dot.setAttribute("aria-current", "false");
+        });
+    }
+
+    function selectJob(jobId, fromDot) {
+        jobId = parseInt(jobId, 10);
+        if (!jobsById[jobId]) return;
+        if (fromDot) {
+            var select = document.getElementById("positionSelect");
+            select.value = jobId;
+            if (window.refreshSearchableSelect) window.refreshSearchableSelect(select);
+        }
+        applySelection(jobId);
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        renderDots(null);
+
+        var select = document.getElementById("positionSelect");
+        select.addEventListener("change", function () {
+            if (this.value) {
+                applySelection(this.value);
+            } else {
+                clearSelectionState();
+            }
+        });
+
+        var initialId = (PRESELECT_ID && jobsById[PRESELECT_ID]) ? PRESELECT_ID : APPLY_JOBS[0].id;
+        select.value = initialId;
+        if (window.refreshSearchableSelect) window.refreshSearchableSelect(select);
+        applySelection(initialId);
+    });
+
+    document.getElementById("applyForm").addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        var submitBtn = document.getElementById("applySubmitBtn");
+        var originalText = submitBtn.innerHTML;
+
+        var jobId = document.getElementById("jobPostingIdInput").value;
+        if (!jobId) {
+            Swal.fire({ icon: "warning", title: "Select a position", text: "Please choose a position to apply for." });
+            return;
+        }
+
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = \'<span class="spinner-border spinner-border-sm me-2"></span>Submitting...\';
+
+        try {
+            var formData = new FormData(this);
+            var response = await fetch(this.action, { method: "POST", body: formData });
+            var result = await response.json();
+
+            if (result.success) {
+                var job = jobsById[parseInt(jobId, 10)];
+                Swal.fire({
+                    icon: "success",
+                    title: "Application Submitted!",
+                    html: "<p>Thank you, <strong>" + escapeHtml(formData.get("first_name")) + "</strong>!</p>" +
+                        "<p>Our HR team will review your application for the <strong>" + escapeHtml(job ? job.title : "selected") + "</strong> position.</p>" +
+                        \'<p class="text-muted mt-2">You will receive a confirmation email shortly.</p>\',
+                    confirmButtonText: "OK"
+                }).then(function () {
+                    window.location.href = "?page=home";
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Submission Failed",
+                    text: result.message || "Please check your inputs and try again.",
+                    confirmButtonText: "OK"
+                });
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            }
+        } catch (error) {
+            console.error("Submission error:", error);
             Swal.fire({
                 icon: "error",
-                title: "Submission Failed",
-                text: result.message || "Please check your inputs and try again.",
+                title: "Connection Error",
+                text: "Something went wrong. Please check your internet connection and try again.",
                 confirmButtonText: "OK"
             });
             submitBtn.disabled = false;
             submitBtn.innerHTML = originalText;
         }
-    } catch (error) {
-        console.error("Submission error:", error);
-        Swal.fire({
-            icon: "error",
-            title: "Connection Error",
-            text: "Something went wrong. Please check your internet connection and try again.",
-            confirmButtonText: "OK"
-        });
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = originalText;
-    }
-});
+    });
+})();
 </script>
 ';
 

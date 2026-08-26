@@ -368,11 +368,6 @@ function renderContracts(contracts) {
                             data-applicant="${escapeHtml(contract.trainee_name)}">
                         <i class="bi bi-envelope"></i>
                     </button>
-                    <button class="btn btn-sm btn-outline-success accept-contract"
-                            data-id="${contract.id}"
-                            data-name="${escapeHtml(contract.trainee_name)}">
-                        <i class="bi bi-check2"></i>
-                    </button>
                     <button class="btn btn-sm btn-outline-danger decline-contract"
                             data-id="${contract.id}"
                             data-name="${escapeHtml(contract.trainee_name)}">
@@ -392,9 +387,6 @@ function renderContracts(contracts) {
     }));
     document.querySelectorAll('.send-email-btn').forEach(btn => btn.addEventListener('click', function() {
         sendContractEmail(this.dataset.id, this.dataset.applicant);
-    }));
-    document.querySelectorAll('.accept-contract').forEach(btn => btn.addEventListener('click', function() {
-        updateContract(this.dataset.id, 'accept', this.dataset.name);
     }));
     document.querySelectorAll('.decline-contract').forEach(btn => btn.addEventListener('click', function() {
         updateContract(this.dataset.id, 'decline', this.dataset.name);

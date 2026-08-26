@@ -386,7 +386,7 @@ function receiveGoods(id, tabKey) {
                 itemsHtml += `
                     <div class="row g-2 mb-2" style="color: var(--text-main);">
                         <div class="col-md-6">
-                            <strong style="color: var(--text-main);">${escapeHtmlSM(item.store_product_name)}</strong>
+                            <strong style="color: var(--bg-body);">${escapeHtmlSM(item.store_product_name)}</strong>
                             <br><small style="color: var(--text-muted);">Ordered: ${item.quantity} | Already received: ${item.received_quantity || 0} | Remaining: ${remaining}</small>
                         </div>
                         <div class="col-md-3">
@@ -398,7 +398,7 @@ function receiveGoods(id, tabKey) {
 
             Swal.fire({
                 title: 'Receive Goods',
-                html: `<div style="text-align:left; color: var(--text-main);"><p style="color: var(--text-main);">Enter the quantities received for each item.</p>${itemsHtml}</div>`,
+                html: `<div style="text-align:left; color: var(--bg-body) !important;"><p style="color: var(--bg-body) !important;">Enter the quantities received for each item.</p>${itemsHtml}</div>`,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonText: 'Confirm Receipt',

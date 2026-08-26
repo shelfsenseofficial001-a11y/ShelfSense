@@ -68,11 +68,7 @@ try {
             // Same role-matching rule used at initial trainee creation
             // (create_trainee_with_trainer.php): the trainer must hold the
             // same real role as the trainee's target role.
-            $roleMap = [
-                'Employee' => 'employee', 'HR Staff' => 'hr_staff', 'Finance Staff' => 'finance_staff',
-                'Head HR' => 'hr_head', 'Head Finance' => 'finance_head'
-            ];
-            $dbTargetRole = $roleMap[$trainee['target_role']] ?? $trainee['target_role'];
+            $dbTargetRole = mapDisplayRoleToDbRole($trainee['target_role']);
             if (strtolower($trainer['role']) !== strtolower($dbTargetRole)) {
                 Response::error('Trainer must have the same role as the trainee\'s target role.', 400);
             }
@@ -97,6 +93,13 @@ try {
             break;
 
         case 'complete':
+            // Only HR Head decides training-completion eligibility -- HR Staff
+            // may assign trainers and submit/forward reports, but not clear a
+            // trainee for the Final Interview.
+            if (!Auth::isHRHead() && !Auth::isSuperAdmin()) {
+                Response::forbidden('Access denied. HR Head role required to mark a trainee eligible.');
+            }
+
             // HR Head cannot mark eligible if required weekly reports are
             // missing or haven't all reached HR Head/forwarded stage, unless
             // explicitly overridden with a reason.
@@ -146,6 +149,9 @@ try {
             break;
 
         case 'terminate':
+            if (!Auth::isHRHead() && !Auth::isSuperAdmin()) {
+                Response::forbidden('Access denied. HR Head role required to terminate a trainee.');
+            }
             if ($reason === '') {
                 Response::error('A termination reason is required.', 400);
             }

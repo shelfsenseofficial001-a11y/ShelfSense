@@ -52,18 +52,26 @@ if (!$isHead) {
 $title = isset($input['title']) ? trim($input['title']) : $posting['title'];
 $department = isset($input['department']) ? trim($input['department']) : $posting['department'];
 $role = isset($input['role']) ? trim($input['role']) : $posting['role'];
+$location = array_key_exists('location', $input) ? trim((string)$input['location']) : ($posting['location'] ?? '');
+$employmentType = isset($input['employment_type']) && $input['employment_type'] !== '' ? trim($input['employment_type']) : ($posting['employment_type'] ?? 'Full-Time');
+$slots = array_key_exists('slots', $input) ? trim((string)$input['slots']) : ($posting['slots'] !== null ? (string)$posting['slots'] : '');
 $description = isset($input['description']) ? trim($input['description']) : $posting['description'];
 $requirements = array_key_exists('requirements', $input) ? trim((string)$input['requirements']) : ($posting['requirements'] ?? '');
+$responsibilities = array_key_exists('responsibilities', $input) ? trim((string)$input['responsibilities']) : ($posting['responsibilities'] ?? '');
 $salaryMin = array_key_exists('salary_range_min', $input) ? $input['salary_range_min'] : $posting['salary_range_min'];
 $salaryMax = array_key_exists('salary_range_max', $input) ? $input['salary_range_max'] : $posting['salary_range_max'];
 $openUntil = isset($input['open_until']) ? trim($input['open_until']) : $posting['open_until'];
 
 $errors = [];
 if ($title === '' || mb_strlen($title) > 100) $errors['title'] = 'Title is required (max 100 characters).';
-if ($department === '' || mb_strlen($department) > 50) $errors['department'] = 'Department is required (max 50 characters).';
+if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) $errors['department'] = 'Please select a valid department.';
 if ($role === '' || mb_strlen($role) > 50) $errors['role'] = 'Role is required (max 50 characters).';
+if (mb_strlen($location) > 150) $errors['location'] = 'Location cannot exceed 150 characters.';
+if (!in_array($employmentType, JOB_POSTING_EMPLOYMENT_TYPES, true)) $errors['employment_type'] = 'Please select a valid employment type.';
+if ($slots !== '' && (!ctype_digit($slots) || (int)$slots < 1)) $errors['slots'] = 'Slots must be a positive whole number, or left blank for unlimited.';
 if ($description === '' || mb_strlen($description) > 5000) $errors['description'] = 'Description is required (max 5000 characters).';
 if ($requirements !== '' && mb_strlen($requirements) > 5000) $errors['requirements'] = 'Requirements cannot exceed 5000 characters.';
+if ($responsibilities !== '' && mb_strlen($responsibilities) > 5000) $errors['responsibilities'] = 'Responsibilities cannot exceed 5000 characters.';
 if ($salaryMin !== null && $salaryMin !== '' && (!is_numeric($salaryMin) || $salaryMin < 0)) $errors['salary_range_min'] = 'Minimum salary must be a non-negative number.';
 if ($salaryMax !== null && $salaryMax !== '' && (!is_numeric($salaryMax) || $salaryMax < 0)) $errors['salary_range_max'] = 'Maximum salary must be a non-negative number.';
 if ($salaryMin !== null && $salaryMin !== '' && $salaryMax !== null && $salaryMax !== '' && (float)$salaryMax < (float)$salaryMin) {
@@ -71,6 +79,10 @@ if ($salaryMin !== null && $salaryMin !== '' && $salaryMax !== null && $salaryMa
 }
 if ($openUntil === '' || !validateDate($openUntil)) {
     $errors['open_until'] = 'A valid closing date (YYYY-MM-DD) is required.';
+} elseif ($openUntil < date('Y-m-d')) {
+    $errors['open_until'] = 'Closing date cannot be in the past.';
+} elseif ($openUntil > date('Y-m-d', strtotime('+6 months'))) {
+    $errors['open_until'] = 'Closing date cannot be more than 6 months out.';
 }
 
 if (!empty($errors)) {
@@ -80,7 +92,11 @@ if (!empty($errors)) {
 try {
     $result = $model->update($id, [
         'title' => $title, 'department' => $department, 'role' => $role,
+        'location' => $location !== '' ? $location : null,
+        'employment_type' => $employmentType,
+        'slots' => $slots !== '' ? (int)$slots : null,
         'description' => $description, 'requirements' => $requirements !== '' ? $requirements : null,
+        'responsibilities' => $responsibilities !== '' ? $responsibilities : null,
         'salary_range_min' => $salaryMin !== '' ? $salaryMin : null,
         'salary_range_max' => $salaryMax !== '' ? $salaryMax : null,
         'open_until' => $openUntil

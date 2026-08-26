@@ -177,10 +177,6 @@ $content = '
                 <i class="bi bi-box-arrow-in-right me-2"></i>Login
             </button>
         </form>
-
-        <p class="text-center mt-3 text-muted small mb-0">
-            Default credentials: <strong>maria.santos@shelfsense.com</strong> / <strong>Password123!</strong>
-        </p>
     </div>
 </div>
 

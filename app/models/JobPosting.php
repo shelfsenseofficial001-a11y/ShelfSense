@@ -100,12 +100,14 @@ class JobPosting
     {
         $stmt = $this->db->prepare("
             INSERT INTO job_postings
-                (title, department, role, description, requirements, salary_range_min, salary_range_max, open_until, status, created_by, reused_from_id)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (title, department, location, role, employment_type, description, requirements, responsibilities,
+                 salary_range_min, salary_range_max, slots, open_until, status, created_by, reused_from_id)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $result = $stmt->execute([
-            $data['title'], $data['department'], $data['role'], $data['description'],
-            $data['requirements'] ?? null, $data['salary_range_min'] ?? null, $data['salary_range_max'] ?? null,
+            $data['title'], $data['department'], $data['location'] ?? null, $data['role'], $data['employment_type'] ?? 'Full-Time',
+            $data['description'], $data['requirements'] ?? null, $data['responsibilities'] ?? null,
+            $data['salary_range_min'] ?? null, $data['salary_range_max'] ?? null, $data['slots'] ?? null,
             $data['open_until'], $data['status'] ?? 'draft', $data['created_by'], $data['reused_from_id'] ?? null
         ]);
         return $result ? (int)$this->db->lastInsertId() : false;
@@ -115,7 +117,8 @@ class JobPosting
     {
         $fields = [];
         $params = [];
-        foreach (['title', 'department', 'role', 'description', 'requirements', 'salary_range_min', 'salary_range_max', 'open_until'] as $f) {
+        foreach (['title', 'department', 'location', 'role', 'employment_type', 'description', 'requirements',
+                   'responsibilities', 'salary_range_min', 'salary_range_max', 'slots', 'open_until'] as $f) {
             if (array_key_exists($f, $data)) {
                 $fields[] = "$f = ?";
                 $params[] = $data[$f];
@@ -158,18 +161,65 @@ class JobPosting
         return $stmt->execute([$id]);
     }
 
-    /** Public, real, currently-hiring postings only. */
+    /**
+     * Public, real, currently-hiring postings only -- approved, not past
+     * their closing date, and with at least one remaining slot (a NULL
+     * slots value means unlimited openings). This is the single source of
+     * eligibility for both the landing page and the application form, so
+     * the two can never show different sets of jobs.
+     */
     public function getPublicListings()
     {
         $stmt = $this->db->prepare("
-            SELECT id, title, department, role, description, requirements,
-                   salary_range_min, salary_range_max, open_until
-            FROM job_postings
-            WHERE status = 'approved' AND open_until >= CURDATE()
-            ORDER BY approved_at DESC
+            SELECT jp.id, jp.title, jp.department, jp.location, jp.role, jp.employment_type,
+                   jp.description, jp.requirements, jp.responsibilities,
+                   jp.salary_range_min, jp.salary_range_max, jp.slots, jp.open_until,
+                   COALESCE(hired.cnt, 0) AS hired_count
+            FROM job_postings jp
+            LEFT JOIN (
+                SELECT job_posting_id, COUNT(*) AS cnt
+                FROM applicants
+                WHERE status = 'hired' AND job_posting_id IS NOT NULL
+                GROUP BY job_posting_id
+            ) hired ON hired.job_posting_id = jp.id
+            WHERE jp.status = 'approved'
+              AND jp.open_until >= CURDATE()
+              AND (jp.slots IS NULL OR COALESCE(hired.cnt, 0) < jp.slots)
+            ORDER BY jp.approved_at DESC
         ");
         $stmt->execute();
-        return $stmt->fetchAll();
+        $rows = $stmt->fetchAll();
+        foreach ($rows as &$row) {
+            $row['remaining_slots'] = $row['slots'] !== null ? max(0, (int)$row['slots'] - (int)$row['hired_count']) : null;
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /**
+     * Re-validates one job posting against the exact same eligibility rules
+     * as getPublicListings(), for authoritative checks at application
+     * submission time -- never trust what the browser last saw at page load.
+     */
+    public function getEligibleJobById($id)
+    {
+        $stmt = $this->db->prepare("
+            SELECT jp.id, jp.title, jp.department, jp.role, jp.slots,
+                   COALESCE(hired.cnt, 0) AS hired_count
+            FROM job_postings jp
+            LEFT JOIN (
+                SELECT job_posting_id, COUNT(*) AS cnt
+                FROM applicants
+                WHERE status = 'hired' AND job_posting_id IS NOT NULL
+                GROUP BY job_posting_id
+            ) hired ON hired.job_posting_id = jp.id
+            WHERE jp.id = ?
+              AND jp.status = 'approved'
+              AND jp.open_until >= CURDATE()
+              AND (jp.slots IS NULL OR COALESCE(hired.cnt, 0) < jp.slots)
+        ");
+        $stmt->execute([(int)$id]);
+        return $stmt->fetch();
     }
 
     public function getStatusCounts()

@@ -1,7 +1,10 @@
 <?php
+use App\Core\Auth;
+
 $title = 'Trainees - ShelfSense HR';
 $pageTitle = 'Trainees';
 $activePage = 'trainees';
+$isHRHeadJs = (Auth::isHRHead() || Auth::isSuperAdmin()) ? 'true' : 'false';
 
 // Date restrictions
 $minDate = date('Y-m-d\TH:i', strtotime('+1 day'));
@@ -29,7 +32,7 @@ $content = '
     <div class="col-md-3">
         <select id="filterRole" class="form-select searchable-select" data-placeholder="Filter by role..." maxlength="40">
             <option value="all">All Roles</option>
-            <option value="Cashier">Cashier</option>
+            <option value="Employee">Cashier</option>
             <option value="HR Staff">HR Staff</option>
             <option value="Finance Staff">Finance Staff</option>
             <option value="Head HR">Head HR</option>
@@ -240,6 +243,7 @@ $content = '
 <script>
     window.CURRENT_USER_ID = ' . (int)($_SESSION['user_id'] ?? 0) . ';
     window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
+    window.HR_IS_HEAD = ' . $isHRHeadJs . ';
 </script>
 <script src="/ShelfSense/public/assets/js/hr/trainees.js"></script>
 ';

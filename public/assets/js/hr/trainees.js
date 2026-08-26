@@ -381,7 +381,7 @@ function renderTrainees(trainees) {
                 ${trainee.status === 'active' ? `
                     <button class="btn btn-sm btn-outline-info reports-btn" data-id="${trainee.id}" data-name="${escapeHtml(trainee.trainee_name)}"><i class="bi bi-file-text"></i></button>
                 ` : ''}
-                ${trainee.status === 'active' && trainee.reports_status === 'completed' && !trainee.eligible_for_contract ? `
+                ${trainee.status === 'active' && trainee.reports_status === 'completed' && !trainee.eligible_for_contract && window.HR_IS_HEAD ? `
                     <button class="btn btn-sm btn-outline-success review-btn review-eligible" data-id="${trainee.id}" data-name="${escapeHtml(trainee.trainee_name)}"><i class="bi bi-check2-circle"></i></button>
                     <button class="btn btn-sm btn-outline-danger review-btn review-terminate" data-id="${trainee.id}" data-name="${escapeHtml(trainee.trainee_name)}"><i class="bi bi-x-circle"></i></button>
                 ` : ''}

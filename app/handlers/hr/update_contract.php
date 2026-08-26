@@ -1,20 +1,18 @@
 <?php
 // app/handlers/hr/update_contract.php
-// HR-side contract management: HR may accept/decline on the trainee's behalf
-// (e.g. an offline/paper signature) or edit pending contract details. The
-// trainee's own self-service acceptance lives in
-// app/handlers/trainee/respond_to_contract.php and shares the same
-// activation logic (activateEmployeeFromAcceptedContract()) so an employee
-// account is only ever activated once, from either path.
+// HR-side contract management: HR may decline a pending contract (e.g. to
+// withdraw an offer) or edit its details before the trainee responds. HR can
+// NOT accept a contract on the trainee's behalf -- only the trainee's own
+// acceptance (app/handlers/trainee/respond_to_contract.php) activates their
+// employee account, so that decision is never available through this
+// HR-facing endpoint.
 
 require_once __DIR__ . '/../../core/Database.php';
-require_once __DIR__ . '/../../core/Mailer.php';
 require_once __DIR__ . '/../../helpers/functions.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
-use App\Core\Mailer;
 
 header('Content-Type: application/json');
 
@@ -46,7 +44,11 @@ if (strlen($responseNotes) > 500) {
 $db = Database::getInstance()->getConnection();
 
 try {
-    if (in_array($action, ['accept', 'decline'], true)) {
+    if ($action === 'accept') {
+        Response::forbidden('HR cannot accept a contract on the trainee\'s behalf. Only the trainee\'s own acceptance activates their account.');
+    }
+
+    if ($action === 'decline') {
         $db->beginTransaction();
 
         $stmt = $db->prepare("
@@ -69,33 +71,18 @@ try {
             Response::error('This contract has already been processed.', 400);
         }
 
-        if ($action === 'accept') {
-            $result = activateEmployeeFromAcceptedContract($db, $contract);
-            $message = 'Contract accepted. Employee hired and schedule created!';
+        $stmt = $db->prepare("UPDATE contracts SET status = 'declined', declined_at = NOW(), response_notes = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$responseNotes !== '' ? $responseNotes : null, $contractId]);
 
-            try {
-                $mailer = new Mailer();
-                $mailer->sendApplicantStatusUpdate(
-                    ['email' => $contract['applicant_email'], 'first_name' => $contract['first_name']],
-                    'hired'
-                );
-            } catch (Exception $e) {
-                error_log('update_contract.php: hired email failed: ' . $e->getMessage());
-            }
-        } else {
-            $stmt = $db->prepare("UPDATE contracts SET status = 'declined', declined_at = NOW(), response_notes = ?, updated_at = NOW() WHERE id = ?");
-            $stmt->execute([$responseNotes !== '' ? $responseNotes : null, $contractId]);
+        $stmt = $db->prepare("UPDATE applicants SET status = 'contract_declined', updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$contract['applicant_id']]);
 
-            $stmt = $db->prepare("UPDATE applicants SET status = 'contract_declined', updated_at = NOW() WHERE id = ?");
-            $stmt->execute([$contract['applicant_id']]);
+        logRecruitmentEvent('applicant', $contract['applicant_id'], 'contract_declined', [
+            'previous_status' => 'contract_offered', 'new_status' => 'contract_declined', 'reason' => $responseNotes
+        ]);
+        $message = 'Contract declined.';
 
-            logRecruitmentEvent('applicant', $contract['applicant_id'], 'contract_declined', [
-                'previous_status' => 'contract_offered', 'new_status' => 'contract_declined', 'reason' => $responseNotes
-            ]);
-            $message = 'Contract declined.';
-        }
-
-        createNotification(Auth::userId(), 'contract_' . $action, "Contract {$action}ed for employee ID: " . $contract['employee_user_id']);
+        createNotification(Auth::userId(), 'contract_declined', "Contract declined for employee ID: " . $contract['employee_user_id']);
         $db->commit();
 
         Response::success(['contract_id' => $contractId, 'action' => $action], $message);

@@ -1,0 +1,8 @@
+# Uploaded files (resumes, etc.) are never allowed to execute as scripts,
+# and directory contents are never listable -- defense in depth on top of
+# the extension/MIME whitelist enforced in app/helpers/functions.php.
+Options -Indexes -ExecCGI
+
+<FilesMatch "\.(php|phtml|php3|php4|php5|php7|php8|pl|py|cgi|sh|exe|asp|aspx|jsp)$">
+    Require all denied
+</FilesMatch>

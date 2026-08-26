@@ -64,14 +64,7 @@ try {
         Response::error('Applicant must have passed the initial interview (status: initial_passed). Current status: ' . $applicant['status'], 400);
     }
 
-    $roleMap = [
-        'Employee' => 'employee',
-        'HR Staff' => 'hr_staff',
-        'Finance Staff' => 'finance_staff',
-        'Head HR' => 'hr_head',
-        'Head Finance' => 'finance_head'
-    ];
-    $dbTargetRole = $roleMap[$applicant['target_role']] ?? $applicant['target_role'];
+    $dbTargetRole = mapDisplayRoleToDbRole($applicant['target_role']);
 
     $stmt = $db->prepare("SELECT user_id, role, can_train, first_name, last_name FROM users WHERE user_id = ? AND is_active = 1");
     $stmt->execute([$trainerId]);

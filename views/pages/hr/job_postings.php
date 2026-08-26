@@ -91,7 +91,12 @@ $content = <<<EOT
                         </div>
                         <div class="col-md-3 mb-2">
                             <label class="form-label fw-semibold">Department</label>
-                            <input type="text" id="postingDepartment" class="form-control" maxlength="50" required>
+                            <select id="postingDepartment" class="form-select searchable-select" data-placeholder="Select department..." required>
+                                <option value=""></option>
+                                <option value="Cashier">Cashier</option>
+                                <option value="HR Staff">HR Staff</option>
+                                <option value="Finance Staff">Finance Staff</option>
+                            </select>
                         </div>
                         <div class="col-md-3 mb-2">
                             <label class="form-label fw-semibold">Role Key</label>
@@ -99,13 +104,37 @@ $content = <<<EOT
                             <div class="form-text">Used internally; matches the applicant's target role.</div>
                         </div>
                     </div>
+                    <div class="row g-2">
+                        <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold">Location</label>
+                            <input type="text" id="postingLocation" class="form-control" maxlength="150" placeholder="e.g. Main Store, Dasmarinas">
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label fw-semibold">Employment Type</label>
+                            <select id="postingEmploymentType" class="form-select">
+                                <option value="Full-Time">Full-Time</option>
+                                <option value="Part-Time">Part-Time</option>
+                                <option value="Contract">Contract</option>
+                                <option value="Internship">Internship</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3 mb-2">
+                            <label class="form-label fw-semibold">Open Slots</label>
+                            <input type="number" id="postingSlots" class="form-control" min="1" step="1" placeholder="Unlimited">
+                            <div class="form-text">Leave blank for unlimited.</div>
+                        </div>
+                    </div>
                     <div class="mb-2">
                         <label class="form-label fw-semibold">Description</label>
                         <textarea id="postingDescription" class="form-control" rows="4" maxlength="5000" required></textarea>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label fw-semibold">Requirements / Qualifications / Responsibilities</label>
-                        <textarea id="postingRequirements" class="form-control" rows="4" maxlength="5000"></textarea>
+                        <label class="form-label fw-semibold">Requirements / Qualifications</label>
+                        <textarea id="postingRequirements" class="form-control" rows="4" maxlength="5000" placeholder="One requirement per line"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Responsibilities</label>
+                        <textarea id="postingResponsibilities" class="form-control" rows="4" maxlength="5000" placeholder="One responsibility per line"></textarea>
                     </div>
                     <div class="row g-2">
                         <div class="col-md-4 mb-2">
@@ -119,6 +148,7 @@ $content = <<<EOT
                         <div class="col-md-4 mb-2">
                             <label class="form-label fw-semibold">Closing Date</label>
                             <input type="date" id="postingOpenUntil" class="form-control" required>
+                            <div class="form-text">Must be within the next 6 months.</div>
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,13 @@
 <?php
 
+// Allowed department values for job postings (kept in sync with the
+// searchable-select options in views/pages/hr/job_postings.php).
+define('JOB_POSTING_DEPARTMENTS', ['Cashier', 'HR Staff', 'Finance Staff']);
+
+// Allowed employment_type values for job postings (kept in sync with the
+// select options in views/pages/hr/job_postings.php).
+define('JOB_POSTING_EMPLOYMENT_TYPES', ['Full-Time', 'Part-Time', 'Contract', 'Internship']);
+
 // ============================================
 // STRING HELPERS
 // ============================================
@@ -72,6 +80,15 @@ function getCurrentDateTime()
 // FILE HELPERS
 // ============================================
 
+// MIME types accepted for each allowed extension, checked against the
+// file's actual content (not just its client-supplied name) so a renamed
+// executable can't slip through as a ".pdf".
+const UPLOAD_MIME_WHITELIST = [
+    'pdf' => ['application/pdf'],
+    'doc' => ['application/msword'],
+    'docx' => ['application/vnd.openxmlformats-officedocument.wordprocessingml.document', 'application/zip'],
+];
+
 function uploadFile($file, $targetDir, $allowedTypes = [], $maxSize = 5242880)
 {
     if ($file['error'] !== UPLOAD_ERR_OK) {
@@ -84,15 +101,26 @@ function uploadFile($file, $targetDir, $allowedTypes = [], $maxSize = 5242880)
 
     $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
 
-    if (!empty($allowedTypes) && !in_array($ext, $allowedTypes)) {
+    if (!empty($allowedTypes) && !in_array($ext, $allowedTypes, true)) {
         return ['success' => false, 'message' => 'File type not allowed'];
+    }
+
+    if (isset(UPLOAD_MIME_WHITELIST[$ext])) {
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $detectedMime = $finfo ? finfo_file($finfo, $file['tmp_name']) : false;
+        if ($finfo) finfo_close($finfo);
+        if (!$detectedMime || !in_array($detectedMime, UPLOAD_MIME_WHITELIST[$ext], true)) {
+            return ['success' => false, 'message' => 'File content does not match the ' . strtoupper($ext) . ' format.'];
+        }
     }
 
     if (!is_dir($targetDir)) {
         mkdir($targetDir, 0777, true);
     }
 
-    $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file['name']);
+    // Fully random filename -- never derived from the client-supplied name,
+    // so there is no path-traversal, collision, or enumeration risk.
+    $filename = bin2hex(random_bytes(16)) . '.' . $ext;
     $path = $targetDir . '/' . $filename;
 
     if (move_uploaded_file($file['tmp_name'], $path)) {
@@ -123,6 +151,43 @@ function createNotification($userId, $type, $message, $link = null)
 // ============================================
 
 /**
+ * Maps an applicant/trainee's display-form target_role (as stored by
+ * api_apply.php -- 'Employee', 'HR Staff', 'Finance Staff', 'Head HR',
+ * 'Head Finance') to the real users.role enum value. Used wherever a
+ * trainer or reviewer's actual role must be matched against a trainee's
+ * intended role.
+ */
+function mapDisplayRoleToDbRole($targetRole)
+{
+    $roleMap = [
+        'Employee' => 'employee',
+        'HR Staff' => 'hr_staff',
+        'Finance Staff' => 'finance_staff',
+        'Head HR' => 'hr_head',
+        'Head Finance' => 'finance_head'
+    ];
+    return $roleMap[$targetRole] ?? $targetRole;
+}
+
+/**
+ * Maps a job posting's controlled `department` value (JOB_POSTING_DEPARTMENTS
+ * -- 'Cashier', 'HR Staff', 'Finance Staff') to the display-form target_role
+ * an applicant record should carry, keeping it consistent with
+ * mapDisplayRoleToDbRole() above. This is the authoritative source of an
+ * application's target_role -- never the free-text job_postings.role field,
+ * which HR types by hand and isn't a controlled value.
+ */
+function jobPostingDepartmentToTargetRole($department)
+{
+    $map = [
+        'Cashier' => 'Employee',
+        'HR Staff' => 'HR Staff',
+        'Finance Staff' => 'Finance Staff',
+    ];
+    return $map[$department] ?? $department;
+}
+
+/**
  * Maps a trainee's real target_role to the department bucket that decides
  * who reviews their weekly reports. Store is the safe default since most
  * trainees are store-facing roles (cashier, general store employee).
@@ -130,10 +195,10 @@ function createNotification($userId, $type, $message, $link = null)
 function mapRoleToDepartment($targetRole)
 {
     $role = strtolower(trim((string)$targetRole));
-    if (in_array($role, ['finance_staff', 'finance_head', 'finance'], true)) {
+    if (in_array($role, ['finance staff', 'head finance', 'finance_staff', 'finance_head', 'finance'], true)) {
         return 'finance';
     }
-    if (in_array($role, ['hr_staff', 'hr_head', 'hr'], true)) {
+    if (in_array($role, ['hr staff', 'head hr', 'hr_staff', 'hr_head', 'hr'], true)) {
         return 'hr';
     }
     return 'store';
@@ -160,12 +225,12 @@ function mapDepartmentToReviewerRole($department)
 // ============================================
 
 /**
- * Shared "accept a Hired Contract" logic, called both when HR accepts on the
- * trainee's behalf (offline signature, etc.) and when the trainee/applicant
- * accepts it themselves from their own dashboard. Activates the employee
- * account (role upgrade + employee number + schedule) exactly once -- the
- * caller must have already verified the contract is still 'pending' under a
- * row lock so this can never run twice for the same contract.
+ * Shared "accept a Hired Contract" logic. Only the trainee's own acceptance
+ * (app/handlers/trainee/respond_to_contract.php) calls this -- HR cannot
+ * accept on a trainee's behalf. Activates the employee account (role upgrade
+ * + employee number + schedule) exactly once -- the caller must have already
+ * verified the contract is still 'pending' under a row lock so this can
+ * never run twice for the same contract.
  *
  * $contract must include: id, applicant_id, employee_user_id (or user_id),
  * target_role, first_name, applicant_email, shift, rest_days.
@@ -175,17 +240,13 @@ function activateEmployeeFromAcceptedContract($db, $contract)
     $userId = $contract['employee_user_id'] ?? $contract['user_id'];
     $targetRole = $contract['target_role'];
 
-    $roleMap = [
-        'Employee' => 'employee', 'HR Staff' => 'hr_staff', 'Finance Staff' => 'finance_staff',
-        'Head HR' => 'hr_head', 'Head Finance' => 'finance_head'
-    ];
-    $dbRole = $roleMap[$targetRole] ?? 'employee';
+    $dbRole = mapDisplayRoleToDbRole($targetRole);
 
     $rolePrefixes = [
         'Employee' => 'EM', 'HR Staff' => 'HS', 'Finance Staff' => 'FS',
         'Head HR' => 'HH', 'Head Finance' => 'FH'
     ];
-    $prefix = $rolePrefixes[$targetRole] ?? 'USR';
+    $prefix = $rolePrefixes[$targetRole] ?? 'EM';
 
     $unique = false;
     $attempts = 0;

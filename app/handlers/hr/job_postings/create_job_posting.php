@@ -25,8 +25,12 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $title = isset($input['title']) ? trim($input['title']) : '';
 $department = isset($input['department']) ? trim($input['department']) : '';
 $role = isset($input['role']) ? trim($input['role']) : '';
+$location = isset($input['location']) ? trim($input['location']) : '';
+$employmentType = isset($input['employment_type']) && $input['employment_type'] !== '' ? trim($input['employment_type']) : 'Full-Time';
+$slots = isset($input['slots']) ? trim((string)$input['slots']) : '';
 $description = isset($input['description']) ? trim($input['description']) : '';
 $requirements = isset($input['requirements']) ? trim($input['requirements']) : '';
+$responsibilities = isset($input['responsibilities']) ? trim($input['responsibilities']) : '';
 $salaryMin = $input['salary_range_min'] ?? null;
 $salaryMax = $input['salary_range_max'] ?? null;
 $openUntil = isset($input['open_until']) ? trim($input['open_until']) : '';
@@ -34,10 +38,14 @@ $submitNow = !empty($input['submit']);
 
 $errors = [];
 if ($title === '' || mb_strlen($title) > 100) $errors['title'] = 'Title is required (max 100 characters).';
-if ($department === '' || mb_strlen($department) > 50) $errors['department'] = 'Department is required (max 50 characters).';
+if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) $errors['department'] = 'Please select a valid department.';
 if ($role === '' || mb_strlen($role) > 50) $errors['role'] = 'Role is required (max 50 characters).';
+if (mb_strlen($location) > 150) $errors['location'] = 'Location cannot exceed 150 characters.';
+if (!in_array($employmentType, JOB_POSTING_EMPLOYMENT_TYPES, true)) $errors['employment_type'] = 'Please select a valid employment type.';
+if ($slots !== '' && (!ctype_digit($slots) || (int)$slots < 1)) $errors['slots'] = 'Slots must be a positive whole number, or left blank for unlimited.';
 if ($description === '' || mb_strlen($description) > 5000) $errors['description'] = 'Description is required (max 5000 characters).';
 if ($requirements !== '' && mb_strlen($requirements) > 5000) $errors['requirements'] = 'Requirements cannot exceed 5000 characters.';
+if ($responsibilities !== '' && mb_strlen($responsibilities) > 5000) $errors['responsibilities'] = 'Responsibilities cannot exceed 5000 characters.';
 if ($salaryMin !== null && $salaryMin !== '' && (!is_numeric($salaryMin) || $salaryMin < 0)) $errors['salary_range_min'] = 'Minimum salary must be a non-negative number.';
 if ($salaryMax !== null && $salaryMax !== '' && (!is_numeric($salaryMax) || $salaryMax < 0)) $errors['salary_range_max'] = 'Maximum salary must be a non-negative number.';
 if ($salaryMin !== null && $salaryMin !== '' && $salaryMax !== null && $salaryMax !== '' && (float)$salaryMax < (float)$salaryMin) {
@@ -47,6 +55,8 @@ if ($openUntil === '' || !validateDate($openUntil)) {
     $errors['open_until'] = 'A valid closing date (YYYY-MM-DD) is required.';
 } elseif ($openUntil < date('Y-m-d')) {
     $errors['open_until'] = 'Closing date cannot be in the past.';
+} elseif ($openUntil > date('Y-m-d', strtotime('+6 months'))) {
+    $errors['open_until'] = 'Closing date cannot be more than 6 months out.';
 }
 
 if (!empty($errors)) {
@@ -59,8 +69,12 @@ try {
         'title' => $title,
         'department' => $department,
         'role' => $role,
+        'location' => $location !== '' ? $location : null,
+        'employment_type' => $employmentType,
+        'slots' => $slots !== '' ? (int)$slots : null,
         'description' => $description,
         'requirements' => $requirements !== '' ? $requirements : null,
+        'responsibilities' => $responsibilities !== '' ? $responsibilities : null,
         'salary_range_min' => $salaryMin !== '' ? $salaryMin : null,
         'salary_range_max' => $salaryMax !== '' ? $salaryMax : null,
         'open_until' => $openUntil,

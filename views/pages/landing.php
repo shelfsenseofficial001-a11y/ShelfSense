@@ -47,7 +47,7 @@ if (empty($publicJobs)) {
                             <small class="text-muted"><i class="bi bi-calendar-x me-1"></i>Applications close ' . date('M j, Y', strtotime($job['open_until'])) . '</small>
                         </div>
                         <div class="col-md-5 text-md-end">
-                            <a href="?page=apply&role=' . urlencode($job['role']) . '" class="btn btn-yellow-primary px-4 py-2 rounded-2">
+                            <a href="?page=apply&job_posting_id=' . (int)$job['id'] . '" class="btn btn-yellow-primary px-4 py-2 rounded-2">
                                 Apply Now <i class="bi bi-box-arrow-up-right ms-2"></i>
                             </a>
                         </div>

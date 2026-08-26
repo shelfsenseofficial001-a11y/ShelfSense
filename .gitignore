@@ -1,3 +1,8 @@
 node_modules/
 .env
 .DS_Store
+
+# Applicant-uploaded resumes are personal data, not project code -- keep the
+# folder's own hardening tracked, but never commit what people upload to it.
+public/uploads/*
+!public/uploads/.htaccess

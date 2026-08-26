@@ -159,12 +159,25 @@ function openFormModal(posting) {
     document.getElementById('postingFormTitle').textContent = posting ? 'Edit Job Posting' : 'New Job Posting';
     document.getElementById('postingTitle').value = posting ? posting.title : '';
     document.getElementById('postingDepartment').value = posting ? posting.department : '';
+    window.refreshSearchableSelect && window.refreshSearchableSelect('postingDepartment');
     document.getElementById('postingRole').value = posting ? posting.role : '';
+    document.getElementById('postingLocation').value = posting ? (posting.location || '') : '';
+    document.getElementById('postingEmploymentType').value = posting ? (posting.employment_type || 'Full-Time') : 'Full-Time';
+    document.getElementById('postingSlots').value = posting && posting.slots !== null ? posting.slots : '';
     document.getElementById('postingDescription').value = posting ? posting.description : '';
     document.getElementById('postingRequirements').value = posting ? (posting.requirements || '') : '';
+    document.getElementById('postingResponsibilities').value = posting ? (posting.responsibilities || '') : '';
     document.getElementById('postingSalaryMin').value = posting ? (posting.salary_range_min || '') : '';
     document.getElementById('postingSalaryMax').value = posting ? (posting.salary_range_max || '') : '';
-    document.getElementById('postingOpenUntil').value = posting ? posting.open_until : '';
+
+    const openUntilInput = document.getElementById('postingOpenUntil');
+    const today = new Date();
+    const maxDate = new Date();
+    maxDate.setMonth(maxDate.getMonth() + 6);
+    const toIso = d => d.toISOString().slice(0, 10);
+    openUntilInput.min = toIso(today);
+    openUntilInput.max = toIso(maxDate);
+    openUntilInput.value = posting ? posting.open_until : '';
 
     bootstrap.Modal.getInstance(document.getElementById('postingDetailModal'))?.hide();
     new bootstrap.Modal(document.getElementById('postingFormModal')).show();
@@ -176,8 +189,12 @@ function collectFormPayload() {
         title: document.getElementById('postingTitle').value.trim(),
         department: document.getElementById('postingDepartment').value.trim(),
         role: document.getElementById('postingRole').value.trim(),
+        location: document.getElementById('postingLocation').value.trim(),
+        employment_type: document.getElementById('postingEmploymentType').value,
+        slots: document.getElementById('postingSlots').value,
         description: document.getElementById('postingDescription').value.trim(),
         requirements: document.getElementById('postingRequirements').value.trim(),
+        responsibilities: document.getElementById('postingResponsibilities').value.trim(),
         salary_range_min: document.getElementById('postingSalaryMin').value,
         salary_range_max: document.getElementById('postingSalaryMax').value,
         open_until: document.getElementById('postingOpenUntil').value
