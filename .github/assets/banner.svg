@@ -1,0 +1,70 @@
+<svg width="1200" height="300" viewBox="0 0 1200 300" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#20201d"/>
+      <stop offset="100%" stop-color="#0f0f0e"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff7a52"/>
+      <stop offset="100%" stop-color="#f45b35"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="18%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#f45b35" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#f45b35" stop-opacity="0"/>
+    </radialGradient>
+    <pattern id="dots" width="26" height="26" patternUnits="userSpaceOnUse">
+      <circle cx="1.4" cy="1.4" r="1.4" fill="#ffffff" fill-opacity="0.05"/>
+    </pattern>
+  </defs>
+
+  <rect width="1200" height="300" fill="url(#bg)"/>
+  <rect width="1200" height="300" fill="url(#dots)"/>
+  <rect width="1200" height="300" fill="url(#glow)"/>
+
+  <!-- hexagon brand mark -->
+  <g transform="translate(120,150)">
+    <polygon points="0,-84 73,-42 73,42 0,84 -73,42 -73,-42"
+             fill="none" stroke="url(#accent)" stroke-width="7" stroke-linejoin="round"/>
+    <polygon points="0,-48 42,-24 42,24 0,48 -42,24 -42,-24"
+             fill="none" stroke="#ffffff" stroke-width="4" stroke-linejoin="round" stroke-opacity="0.9"/>
+    <circle cx="0" cy="0" r="9" fill="url(#accent)"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="248" y="146" font-family="'Segoe UI', 'Space Grotesk', Arial, sans-serif" font-size="58" font-weight="700" fill="#ffffff">Shelf<tspan fill="#f45b35">Sense</tspan></text>
+  <text x="250" y="182" font-family="'Segoe UI', Arial, sans-serif" font-size="19" fill="#b7b6b0" letter-spacing="0.3">Inventory, HR &amp; Retail Operations Platform</text>
+
+  <!-- module pills -->
+  <g font-family="'Segoe UI', Arial, sans-serif" font-size="14.5" font-weight="600">
+    <g transform="translate(250,208)">
+      <rect width="70" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+      <text x="35" y="20" fill="#e9e8e4" text-anchor="middle">HR</text>
+    </g>
+    <g transform="translate(332,208)">
+      <rect width="112" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+      <text x="56" y="20" fill="#e9e8e4" text-anchor="middle">Inventory</text>
+    </g>
+    <g transform="translate(456,208)">
+      <rect width="94" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+      <text x="47" y="20" fill="#e9e8e4" text-anchor="middle">Finance</text>
+    </g>
+    <g transform="translate(562,208)">
+      <rect width="72" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+      <text x="36" y="20" fill="#e9e8e4" text-anchor="middle">POS</text>
+    </g>
+    <g transform="translate(646,208)">
+      <rect width="104" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+      <text x="52" y="20" fill="#e9e8e4" text-anchor="middle">Suppliers</text>
+    </g>
+    <g transform="translate(762,208)">
+      <rect width="102" height="30" rx="15" fill="#ffffff" fill-opacity="0.06" stroke="#ffffff" stroke-opacity="0.14"/>
+      <text x="51" y="20" fill="#e9e8e4" text-anchor="middle">Training</text>
+    </g>
+  </g>
+
+  <!-- right-side decorative facets -->
+  <g opacity="0.5">
+    <polygon points="1050,40 1120,80 1120,160 1050,200 980,160 980,80" fill="none" stroke="#f45b35" stroke-width="2" stroke-opacity="0.35"/>
+    <polygon points="1140,110 1180,133 1180,179 1140,202 1100,179 1100,133" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.15"/>
+  </g>
+</svg>
