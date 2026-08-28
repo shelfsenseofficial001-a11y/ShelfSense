@@ -4,6 +4,9 @@
 
 document.addEventListener('DOMContentLoaded', function() {
     loadDashboardData();
+    loadDashboardApplicants();
+    loadDashboardTrainees();
+    loadDashboardInterviews();
 });
 
 function loadDashboardData() {
@@ -12,7 +15,6 @@ function loadDashboardData() {
         .then(data => {
             if (data.success) {
                 updateStats(data.data.stats);
-                updateUpcomingInterviews(data.data.upcoming_interviews);
                 renderMonthlyChart(data.data.monthly_applications);
                 renderPipelineChart(data.data.pipeline);
                 updatePendingBadge(data.data.stats.pending);
@@ -22,6 +24,105 @@ function loadDashboardData() {
         })
         .catch(error => {
             console.error('Error loading dashboard:', error);
+        });
+}
+
+function loadDashboardInterviews() {
+    fetch('?page=api_get_interviews&p=1&limit=5&type=all&status=all&search=')
+        .then(response => response.json())
+        .then(data => {
+            const interviews = (data.success && data.data.interviews) ? data.data.interviews : [];
+            updateUpcomingInterviews(interviews);
+            updateInterviewsDueBadge(interviews);
+        })
+        .catch(error => {
+            console.error('Error loading dashboard interviews:', error);
+            const tbody = document.getElementById('dashInterviewsBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Failed to load</td></tr>';
+        });
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text ?? '';
+    return div.innerHTML;
+}
+
+const applicantStatusColors = {
+    'pending': 'warning',
+    'initial_scheduled': 'info',
+    'initial_passed': 'primary',
+    'initial_failed': 'danger',
+    'final_scheduled': 'info',
+    'final_passed': 'primary',
+    'final_failed': 'danger',
+    'screening': 'warning',
+    'screening_success': 'success',
+    'screening_failed': 'danger',
+    'contract_offered': 'primary',
+    'contract_declined': 'secondary',
+    'hired': 'success'
+};
+
+function loadDashboardApplicants() {
+    fetch('?page=api_get_applicants&p=1&limit=5&status=all&role=all&search=')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('dashApplicantsBody');
+            if (!tbody) return;
+            const applicants = (data.success && data.data.applicants) ? data.data.applicants : [];
+            const pendingCount = (data.success && data.data.stats) ? (data.data.stats.pending || 0) : 0;
+            const countBadge = document.getElementById('dashApplicantsCountBadge');
+            if (countBadge) {
+                if (pendingCount > 0) {
+                    countBadge.textContent = pendingCount;
+                    countBadge.style.display = 'inline-flex';
+                } else {
+                    countBadge.style.display = 'none';
+                }
+            }
+            if (applicants.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No applicants yet</td></tr>';
+                return;
+            }
+            tbody.innerHTML = applicants.map(a => `
+                <tr>
+                    <td>${escapeHtml(a.first_name)} ${escapeHtml(a.last_name)}</td>
+                    <td class="text-muted small">${escapeHtml(a.target_role)}</td>
+                    <td><span class="badge bg-${applicantStatusColors[a.status] || 'secondary'}">${escapeHtml(a.status_label || a.status)}</span></td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error loading dashboard applicants:', error);
+            const tbody = document.getElementById('dashApplicantsBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">Failed to load</td></tr>';
+        });
+}
+
+function loadDashboardTrainees() {
+    fetch('?page=api_get_trainees&p=1&limit=5&status=all&role=all&search=')
+        .then(response => response.json())
+        .then(data => {
+            const tbody = document.getElementById('dashTraineesBody');
+            if (!tbody) return;
+            const trainees = (data.success && data.data.trainees) ? data.data.trainees : [];
+            if (trainees.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No trainees yet</td></tr>';
+                return;
+            }
+            tbody.innerHTML = trainees.map(t => `
+                <tr>
+                    <td>${escapeHtml(t.trainee_name)}</td>
+                    <td class="text-muted small">${t.trainer_name ? escapeHtml(t.trainer_name) : '—'}</td>
+                    <td><span class="badge bg-${t.status_color || 'secondary'}">${escapeHtml(t.status_label || t.status)}</span></td>
+                </tr>
+            `).join('');
+        })
+        .catch(error => {
+            console.error('Error loading dashboard trainees:', error);
+            const tbody = document.getElementById('dashTraineesBody');
+            if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">Failed to load</td></tr>';
         });
 }
 
@@ -38,45 +139,65 @@ function updatePendingBadge(pending) {
     if (badge) {
         if (pending > 0) {
             badge.textContent = pending;
-            badge.style.display = 'inline';
+            badge.style.display = 'flex';
         } else {
             badge.style.display = 'none';
         }
     }
 }
 
-function updateUpcomingInterviews(interviews) {
-    const container = document.getElementById('upcomingInterviews');
-    
-    if (!interviews || interviews.length === 0) {
-        container.innerHTML = `
-            <div class="text-center text-muted py-3">
-                <i class="bi bi-calendar-x fs-3 d-block mb-2"></i>
-                No upcoming interviews scheduled
-            </div>
-        `;
+function updateInterviewsDueBadge(interviews) {
+    const badge = document.getElementById('dashInterviewsDueBadge');
+    if (!badge) return;
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    let soonest = null;
+    (interviews || []).forEach(iv => {
+        if (iv.status !== 'scheduled' || !iv.scheduled_date) return;
+        const d = new Date(iv.scheduled_date.replace(' ', 'T'));
+        d.setHours(0, 0, 0, 0);
+        if (d >= today && (!soonest || d < soonest)) soonest = d;
+    });
+
+    if (!soonest) {
+        badge.style.display = 'none';
         return;
     }
-    
-    let html = '<div class="list-group">';
-    interviews.forEach(interview => {
-        html += `
-            <div class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <strong>${interview.applicant_name}</strong>
-                    <br>
-                    <small class="text-muted">${interview.type_label}</small>
-                </div>
-                <div class="text-end">
-                    <span class="badge bg-warning">${interview.formatted_date}</span>
-                    <br>
-                    <small class="text-muted">${interview.formatted_time}</small>
-                </div>
-            </div>
-        `;
-    });
-    html += '</div>';
-    container.innerHTML = html;
+
+    const diffDays = Math.round((soonest - today) / 86400000);
+    badge.classList.remove('due-today', 'due-soon');
+    if (diffDays === 0) {
+        badge.textContent = 'Interview Due Today';
+        badge.classList.add('due-today');
+    } else {
+        badge.textContent = `Interview in ${diffDays} Day${diffDays === 1 ? '' : 's'}`;
+        badge.classList.add('due-soon');
+    }
+    badge.style.display = 'inline-flex';
+}
+
+function updateUpcomingInterviews(interviews) {
+    const tbody = document.getElementById('dashInterviewsBody');
+    if (!tbody) return;
+
+    if (!interviews || interviews.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">No interviews yet</td></tr>';
+        return;
+    }
+
+    tbody.innerHTML = interviews.map(interview => {
+        const statusLabel = interview.status ? interview.status.charAt(0).toUpperCase() + interview.status.slice(1) : 'Unknown';
+        return `
+        <tr>
+            <td>${escapeHtml(interview.applicant_name)}</td>
+            <td class="text-muted small">${escapeHtml(interview.type_label)}</td>
+            <td><span class="badge bg-${interview.status_color || 'secondary'}">${escapeHtml(statusLabel)}</span></td>
+            <td class="small">${escapeHtml(interview.formatted_date)}<br><span class="text-muted">${escapeHtml(interview.formatted_time)}</span></td>
+        </tr>
+    `;
+    }).join('');
 }
 
 let monthlyChartInstance = null;

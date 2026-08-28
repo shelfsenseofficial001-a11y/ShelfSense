@@ -132,7 +132,7 @@ function renderDashboard(data) {
     if (badge) {
         if (pending > 0) {
             badge.textContent = pending;
-            badge.style.display = 'inline-block';
+            badge.style.display = 'flex';
         } else {
             badge.style.display = 'none';
         }

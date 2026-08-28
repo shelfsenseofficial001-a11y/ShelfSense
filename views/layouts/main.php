@@ -4,7 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?? 'ShelfSense' ?></title>
-    
+    <link rel="icon" type="image/png" href="/ShelfSense/public/assets/images/logo-black.png">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -20,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260828222041">
     <?= $additional_css ?? '' ?>
 </head>
 <body>
@@ -33,7 +34,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260828222041"></script>
     <?= $additional_js ?? '' ?>
 </body>
 </html>

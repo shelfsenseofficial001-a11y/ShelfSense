@@ -274,6 +274,14 @@ body.hr-theme .table > :not(caption) > * > * {
     box-shadow: inset 0 -1px 0 var(--border-color);
 }
 
+body.hr-theme .table:not(.table-sm) > :not(caption) > * > *:first-child {
+    padding-left: 20px;
+}
+
+body.hr-theme .table:not(.table-sm) > :not(caption) > * > *:last-child {
+    padding-right: 20px;
+}
+
 body.hr-theme .table > tbody > tr:last-child > * {
     box-shadow: none;
 }
@@ -439,26 +447,33 @@ body.hr-theme .hr-sidebar .badge.bg-primary {
     color: #fff !important;
 }
 
-/* Floating collapse button on the sidebar's right edge, not crammed next
-   to the brand title */
+/* Collapse toggle: its own standalone full-width row, styled like a nav
+   item, sitting between the brand row and the profile block */
 body.hr-theme .sidebar-collapse-btn {
-    position: absolute;
-    top: 28px;
-    right: -13px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-muted);
-    width: 26px;
-    height: 26px;
-    border-radius: 50%;
     display: flex;
     align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
+    gap: 12px;
+    width: 100%;
+    margin: 0;
+    padding: 10px 20px;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: left;
     cursor: pointer;
-    font-size: 0.75rem;
-    z-index: 5;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+body.hr-theme .sidebar-collapse-btn .nav-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    flex-shrink: 0;
+    font-size: 1rem;
 }
 
 body.hr-theme .sidebar-collapse-btn:hover {
@@ -466,34 +481,10 @@ body.hr-theme .sidebar-collapse-btn:hover {
     color: var(--text-main);
 }
 
-/* Nav item icon + badge: badge sits above the icon's corner, not beside
-   the label */
-body.hr-theme .hr-sidebar .sidebar-nav .nav-item .nav-icon-wrap {
-    position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 24px;
-    flex-shrink: 0;
-}
-
-body.hr-theme .hr-sidebar .sidebar-nav .nav-item .nav-icon-wrap .nav-badge {
-    position: absolute;
-    top: -7px;
-    right: -6px;
-    font-size: 0.55rem;
-    line-height: 1;
-    padding: 2.5px 4.5px;
-    min-width: 15px;
-    text-align: center;
-    border-radius: 999px;
-    font-weight: 700;
-}
-
-body.hr-theme .hr-sidebar .sidebar-nav .nav-item.active .nav-icon-wrap .nav-badge {
-    background-color: var(--on-dark) !important;
-    color: var(--brand-dark) !important;
-}
+/* Nav item icon + badge positioning now lives in the shared
+   dashboard-theme.css (applies to every portal, including HR):
+   far-right of the row when expanded, on the icon's corner when
+   collapsed. */
 
 /* Sidebar user block lives at the bottom, pinned via margin-top:auto on
    the nav's parent flex column */
@@ -549,37 +540,8 @@ body.hr-theme .hr-sidebar .sidebar-nav .nav-item.text-danger:hover {
     color: #991b1b !important;
 }
 
-/* Collapsed state */
-body.hr-theme .hr-sidebar.collapsed {
-    width: 76px;
-}
-
-body.hr-theme .hr-sidebar.collapsed .sidebar-brand .brand-label,
-body.hr-theme .hr-sidebar.collapsed .sidebar-brand .badge,
-body.hr-theme .hr-sidebar.collapsed .sidebar-user .user-info,
-body.hr-theme .hr-sidebar.collapsed .sidebar-user .user-logout-btn,
-body.hr-theme .hr-sidebar.collapsed .sidebar-nav .nav-item .nav-label {
-    display: none;
-}
-
-body.hr-theme .hr-sidebar.collapsed .sidebar-brand {
-    justify-content: center;
-    padding: 0 8px 20px;
-}
-
-body.hr-theme .hr-sidebar.collapsed .sidebar-collapse-btn {
-    transform: rotate(180deg);
-}
-
-body.hr-theme .hr-sidebar.collapsed .sidebar-user {
-    justify-content: center;
-    padding: 14px 8px;
-}
-
-body.hr-theme .hr-sidebar.collapsed .sidebar-nav .nav-item {
-    justify-content: center;
-    padding: 10px;
-}
+/* Collapsed sidebar chrome (width, spacing, hiding labels) now lives in
+   dashboard-theme.css, shared across all 6 portals. */
 
 /* ==========================================================================
    9. TOPBAR
@@ -592,6 +554,45 @@ body.hr-theme .hr-content {
 body.hr-theme .hr-topbar {
     background: var(--bg-card);
     border-color: var(--border-color);
+}
+
+body.hr-theme #notificationBell.text-dark {
+    color: var(--text-main) !important;
+}
+
+/* Greeting: the topbar's new focal point */
+body.hr-theme .hr-topbar .topbar-greeting {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+    color: var(--text-main);
+    line-height: 1.2;
+}
+
+body.hr-theme .hr-topbar .topbar-greeting .text-yellow {
+    background: linear-gradient(135deg, var(--brand-yellow), var(--brand-yellow-hover));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+body.hr-theme .hr-topbar .topbar-subtitle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+body.hr-theme .hr-topbar .topbar-subtitle .topbar-page-label {
+    font-weight: 600;
+    color: var(--brand-yellow);
+}
+
+body.hr-theme .hr-topbar .topbar-subtitle .topbar-dot {
+    opacity: 0.5;
 }
 
 body.hr-theme .notification-dropdown {
@@ -613,6 +614,85 @@ body.hr-theme .autocomplete-dropdown {
 body.hr-theme .autocomplete-dropdown .item:hover,
 body.hr-theme .autocomplete-dropdown .item.selected {
     background: var(--bg-card-subtle);
+}
+
+/* ==========================================================================
+   9b. DASHBOARD MINI TABLES (Applicants/Interviews/Trainees overview cards)
+   ========================================================================== */
+
+body.hr-theme .chart-wrap {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 200px;
+}
+
+body.hr-theme .chart-wrap canvas {
+    position: absolute;
+    inset: 0;
+    width: 100% !important;
+    height: 100% !important;
+}
+
+body.hr-theme .modern-card:has(.mini-table-scroll) {
+    display: flex;
+    flex-direction: column;
+}
+
+body.hr-theme .modern-card:has(.mini-table-scroll) > .d-flex {
+    flex-shrink: 0;
+}
+
+body.hr-theme .mini-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+body.hr-theme .card-title-badge {
+    margin-left: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    min-width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 6px;
+}
+
+body.hr-theme .card-title-note-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+body.hr-theme .card-title-note-badge.due-today {
+    background: var(--danger, #df5b55);
+    color: #fff;
+}
+
+body.hr-theme .card-title-note-badge.due-soon {
+    background: var(--warning, #e6b64c);
+    color: #1a1a1a;
+}
+
+body.hr-theme .mini-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card-subtle);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    z-index: 1;
+}
+
+body.hr-theme .mini-table-scroll td {
+    vertical-align: middle;
 }
 
 /* ==========================================================================

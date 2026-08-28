@@ -40,6 +40,8 @@ body.dashboard-theme {
 
     --grid-opacity: 0;
     --glow-opacity: 0;
+
+    --divider-color: #d8d8d3;
 }
 
 html[data-bs-theme="dark"] body.dashboard-theme,
@@ -49,6 +51,7 @@ body.dashboard-theme[data-bs-theme="dark"] {
     --bg-card: #201f1d;
     --bg-card-subtle: #262523;
     --border-color: #35342f;
+    --divider-color: #47443f;
 
     --brand-yellow: #f45b35;
     --brand-yellow-hover: #ff6d45;
@@ -97,20 +100,18 @@ body.dashboard-theme .dashboard-shell {
     body.dashboard-theme .dashboard-shell { border-radius: 0; min-height: 100vh; }
 }
 
-/* Sidebars/content inside the shell should fill it, not the raw viewport
-   (the original full-bleed layouts used min-height:100vh) */
+/* Sidebars inside the shell should fill it, not the raw viewport
+   (the original full-bleed layouts used min-height:100vh). The sidebar's
+   actual size comes from its own explicit height rule further down (it's
+   position:fixed), this just clears the old inherited min-height. The
+   content columns intentionally keep their own min-height — see the
+   "table cards stretch to fill" rules below. */
 body.dashboard-theme .dashboard-shell .hr-sidebar,
 body.dashboard-theme .dashboard-shell .store-manager-sidebar,
 body.dashboard-theme .dashboard-shell .finance-sidebar,
 body.dashboard-theme .dashboard-shell .pos-sidebar,
 body.dashboard-theme .dashboard-shell .supplier-sidebar,
-body.dashboard-theme .dashboard-shell .trainee-sidebar,
-body.dashboard-theme .dashboard-shell .hr-content,
-body.dashboard-theme .dashboard-shell .store-manager-content,
-body.dashboard-theme .dashboard-shell .finance-content,
-body.dashboard-theme .dashboard-shell .pos-content,
-body.dashboard-theme .dashboard-shell .supplier-content,
-body.dashboard-theme .dashboard-shell .trainee-content {
+body.dashboard-theme .dashboard-shell .trainee-sidebar {
     min-height: auto !important;
 }
 body.dashboard-theme .dashboard-shell > .d-flex {
@@ -121,22 +122,54 @@ body.dashboard-theme .dashboard-shell > .d-flex {
     body.dashboard-theme .dashboard-shell > .d-flex { min-height: 100vh; }
 }
 
-/* Sidebar sticks to the viewport as the page scrolls — it never gets its
-   own scrollbar, and never scrolls away with the content column */
+/* Sidebar is truly pinned to the left of the viewport (position: fixed) —
+   it never scrolls with the page content and never gets its own
+   scrollbar, regardless of how tall the page content grows (e.g. the
+   Attendance grid). The content column gets a matching margin-left so it
+   never sits underneath the fixed sidebar. */
 body.dashboard-theme .dashboard-shell .hr-sidebar,
 body.dashboard-theme .dashboard-shell .store-manager-sidebar,
 body.dashboard-theme .dashboard-shell .finance-sidebar,
 body.dashboard-theme .dashboard-shell .pos-sidebar,
 body.dashboard-theme .dashboard-shell .supplier-sidebar,
 body.dashboard-theme .dashboard-shell .trainee-sidebar {
-    position: sticky;
-    top: 0;
-    align-self: flex-start;
+    position: fixed;
+    top: 20px;
+    left: 20px;
     height: calc(100vh - 40px);
+    width: 250px;
+    z-index: 40;
     overflow: visible;
+    border-radius: var(--radius-shell) 0 0 var(--radius-shell);
+    transition: width 0.2s ease;
+}
+body.dashboard-theme .dashboard-shell .hr-sidebar.collapsed,
+body.dashboard-theme .dashboard-shell .store-manager-sidebar.collapsed,
+body.dashboard-theme .dashboard-shell .finance-sidebar.collapsed,
+body.dashboard-theme .dashboard-shell .pos-sidebar.collapsed,
+body.dashboard-theme .dashboard-shell .supplier-sidebar.collapsed,
+body.dashboard-theme .dashboard-shell .trainee-sidebar.collapsed {
+    width: 76px;
 }
 body.dashboard-theme .dashboard-shell .sidebar-nav {
     overflow-y: visible !important;
+}
+body.dashboard-theme .dashboard-shell .hr-content,
+body.dashboard-theme .dashboard-shell .store-manager-content,
+body.dashboard-theme .dashboard-shell .finance-content,
+body.dashboard-theme .dashboard-shell .pos-content,
+body.dashboard-theme .dashboard-shell .supplier-content,
+body.dashboard-theme .dashboard-shell .trainee-content {
+    margin-left: 250px;
+    transition: margin-left 0.2s ease;
+}
+body.dashboard-theme .dashboard-shell .hr-sidebar.collapsed ~ .hr-content,
+body.dashboard-theme .dashboard-shell .store-manager-sidebar.collapsed ~ .store-manager-content,
+body.dashboard-theme .dashboard-shell .finance-sidebar.collapsed ~ .finance-content,
+body.dashboard-theme .dashboard-shell .pos-sidebar.collapsed ~ .pos-content,
+body.dashboard-theme .dashboard-shell .supplier-sidebar.collapsed ~ .supplier-content,
+body.dashboard-theme .dashboard-shell .trainee-sidebar.collapsed ~ .trainee-content {
+    margin-left: 76px;
 }
 @media (max-width: 768px) {
     body.dashboard-theme .dashboard-shell .hr-sidebar,
@@ -145,8 +178,26 @@ body.dashboard-theme .dashboard-shell .sidebar-nav {
     body.dashboard-theme .dashboard-shell .pos-sidebar,
     body.dashboard-theme .dashboard-shell .supplier-sidebar,
     body.dashboard-theme .dashboard-shell .trainee-sidebar {
-        position: fixed;
+        top: 0;
+        left: -260px;
         height: 100vh;
+        border-radius: 0;
+    }
+    body.dashboard-theme .dashboard-shell .hr-sidebar.open,
+    body.dashboard-theme .dashboard-shell .store-manager-sidebar.open,
+    body.dashboard-theme .dashboard-shell .finance-sidebar.open,
+    body.dashboard-theme .dashboard-shell .pos-sidebar.open,
+    body.dashboard-theme .dashboard-shell .supplier-sidebar.open,
+    body.dashboard-theme .dashboard-shell .trainee-sidebar.open {
+        left: 0;
+    }
+    body.dashboard-theme .dashboard-shell .hr-content,
+    body.dashboard-theme .dashboard-shell .store-manager-content,
+    body.dashboard-theme .dashboard-shell .finance-content,
+    body.dashboard-theme .dashboard-shell .pos-content,
+    body.dashboard-theme .dashboard-shell .supplier-content,
+    body.dashboard-theme .dashboard-shell .trainee-content {
+        margin-left: 0 !important;
     }
 }
 
@@ -155,6 +206,82 @@ body.dashboard-theme .dashboard-shell .sidebar-nav {
    rectangular background pokes out past the rounded edge */
 body.dashboard-theme .modern-card:has(> .card-body.p-0) {
     overflow: hidden;
+}
+
+/* Table cards stretch to fill the remaining page height instead of
+   collapsing to the table's content height and leaving bare page
+   background below them (e.g. a short results table on Applicants). The
+   page-content column becomes a flex column matching the fixed sidebar's
+   height, and the table card (last thing in that column, identified by
+   the same card-body.p-0 pattern above) grows to absorb the extra space. */
+body.dashboard-theme .hr-content,
+body.dashboard-theme .store-manager-content,
+body.dashboard-theme .finance-content,
+body.dashboard-theme .pos-content,
+body.dashboard-theme .supplier-content,
+body.dashboard-theme .trainee-content {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100vh - 40px);
+}
+
+body.dashboard-theme .hr-page-content,
+body.dashboard-theme .store-manager-page-content,
+body.dashboard-theme .finance-page-content,
+body.dashboard-theme .pos-page-content,
+body.dashboard-theme .supplier-page-content,
+body.dashboard-theme .trainee-page-content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Reach through Bootstrap tab wrappers (tab-content > tab-pane.active)
+   too, since some pages (e.g. Interviews) nest the table card inside tabs
+   instead of placing it directly in page-content. */
+body.dashboard-theme .hr-page-content .tab-content,
+body.dashboard-theme .store-manager-page-content .tab-content,
+body.dashboard-theme .finance-page-content .tab-content,
+body.dashboard-theme .pos-page-content .tab-content,
+body.dashboard-theme .supplier-page-content .tab-content,
+body.dashboard-theme .trainee-page-content .tab-content {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+body.dashboard-theme .hr-page-content .tab-pane.active,
+body.dashboard-theme .store-manager-page-content .tab-pane.active,
+body.dashboard-theme .finance-page-content .tab-pane.active,
+body.dashboard-theme .pos-page-content .tab-pane.active,
+body.dashboard-theme .supplier-page-content .tab-pane.active,
+body.dashboard-theme .trainee-page-content .tab-pane.active {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+body.dashboard-theme .hr-page-content .modern-card:has(> .card-body.p-0),
+body.dashboard-theme .store-manager-page-content .modern-card:has(> .card-body.p-0),
+body.dashboard-theme .finance-page-content .modern-card:has(> .card-body.p-0),
+body.dashboard-theme .pos-page-content .modern-card:has(> .card-body.p-0),
+body.dashboard-theme .supplier-page-content .modern-card:has(> .card-body.p-0),
+body.dashboard-theme .trainee-page-content .modern-card:has(> .card-body.p-0) {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+body.dashboard-theme .hr-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0,
+body.dashboard-theme .store-manager-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0,
+body.dashboard-theme .finance-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0,
+body.dashboard-theme .pos-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0,
+body.dashboard-theme .supplier-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0,
+body.dashboard-theme .trainee-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0 {
+    flex: 1 1 auto;
 }
 
 /* ==========================================================================
@@ -334,6 +461,52 @@ body.dashboard-theme .table > :not(caption) > * > * {
 body.dashboard-theme .table > tbody > tr:last-child > * {
     box-shadow: none;
 }
+body.dashboard-theme .table > thead > tr > * {
+    background-color: var(--bg-card-subtle);
+}
+
+/* Icon-only action buttons inside table cells (view/edit/reject/etc.) —
+   solid fill instead of outline, icon fills the button box */
+body.dashboard-theme .table .btn-sm.btn-icon-only {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    font-size: 0.9rem;
+}
+body.dashboard-theme .table .btn-outline-primary.btn-icon-only {
+    background-color: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+    color: #fff;
+}
+body.dashboard-theme .table .btn-outline-secondary.btn-icon-only {
+    background-color: var(--text-muted);
+    border-color: var(--text-muted);
+    color: #fff;
+}
+body.dashboard-theme .table .btn-outline-success.btn-icon-only {
+    background-color: var(--success);
+    border-color: var(--success);
+    color: #fff;
+}
+body.dashboard-theme .table .btn-outline-warning.btn-icon-only {
+    background-color: var(--warning);
+    border-color: var(--warning);
+    color: #20201d;
+}
+body.dashboard-theme .table .btn-outline-danger.btn-icon-only {
+    background-color: var(--danger);
+    border-color: var(--danger);
+    color: #fff;
+}
+body.dashboard-theme .table .btn-outline-info.btn-icon-only {
+    background-color: #0dcaf0;
+    border-color: #0dcaf0;
+    color: #20201d;
+}
 body.dashboard-theme .table-hover > tbody > tr:hover > * {
     background-color: var(--bg-card-subtle);
 }
@@ -343,23 +516,356 @@ body.dashboard-theme .table-hover > tbody > tr:hover > * {
       .{portal}-sidebar via the shared .nav-item structure)
    ========================================================================== */
 
-body.dashboard-theme .sidebar-nav .nav-item.active,
-body.dashboard-theme [class$="-sidebar"] .nav-item.active {
+body.dashboard-theme .sidebar-nav .nav-item.active {
     background: var(--brand-dark) !important;
     color: var(--on-dark) !important;
     font-weight: 600;
 }
-body.dashboard-theme .sidebar-nav .nav-item.active i,
-body.dashboard-theme [class$="-sidebar"] .nav-item.active i {
+body.dashboard-theme .sidebar-nav .nav-item.active i {
     color: var(--on-dark) !important;
 }
-body.dashboard-theme .sidebar-nav .nav-item:hover,
-body.dashboard-theme [class$="-sidebar"] .nav-item:hover {
+body.dashboard-theme .sidebar-nav .nav-item:hover {
     background: var(--bg-card-subtle);
     color: var(--text-main);
 }
 
 /* ==========================================================================
+   6b. SIDEBAR PROFILE BLOCK, COLLAPSE TOGGLE, ICON+BADGE — shared structure
+   used by every portal sidebar (see hr.php for the reference markup)
+   ========================================================================== */
+
+body.dashboard-theme .sidebar-brand {
+    display: flex;
+    align-items: center;
+}
+
+/* Sidebar group separators — more visible than the faint card border */
+body.dashboard-theme .sidebar-nav hr {
+    margin: 12px 20px;
+    border: none;
+    border-top: 2px solid var(--divider-color);
+    opacity: 1;
+}
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-nav hr,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-nav hr,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-nav hr,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-nav hr,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-nav hr,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-nav hr {
+    margin: 12px 10px;
+}
+
+body.dashboard-theme .sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.dashboard-theme .sidebar-user .avatar-sm {
+    width: 36px;
+    height: 36px;
+    flex-shrink: 0;
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow);
+}
+
+body.dashboard-theme .sidebar-user .avatar-sm i {
+    color: var(--brand-yellow) !important;
+}
+
+body.dashboard-theme .sidebar-user .user-profile-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+    min-width: 0;
+    text-decoration: none;
+    color: inherit;
+}
+
+body.dashboard-theme .sidebar-user .user-info {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+}
+
+body.dashboard-theme .sidebar-user .user-info .fw-semibold {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.dashboard-theme .sidebar-user .user-logout-btn {
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    text-decoration: none;
+}
+
+body.dashboard-theme .sidebar-user .user-logout-btn:hover {
+    background: #fef2f2;
+    color: #b91c1c;
+    border-color: #fecaca;
+}
+
+body.dashboard-theme .sidebar-collapse-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    margin: 0;
+    padding: 7px 20px;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    border-radius: 0;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+}
+
+body.dashboard-theme .sidebar-collapse-btn:hover {
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+}
+
+body.dashboard-theme .sidebar-collapse-btn .nav-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+body.dashboard-theme .nav-item {
+    position: relative;
+}
+
+body.dashboard-theme .nav-item .nav-icon-wrap {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    flex-shrink: 0;
+}
+
+/* Expanded sidebar: badge sits at the row's far right, beside the label —
+   always a solid red circle, including when the row is active/selected */
+body.dashboard-theme .nav-item .nav-badge {
+    position: absolute;
+    top: 50%;
+    right: 14px;
+    transform: translateY(-50%);
+    font-size: 0.68rem;
+    line-height: 1;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    border-radius: 50%;
+    font-weight: 700;
+    background-color: #dc3545 !important;
+    color: #fff !important;
+}
+
+/* Collapsed sidebar: badge sits on the icon's corner instead */
+body.dashboard-theme .hr-sidebar.collapsed .nav-item .nav-badge,
+body.dashboard-theme .store-manager-sidebar.collapsed .nav-item .nav-badge,
+body.dashboard-theme .finance-sidebar.collapsed .nav-item .nav-badge,
+body.dashboard-theme .pos-sidebar.collapsed .nav-item .nav-badge,
+body.dashboard-theme .supplier-sidebar.collapsed .nav-item .nav-badge,
+body.dashboard-theme .trainee-sidebar.collapsed .nav-item .nav-badge {
+    top: 2px;
+    right: 7px;
+    transform: none;
+    font-size: 0.62rem;
+    width: 17px;
+    height: 17px;
+}
+
+/* Sidebar section dividers: a thin rule when expanded, a small caps
+   group label when collapsed (e.g. "MAIN", "PERSONAL", "ACCOUNT") */
+body.dashboard-theme .sidebar-divider {
+    margin: 8px 0;
+}
+body.dashboard-theme .sidebar-divider-first {
+    margin: 0 0 4px;
+}
+body.dashboard-theme .sidebar-divider hr {
+    margin: 0;
+}
+body.dashboard-theme .sidebar-divider-label {
+    display: none;
+}
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-divider hr,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-divider hr,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-divider hr,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-divider hr,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-divider hr,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-divider hr {
+    display: none;
+}
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-divider-label,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-divider-label,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-divider-label,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-divider-label,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-divider-label,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-divider-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    font-size: 0.56rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    padding: 2px 4px 0;
+}
+
+/* Collapsed sidebar state - shared across every portal */
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-brand,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-brand,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-brand,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-brand,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-brand,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-brand {
+    justify-content: center;
+    padding: 0 8px 8px;
+}
+
+/* Collapsed sidebar: tighten vertical rhythm everywhere so the full
+   nav list fits without overflowing the viewport height */
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-nav,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-nav,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-nav,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-nav,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-nav,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-nav {
+    padding-top: 6px;
+    padding-bottom: 6px;
+}
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-divider,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-divider,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-divider,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-divider,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-divider,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-divider {
+    margin: 6px 0;
+}
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-divider-first,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-divider-first,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-divider-first,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-divider-first,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-divider-first,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-divider-first {
+    margin: 0 0 2px;
+}
+
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-brand .brand-label,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-brand .brand-label,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-brand .brand-label,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-brand .brand-label,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-brand .brand-label,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-brand .brand-label,
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-brand .badge,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-brand .badge,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-brand .badge,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-brand .badge,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-brand .badge,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-brand .badge,
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-user .user-info,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-user .user-info,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-user .user-info,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-user .user-info,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user .user-info,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user .user-info,
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-collapse-btn .nav-label,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-collapse-btn .nav-label,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-collapse-btn .nav-label,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-collapse-btn .nav-label,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-collapse-btn .nav-label,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-collapse-btn .nav-label,
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-nav .nav-item .nav-label,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-nav .nav-item .nav-label,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-nav .nav-item .nav-label,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-nav .nav-item .nav-label,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-nav .nav-item .nav-label,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-nav .nav-item .nav-label {
+    display: none;
+}
+
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-user,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-user,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-user,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-user,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user {
+    justify-content: center;
+    padding: 6px;
+}
+
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-user .user-profile-link,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-user .user-profile-link,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-user .user-profile-link,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-user .user-profile-link,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user .user-profile-link,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user .user-profile-link {
+    flex: 0 0 auto;
+    gap: 0;
+}
+
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-collapse-btn,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-collapse-btn,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-collapse-btn,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-collapse-btn,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-collapse-btn,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-collapse-btn {
+    justify-content: center;
+    padding: 5px;
+}
+
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-collapse-btn .nav-icon-wrap i,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-collapse-btn .nav-icon-wrap i,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-collapse-btn .nav-icon-wrap i,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-collapse-btn .nav-icon-wrap i,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-collapse-btn .nav-icon-wrap i,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-collapse-btn .nav-icon-wrap i {
+    transform: rotate(180deg);
+}
+
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-nav .nav-item,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-nav .nav-item,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-nav .nav-item,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-nav .nav-item,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-nav .nav-item,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-nav .nav-item {
+    justify-content: center;
+    padding: 7px;
+}/* ==========================================================================
    7. DASHBOARD HERO COMPONENTS (greeting, metric grid, chart, mini cards)
    ========================================================================== */
 

@@ -80,6 +80,60 @@ console.log('✅ ShelfSense app.js loaded');
 })();
 
 // ============================================
+// TABLE ACTION BUTTONS - mark icon-only buttons
+// (icon + no text, e.g. a lone view/edit/reject glyph) so CSS can give
+// them a solid-fill square look without also catching icon+text buttons
+// like "<i class="bi bi-eye"></i> View Details" — CSS selectors can't
+// see trailing text nodes, so this has to run in JS.
+// ============================================
+(function() {
+    function markIconOnlyButtons(root) {
+        root.querySelectorAll('.table .btn-sm:not(.btn-icon-checked)').forEach(function(btn) {
+            btn.classList.add('btn-icon-checked');
+            const icon = btn.querySelector(':scope > i.bi');
+            if (!icon) return;
+            const isOnlyChild = btn.children.length === 1 && btn.children[0] === icon;
+            if (isOnlyChild && btn.textContent.trim() === '') {
+                btn.classList.add('btn-icon-only');
+            }
+        });
+    }
+    markIconOnlyButtons(document);
+    const observer = new MutationObserver(function(mutations) {
+        for (const m of mutations) {
+            if (m.addedNodes.length) {
+                markIconOnlyButtons(document.body);
+                break;
+            }
+        }
+    });
+    if (document.body) {
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+})();
+
+// ============================================
+// SIDEBAR COLLAPSE (generic — every portal)
+// Finds any `.sidebar-collapse-btn` + the sidebar it belongs to
+// (nearest ancestor whose id ends in "Sidebar", e.g. #hrSidebar,
+// #storeManagerSidebar) and wires up the toggle + persistence.
+// ============================================
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.sidebar-collapse-btn').forEach(function(btn) {
+        const sidebar = btn.closest('[id$="Sidebar"]');
+        if (!sidebar) return;
+        const storageKey = sidebar.id + 'Collapsed';
+        if (localStorage.getItem(storageKey) === '1') {
+            sidebar.classList.add('collapsed');
+        }
+        btn.addEventListener('click', function() {
+            const collapsed = sidebar.classList.toggle('collapsed');
+            localStorage.setItem(storageKey, collapsed ? '1' : '0');
+        });
+    });
+});
+
+// ============================================
 // GLOBAL: Update Pending Badge (Module-Aware)
 // ============================================
 
@@ -113,7 +167,7 @@ function updatePendingBadge() {
                     }
                     if (pending > 0) {
                         badge.textContent = pending;
-                        badge.style.display = 'inline-block';
+                        badge.style.display = 'flex';
                     } else {
                         badge.style.display = 'none';
                     }
@@ -131,7 +185,7 @@ function updatePendingBadge() {
                 const pending = data.data.stats?.pending || 0;
                 if (pending > 0) {
                     badge.textContent = pending;
-                    badge.style.display = 'inline-block';
+                    badge.style.display = 'flex';
                 } else {
                     badge.style.display = 'none';
                 }

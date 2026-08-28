@@ -7,6 +7,7 @@ use App\Core\Auth;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo $title ?? 'ShelfSense HR'; ?></title>
+    <link rel="icon" type="image/png" href="/ShelfSense/public/assets/images/logo-black.png">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,9 +24,9 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260828222041">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260828222041">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260828222041">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -36,16 +37,39 @@ use App\Core\Auth;
         <div class="hr-sidebar" id="hrSidebar">
             <div class="sidebar-brand">
                 <span>
-                    <span class="brand-mark"></span>
+                    <span class="brand-logo">
+                        <img src="/ShelfSense/public/assets/images/logo-black.png" class="logo-light" alt="ShelfSense" width="22" height="22">
+                        <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
+                    </span>
                     <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
                     <span class="badge bg-primary ms-2">HR</span>
                 </span>
             </div>
-            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" aria-label="Collapse sidebar">
-                <i class="bi bi-chevron-left"></i>
+
+            <!-- Profile block pinned to the top of the sidebar -->
+            <div class="sidebar-user">
+                <a href="?page=profile" class="user-profile-link" title="Profile">
+                    <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person-fill text-dark"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'HR Staff'); ?></div>
+                        <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? 'hr_staff'); ?></small>
+                    </div>
+                </a>
+                <a href="?page=logout" class="user-logout-btn" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
+            </div>
+
+            <!-- Standalone collapse toggle — its own row, like a nav item -->
+            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" title="Collapse">
+                <span class="nav-icon-wrap"><i class="bi bi-chevron-left"></i></span>
+                <span class="nav-label">Collapse</span>
             </button>
 
             <nav class="sidebar-nav">
+                <div class="sidebar-divider sidebar-divider-first"><span class="sidebar-divider-label">Main</span></div>
                 <a href="?page=hr_dashboard" class="nav-item <?php echo $activePage === 'dashboard' ? 'active' : ''; ?>" title="Dashboard">
                     <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">Dashboard</span>
                 </a>
@@ -62,9 +86,9 @@ use App\Core\Auth;
                     <span class="nav-icon-wrap"><i class="bi bi-file-text-fill"></i></span> <span class="nav-label">Contracts</span>
                 </a>
                 <a href="?page=hr_job_postings" class="nav-item <?php echo $activePage === 'job_postings' ? 'active' : ''; ?>" title="Job Postings">
-                    <span class="nav-icon-wrap"><i class="bi bi-megaphone-fill"></i><span class="badge bg-danger nav-badge" id="jobPostingsPendingBadge">0</span></span> <span class="nav-label">Job Postings</span>
+                    <span class="nav-icon-wrap"><i class="bi bi-megaphone-fill"></i></span> <span class="nav-label">Job Postings</span>
                 </a>
-                <hr>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Attendance</span></div>
                 <a href="?page=hr_schedules" class="nav-item <?php echo $activePage === 'schedules' ? 'active' : ''; ?>" title="Schedules">
                     <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Schedules</span>
                 </a>
@@ -76,38 +100,22 @@ use App\Core\Auth;
                     <span class="nav-icon-wrap"><i class="bi bi-clipboard-check"></i></span> <span class="nav-label">Review</span>
                 </a>
                 <?php endif; ?>
-                <hr>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Payroll</span></div>
                 <a href="?page=hr_payroll" class="nav-item <?php echo $activePage === 'payroll' ? 'active' : ''; ?>" title="Payroll">
                     <span class="nav-icon-wrap"><i class="bi bi-cash-coin"></i></span> <span class="nav-label">Payroll</span>
                 </a>
-                <hr>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>" title="My Leaves">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
                 </a>
                 <a href="?page=my_payslip" class="nav-item <?php echo $activePage === 'payslip' ? 'active' : ''; ?>" title="My Payslip">
                     <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span> <span class="nav-label">My Payslip</span>
                 </a>
-                <hr>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Account</span></div>
                 <a href="?page=logout" class="nav-item text-danger" title="Logout">
                     <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Logout</span>
                 </a>
             </nav>
-
-            <!-- Profile block pinned to the bottom of the sidebar -->
-            <div class="sidebar-user">
-                <a href="?page=profile" class="user-profile-link" title="Profile">
-                    <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
-                        <i class="bi bi-person-fill text-dark"></i>
-                    </div>
-                    <div class="user-info">
-                        <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'HR Staff'); ?></div>
-                        <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? 'hr_staff'); ?></small>
-                    </div>
-                </a>
-                <a href="?page=logout" class="user-logout-btn" title="Logout">
-                    <i class="bi bi-box-arrow-right"></i>
-                </a>
-            </div>
         </div>
 
         <!-- Main Content -->
@@ -115,7 +123,12 @@ use App\Core\Auth;
             <!-- Top Bar -->
             <div class="hr-topbar d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="mb-0"><?php echo $pageTitle ?? 'HR Dashboard'; ?></h5>
+                    <div class="topbar-greeting">Hello, <span class="text-yellow"><?php echo htmlspecialchars($_SESSION['first_name'] ?? 'there'); ?></span>!</div>
+                    <div class="topbar-subtitle">
+                        <span class="topbar-page-label"><?php echo $pageTitle ?? 'HR Dashboard'; ?></span>
+                        <span class="topbar-dot">•</span>
+                        <span id="topbarDateTime"></span>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <!-- Theme Toggle -->
@@ -155,11 +168,11 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260828222041"></script>
     <?php echo $additional_js ?? ''; ?>
 
     <!-- Searchable Select Component -->
-    <script src="/ShelfSense/public/assets/js/components/searchable-select.js"></script>
+    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260828222041"></script>
 
     <style>
         /* ============================================
@@ -179,7 +192,7 @@ use App\Core\Auth;
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
             font-size: 1.2rem;
-            padding: 0 20px 20px;
+            padding: 0 20px 14px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-main);
         }
@@ -201,9 +214,8 @@ use App\Core\Auth;
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 16px 20px;
-            border-top: 1px solid var(--border-color);
-            margin-top: auto;
+            padding: 10px 20px;
+            border-bottom: 1px solid var(--border-color);
         }
 
         .hr-sidebar .sidebar-user .avatar-sm {
@@ -237,7 +249,7 @@ use App\Core\Auth;
         }
 
         .hr-sidebar .sidebar-nav {
-            padding: 16px 12px;
+            padding: 10px 12px;
             flex: 1 1 auto;
         }
 
@@ -245,12 +257,12 @@ use App\Core\Auth;
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 14px;
+            padding: 7px 14px;
             border-radius: 8px;
             color: var(--text-muted);
             text-decoration: none;
             transition: all 0.2s;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
 
         .hr-sidebar .sidebar-nav .nav-item:hover {
@@ -268,11 +280,6 @@ use App\Core\Auth;
             font-size: 1.1rem;
             width: 24px;
             text-align: center;
-        }
-
-        .hr-sidebar .sidebar-nav .nav-item .badge {
-            font-size: 0.6rem;
-            padding: 2px 8px;
         }
 
         .hr-sidebar .sidebar-nav hr {
@@ -416,6 +423,20 @@ use App\Core\Auth;
     </style>
 
     <script>
+        // Live date/time in the topbar greeting
+        (function() {
+            const el = document.getElementById('topbarDateTime');
+            if (!el) return;
+            function tick() {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+                el.textContent = dateStr + ' — ' + timeStr;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+
         document.getElementById('notificationBell')?.addEventListener('click', function(e) {
             e.stopPropagation();
             const dropdown = document.getElementById('notificationDropdown');
@@ -436,19 +457,6 @@ use App\Core\Auth;
                     document.getElementById('hrSidebar').classList.toggle('open');
                 });
                 topbar.prepend(toggleBtn);
-            }
-
-            // Sidebar collapse (desktop), persisted across reloads
-            const sidebar = document.getElementById('hrSidebar');
-            const collapseBtn = document.getElementById('sidebarCollapseBtn');
-            if (sidebar && collapseBtn) {
-                if (localStorage.getItem('hrSidebarCollapsed') === '1') {
-                    sidebar.classList.add('collapsed');
-                }
-                collapseBtn.addEventListener('click', function() {
-                    const collapsed = sidebar.classList.toggle('collapsed');
-                    localStorage.setItem('hrSidebarCollapsed', collapsed ? '1' : '0');
-                });
             }
         });
     </script>

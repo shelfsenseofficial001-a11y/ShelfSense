@@ -148,6 +148,33 @@ h1, h2, h3, h4, h5, .font-heading {
     margin-right: 8px;
 }
 
+/* ShelfSense logo mark — swaps between the black and white PNG based on
+   light/dark theme, wherever the wordmark appears (sidebars, navbar, auth) */
+.brand-logo {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+.brand-logo img {
+    height: 22px;
+    width: auto;
+    display: block;
+}
+
+.brand-logo .logo-dark {
+    display: none;
+}
+
+[data-bs-theme="dark"] .brand-logo .logo-light {
+    display: none;
+}
+
+[data-bs-theme="dark"] .brand-logo .logo-dark {
+    display: block;
+}
+
 .nav-link {
     color: var(--text-muted) !important;
     font-weight: 500;

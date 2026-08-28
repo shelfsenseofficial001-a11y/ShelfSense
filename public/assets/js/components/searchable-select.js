@@ -37,7 +37,7 @@ class SearchableSelect {
         // Create input
         this.input = document.createElement('input');
         this.input.type = 'text';
-        this.input.className = 'form-control form-control-sm';
+        this.input.className = 'form-control';
         this.input.placeholder = this.select.getAttribute('data-placeholder') || 'Search...';
         this.input.autocomplete = 'off';
         this.wrapper.appendChild(this.input);

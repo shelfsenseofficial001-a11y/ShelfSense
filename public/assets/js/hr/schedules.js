@@ -23,7 +23,8 @@ function loadSchedule(userId) {
             </tr>
         `;
         document.getElementById('scheduleEmployeeName').textContent = 'Schedule';
-        document.getElementById('scheduleEmployeeInfo').textContent = '-';
+        document.getElementById('scheduleEmployeeInfo').textContent = '';
+        document.getElementById('scheduleEmployeeInfo').style.display = 'none';
         const statusEl = document.getElementById('scheduleStatus');
         if (statusEl) statusEl.textContent = 'Select an employee to view schedule';
         document.getElementById('contractInfoContent').innerHTML = `<p class="text-muted small mb-0">Select an employee to view contract details.</p>`;
@@ -243,7 +244,9 @@ function updateEmployeeInfo(userId) {
     const option = select.querySelector(`option[value="${userId}"]`);
     if (option) {
         document.getElementById('scheduleEmployeeName').textContent = 'Schedule - ' + option.textContent;
-        document.getElementById('scheduleEmployeeInfo').textContent = 'Employee ID: ' + userId;
+        const infoEl = document.getElementById('scheduleEmployeeInfo');
+        infoEl.textContent = 'Employee ID: ' + userId;
+        infoEl.style.display = '';
     }
 }
 
@@ -571,7 +574,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
-    document.getElementById('resetScheduleBtn').addEventListener('click', resetSchedule);
+    document.querySelectorAll('.reset-schedule-btn').forEach(function(btn) {
+        btn.addEventListener('click', resetSchedule);
+    });
     document.getElementById('syncScheduleBtn').addEventListener('click', syncScheduleFromContract);
 
     document.getElementById('loadScheduleBtn').addEventListener('click', function() {

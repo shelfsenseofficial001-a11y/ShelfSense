@@ -139,6 +139,7 @@ $content = '
 <div class="two-column-wrapper">
     <!-- Left Section: Visual Panel -->
     <div class="visual-panel">
+        <img src="/ShelfSense/public/assets/images/logo-white.png" alt="ShelfSense" style="height:44px; width:auto; margin-bottom:10px; z-index:1;">
         <h2>ShelfSense Portal</h2>
         <p>Smart inventory control at your fingertips.</p>
     </div>

@@ -7,7 +7,8 @@ use App\Core\Auth;
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?= $title ?? 'ShelfSense POS' ?></title>
-    
+    <link rel="icon" type="image/png" href="/ShelfSense/public/assets/images/logo-black.png">
+
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,8 +24,8 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260828222041">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260828222041">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -34,41 +35,55 @@ use App\Core\Auth;
         <!-- Sidebar -->
         <div class="pos-sidebar" id="posSidebar">
             <div class="sidebar-brand">
-                <span class="brand-mark"></span>
-                Shelf<span class="text-yellow">Sense</span>
+                <span class="brand-logo">
+                    <img src="/ShelfSense/public/assets/images/logo-black.png" class="logo-light" alt="ShelfSense" width="22" height="22">
+                    <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
+                </span>
+                <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
                 <span class="badge bg-success ms-2">POS</span>
             </div>
-            
+
             <div class="sidebar-user">
-                <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
-                    <i class="bi bi-person-fill text-dark"></i>
-                </div>
-                <div>
-                    <div class="fw-semibold"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Cashier') ?></div>
-                    <small class="text-muted"><?= getRoleName($_SESSION['role'] ?? 'cashier') ?></small>
-                </div>
+                <a href="?page=profile" class="user-profile-link" title="Profile">
+                    <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
+                        <i class="bi bi-person-fill text-dark"></i>
+                    </div>
+                    <div class="user-info">
+                        <div class="fw-semibold"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Cashier') ?></div>
+                        <small class="text-muted"><?= getRoleName($_SESSION['role'] ?? 'cashier') ?></small>
+                    </div>
+                </a>
+                <a href="?page=logout" class="user-logout-btn" title="Logout">
+                    <i class="bi bi-box-arrow-right"></i>
+                </a>
             </div>
-            
+
+            <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" title="Collapse">
+                <span class="nav-icon-wrap"><i class="bi bi-chevron-left"></i></span>
+                <span class="nav-label">Collapse</span>
+            </button>
+
             <nav class="sidebar-nav">
+                <div class="sidebar-divider sidebar-divider-first"><span class="sidebar-divider-label">Main</span></div>
                 <a href="?page=pos_dashboard" class="nav-item <?= $activePage === 'dashboard' ? 'active' : '' ?>">
-                    <i class="bi bi-grid-1x2-fill"></i> Dashboard
+                    <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">Dashboard</span>
                 </a>
                 <a href="?page=pos_checkout" class="nav-item <?= $activePage === 'checkout' ? 'active' : '' ?>">
-                    <i class="bi bi-cart-plus-fill"></i> Checkout
+                    <span class="nav-icon-wrap"><i class="bi bi-cart-plus-fill"></i></span> <span class="nav-label">Checkout</span>
                 </a>
                 <a href="?page=pos_orders" class="nav-item <?= $activePage === 'orders' ? 'active' : '' ?>">
-                    <i class="bi bi-clock-history"></i> Order History
+                    <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Order History</span>
                 </a>
-                <hr>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?= $activePage === 'my_leaves' ? 'active' : '' ?>">
-                    <i class="bi bi-calendar2-week"></i> My Leaves
+                    <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
                 </a>
                 <a href="?page=my_payslip" class="nav-item <?= $activePage === 'payslip' ? 'active' : '' ?>">
-                    <i class="bi bi-wallet2"></i> My Payslip
+                    <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span> <span class="nav-label">My Payslip</span>
                 </a>
-                <hr>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Account</span></div>
                 <a href="?page=logout" class="nav-item text-danger">
-                    <i class="bi bi-box-arrow-right"></i> Logout
+                    <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Logout</span>
                 </a>
             </nav>
         </div>
@@ -85,19 +100,6 @@ use App\Core\Auth;
                     <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
-                    
-                    <!-- Cashier Info -->
-                    <div class="dropdown">
-                        <button class="btn btn-outline-secondary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
-                            <i class="bi bi-person-circle me-1"></i>
-                            <?= htmlspecialchars($_SESSION['first_name'] ?? 'Cashier') ?>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="?page=profile"><i class="bi bi-person me-2"></i>Profile</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item text-danger" href="?page=logout"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
-                        </ul>
-                    </div>
                 </div>
             </div>
             
@@ -125,10 +127,10 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260828222041"></script>
     
     <!-- Searchable Select Component -->
-    <script src="/ShelfSense/public/assets/js/components/searchable-select.js"></script>
+    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260828222041"></script>
     
     <?= $additional_js ?? '' ?>
     
@@ -150,7 +152,7 @@ use App\Core\Auth;
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
             font-size: 1.2rem;
-            padding: 0 20px 20px;
+            padding: 0 20px 14px;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-main);
         }
@@ -172,7 +174,7 @@ use App\Core\Auth;
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 16px 20px;
+            padding: 10px 20px;
             border-bottom: 1px solid var(--border-color);
         }
         
@@ -184,19 +186,19 @@ use App\Core\Auth;
         }
         
         .pos-sidebar .sidebar-nav {
-            padding: 16px 12px;
+            padding: 10px 12px;
         }
-        
+
         .pos-sidebar .sidebar-nav .nav-item {
             display: flex;
             align-items: center;
             gap: 12px;
-            padding: 10px 14px;
+            padding: 7px 14px;
             border-radius: 8px;
             color: var(--text-muted);
             text-decoration: none;
             transition: all 0.2s;
-            margin-bottom: 2px;
+            margin-bottom: 1px;
         }
         
         .pos-sidebar .sidebar-nav .nav-item:hover {

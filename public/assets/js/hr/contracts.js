@@ -4,6 +4,10 @@
 
 console.log('✅ contracts.js loaded');
 
+function formatCurrency(amount) {
+    return parseFloat(amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
 let currentPage = 1;
 let currentFilters = {
     status: 'all',
@@ -347,7 +351,7 @@ function renderContracts(contracts) {
             </td>
             <td><span class="badge bg-info">${escapeHtml(contract.target_role)}</span></td>
             <td>${escapeHtml(shiftLabels[contract.shift] || contract.shift || '—')}</td>
-            <td>₱${parseFloat(contract.salary || 0).toFixed(2)}</td>
+            <td>₱${formatCurrency(contract.salary)}</td>
             <td>${contract.formatted_start || '—'}</td>
             <td>
                 <span class="badge bg-${statusColors[contract.status] || 'secondary'}">
@@ -471,7 +475,7 @@ function viewContract(id) {
                             </div>
                             <div class="col-md-6">
                                 <p><strong>Shift:</strong> ${shiftLabels[contract.shift] || contract.shift || '—'}</p>
-                                <p><strong>Salary:</strong> ₱${parseFloat(contract.salary || 0).toFixed(2)}</p>
+                                <p><strong>Salary:</strong> ₱${formatCurrency(contract.salary)}</p>
                                 <p><strong>Start Date:</strong> ${contract.formatted_start || '—'}</p>
                                 <p><strong>Decision Deadline:</strong> ${contract.decision_deadline ? new Date(contract.decision_deadline).toLocaleDateString() : '—'}</p>
                                 <p><strong>Rest Days:</strong> ${contract.rest_days ? contract.rest_days.split(',').map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') : 'None'}</p>
@@ -563,7 +567,7 @@ function openEditContractModal(contractId, traineeName, targetRole) {
     document.getElementById('editContractName').textContent = traineeName;
     document.getElementById('editContractRole').value = targetRole;
     const range = ROLE_SALARY_RANGES[targetRole] || { min: 0, max: 0 };
-    document.getElementById('salaryRangeHint').textContent = `Range: ₱${range.min.toFixed(2)} – ₱${range.max.toFixed(2)}`;
+    document.getElementById('salaryRangeHint').textContent = `Range: ₱${formatCurrency(range.min)} – ₱${formatCurrency(range.max)}`;
     document.getElementById('editContractSalary').min = range.min;
     document.getElementById('editContractSalary').max = range.max;
 
@@ -640,7 +644,7 @@ function saveEditedContract() {
         Swal.fire({
             icon: 'warning',
             title: 'Salary Out of Range',
-            text: `Salary must be between ₱${range.min.toFixed(2)} and ₱${range.max.toFixed(2)} for this role.`
+            text: `Salary must be between ₱${formatCurrency(range.min)} and ₱${formatCurrency(range.max)} for this role.`
         });
         return;
     }

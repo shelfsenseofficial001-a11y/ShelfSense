@@ -260,7 +260,10 @@ $content = '
 <nav class="navbar navbar-expand-lg fixed-top">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center" href="?page=home#home">
-            <span class="brand-mark"></span>
+            <span class="brand-logo">
+                <img src="/ShelfSense/public/assets/images/logo-black.png" class="logo-light" alt="ShelfSense" width="22" height="22">
+                <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
+            </span>
             Shelf<span class="text-yellow">Sense</span>
         </a>
 

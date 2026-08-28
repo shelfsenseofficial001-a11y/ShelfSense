@@ -2,7 +2,7 @@
 $title = 'Employee Schedules - ShelfSense HR';
 $pageTitle = 'Employee Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260828222233"></script>';
 
 $db = \App\Core\Database::getInstance()->getConnection();
 $employees = $db->query("
@@ -102,14 +102,14 @@ $content = <<<HTML
             <div class="d-flex justify-content-between align-items-center">
                 <span><i class="bi bi-calendar-week me-2"></i> <span id="scheduleEmployeeName">Schedule</span></span>
                 <div>
-                    <span class="text-muted small me-2" id="scheduleEmployeeInfo">-</span>
+                    <span class="text-muted small me-2" id="scheduleEmployeeInfo" style="display:none;"></span>
                     <button class="btn btn-sm btn-outline-primary" id="syncScheduleBtn" title="Sync schedule from contract" style="display:none;">
                         <i class="bi bi-arrow-repeat"></i> Sync from Contract
                     </button>
                     <button class="btn btn-sm btn-success" id="saveScheduleBtn">
                         <i class="bi bi-save"></i> Save
                     </button>
-                    <button class="btn btn-sm btn-outline-secondary" id="resetScheduleBtn">
+                    <button class="btn btn-sm btn-outline-secondary reset-schedule-btn" id="resetScheduleBtn">
                         <i class="bi bi-arrow-counterclockwise"></i> Reset
                     </button>
                 </div>
@@ -140,7 +140,7 @@ $content = <<<HTML
         <div class="card-footer">
             <div class="d-flex justify-content-between align-items-center">
                 <span class="text-muted small">Set Time In/Out for each day. Check "Rest Day" for non-working days.</span>
-                <button class="btn btn-sm btn-outline-secondary" id="resetScheduleBtn">
+                <button class="btn btn-sm btn-outline-secondary reset-schedule-btn">
                     <i class="bi bi-arrow-counterclockwise"></i> Reset
                 </button>
             </div>

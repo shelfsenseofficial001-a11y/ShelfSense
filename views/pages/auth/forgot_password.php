@@ -91,7 +91,10 @@ $content = '
 
     <div class="auth-card" style="max-width:420px;">
         <div class="brand">
-            <h1><span class="brand-mark"></span>Shelf<span>Sense</span></h1>
+            <h1><span class="brand-logo">
+                <img src="/ShelfSense/public/assets/images/logo-black.png" class="logo-light" alt="ShelfSense" width="22" height="22">
+                <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
+            </span>Shelf<span>Sense</span></h1>
             <small>Reset Your Password</small>
         </div>
 

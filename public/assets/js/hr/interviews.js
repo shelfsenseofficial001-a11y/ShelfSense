@@ -1214,7 +1214,7 @@ function updatePendingBadge() {
                 const pending = data.data.stats?.pending || 0;
                 if (pending > 0) {
                     badge.textContent = pending;
-                    badge.style.display = 'inline-block';
+                    badge.style.display = 'flex';
                 } else {
                     badge.style.display = 'none';
                 }

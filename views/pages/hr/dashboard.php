@@ -60,57 +60,91 @@ $content = '
     </div>
 </div>
 
-<!-- Quick Actions -->
+<!-- Mini Overview Tables -->
 <div class="row g-3 mb-4">
-    <div class="col-12">
-        <div class="modern-card p-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-lightning-fill text-yellow me-2"></i>Quick Actions</h6>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="?page=hr_applicants&filter=pending" class="btn btn-yellow-primary btn-sm">📋 Review Pending</a>
-                <a href="?page=hr_applicants" class="btn btn-yellow-outline btn-sm">👥 View All Applicants</a>
-                <a href="?page=hr_interviews" class="btn btn-yellow-outline btn-sm">📅 View Interviews</a>
-                <a href="?page=hr_trainees" class="btn btn-yellow-outline btn-sm">🎓 View Trainees</a>
+    <div class="col-lg-4">
+        <div class="modern-card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 d-flex align-items-center">
+                    <i class="bi bi-people-fill text-yellow me-2"></i>Applicants
+                    <span class="badge bg-danger rounded-pill card-title-badge" id="dashApplicantsCountBadge" style="display:none;">0</span>
+                </h6>
+                <a href="?page=hr_applicants" class="btn btn-yellow-outline btn-sm">View All</a>
+            </div>
+            <div class="mini-table-scroll">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr><th>Name</th><th>Role</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="dashApplicantsBody">
+                        <tr><td colspan="3" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="modern-card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0 d-flex align-items-center flex-wrap gap-2">
+                    <span><i class="bi bi-calendar-event-fill text-yellow me-2"></i>Interviews</span>
+                    <span class="badge card-title-note-badge" id="dashInterviewsDueBadge" style="display:none;"></span>
+                </h6>
+                <a href="?page=hr_interviews" class="btn btn-yellow-outline btn-sm">View All</a>
+            </div>
+            <div class="mini-table-scroll">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr><th>Applicant</th><th>Type</th><th>Status</th><th>Date</th></tr>
+                    </thead>
+                    <tbody id="dashInterviewsBody">
+                        <tr><td colspan="4" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-4">
+        <div class="modern-card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="fw-bold mb-0"><i class="bi bi-mortarboard-fill text-yellow me-2"></i>Trainees</h6>
+                <a href="?page=hr_trainees" class="btn btn-yellow-outline btn-sm">View All</a>
+            </div>
+            <div class="mini-table-scroll">
+                <table class="table table-sm table-hover mb-0">
+                    <thead>
+                        <tr><th>Trainee</th><th>Trainer</th><th>Status</th></tr>
+                    </thead>
+                    <tbody id="dashTraineesBody">
+                        <tr><td colspan="3" class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 </div>
 
 <!-- Charts -->
-<div class="row g-3">
-    <div class="col-lg-8">
-        <div class="modern-card p-3">
+<div class="row g-3 flex-grow-1">
+    <div class="col-lg-8 d-flex">
+        <div class="modern-card p-3 h-100 w-100 d-flex flex-column">
             <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-fill text-yellow me-2"></i>Monthly Applications</h6>
-            <div style="height: 250px;">
+            <div class="chart-wrap">
                 <canvas id="monthlyChart"></canvas>
             </div>
         </div>
     </div>
-    <div class="col-lg-4">
-        <div class="modern-card p-3">
+    <div class="col-lg-4 d-flex">
+        <div class="modern-card p-3 h-100 w-100 d-flex flex-column">
             <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-yellow me-2"></i>Pipeline</h6>
-            <div style="height: 250px;">
+            <div class="chart-wrap">
                 <canvas id="pipelineChart"></canvas>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Upcoming Interviews -->
-<div class="row mt-3">
-    <div class="col-12">
-        <div class="modern-card p-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-calendar3 text-yellow me-2"></i>Upcoming Interviews</h6>
-            <div id="upcomingInterviews">
-                <div class="text-center text-muted py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                    <p class="mt-2">Loading interviews...</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script src="/ShelfSense/public/assets/js/hr/dashboard.js"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260828211655"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
