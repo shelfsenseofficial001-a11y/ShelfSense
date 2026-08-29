@@ -12,6 +12,12 @@ document.addEventListener('DOMContentLoaded', function () {
     setupModals();
     loadTab('to_review', 1);
 
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+        ]);
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const requestedTab = urlParams.get('tab');
     if (requestedTab) {

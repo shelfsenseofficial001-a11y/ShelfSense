@@ -114,22 +114,94 @@ $content = '
         max-width: 1040px !important;
         width: 100% !important;
         margin: 0 auto;
+        position: relative;
+        overflow: visible !important;
     }
 
-    /* Wrapper Card */
+    /* Wrapper Card — overflow left visible (not hidden) so the carousel
+       arrows can float half outside the visual panel; the panel itself
+       clips its own background/glow to a matching rounded corner instead
+       (see .left-visual-panel border-radius below). */
     .two-column-wrapper {
         display: flex;
         flex-direction: row;
         width: 100%;
         min-height: 560px;
         border-radius: 16px;
-        overflow: hidden;
+        position: relative;
         transition: background-color 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Visual panel wrapper — a plain, non-clipping positioning shell around
+       .left-visual-panel so the arrow buttons can float half outside that
+       panels own edges (left/right on desktop, still left/right on mobile
+       since the panel is full-width there) without being cut off by
+       .left-visual-panel own overflow:hidden (used for its glow effect)
+       or .two-column-wrapper own overflow:hidden (used for its rounded corners). */
+    .visual-panel-wrap {
+        flex: 1;
+        position: relative;
+    }
+
+    /* Carousel Arrows — float half outside the visual panel, themed for light/dark */
+    .carousel-arrow-btn {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 44px;
+        height: 44px;
+        border-radius: 50%;
+        border: 1px solid var(--card-border);
+        background: var(--card-bg);
+        color: var(--brand-accent);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+        z-index: 5;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+        transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease, border-color 0.2s ease;
+    }
+
+    .carousel-arrow-btn:hover {
+        background: var(--brand-accent);
+        color: #ffffff;
+        border-color: var(--brand-accent);
+        transform: translateY(-50%) scale(1.06);
+    }
+
+    .carousel-arrow-btn:focus-visible {
+        outline: 2px solid var(--brand-accent);
+        outline-offset: 2px;
+    }
+
+    .carousel-arrow-prev {
+        left: -22px;
+    }
+
+    .carousel-arrow-next {
+        right: -20px;
+    }
+
+    @media (max-width: 768px) {
+        .carousel-arrow-btn {
+            width: 36px;
+            height: 36px;
+            font-size: 0.95rem;
+        }
+        .carousel-arrow-prev {
+            left: -14px;
+        }
+        .carousel-arrow-next {
+            right: -14px;
+        }
     }
 
     /* Adaptive Visual Panel */
     .left-visual-panel {
-        flex: 1;
+        width: 100%;
+        height: 100%;
         background: var(--panel-bg);
         padding: 32px 28px;
         display: flex;
@@ -137,6 +209,7 @@ $content = '
         justify-content: space-between;
         position: relative;
         overflow: hidden;
+        border-radius: 16px 0 0 16px;
         transition: background 0.3s ease;
     }
 
@@ -360,20 +433,27 @@ $content = '
         margin-bottom: 4px;
     }
 
-    /* Back Button Link */
+    /* Back Button — given a visible pill container so it does not get
+       lost against the page background */
     .back-btn-link {
         color: var(--brand-accent) !important;
         font-weight: 600;
         font-size: 0.85rem;
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 6px;
+        padding: 7px 14px;
+        border-radius: 999px;
+        border: 1px solid var(--card-border);
+        background: var(--input-bg);
         margin-bottom: 12px;
-        transition: opacity 0.2s;
+        transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
     }
 
     .back-btn-link:hover {
-        opacity: 0.8;
+        background: var(--brand-accent);
+        border-color: var(--brand-accent);
+        color: #ffffff !important;
     }
 
     /* Dynamic Theme Form Controls */
@@ -441,6 +521,7 @@ $content = '
         .left-visual-panel {
             min-height: auto;
             padding: 24px;
+            border-radius: 16px 16px 0 0;
         }
         .job-panel-scroll {
             max-height: 320px;
@@ -453,27 +534,37 @@ $content = '
 
 <div class="two-column-wrapper">
     <!-- Left Column: Dynamic Job Details Panel -->
-    <div class="left-visual-panel">
-        <div class="job-panel-scroll">
-            <div class="brand-badge">
-                <i class="bi bi-box-seam-fill"></i> ShelfSense Careers
+    <div class="visual-panel-wrap">
+        <div class="left-visual-panel">
+            <div class="job-panel-scroll">
+                <div class="brand-badge">
+                    <i class="bi bi-box-seam-fill"></i> ShelfSense Careers
+                </div>
+
+                <div id="jobDetailPanel" style="display: ' . ($hasJobs ? 'block' : 'none') . ';"></div>
+
+                <div id="noJobsMessage" class="empty-jobs-state" style="display: ' . ($hasJobs ? 'none' : 'block') . ';">
+                    <i class="bi bi-inbox"></i>
+                    No positions are currently open for applications. Please check back later.
+                </div>
             </div>
 
-            <div id="jobDetailPanel" style="display: ' . ($hasJobs ? 'block' : 'none') . ';"></div>
-
-            <div id="noJobsMessage" class="empty-jobs-state" style="display: ' . ($hasJobs ? 'none' : 'block') . ';">
-                <i class="bi bi-inbox"></i>
-                No positions are currently open for applications. Please check back later.
+            <div>
+                <nav class="carousel-dots" id="carouselDots" aria-label="Select a job posting"></nav>
+                <div class="panel-footer">
+                    <small>ShelfSense Portal &mdash; Smart inventory control at your fingertips.</small>
+                    <small>&copy; ShelfSense Portal. All rights reserved.</small>
+                </div>
             </div>
         </div>
-
-        <div>
-            <nav class="carousel-dots" id="carouselDots" aria-label="Select a job posting"></nav>
-            <div class="panel-footer">
-                <small>ShelfSense Portal &mdash; Smart inventory control at your fingertips.</small>
-                <small>&copy; ShelfSense Portal. All rights reserved.</small>
-            </div>
-        </div>
+        ' . (count($eligibleJobs) > 1 ? '
+        <button type="button" class="carousel-arrow-btn carousel-arrow-prev" id="carouselPrevBtn" aria-label="Previous position">
+            <i class="bi bi-chevron-left"></i>
+        </button>
+        <button type="button" class="carousel-arrow-btn carousel-arrow-next" id="carouselNextBtn" aria-label="Next position">
+            <i class="bi bi-chevron-right"></i>
+        </button>
+        ' : '') . '
     </div>
 
     <!-- Right Column: Application Form -->
@@ -644,6 +735,7 @@ $content = '
         jobId = parseInt(jobId, 10);
         var job = jobsById[jobId];
         if (!job) return;
+        currentJobId = jobId;
         renderPanel(job);
         document.getElementById("jobPostingIdInput").value = jobId;
         Array.prototype.forEach.call(document.querySelectorAll(".carousel-dot"), function (dot) {
@@ -675,6 +767,40 @@ $content = '
         applySelection(jobId);
     }
 
+    // ------------------------------------------------------------------
+    // Carousel: arrows + auto-swipe
+    // ------------------------------------------------------------------
+    var currentJobId = null;
+    var autoSwipeTimer = null;
+    var AUTO_SWIPE_MS = 6000;
+
+    function goToRelative(offset) {
+        var idx = APPLY_JOBS.findIndex(function (j) { return j.id === currentJobId; });
+        if (idx === -1) idx = 0;
+        var nextIdx = (idx + offset + APPLY_JOBS.length) % APPLY_JOBS.length;
+        selectJob(APPLY_JOBS[nextIdx].id, true);
+    }
+
+    function startAutoSwipe() {
+        if (APPLY_JOBS.length < 2) return;
+        stopAutoSwipe();
+        autoSwipeTimer = setInterval(function () { goToRelative(1); }, AUTO_SWIPE_MS);
+    }
+
+    function stopAutoSwipe() {
+        if (autoSwipeTimer) {
+            clearInterval(autoSwipeTimer);
+            autoSwipeTimer = null;
+        }
+    }
+
+    // Any manual interaction restarts the auto-swipe timer so it does not
+    // fire again immediately after the user just picked something.
+    function restartAutoSwipe() {
+        stopAutoSwipe();
+        startAutoSwipe();
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         renderDots(null);
 
@@ -682,15 +808,31 @@ $content = '
         select.addEventListener("change", function () {
             if (this.value) {
                 applySelection(this.value);
+                restartAutoSwipe();
             } else {
                 clearSelectionState();
             }
+        });
+
+        var prevBtn = document.getElementById("carouselPrevBtn");
+        var nextBtn = document.getElementById("carouselNextBtn");
+        if (prevBtn) prevBtn.addEventListener("click", function () { goToRelative(-1); restartAutoSwipe(); });
+        if (nextBtn) nextBtn.addEventListener("click", function () { goToRelative(1); restartAutoSwipe(); });
+
+        var visualPanel = document.querySelector(".left-visual-panel");
+        if (visualPanel) {
+            visualPanel.addEventListener("mouseenter", stopAutoSwipe);
+            visualPanel.addEventListener("mouseleave", startAutoSwipe);
+        }
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden) stopAutoSwipe(); else startAutoSwipe();
         });
 
         var initialId = (PRESELECT_ID && jobsById[PRESELECT_ID]) ? PRESELECT_ID : APPLY_JOBS[0].id;
         select.value = initialId;
         if (window.refreshSearchableSelect) window.refreshSearchableSelect(select);
         applySelection(initialId);
+        startAutoSwipe();
     });
 
     document.getElementById("applyForm").addEventListener("submit", async function (e) {

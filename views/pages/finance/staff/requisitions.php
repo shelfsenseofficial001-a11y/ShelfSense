@@ -2,7 +2,7 @@
 $title = 'Pending Requisitions - Finance Staff';
 $pageTitle = 'Pending Requisitions';
 $activePage = 'staff_requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20260829181340"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs fn-tabs mb-3" id="reqTabs" role="tablist">
@@ -23,6 +23,8 @@ $content = <<<'EOT'
         <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <div id="fn-cards-container" class="fn-card-grid">
     <div class="text-center py-4" style="grid-column:1/-1;">

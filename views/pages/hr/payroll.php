@@ -2,7 +2,7 @@
 $title = 'Payroll - ShelfSense HR';
 $pageTitle = 'Payroll Management';
 $activePage = 'payroll';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260829181326"></script>';
 
 $currentMonth = date('m');
 $currentYear = date('Y');
@@ -88,6 +88,8 @@ $content = <<<HTML
         </button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <!-- Stats Row -->
 <div class="row g-2 mb-3" id="statsRow">

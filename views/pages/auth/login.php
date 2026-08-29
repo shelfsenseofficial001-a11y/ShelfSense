@@ -147,8 +147,8 @@ $content = '
     <!-- Right Section: Form Content -->
     <div class="form-panel">
         <div class="mb-3">
-            <a href="?page=home" class="auth-link text-decoration-none small">
-                <i class="bi bi-arrow-left me-1"></i>Back
+            <a href="?page=home" class="back-nav-btn">
+                <i class="bi bi-arrow-left"></i>Back
             </a>
         </div>
 

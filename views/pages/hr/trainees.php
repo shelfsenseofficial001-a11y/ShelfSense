@@ -52,6 +52,8 @@ $content = '
     </div>
 </div>
 
+<div class="active-filter-chips" id="activeFilterChips"></div>
+
 <!-- Stats Row -->
 <div class="row g-2 mb-3" id="statsRow">
     <div class="col">
@@ -245,7 +247,7 @@ $content = '
     window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
     window.HR_IS_HEAD = ' . $isHRHeadJs . ';
 </script>
-<script src="/ShelfSense/public/assets/js/hr/trainees.js"></script>
+<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260829181326"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

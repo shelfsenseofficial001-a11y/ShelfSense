@@ -13,6 +13,15 @@ document.addEventListener('DOMContentLoaded', function () {
     setupTabs();
     setupModals();
 
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+            { key: 'budgetStatus', type: 'select', elementId: 'budgetStatusFilter' },
+            { key: 'dateFrom', type: 'date', elementId: 'dateFrom', labelPrefix: 'From' },
+            { key: 'dateTo', type: 'date', elementId: 'dateTo', labelPrefix: 'To' },
+        ]);
+    }
+
     const urlParams = new URLSearchParams(window.location.search);
     const requestedTab = urlParams.get('tab');
     const initialTab = ['pending', 'approved', 'rejected', 'all'].includes(requestedTab) ? requestedTab : 'pending';

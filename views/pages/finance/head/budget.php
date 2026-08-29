@@ -2,7 +2,7 @@
 $title = 'Budget Management - Finance Head';
 $pageTitle = 'Budget Management';
 $activePage = 'head_budget';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/budget.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260829181340"></script>';
 
 $defaultMonth = date('Y-m');
 
@@ -20,6 +20,8 @@ $content = <<<EOT
         <button class="btn btn-yellow-outline btn-sm" id="printBtn"><i class="bi bi-printer"></i> Print</button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <div id="fn-near-limit-box"></div>
 

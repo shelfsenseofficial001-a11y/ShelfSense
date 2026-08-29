@@ -8,6 +8,8 @@ var currentWeekEnd = '';
 var currentWeekNumber = 1;
 var currentMonthYear = '';
 var attendanceEmployees = [];
+var attendanceChipsInitialized = false;
+var attendanceChipsApi = null;
 var weekDays = [];
 var weekStatus = 'draft';
 var isFetchingStatus = false;
@@ -56,6 +58,32 @@ function loadWeeksForMonth(year, month){
             });
             let first=weekSelect.options[0];
             currentWeekStart=first.value; currentWeekEnd=first.dataset.endDate; currentWeekNumber=parseInt(first.dataset.weekNumber); currentMonthYear=`${year}-${month}`;
+
+            // First time weeks ever load for this page view, the selects
+            // are showing today's month/year/week -- that is the "default"
+            // baseline the chips compare against, so it has to be captured
+            // here (after the async week fetch settles), not at
+            // DOMContentLoaded, or the Week chip would have nothing real
+            // to compare its own default to.
+            if (!attendanceChipsInitialized && window.ShelfSenseFilterChips) {
+                attendanceChipsInitialized = true;
+                attendanceChipsApi = window.ShelfSenseFilterChips.init('activeFilterChips', [
+                    { key: 'month', type: 'select', elementId: 'monthSelect', defaultValue: document.getElementById('monthSelect').value },
+                    { key: 'year', type: 'select', elementId: 'yearSelect', defaultValue: document.getElementById('yearSelect').value },
+                    { key: 'week', type: 'select', elementId: 'weekSelect', defaultValue: weekSelect.value },
+                    { key: 'department', type: 'select', elementId: 'filterDepartment', defaultValue: 'all' },
+                    { key: 'role', type: 'select', elementId: 'attendanceRoleFilter', defaultValue: 'all' },
+                    { key: 'search', type: 'search', elementId: 'attendanceSearch' },
+                ]);
+            } else if (attendanceChipsApi) {
+                // The week <select> gets rebuilt via innerHTML/option.selected
+                // on every month/year change, which never fires a native
+                // 'change' event -- so the chips need an explicit nudge or
+                // the Week chip is left showing a stale "Loading weeks..."
+                // label from the transient placeholder option.
+                attendanceChipsApi.render();
+            }
+
             fetchWeekStatus(currentMonthYear, currentWeekNumber, function(){ loadAttendance(); });
         } else { weekSelect.innerHTML='<option value="">No weeks found</option>'; }
     })
@@ -655,7 +683,6 @@ document.addEventListener('DOMContentLoaded', function(){
             loadAttendance();
         }
     });
-    document.getElementById('refreshBtn').addEventListener('click', loadAttendance);
     document.getElementById('filterDepartment').addEventListener('change', loadAttendance);
     document.getElementById('attendanceSearch')?.addEventListener('input', applyAttendanceFilters);
     document.getElementById('attendanceRoleFilter')?.addEventListener('change', applyAttendanceFilters);

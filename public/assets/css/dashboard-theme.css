@@ -84,20 +84,14 @@ body.dashboard-theme {
 body.dashboard-theme .dashboard-page {
     background: var(--app-bg);
     min-height: 100vh;
-    padding: 20px;
+    padding: 0;
 }
 
 body.dashboard-theme .dashboard-shell {
     background: var(--bg-card);
-    border-radius: var(--radius-shell);
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+    border-radius: 0;
     overflow: hidden;
-    min-height: calc(100vh - 40px);
-}
-
-@media (max-width: 768px) {
-    body.dashboard-theme .dashboard-page { padding: 0; }
-    body.dashboard-theme .dashboard-shell { border-radius: 0; min-height: 100vh; }
+    min-height: 100vh;
 }
 
 /* Sidebars inside the shell should fill it, not the raw viewport
@@ -115,11 +109,8 @@ body.dashboard-theme .dashboard-shell .trainee-sidebar {
     min-height: auto !important;
 }
 body.dashboard-theme .dashboard-shell > .d-flex {
-    min-height: calc(100vh - 40px);
+    min-height: 100vh;
     align-items: stretch;
-}
-@media (max-width: 768px) {
-    body.dashboard-theme .dashboard-shell > .d-flex { min-height: 100vh; }
 }
 
 /* Sidebar is truly pinned to the left of the viewport (position: fixed) —
@@ -134,13 +125,13 @@ body.dashboard-theme .dashboard-shell .pos-sidebar,
 body.dashboard-theme .dashboard-shell .supplier-sidebar,
 body.dashboard-theme .dashboard-shell .trainee-sidebar {
     position: fixed;
-    top: 20px;
-    left: 20px;
-    height: calc(100vh - 40px);
+    top: 0;
+    left: 0;
+    height: 100vh;
     width: 250px;
     z-index: 40;
     overflow: visible;
-    border-radius: var(--radius-shell) 0 0 var(--radius-shell);
+    border-radius: 0;
     transition: width 0.2s ease;
 }
 body.dashboard-theme .dashboard-shell .hr-sidebar.collapsed,
@@ -222,7 +213,7 @@ body.dashboard-theme .supplier-content,
 body.dashboard-theme .trainee-content {
     display: flex;
     flex-direction: column;
-    min-height: calc(100vh - 40px);
+    min-height: 100vh;
 }
 
 body.dashboard-theme .hr-page-content,
@@ -564,6 +555,7 @@ body.dashboard-theme .sidebar-user {
 }
 
 body.dashboard-theme .sidebar-user .avatar-sm {
+    overflow: hidden;
     width: 36px;
     height: 36px;
     flex-shrink: 0;
@@ -573,6 +565,12 @@ body.dashboard-theme .sidebar-user .avatar-sm {
 
 body.dashboard-theme .sidebar-user .avatar-sm i {
     color: var(--brand-yellow) !important;
+}
+
+body.dashboard-theme .sidebar-user .avatar-sm img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 body.dashboard-theme .sidebar-user .user-profile-link {
@@ -597,7 +595,7 @@ body.dashboard-theme .sidebar-user .user-info .fw-semibold {
     text-overflow: ellipsis;
 }
 
-body.dashboard-theme .sidebar-user .user-logout-btn {
+body.dashboard-theme .sidebar-user .user-edit-btn {
     color: var(--text-muted);
     background: transparent;
     border: 1px solid var(--border-color);
@@ -611,10 +609,10 @@ body.dashboard-theme .sidebar-user .user-logout-btn {
     text-decoration: none;
 }
 
-body.dashboard-theme .sidebar-user .user-logout-btn:hover {
-    background: #fef2f2;
-    color: #b91c1c;
-    border-color: #fecaca;
+body.dashboard-theme .sidebar-user .user-edit-btn:hover {
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow-hover);
+    border-color: var(--brand-yellow);
 }
 
 body.dashboard-theme .sidebar-collapse-btn {
@@ -797,12 +795,12 @@ body.dashboard-theme .finance-sidebar.collapsed .sidebar-user .user-info,
 body.dashboard-theme .pos-sidebar.collapsed .sidebar-user .user-info,
 body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user .user-info,
 body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user .user-info,
-body.dashboard-theme .hr-sidebar.collapsed .sidebar-user .user-logout-btn,
-body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-user .user-logout-btn,
-body.dashboard-theme .finance-sidebar.collapsed .sidebar-user .user-logout-btn,
-body.dashboard-theme .pos-sidebar.collapsed .sidebar-user .user-logout-btn,
-body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user .user-logout-btn,
-body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user .user-logout-btn,
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-user .user-edit-btn,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-user .user-edit-btn,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-user .user-edit-btn,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-user .user-edit-btn,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user .user-edit-btn,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user .user-edit-btn,
 body.dashboard-theme .hr-sidebar.collapsed .sidebar-collapse-btn .nav-label,
 body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-collapse-btn .nav-label,
 body.dashboard-theme .finance-sidebar.collapsed .sidebar-collapse-btn .nav-label,
@@ -1003,3 +1001,59 @@ body.dashboard-theme .status-dot.success { background: var(--success); }
 body.dashboard-theme .status-dot.warning { background: var(--warning); }
 body.dashboard-theme .status-dot.danger { background: var(--danger); }
 body.dashboard-theme .status-dot.muted { background: var(--text-muted); }
+
+/* ==========================================================================
+   ACTIVE FILTER CHIPS (Modrinth-style removable filter pills) — shared
+   across every portal's filter rows, driven by window.ShelfSenseFilterChips
+   in app.js.
+   ========================================================================== */
+
+body.dashboard-theme .active-filter-chips {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: -8px 0 16px;
+}
+body.dashboard-theme .active-filter-chips:empty {
+    margin: 0;
+}
+
+body.dashboard-theme .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+body.dashboard-theme .filter-chip i {
+    font-size: 0.7rem;
+}
+body.dashboard-theme .filter-chip:hover {
+    background: var(--light-yellow-subtle, var(--bg-card-subtle));
+    border-color: var(--brand-yellow-hover, var(--brand-yellow));
+    color: var(--brand-yellow-hover, var(--brand-yellow));
+}
+[data-bs-theme="dark"] body.dashboard-theme .filter-chip:hover {
+    border-color: var(--brand-yellow);
+    color: var(--brand-yellow);
+}
+
+body.dashboard-theme .filter-chip.clear-all-chip {
+    background: var(--brand-dark, #20201d);
+    border-color: var(--brand-dark, #20201d);
+    color: var(--on-dark, #fff);
+    font-weight: 600;
+}
+body.dashboard-theme .filter-chip.clear-all-chip:hover {
+    opacity: 0.85;
+    color: var(--on-dark, #fff);
+    border-color: var(--brand-dark, #20201d);
+}

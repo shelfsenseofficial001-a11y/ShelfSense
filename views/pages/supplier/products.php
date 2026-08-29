@@ -2,7 +2,7 @@
 $title = 'Supplier Products - ShelfSense';
 $pageTitle = 'My Product Catalog';
 $activePage = 'products';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260829181340"></script>';
 
 $content = <<<'EOT'
 <div class="sp-stats-grid">
@@ -39,6 +39,8 @@ $content = <<<'EOT'
         <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <div id="sp-product-grid" class="sp-product-grid">
     <div class="text-center py-4" style="grid-column:1/-1;">

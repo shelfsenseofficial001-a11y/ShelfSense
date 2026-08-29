@@ -2,21 +2,7 @@
 $title = 'Employee Schedules - ShelfSense HR';
 $pageTitle = 'Employee Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260828222233"></script>';
-
-$db = \App\Core\Database::getInstance()->getConnection();
-$employees = $db->query("
-    SELECT user_id, first_name, last_name, employee_number, role 
-    FROM users 
-    WHERE is_active = 1 AND role != 'trainee' 
-    ORDER BY first_name
-")->fetchAll();
-
-$employeeOptions = '';
-foreach ($employees as $emp) {
-    $displayRole = getRoleName($emp['role']);
-    $employeeOptions .= '<option value="' . $emp['user_id'] . '">' . $emp['first_name'] . ' ' . $emp['last_name'] . ' (' . $displayRole . ')</option>';
-}
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260829191417"></script>';
 
 $content = <<<HTML
 <style>
@@ -64,35 +50,104 @@ $content = <<<HTML
     [data-bs-theme="dark"] .contract-info-card .contract-shift {
         color: var(--brand-yellow);
     }
-    .schedule-layout {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-    }
-    .schedule-top-section {
-        display: grid;
-        grid-template-columns: 1fr 3fr;
-        gap: 20px;
-    }
-    @media (max-width: 768px) {
-        .schedule-top-section {
-            grid-template-columns: 1fr;
-        }
-    }
     /* Sync button - subtle but visible */
     #syncScheduleBtn {
         margin-right: 4px;
     }
+
+    /* Master-detail layout: employee list is the entry point on the left,
+       Contract Info + Schedule fill in as the detail panel on the right
+       once someone is picked -- replaces the old top-row-of-2-cards +
+       separate full-width table below, which had two different "pick an
+       employee" controls (a dropdown and a table) fighting for the same
+       job and a lot of dead empty-state space above the fold. */
+    .schedule-master-detail {
+        display: grid;
+        grid-template-columns: 420px 1fr;
+        gap: 20px;
+        align-items: stretch;
+        flex: 1 1 auto;
+    }
+    @media (max-width: 900px) {
+        .schedule-master-detail {
+            grid-template-columns: 1fr;
+        }
+    }
+    .schedule-detail-col {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+    /* Schedule card (not Contract Info, which stays its natural short
+       height) absorbs the rest of the detail column's height, and its
+       table area grows with it, so the white card reaches all the way
+       down instead of leaving gray page background showing below it. */
+    .schedule-detail-col > .modern-card:last-child {
+        flex: 1 1 auto;
+        display: flex;
+        flex-direction: column;
+        min-height: 0;
+    }
+    .schedule-detail-col > .modern-card:last-child > .card-body.p-0 {
+        flex: 1 1 auto;
+        min-height: 0;
+    }
+    /* Employee List card stretches to match the detail column's full
+       height (grid align-items:stretch) and the scroll area grows to
+       fill it, instead of stopping at a fixed height and leaving dead
+       white space below the last row. */
+    #employeeListCard {
+        display: flex;
+        flex-direction: column;
+    }
+    #employeeListScroll {
+        flex: 1 1 auto;
+        overflow-y: auto;
+    }
+    .employee-row {
+        cursor: pointer;
+        transition: background-color 0.12s ease;
+    }
+    body.hr-theme .employee-row:hover td {
+        background-color: var(--bg-card-subtle);
+    }
+    body.hr-theme .employee-row.active td {
+        background-color: var(--light-yellow-subtle);
+    }
 </style>
 
-<div class="schedule-top-section">
+<div class="schedule-master-detail">
+    <!-- Employee List: the entry point. Click a row to load their
+         contract + schedule in the panel on the right. -->
+    <div class="modern-card p-3" id="employeeListCard">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 class="fw-bold mb-0"><i class="bi bi-people me-2"></i>Employees</h6>
+            <button class="btn btn-sm btn-outline-secondary" id="refreshEmployeeListBtn" title="Refresh list">
+                <i class="bi bi-arrow-clockwise"></i>
+            </button>
+        </div>
+        <input type="text" id="employeeSearch" class="form-control form-control-sm mb-2" placeholder="Search by name, role, or employee #...">
+        <div id="employeeListScroll">
+            <table class="table table-sm table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Role</th>
+                    </tr>
+                </thead>
+                <tbody id="employeeListBody">
+                    <tr><td colspan="2" class="text-center py-2 text-muted">Loading employees...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="schedule-detail-col">
     <!-- Contract Info Card -->
-    <div>
-        <div class="modern-card p-3" id="contractCard">
-            <h6 class="fw-bold"><i class="bi bi-file-earmark-text me-2"></i>Contract Info</h6>
-            <div id="contractInfoContent">
-                <p class="text-muted small mb-0">Select an employee to view contract details.</p>
-            </div>
+    <div class="modern-card p-3" id="contractCard">
+        <h6 class="fw-bold"><i class="bi bi-file-earmark-text me-2"></i>Contract Info</h6>
+        <div id="contractInfoContent">
+            <p class="text-muted small mb-0">Select an employee to view contract details.</p>
         </div>
     </div>
 
@@ -130,7 +185,7 @@ $content = <<<HTML
                         <tr>
                             <td colspan="4" class="text-center py-4 text-muted">
                                 <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                                Select an employee below to view their schedule.
+                                Select an employee on the left to view their schedule.
                             </td>
                         </tr>
                     </tbody>
@@ -138,55 +193,9 @@ $content = <<<HTML
             </div>
         </div>
         <div class="card-footer">
-            <div class="d-flex justify-content-between align-items-center">
-                <span class="text-muted small">Set Time In/Out for each day. Check "Rest Day" for non-working days.</span>
-                <button class="btn btn-sm btn-outline-secondary reset-schedule-btn">
-                    <i class="bi bi-arrow-counterclockwise"></i> Reset
-                </button>
-            </div>
+            <span class="text-muted small">Set Time In/Out for each day. Check "Rest Day" for non-working days.</span>
         </div>
     </div>
-</div>
-
-<!-- Employee List -->
-<div class="modern-card p-3" id="employeeListCard">
-    <div class="row align-items-center g-3">
-        <div class="col-md-3">
-            <h6 class="fw-bold mb-0"><i class="bi bi-people me-2"></i>Employee List</h6>
-        </div>
-        <div class="col-md-3">
-            <select id="employeeSelect" class="form-select searchable-select" data-placeholder="Search or select employee...">
-                <option value="">Select an employee...</option>
-                $employeeOptions
-            </select>
-        </div>
-        <div class="col-md-6 text-end">
-            <button class="btn btn-yellow-primary btn-sm me-2" id="loadScheduleBtn">
-                <i class="bi bi-eye"></i> Load
-            </button>
-            <button class="btn btn-yellow-outline btn-sm" id="refreshEmployeeListBtn">
-                <i class="bi bi-arrow-clockwise"></i> Refresh
-            </button>
-        </div>
-    </div>
-    <hr class="my-2">
-    <div class="mb-2">
-        <input type="text" id="employeeSearch" class="form-control form-control-sm" placeholder="Search employees by name, role, or employee number...">
-    </div>
-    <div class="table-responsive" style="max-height: 250px; overflow-y: auto;">
-        <table class="table table-sm table-hover mb-0">
-            <thead>
-                <tr>
-                    <th>Name</th>
-                    <th>Role</th>
-                    <th>Employee #</th>
-                    <th class="text-center">Action</th>
-                </tr>
-            </thead>
-            <tbody id="employeeListBody">
-                <tr><td colspan="4" class="text-center py-2 text-muted">Loading employees...</td></tr>
-            </tbody>
-        </table>
     </div>
 </div>
 

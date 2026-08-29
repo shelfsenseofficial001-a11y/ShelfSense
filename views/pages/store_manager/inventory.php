@@ -2,7 +2,7 @@
 $title = 'Inventory - Store Manager';
 $pageTitle = 'Inventory Management';
 $activePage = 'inventory';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/inventory.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/inventory.js?v=20260829181340"></script>';
 
 $content = <<<'EOT'
 <!-- Stats -->
@@ -52,6 +52,8 @@ $content = <<<'EOT'
         </button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <!-- Sort control -->
 <div class="d-flex align-items-center gap-3 mb-3">

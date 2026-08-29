@@ -6,7 +6,7 @@ console.log('✅ applicants.js loaded');
 
 let currentPage = 1;
 let currentFilters = {
-    status: 'pending',
+    status: 'all',
     role: 'all',
     search: ''
 };
@@ -353,9 +353,91 @@ function highlightItem(items) {
 // LOAD APPLICANTS (AJAX)
 // ============================================
 
+// ============================================
+// ACTIVE FILTER CHIPS (Modrinth-style removable filter pills)
+// ============================================
+
+function getActiveFilterChipData() {
+    const chips = [];
+    const statusSelect = document.getElementById('filterStatus');
+    const roleSelect = document.getElementById('filterRole');
+
+    if (currentFilters.status && currentFilters.status !== 'all') {
+        const opt = statusSelect.querySelector(`option[value="${CSS.escape(currentFilters.status)}"]`);
+        chips.push({ key: 'status', label: opt ? opt.textContent : currentFilters.status });
+    }
+    if (currentFilters.role && currentFilters.role !== 'all') {
+        const opt = roleSelect.querySelector(`option[value="${CSS.escape(currentFilters.role)}"]`);
+        chips.push({ key: 'role', label: opt ? opt.textContent : currentFilters.role });
+    }
+    if (currentFilters.search && currentFilters.search.trim() !== '') {
+        chips.push({ key: 'search', label: `"${currentFilters.search}"` });
+    }
+    return chips;
+}
+
+function renderActiveFilterChips() {
+    const container = document.getElementById('activeFilterChips');
+    if (!container) return;
+
+    const chips = getActiveFilterChipData();
+    if (!chips.length) {
+        container.innerHTML = '';
+        return;
+    }
+
+    let html = `<button type="button" class="filter-chip clear-all-chip" id="clearAllFiltersChip"><i class="bi bi-x-circle"></i>Clear all filters</button>`;
+    chips.forEach(chip => {
+        html += `<button type="button" class="filter-chip" data-filter-key="${chip.key}"><i class="bi bi-x"></i>${escapeHtml(chip.label)}</button>`;
+    });
+    container.innerHTML = html;
+
+    container.querySelectorAll('.filter-chip[data-filter-key]').forEach(chipEl => {
+        chipEl.addEventListener('click', function() {
+            removeActiveFilter(this.dataset.filterKey);
+        });
+    });
+    document.getElementById('clearAllFiltersChip').addEventListener('click', clearAllActiveFilters);
+}
+
+function removeActiveFilter(key) {
+    if (key === 'status') {
+        currentFilters.status = 'all';
+        const el = document.getElementById('filterStatus');
+        el.value = 'all';
+        if (window.refreshSearchableSelect) window.refreshSearchableSelect(el);
+    } else if (key === 'role') {
+        currentFilters.role = 'all';
+        const el = document.getElementById('filterRole');
+        el.value = 'all';
+        if (window.refreshSearchableSelect) window.refreshSearchableSelect(el);
+    } else if (key === 'search') {
+        currentFilters.search = '';
+        document.getElementById('searchInput').value = '';
+    }
+    currentPage = 1;
+    loadApplicants();
+}
+
+function clearAllActiveFilters() {
+    currentFilters = { status: 'all', role: 'all', search: '' };
+    const statusEl = document.getElementById('filterStatus');
+    const roleEl = document.getElementById('filterRole');
+    statusEl.value = 'all';
+    roleEl.value = 'all';
+    document.getElementById('searchInput').value = '';
+    if (window.refreshSearchableSelect) {
+        window.refreshSearchableSelect(statusEl);
+        window.refreshSearchableSelect(roleEl);
+    }
+    currentPage = 1;
+    loadApplicants();
+}
+
 function loadApplicants(page = currentPage) {
     currentPage = page;
-    
+    renderActiveFilterChips();
+
     const params = new URLSearchParams({
         p: page,
         status: currentFilters.status,

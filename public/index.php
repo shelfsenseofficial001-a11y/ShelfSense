@@ -159,6 +159,16 @@ if ($page === 'api_get_dashboard_stats') {
     exit;
 }
 
+if ($page === 'api_get_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/hr/get_dashboard_layout.php';
+    exit;
+}
+
+if ($page === 'api_save_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/hr/save_dashboard_layout.php';
+    exit;
+}
+
 if ($page === 'api_get_trainers_by_role') {
     require_once __DIR__ . '/../app/handlers/hr/get_trainers_by_role.php';
     exit;
@@ -1115,6 +1125,39 @@ if ($page === 'api_create_leave_request') {
 
 if ($page === 'api_update_leave_request') {
     require_once __DIR__ . '/../app/handlers/shared/update_leave_request.php';
+    exit;
+}
+
+// ============================================
+// ACCOUNT / PROFILE ROUTES (all roles)
+// ============================================
+
+if ($page === 'profile') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    require_once __DIR__ . '/../views/shared/profile.php';
+    exit;
+}
+
+if ($page === 'api_get_profile') {
+    require_once __DIR__ . '/../app/handlers/shared/get_profile.php';
+    exit;
+}
+
+if ($page === 'api_update_avatar') {
+    require_once __DIR__ . '/../app/handlers/shared/update_avatar.php';
+    exit;
+}
+
+if ($page === 'api_remove_avatar') {
+    require_once __DIR__ . '/../app/handlers/shared/remove_avatar.php';
+    exit;
+}
+
+if ($page === 'api_change_password') {
+    require_once __DIR__ . '/../app/handlers/shared/change_password.php';
     exit;
 }
 

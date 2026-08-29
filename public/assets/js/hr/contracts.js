@@ -133,6 +133,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOM ready - contracts page');
     loadContracts();
 
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'status', type: 'select', elementId: 'filterStatus', defaultValue: 'all' },
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+        ]);
+    }
+
     document.getElementById('filterStatus').addEventListener('change', function() {
         currentFilters.status = this.value;
         currentPage = 1;

@@ -16,8 +16,8 @@ use App\Core\Auth;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260828222041">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260828222041">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260829192522">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260829192522">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/store_manager.css">
     <?= $additional_css ?? '' ?>
 </head>
@@ -39,15 +39,19 @@ use App\Core\Auth;
             <div class="sidebar-user">
                 <a href="?page=profile" class="user-profile-link" title="Profile">
                     <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
+                        <?php if (!empty($_SESSION['profile_pic'])): ?>
+                        <img src="/ShelfSense/public/<?php echo htmlspecialchars($_SESSION['profile_pic']); ?>" alt="Profile">
+                        <?php else: ?>
                         <i class="bi bi-person-fill text-dark"></i>
+                        <?php endif; ?>
                     </div>
                     <div class="user-info">
                         <div class="fw-semibold"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Store Manager') ?></div>
                         <small class="text-muted"><?= getRoleName($_SESSION['role'] ?? 'store_manager') ?></small>
                     </div>
                 </a>
-                <a href="?page=logout" class="user-logout-btn" title="Logout">
-                    <i class="bi bi-box-arrow-right"></i>
+                <a href="?page=profile" class="user-edit-btn" title="Edit Profile">
+                    <i class="bi bi-pencil-square"></i>
                 </a>
             </div>
 
@@ -104,10 +108,10 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260828222041"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260829192522"></script>
     <script src="/ShelfSense/public/assets/js/store_manager/shared.js"></script>
     <?= $additional_js ?? '' ?>
-    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260828222041"></script>
+    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260829192522"></script>
 
     <style>
         .store-manager-sidebar {

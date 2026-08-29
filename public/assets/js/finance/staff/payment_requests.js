@@ -10,6 +10,14 @@ let currentPage = 1;
 document.addEventListener('DOMContentLoaded', function () {
     setupTabs();
     loadRequests('pending', 1);
+
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+            { key: 'dateFrom', type: 'date', elementId: 'dateFrom', labelPrefix: 'From' },
+            { key: 'dateTo', type: 'date', elementId: 'dateTo', labelPrefix: 'To' },
+        ]);
+    }
 });
 
 function setupTabs() {

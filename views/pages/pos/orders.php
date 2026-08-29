@@ -2,7 +2,7 @@
 $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260829181340"></script>';
 $additional_css = '
 <style>
     .order-row:hover {
@@ -44,6 +44,8 @@ $content = <<<'EOT'
         </button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <!-- Stats -->
 <div class="row g-2 mb-3">

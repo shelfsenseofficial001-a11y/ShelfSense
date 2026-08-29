@@ -12,6 +12,14 @@ document.addEventListener('DOMContentLoaded', function () {
     loadInventory();
     loadCategories();
     setupEventListeners();
+
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'category', type: 'select', elementId: 'categoryFilter', defaultValue: '0' },
+            { key: 'stock', type: 'select', elementId: 'stockStatusFilter' },
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+        ]);
+    }
 });
 
 function setupEventListeners() {

@@ -14,6 +14,12 @@ document.addEventListener('DOMContentLoaded', function () {
 
     loadBudgetPage();
 
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'department', type: 'select', elementId: 'departmentFilter' },
+        ]);
+    }
+
     monthFilter.addEventListener('change', function () {
         budgetMonth.value = this.value;
         loadBudgetPage();

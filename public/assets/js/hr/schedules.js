@@ -101,7 +101,7 @@ function loadContractInfo(userId) {
                 const contract = data.data.contract;
                 const shiftLabel = contract.shift_label || 'N/A';
                 const shiftTime = contract.shift_time || 'N/A';
-                const salary = parseFloat(contract.salary).toFixed(2);
+                const salary = formatCurrency(contract.salary);
                 const startDate = contract.start_date ? new Date(contract.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
                 const role = contract.target_role || 'N/A';
 
@@ -153,7 +153,7 @@ function openContractDetail(userId) {
                 const c = data.data.contract;
                 const shiftLabel = c.shift_label || 'N/A';
                 const shiftTime = c.shift_time || 'N/A';
-                const salary = parseFloat(c.salary).toFixed(2);
+                const salary = formatCurrency(c.salary);
                 const startDate = c.start_date ? new Date(c.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'N/A';
                 const role = c.target_role || 'N/A';
                 const jobDetails = c.job_details || 'No additional details.';
@@ -240,14 +240,20 @@ function renderScheduleGrid(schedule) {
 // ============================================
 
 function updateEmployeeInfo(userId) {
-    const select = document.getElementById('employeeSelect');
-    const option = select.querySelector(`option[value="${userId}"]`);
-    if (option) {
-        document.getElementById('scheduleEmployeeName').textContent = 'Schedule - ' + option.textContent;
+    const emp = allEmployees.find(e => String(e.user_id) === String(userId));
+    if (emp) {
+        document.getElementById('scheduleEmployeeName').textContent = 'Schedule - ' + emp.first_name + ' ' + emp.last_name;
         const infoEl = document.getElementById('scheduleEmployeeInfo');
         infoEl.textContent = 'Employee ID: ' + userId;
         infoEl.style.display = '';
     }
+    highlightActiveEmployeeRow(userId);
+}
+
+function highlightActiveEmployeeRow(userId) {
+    document.querySelectorAll('.employee-row').forEach(function(row) {
+        row.classList.toggle('active', String(row.dataset.userId) === String(userId));
+    });
 }
 
 // ============================================
@@ -495,6 +501,9 @@ function loadEmployeeList() {
             if (data.success) {
                 allEmployees = data.data.employees || [];
                 renderEmployeeList(allEmployees);
+                if (!currentEmployeeId && allEmployees.length > 0) {
+                    loadSchedule(allEmployees[0].user_id);
+                }
             } else {
                 tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger">Failed to load employees</td></tr>`;
             }
@@ -508,7 +517,7 @@ function loadEmployeeList() {
 function renderEmployeeList(employees) {
     const tbody = document.getElementById('employeeListBody');
     if (!employees || employees.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted">No employees found</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted">No employees found</td></tr>`;
         return;
     }
 
@@ -516,27 +525,28 @@ function renderEmployeeList(employees) {
     employees.forEach(emp => {
         const displayRole = getRoleDisplayName(emp.role);
         html += `
-            <tr>
-                <td>${escapeHtml(emp.first_name)} ${escapeHtml(emp.last_name)}</td>
-                <td><span class="badge bg-info">${displayRole}</span></td>
-                <td>${escapeHtml(emp.employee_number || 'N/A')}</td>
-                <td class="text-center">
-                    <button class="btn btn-sm btn-outline-primary load-employee-btn" data-user-id="${emp.user_id}">
-                        <i class="bi bi-eye"></i> Load
-                    </button>
+            <tr class="employee-row" data-user-id="${emp.user_id}">
+                <td>
+                    ${escapeHtml(emp.first_name)} ${escapeHtml(emp.last_name)}
+                    <small class="text-muted d-block">${escapeHtml(emp.employee_number || '')}</small>
                 </td>
+                <td><span class="badge bg-info">${displayRole}</span></td>
             </tr>
         `;
     });
     tbody.innerHTML = html;
 
-    document.querySelectorAll('.load-employee-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const userId = this.dataset.userId;
-            document.getElementById('employeeSelect').value = userId;
-            loadSchedule(userId);
+    highlightActiveEmployeeRow(currentEmployeeId);
+
+    document.querySelectorAll('.employee-row').forEach(row => {
+        row.addEventListener('click', function() {
+            loadSchedule(this.dataset.userId);
         });
     });
+}
+
+function formatCurrency(amount) {
+    return Number(amount).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function getRoleDisplayName(role) {
@@ -544,10 +554,12 @@ function getRoleDisplayName(role) {
         'owner': 'Owner',
         'hr_head': 'HR Head',
         'hr_staff': 'HR Staff',
-        'cashier': 'Cashier',
+        'employee': 'Cashier',
         'finance_head': 'Finance Head',
         'finance_staff': 'Finance Staff',
-        'trainee': 'Trainee'
+        'trainee': 'Trainee',
+        'store_manager': 'Store Manager',
+        'supplier': 'Supplier'
     };
     return map[role] || role;
 }
@@ -564,33 +576,11 @@ function escapeHtml(text) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('employeeSelect').addEventListener('change', function() {
-        const userId = this.value;
-        if (userId) {
-            loadSchedule(userId);
-        } else {
-            loadSchedule(null);
-        }
-    });
-
     document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
     document.querySelectorAll('.reset-schedule-btn').forEach(function(btn) {
         btn.addEventListener('click', resetSchedule);
     });
     document.getElementById('syncScheduleBtn').addEventListener('click', syncScheduleFromContract);
-
-    document.getElementById('loadScheduleBtn').addEventListener('click', function() {
-        const userId = document.getElementById('employeeSelect').value;
-        if (userId) {
-            loadSchedule(userId);
-        } else {
-            Swal.fire({
-                icon: 'warning',
-                title: 'No Employee Selected',
-                text: 'Please select an employee first.'
-            });
-        }
-    });
 
     document.getElementById('refreshEmployeeListBtn').addEventListener('click', function() {
         loadEmployeeList();
@@ -602,8 +592,8 @@ document.addEventListener('DOMContentLoaded', function() {
             renderEmployeeList(allEmployees);
             return;
         }
-        const filtered = allEmployees.filter(emp => 
-            (emp.first_name || '').toLowerCase().includes(query) || 
+        const filtered = allEmployees.filter(emp =>
+            (emp.first_name || '').toLowerCase().includes(query) ||
             (emp.last_name || '').toLowerCase().includes(query) ||
             (emp.employee_number || '').toLowerCase().includes(query) ||
             getRoleDisplayName(emp.role).toLowerCase().includes(query)
@@ -612,9 +602,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     loadEmployeeList();
-
-    const preSelected = document.getElementById('employeeSelect').value;
-    if (preSelected) {
-        loadSchedule(preSelected);
-    }
 });

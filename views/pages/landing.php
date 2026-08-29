@@ -587,11 +587,146 @@ $content = '
 </section>
 
 <!-- FOOTER -->
-<footer class="py-4 bg-body border-top">
-    <div class="container text-center">
-        <p class="text-muted small mb-0">
-            &copy; 2026 ShelfSense Systems Inc. All rights reserved. Powered by Smart Retail Engines.
-        </p>
+<style>
+    .site-footer {
+        background: var(--bg-card-subtle);
+        border-top: 1px solid var(--border-color);
+        padding: 56px 0 28px;
+    }
+    .site-footer .footer-brand {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "Space Grotesk", sans-serif;
+        font-weight: 700;
+        font-size: 1.3rem;
+        color: var(--text-main);
+        text-decoration: none;
+    }
+    .site-footer .footer-brand:hover {
+        color: var(--text-main);
+    }
+    .site-footer .footer-tagline {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        max-width: 260px;
+        margin: 14px 0 18px;
+    }
+    .site-footer .footer-social {
+        display: flex;
+        gap: 14px;
+        margin-bottom: 24px;
+    }
+    .site-footer .footer-social a {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        transition: color 0.2s ease;
+    }
+    .site-footer .footer-social a:hover {
+        color: var(--brand-yellow-hover);
+    }
+    [data-bs-theme="dark"] .site-footer .footer-social a:hover {
+        color: var(--brand-yellow);
+    }
+    .site-footer .footer-col h6 {
+        color: var(--text-main);
+        font-weight: 700;
+        font-size: 0.95rem;
+        margin-bottom: 16px;
+    }
+    .site-footer .footer-col ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    .site-footer .footer-col ul li {
+        margin-bottom: 12px;
+    }
+    .site-footer .footer-col ul li a {
+        color: var(--text-muted);
+        text-decoration: none;
+        font-size: 0.9rem;
+        transition: color 0.2s ease;
+    }
+    .site-footer .footer-col ul li a:hover {
+        color: var(--brand-yellow-hover);
+    }
+    [data-bs-theme="dark"] .site-footer .footer-col ul li a:hover {
+        color: var(--brand-yellow);
+    }
+    .site-footer .footer-bottom {
+        border-top: 1px solid var(--border-color);
+        margin-top: 40px;
+        padding-top: 20px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+    }
+</style>
+
+<footer class="site-footer">
+    <div class="container">
+        <div class="row gy-4">
+            <div class="col-lg-4 col-md-12">
+                <a href="?page=home#home" class="footer-brand">
+                    <span class="brand-logo">
+                        <img src="/ShelfSense/public/assets/images/logo-black.png" class="logo-light" alt="ShelfSense" width="24" height="24">
+                        <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="24" height="24">
+                    </span>
+                    <span>Shelf<span class="text-yellow">Sense</span></span>
+                </a>
+                <p class="footer-tagline">
+                    Smart inventory control, HR, and retail operations &mdash; all in one platform.
+                </p>
+                <div class="footer-social">
+                    <a href="#" aria-label="LinkedIn"><i class="bi bi-linkedin"></i></a>
+                    <a href="#" aria-label="X (Twitter)"><i class="bi bi-twitter-x"></i></a>
+                    <a href="#" aria-label="GitHub"><i class="bi bi-github"></i></a>
+                    <a href="#" aria-label="Discord"><i class="bi bi-discord"></i></a>
+                </div>
+                <p class="text-muted small mb-0">&copy; 2026 ShelfSense Systems Inc. All rights reserved.</p>
+            </div>
+
+            <div class="col-lg-2 col-6 footer-col">
+                <h6>Company</h6>
+                <ul>
+                    <li><a href="?page=home#home">Home</a></li>
+                    <li><a href="?page=home#about">About</a></li>
+                    <li><a href="?page=home#services">Services</a></li>
+                    <li><a href="?page=home#contact">Contact</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-6 footer-col">
+                <h6>Careers</h6>
+                <ul>
+                    <li><a href="?page=home#join">Open Positions</a></li>
+                    <li><a href="?page=apply">Apply Now</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-6 footer-col">
+                <h6>Get in Touch</h6>
+                <ul>
+                    <li><a href="mailto:contact@shelfsense.io">contact@shelfsense.io</a></li>
+                    <li><a href="tel:+18005557367">+1 (800) 555-SENSE</a></li>
+                    <li><a href="?page=home#contact">Branch Location</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-2 col-6 footer-col">
+                <h6>Access</h6>
+                <ul>
+                    <li><a href="?page=login"><i class="bi bi-shield-lock me-1"></i>Staff Portal</a></li>
+                    <li><a href="?page=forgot_password">Forgot Password</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-bottom">
+            ShelfSense is an internal retail operations platform. Not a public storefront or e-commerce service.
+        </div>
     </div>
 </footer>
 ';

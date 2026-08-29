@@ -12,8 +12,8 @@ $content = '
 <div class="row g-2 mb-3">
     <div class="col-md-3">
         <select id="filterStatus" class="form-select searchable-select" data-placeholder="Filter by status..." maxlength="40">
-            <option value="all">All Status</option>
-            <option value="pending" selected>New Applicant</option>
+            <option value="all" selected>All Status</option>
+            <option value="pending">New Applicant</option>
             <option value="initial_scheduled">Initial Interview Pending</option>
             <option value="initial_passed">Initial Interview Passed</option>
             <option value="initial_failed">Initial Interview Failed</option>
@@ -51,6 +51,9 @@ $content = '
         </button>
     </div>
 </div>
+
+<!-- Active Filter Chips (Modrinth-style removable filter pills) -->
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <!-- Stats Row -->
 <div class="row g-2 mb-3" id="statsRow">
@@ -299,7 +302,7 @@ input[type="datetime-local"].error {
 }
 </style>
 
-<script src="/ShelfSense/public/assets/js/hr/applicants.js"></script>
+<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260829175141"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

@@ -10,6 +10,12 @@ let currentStatus = '';
 document.addEventListener('DOMContentLoaded', function () {
     loadInvoices();
     setupEventListeners();
+
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+        ]);
+    }
 });
 
 function setupEventListeners() {

@@ -15,7 +15,7 @@ if (!Auth::isHRHead() && !Auth::isOwner()) {
 }
 
 // We're in HR layout
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/leave_management.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/leave_management.js?v=20260829181326"></script>';
 $additional_css = '
 <style>
     .leave-status-pending { color: #d97706; }
@@ -114,6 +114,8 @@ $content = <<<'EOT'
         </button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <!-- Leave Requests Table -->
 <div class="modern-card">

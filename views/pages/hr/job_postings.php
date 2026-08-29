@@ -35,6 +35,8 @@ $content = <<<EOT
     </div>
 </div>
 
+<div class="active-filter-chips" id="activeFilterChips"></div>
+
 <div class="row g-2 mb-3" id="statsRow">
     <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Draft</small><h5 class="mb-0" id="statDraft">0</h5></div></div>
     <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Pending</small><h5 class="mb-0 text-warning" id="statPending">0</h5></div></div>
@@ -200,7 +202,7 @@ $content = <<<EOT
 </div>
 
 <script>const HR_IS_HEAD = {$isHRHeadJs};</script>
-<script src="/ShelfSense/public/assets/js/hr/job_postings.js"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260829181326"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

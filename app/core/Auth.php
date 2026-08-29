@@ -25,6 +25,8 @@ class Auth
         $_SESSION['first_name'] = $user['first_name'];
         $_SESSION['last_name'] = $user['last_name'];
         $_SESSION['is_first_login'] = $user['is_first_login'];
+        $_SESSION['profile_pic'] = $user['profile_pic'];
+        $_SESSION['email'] = $user['email'];
 
         session_regenerate_id(true);
 

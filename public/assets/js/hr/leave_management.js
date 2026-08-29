@@ -17,6 +17,14 @@ let currentLeaveId = null;
 document.addEventListener('DOMContentLoaded', function() {
     loadLeaveRequests();
     setupEventListeners();
+
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+            { key: 'status', type: 'select', elementId: 'filterStatus' },
+            { key: 'type', type: 'select', elementId: 'filterLeaveType' },
+        ], { applyButtonId: 'applyFiltersBtn' });
+    }
 });
 
 function setupEventListeners() {

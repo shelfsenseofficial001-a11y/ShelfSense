@@ -84,8 +84,8 @@ $content = '
 <div class="two-column-wrapper" style="flex-direction:column;align-items:center;">
     <div style="width:100%;max-width:420px;">
         <!-- Back Button -->
-        <a href="?page=login" class="auth-link text-decoration-none small">
-            <i class="bi bi-arrow-left me-1"></i> Back to Login
+        <a href="?page=login" class="back-nav-btn">
+            <i class="bi bi-arrow-left"></i>Back to Login
         </a>
     </div>
 

@@ -67,6 +67,8 @@ $content = '
     </div>
 </div>
 
+<div class="active-filter-chips" id="activeFilterChips"></div>
+
 <!-- Stats Row -->
 <div class="row g-2 mb-3" id="statsRow">
     <div class="col">
@@ -308,7 +310,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260828200548"></script>
+<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260829181202"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

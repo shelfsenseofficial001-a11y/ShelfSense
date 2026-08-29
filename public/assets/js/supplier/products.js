@@ -10,6 +10,13 @@ let allProducts = [];
 document.addEventListener('DOMContentLoaded', function () {
     loadProducts();
     setupEventListeners();
+
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+            { key: 'status', type: 'select', elementId: 'statusFilter' },
+        ]);
+    }
 });
 
 function setupEventListeners() {

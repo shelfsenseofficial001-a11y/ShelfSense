@@ -4,9 +4,15 @@ $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
 
 $content = '
-<!-- Stats Cards -->
-<div class="row g-3 mb-4">
-    <div class="col-6 col-lg-3">
+<!-- Dashboard Canvas: each row below is its own drag-reorderable zone
+     (stats / mini-tables / charts). Order is user-customizable (see
+     dashboard-layout.js) and persisted per account via
+     api_save_dashboard_layout / api_get_dashboard_layout. -->
+
+<div class="row g-3 mb-4 dash-canvas-row" id="dashCanvasStats" data-widget-group="stats">
+
+    <div class="col-6 col-lg-3 dash-widget" data-widget-id="stat_total">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -19,7 +25,9 @@ $content = '
             </div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+
+    <div class="col-6 col-lg-3 dash-widget" data-widget-id="stat_pending">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -32,7 +40,9 @@ $content = '
             </div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+
+    <div class="col-6 col-lg-3 dash-widget" data-widget-id="stat_scheduled">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -45,7 +55,9 @@ $content = '
             </div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+
+    <div class="col-6 col-lg-3 dash-widget" data-widget-id="stat_hired">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3">
             <div class="d-flex justify-content-between align-items-center">
                 <div>
@@ -58,11 +70,13 @@ $content = '
             </div>
         </div>
     </div>
+
 </div>
 
-<!-- Mini Overview Tables -->
-<div class="row g-3 mb-4">
-    <div class="col-lg-4">
+<div class="row g-3 mb-4 dash-canvas-row" id="dashCanvasTables" data-widget-group="tables">
+
+    <div class="col-lg-4 dash-widget" data-widget-id="table_applicants">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold mb-0 d-flex align-items-center">
@@ -83,7 +97,9 @@ $content = '
             </div>
         </div>
     </div>
-    <div class="col-lg-4">
+
+    <div class="col-lg-4 dash-widget" data-widget-id="table_interviews">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold mb-0 d-flex align-items-center flex-wrap gap-2">
@@ -104,7 +120,9 @@ $content = '
             </div>
         </div>
     </div>
-    <div class="col-lg-4">
+
+    <div class="col-lg-4 dash-widget" data-widget-id="table_trainees">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold mb-0"><i class="bi bi-mortarboard-fill text-yellow me-2"></i>Trainees</h6>
@@ -122,11 +140,13 @@ $content = '
             </div>
         </div>
     </div>
+
 </div>
 
-<!-- Charts -->
-<div class="row g-3 flex-grow-1">
-    <div class="col-lg-8 d-flex">
+<div class="row g-3 flex-grow-1 dash-canvas-row" id="dashCanvasCharts" data-widget-group="charts">
+
+    <div class="col-lg-8 d-flex dash-widget" data-widget-id="chart_monthly">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3 h-100 w-100 d-flex flex-column">
             <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-fill text-yellow me-2"></i>Monthly Applications</h6>
             <div class="chart-wrap">
@@ -134,7 +154,9 @@ $content = '
             </div>
         </div>
     </div>
-    <div class="col-lg-4 d-flex">
+
+    <div class="col-lg-4 d-flex dash-widget" data-widget-id="chart_pipeline">
+        <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3 h-100 w-100 d-flex flex-column">
             <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-yellow me-2"></i>Pipeline</h6>
             <div class="chart-wrap">
@@ -142,9 +164,11 @@ $content = '
             </div>
         </div>
     </div>
+
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260828211655"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260829172913"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260829172913"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

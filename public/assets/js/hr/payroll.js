@@ -734,6 +734,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load cycles on page load
     loadPayrollCycles();
 
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'year', type: 'select', elementId: 'filterYear' },
+            { key: 'month', type: 'select', elementId: 'filterMonth' },
+            { key: 'status', type: 'select', elementId: 'filterStatus' },
+        ]);
+    }
+
     // Filter change
     document.getElementById('loadCyclesBtn').addEventListener('click', loadPayrollCycles);
     document.getElementById('refreshBtn').addEventListener('click', loadPayrollCycles);

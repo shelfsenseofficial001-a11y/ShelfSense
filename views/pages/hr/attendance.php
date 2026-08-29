@@ -2,7 +2,7 @@
 $title = 'Attendance - ShelfSense HR';
 $pageTitle = 'Attendance Management';
 $activePage = 'attendance';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260829183554"></script>';
 
 // Month/year options
 $currentMonth = date('m');
@@ -102,9 +102,36 @@ $content = <<<HTML
         border-color: var(--brand-dark);
         color: var(--on-dark);
     }
+
+    /* Load button matches the search bar's own height/scale so the two
+       read as one control instead of a small button tacked on the side */
+    .attendance-load-btn {
+        height: 38px;
+        padding: 0 20px;
+        font-size: 0.95rem;
+        font-weight: 600;
+        white-space: nowrap;
+        flex-shrink: 0;
+    }
+
+    /* Stat cards match the search bar's flatter card style (same corner
+       radius, no shadow) instead of the app's default heavier card look */
+    body.hr-theme .attendance-stat-card {
+        border-radius: 10px !important;
+        box-shadow: none !important;
+    }
 </style>
 
 <!-- Filters -->
+<!-- Search + Load -->
+<div class="attendance-toolbar mb-3">
+    <div class="attendance-search">
+        <i class="bi bi-search"></i>
+        <input type="text" id="attendanceSearch" class="form-control" placeholder="Search employee by name or employee #...">
+    </div>
+    <button class="btn btn-yellow-primary attendance-load-btn" id="loadAttendanceBtn"><i class="bi bi-refresh"></i> Load</button>
+</div>
+
 <div class="row g-2 mb-3">
     <div class="col-md-2">
         <label class="form-label fw-semibold">Month</label>
@@ -129,39 +156,32 @@ $content = <<<HTML
             <option value="finance_head">Head Finance</option>
         </select>
     </div>
-    <div class="col-md-2 d-flex align-items-end gap-2">
-        <button class="btn btn-yellow-primary btn-sm w-100" id="loadAttendanceBtn"><i class="bi bi-refresh"></i> Load</button>
-        <button class="btn btn-yellow-outline btn-sm" id="refreshBtn" title="Refresh"><i class="bi bi-arrow-clockwise"></i></button>
+    <div class="col-md-2">
+        <label class="form-label fw-semibold">Role</label>
+        <select id="attendanceRoleFilter" class="form-select">
+            <option value="all">All Roles</option>
+            <option value="owner">Owner</option>
+            <option value="hr_head">HR Head</option>
+            <option value="hr_staff">HR Staff</option>
+            <option value="store_manager">Store Manager</option>
+            <option value="finance_head">Finance Head</option>
+            <option value="finance_staff">Finance Staff</option>
+            <option value="employee">Cashier</option>
+            <option value="trainee">Trainee</option>
+        </select>
     </div>
 </div>
 
-<!-- Search / Role toolbar -->
-<div class="attendance-toolbar mb-3">
-    <div class="attendance-search">
-        <i class="bi bi-search"></i>
-        <input type="text" id="attendanceSearch" class="form-control" placeholder="Search employee by name or employee #...">
-    </div>
-    <select id="attendanceRoleFilter" class="form-select" style="max-width:220px;">
-        <option value="all">All Roles</option>
-        <option value="owner">Owner</option>
-        <option value="hr_head">HR Head</option>
-        <option value="hr_staff">HR Staff</option>
-        <option value="store_manager">Store Manager</option>
-        <option value="finance_head">Finance Head</option>
-        <option value="finance_staff">Finance Staff</option>
-        <option value="employee">Cashier</option>
-        <option value="trainee">Trainee</option>
-    </select>
-</div>
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <!-- Stats Row -->
 <div class="row g-2 mb-3">
-    <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Total</small><h5 class="mb-0" id="statTotal">0</h5></div></div>
-    <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Present</small><h5 class="mb-0 text-success" id="statPresent">0</h5></div></div>
-    <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Late</small><h5 class="mb-0 text-warning" id="statLate">0</h5></div></div>
-    <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Absent</small><h5 class="mb-0 text-danger" id="statAbsent">0</h5></div></div>
-    <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Leave</small><h5 class="mb-0 text-info" id="statLeave">0</h5></div></div>
-    <div class="col"><div class="modern-card p-2 text-center"><small class="text-muted">Rest Day</small><h5 class="mb-0 text-secondary" id="statRestDay">0</h5></div></div>
+    <div class="col"><div class="modern-card attendance-stat-card p-2 text-center"><small class="text-muted">Total</small><h5 class="mb-0" id="statTotal">0</h5></div></div>
+    <div class="col"><div class="modern-card attendance-stat-card p-2 text-center"><small class="text-muted">Present</small><h5 class="mb-0 text-success" id="statPresent">0</h5></div></div>
+    <div class="col"><div class="modern-card attendance-stat-card p-2 text-center"><small class="text-muted">Late</small><h5 class="mb-0 text-warning" id="statLate">0</h5></div></div>
+    <div class="col"><div class="modern-card attendance-stat-card p-2 text-center"><small class="text-muted">Absent</small><h5 class="mb-0 text-danger" id="statAbsent">0</h5></div></div>
+    <div class="col"><div class="modern-card attendance-stat-card p-2 text-center"><small class="text-muted">Leave</small><h5 class="mb-0 text-info" id="statLeave">0</h5></div></div>
+    <div class="col"><div class="modern-card attendance-stat-card p-2 text-center"><small class="text-muted">Rest Day</small><h5 class="mb-0 text-secondary" id="statRestDay">0</h5></div></div>
 </div>
 
 <!-- Send status message (dynamically shown/hidden) -->
@@ -293,7 +313,7 @@ $content = <<<HTML
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/attendance.js"></script>
+<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260829183554"></script>
 HTML;
 
 require_once __DIR__ . '/../../layouts/hr.php';

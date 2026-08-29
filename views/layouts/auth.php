@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260828222041">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260829192522">
     <style>
         /* ==========================================================================
            DESIGN SYSTEM & THEME MATCHING
@@ -252,6 +252,33 @@
             text-decoration: underline;
         }
 
+        /* Back navigation — given its own visible pill/container so it
+           does not get lost against the page, unlike plain .auth-link text */
+        .back-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 14px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-card-subtle);
+            color: var(--brand-yellow-hover);
+            font-weight: 600;
+            font-size: 0.85rem;
+            text-decoration: none !important;
+            transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+        }
+
+        [data-bs-theme="dark"] .back-nav-btn {
+            color: var(--brand-yellow);
+        }
+
+        .back-nav-btn:hover {
+            background: var(--brand-yellow);
+            border-color: var(--brand-yellow);
+            color: #1a1a1a;
+        }
+
         /* Flash Messages */
         .flash-message {
             padding: 12px 16px;
@@ -341,6 +368,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260828222041"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260829192522"></script>
 </body>
 </html>

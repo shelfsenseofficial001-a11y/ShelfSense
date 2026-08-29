@@ -11,6 +11,14 @@ document.addEventListener('DOMContentLoaded', function () {
     setupFilters();
     setupForm();
 
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'status', type: 'select', elementId: 'filterStatus', defaultValue: 'all' },
+            { key: 'search', type: 'search', elementId: 'searchInput' },
+            { key: 'mine', type: 'checkbox', elementId: 'mineOnly', label: 'My postings only' },
+        ]);
+    }
+
     document.getElementById('confirmRejectPostingBtn')?.addEventListener('click', submitReject);
 });
 

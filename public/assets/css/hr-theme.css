@@ -501,7 +501,7 @@ body.hr-theme .hr-sidebar .sidebar-user .avatar-sm i {
     color: var(--brand-yellow) !important;
 }
 
-body.hr-theme .hr-sidebar .sidebar-user .user-logout-btn {
+body.hr-theme .hr-sidebar .sidebar-user .user-edit-btn {
     color: var(--text-muted);
     background: transparent;
     border: 1px solid var(--border-color);
@@ -515,10 +515,10 @@ body.hr-theme .hr-sidebar .sidebar-user .user-logout-btn {
     text-decoration: none;
 }
 
-body.hr-theme .hr-sidebar .sidebar-user .user-logout-btn:hover {
-    background: #fef2f2;
-    color: #b91c1c;
-    border-color: #fecaca;
+body.hr-theme .hr-sidebar .sidebar-user .user-edit-btn:hover {
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow-hover);
+    border-color: var(--brand-yellow);
 }
 
 body.hr-theme .hr-sidebar .sidebar-nav .nav-item.active {
@@ -741,3 +741,116 @@ body.hr-theme .attendance-cell {
     border: 1px solid transparent;
     font-weight: 600;
 }
+
+/* ==========================================================================
+   11. DASHBOARD EDIT MODE (drag-to-reorder widgets)
+   ========================================================================== */
+
+body.hr-theme .dash-edit-btn {
+    background: var(--light-yellow-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--brand-yellow-hover);
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+[data-bs-theme="dark"] body.hr-theme .dash-edit-btn {
+    color: var(--brand-yellow);
+}
+body.hr-theme .dash-edit-btn i {
+    font-size: 1.1rem;
+}
+body.hr-theme .dash-edit-btn:hover {
+    transform: rotate(-15deg) scale(1.05);
+    border-color: var(--brand-yellow);
+}
+body.hr-theme .dash-edit-btn.active {
+    background: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+    color: #1a1a1a;
+}
+body.hr-theme .dash-edit-btn.active:hover {
+    transform: scale(1.05);
+}
+
+body.hr-theme .dash-widget {
+    position: relative;
+    transition: transform 0.15s ease;
+}
+
+/* The handle exists in the DOM always (so its layout space never shifts
+   content on toggle) but only becomes visible/interactive in edit mode */
+body.hr-theme .dash-widget-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 6;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: var(--brand-dark);
+    color: var(--on-dark);
+    font-size: 0.8rem;
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.hr-theme .dash-widget-handle:active {
+    cursor: grabbing;
+}
+
+/* Edit mode: every widget in every reorderable row jiggles like an iOS
+   home-screen icon, signalling it can be picked up and moved. The jiggle
+   (rotate) animation lives on the INNER card, not on .dash-widget itself
+   -- .dash-widget is the element the drag-reorder logic slides around
+   with a transform transition, and a CSS animation + a CSS transition
+   fighting over the same element's transform is a losing battle for the
+   transition every time the animation's next frame ticks. Splitting them
+   across two elements means both can own `transform` freely. Each widget
+   gets a slightly different animation delay so they do not all sway in
+   perfect unison. */
+body.hr-theme.dash-edit-mode .dash-widget {
+    outline: 2px dashed var(--border-color);
+    outline-offset: 4px;
+    border-radius: var(--radius-card);
+}
+body.hr-theme.dash-edit-mode .dash-widget > .modern-card {
+    animation: dash-shake 0.28s ease-in-out infinite;
+}
+body.hr-theme.dash-edit-mode .dash-widget:nth-child(2n) > .modern-card {
+    animation-delay: -0.09s;
+}
+body.hr-theme.dash-edit-mode .dash-widget:nth-child(3n) > .modern-card {
+    animation-delay: -0.16s;
+}
+body.hr-theme.dash-edit-mode .dash-widget-handle {
+    display: flex;
+}
+
+@keyframes dash-shake {
+    0% { transform: rotate(-1deg); }
+    50% { transform: rotate(1deg); }
+    100% { transform: rotate(-1deg); }
+}
+
+/* Dragging state: the item being moved pauses the shake and fades; the
+   drop target under the cursor gets a highlighted outline */
+body.hr-theme .dash-widget.dash-dragging > .modern-card {
+    animation: none !important;
+}
+body.hr-theme .dash-widget.dash-dragging {
+    opacity: 0.45;
+}
+body.hr-theme .dash-widget.dash-drag-over {
+    outline: 2px solid var(--brand-yellow) !important;
+}
+
+

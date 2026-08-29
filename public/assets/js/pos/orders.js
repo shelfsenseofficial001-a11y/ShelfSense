@@ -6,7 +6,17 @@ console.log('✅ orders.js loaded');
 
 document.addEventListener("DOMContentLoaded", function() {
     loadOrders();
-    document.getElementById("filterDate").value = new Date().toISOString().split("T")[0];
+    const todayStr = new Date().toISOString().split("T")[0];
+    document.getElementById("filterDate").value = todayStr;
+
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('activeFilterChips', [
+            { key: 'search', type: 'search', elementId: 'searchOrderInput' },
+            { key: 'status', type: 'select', elementId: 'filterStatus' },
+            { key: 'date', type: 'date', elementId: 'filterDate', defaultValue: todayStr, labelPrefix: 'Date' },
+        ], { applyButtonId: 'applyFiltersBtn' });
+    }
+
     document.getElementById("applyFiltersBtn").addEventListener("click", loadOrders);
     document.getElementById("refreshOrdersBtn").addEventListener("click", function() {
         document.getElementById("searchOrderInput").value = "";

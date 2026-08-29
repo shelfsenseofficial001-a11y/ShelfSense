@@ -2,7 +2,7 @@
 $title = 'Invoices - Supplier';
 $pageTitle = 'My Invoices';
 $activePage = 'invoices';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/invoices.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/invoices.js?v=20260829181340"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-pills sp-tabs mb-3" id="invoiceStatusTabs">
@@ -34,6 +34,8 @@ $content = <<<'EOT'
         <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
     </div>
 </div>
+
+<div class="active-filter-chips" id="activeFilterChips"></div>
 
 <div id="invoiceCardsContainer" class="sp-card-grid">
     <div class="text-center py-4" style="grid-column:1/-1;">
