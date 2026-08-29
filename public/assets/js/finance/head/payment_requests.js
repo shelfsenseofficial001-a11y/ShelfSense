@@ -118,12 +118,6 @@ function renderCards(container, requests, tab) {
     container.querySelectorAll('.view-btn').forEach(btn => {
         btn.addEventListener('click', () => viewRequisitionDetail(parseInt(btn.dataset.id)));
     });
-    container.querySelectorAll('.approve-btn').forEach(btn => {
-        btn.addEventListener('click', () => openApproveModalFromRow(fhParseRow(btn.dataset.row)));
-    });
-    container.querySelectorAll('.reject-btn').forEach(btn => {
-        btn.addEventListener('click', () => openRejectModalFromRow(fhParseRow(btn.dataset.row)));
-    });
 }
 
 function buildCard(r) {
@@ -161,22 +155,9 @@ function buildCard(r) {
 
             <div class="fn-req-actions mt-2">
                 <button class="btn btn-sm btn-outline-primary view-btn" data-id="${r.requisition_id}"><i class="bi bi-eye"></i> View Full Details</button>
-                ${isPending ? `
-                    <button class="btn btn-sm btn-success approve-btn" data-row='${fhRowJson(r)}'><i class="bi bi-check-circle"></i> Approve</button>
-                    <button class="btn btn-sm btn-danger reject-btn" data-row='${fhRowJson(r)}'><i class="bi bi-x-circle"></i> Reject</button>
-                ` : ''}
             </div>
         </div>
     `;
-}
-
-// URI-encoded (not HTML-escaped) so the JSON survives round-tripping through an
-// HTML attribute regardless of quotes/apostrophes in supplier names, notes, etc.
-function fhRowJson(r) {
-    return encodeURIComponent(JSON.stringify(r));
-}
-function fhParseRow(encoded) {
-    return JSON.parse(decodeURIComponent(encoded));
 }
 
 // ============================================

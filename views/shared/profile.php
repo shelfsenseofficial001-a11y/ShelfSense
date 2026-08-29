@@ -19,7 +19,7 @@ if (in_array($role, ['hr_head', 'hr_staff', 'owner'])) {
     $layout = 'trainee';
 }
 
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/profile.js?v=20260829192522"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/profile.js?v=20260829200500"></script>';
 $additional_css = '
 <style>
     .profile-avatar-wrap {
@@ -60,6 +60,35 @@ $additional_css = '
     .profile-info-row:last-child { border-bottom: none; }
     .profile-info-row .label { color: var(--text-muted); font-size: 0.85rem; }
     .profile-info-row .value { font-weight: 500; }
+    .profile-pending-notice {
+        display: none;
+        align-items: center;
+        gap: 10px;
+        margin-top: 12px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 0.85rem;
+    }
+    .profile-pending-notice.status-pending {
+        background: var(--light-yellow-accent);
+        color: var(--text-main);
+    }
+    .profile-pending-notice.status-rejected {
+        background: #fecaca;
+        color: #991b1b;
+    }
+    [data-bs-theme="dark"] .profile-pending-notice.status-rejected {
+        background: #7f1d1d;
+        color: #fca5a5;
+    }
+    .profile-pending-thumb {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+    .profile-pending-thumb img { width: 100%; height: 100%; object-fit: cover; }
 </style>
 ';
 
@@ -81,9 +110,18 @@ $content = <<<HTML
                     <i class="bi bi-trash"></i> Remove image
                 </button>
             </div>
-            <small class="text-muted">JPG, PNG, or WEBP. Max 3MB.</small>
+            <small class="text-muted">JPG, PNG, or WEBP. Max 3MB. New uploads need owner approval before they go live.</small>
         </div>
         <input type="file" id="avatarFileInput" accept=".jpg,.jpeg,.png,.webp" style="display:none;">
+    </div>
+    <div class="profile-pending-notice status-pending" id="pendingNotice">
+        <div class="profile-pending-thumb"><img id="pendingNoticeImg" src="" alt="Pending"></div>
+        <div class="flex-grow-1">Waiting for owner approval.</div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="cancelPendingBtn">Cancel</button>
+    </div>
+    <div class="profile-pending-notice status-rejected" id="rejectedNotice">
+        <i class="bi bi-x-circle-fill"></i>
+        <div class="flex-grow-1">Your last upload was rejected<span id="rejectedReasonText"></span>. Try uploading a different photo.</div>
     </div>
 </div>
 

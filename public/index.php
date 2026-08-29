@@ -1156,6 +1156,39 @@ if ($page === 'api_remove_avatar') {
     exit;
 }
 
+if ($page === 'api_cancel_pending_avatar') {
+    require_once __DIR__ . '/../app/handlers/shared/cancel_pending_avatar.php';
+    exit;
+}
+
+if ($page === 'avatar_approvals') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isOwner()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/hr/avatar_approvals.php';
+    exit;
+}
+
+if ($page === 'api_list_pending_avatars') {
+    require_once __DIR__ . '/../app/handlers/hr/list_pending_avatars.php';
+    exit;
+}
+
+if ($page === 'api_approve_avatar') {
+    require_once __DIR__ . '/../app/handlers/hr/approve_avatar.php';
+    exit;
+}
+
+if ($page === 'api_reject_avatar') {
+    require_once __DIR__ . '/../app/handlers/hr/reject_avatar.php';
+    exit;
+}
+
 if ($page === 'api_change_password') {
     require_once __DIR__ . '/../app/handlers/shared/change_password.php';
     exit;

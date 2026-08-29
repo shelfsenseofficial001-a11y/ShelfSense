@@ -657,7 +657,7 @@ function renderWeeklyReports(traineeId, data) {
                     <h6 class="mb-0">Week ${r.week_number} <small class="text-muted">(${r.period_start} to ${r.period_end})</small></h6>
                     <span class="badge bg-${r.status === 'submitted' ? 'secondary' : r.status === 'forwarded' ? 'info' : 'success'}">${escapeHtml(r.status)}</span>
                 </div>
-                <div class="p-2 bg-light rounded mb-2" style="white-space:pre-wrap;">${escapeHtml(r.report_content)}</div>
+                <div class="p-2 rounded mb-2" style="white-space:pre-wrap; background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(r.report_content)}</div>
                 <div class="small text-muted mb-2">By ${escapeHtml(r.trainer_first)} ${escapeHtml(r.trainer_last)} on ${new Date(r.submitted_at).toLocaleDateString()}
                     ${r.performance_rating ? ' &middot; Rating: ' + escapeHtml(r.performance_rating) : ''}</div>
                 ${r.reviewer_observation ? `<div class="alert alert-secondary py-1 px-2 small mb-2"><strong>${escapeHtml(r.reviewer_role)} observation (${escapeHtml(r.reviewer_first)} ${escapeHtml(r.reviewer_last)}):</strong> ${escapeHtml(r.reviewer_observation)}</div>` : ''}

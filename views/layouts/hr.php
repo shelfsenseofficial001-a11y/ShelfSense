@@ -24,9 +24,9 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260829192522">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260829192522">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260829192522">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260830020000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260830000000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260830000000">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -108,6 +108,12 @@ use App\Core\Auth;
                 <a href="?page=hr_payroll" class="nav-item <?php echo $activePage === 'payroll' ? 'active' : ''; ?>" title="Payroll">
                     <span class="nav-icon-wrap"><i class="bi bi-cash-coin"></i></span> <span class="nav-label">Payroll</span>
                 </a>
+                <?php if (Auth::isOwner()): ?>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Owner</span></div>
+                <a href="?page=avatar_approvals" class="nav-item <?php echo $activePage === 'avatar_approvals' ? 'active' : ''; ?>" title="Profile Picture Approvals">
+                    <span class="nav-icon-wrap"><i class="bi bi-person-check-fill"></i></span> <span class="nav-label">Photo Approvals</span>
+                </a>
+                <?php endif; ?>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>" title="My Leaves">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
@@ -179,11 +185,11 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260829192522"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260830000000"></script>
     <?php echo $additional_js ?? ''; ?>
 
     <!-- Searchable Select Component -->
-    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260829192522"></script>
+    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830000000"></script>
 
     <style>
         /* ============================================

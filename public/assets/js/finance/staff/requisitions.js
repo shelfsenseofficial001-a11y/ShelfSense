@@ -100,9 +100,6 @@ function renderCards(container, requisitions, tab) {
     container.querySelectorAll('.view-req-btn').forEach(btn => {
         btn.addEventListener('click', () => viewRequisitionDetail(btn.dataset.id));
     });
-    container.querySelectorAll('.create-pr-btn').forEach(btn => {
-        btn.addEventListener('click', () => openPaymentRequestModal(btn.dataset.id));
-    });
 }
 
 function buildCard(req, tab) {
@@ -148,9 +145,6 @@ function buildCard(req, tab) {
     }
 
     let actions = `<button class="btn btn-sm btn-outline-primary view-req-btn" data-id="${req.id}"><i class="bi bi-eye"></i> View Details</button>`;
-    if (isReviewTab) {
-        actions += `<button class="btn btn-sm btn-yellow-primary create-pr-btn" data-id="${req.id}"><i class="bi bi-cash"></i> Create Payment Request</button>`;
-    }
 
     return `
         <div class="fn-req-card ${exceeded ? 'exceeded' : ''}">

@@ -1187,8 +1187,8 @@ function viewInterview(id) {
                             </div>
                         </div>
                         ${interview.gmeet_link ? `<div class="mt-3"><p><strong>Gmeet Link:</strong> <a href="${interview.gmeet_link}" target="_blank">${interview.gmeet_link}</a></p></div>` : ''}
-                        ${interview.message ? `<div class="mt-3"><p><strong>Message:</strong></p><div class="p-3 bg-light rounded">${escapeHtml(interview.message)}</div></div>` : ''}
-                        ${interview.notes ? `<div class="mt-3"><p><strong>HR Notes:</strong></p><div class="p-3 bg-light rounded">${escapeHtml(interview.notes)}</div></div>` : ''}
+                        ${interview.message ? `<div class="mt-3"><p><strong>Message:</strong></p><div class="p-3 rounded" style="background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(interview.message)}</div></div>` : ''}
+                        ${interview.notes ? `<div class="mt-3"><p><strong>HR Notes:</strong></p><div class="p-3 rounded" style="background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(interview.notes)}</div></div>` : ''}
                     `;
                 } else {
                     body.innerHTML = `<div class="text-center text-danger py-4">Interview not found</div>`;

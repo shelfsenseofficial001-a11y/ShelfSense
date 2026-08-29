@@ -113,11 +113,13 @@ body.dashboard-theme .dashboard-shell > .d-flex {
     align-items: stretch;
 }
 
-/* Sidebar is truly pinned to the left of the viewport (position: fixed) —
-   it never scrolls with the page content and never gets its own
-   scrollbar, regardless of how tall the page content grows (e.g. the
-   Attendance grid). The content column gets a matching margin-left so it
-   never sits underneath the fixed sidebar. */
+/* Sidebar is pinned to the left of the viewport (position: fixed) and never
+   scrolls with the page content — it has its own height (100vh) independent
+   of how tall the page content grows (e.g. the Attendance grid). If the
+   sidebar's own contents (nav items, etc.) are taller than the viewport,
+   the sidebar scrolls internally instead of clipping or spilling over. The
+   content column gets a matching margin-left so it never sits underneath
+   the fixed sidebar. */
 body.dashboard-theme .dashboard-shell .hr-sidebar,
 body.dashboard-theme .dashboard-shell .store-manager-sidebar,
 body.dashboard-theme .dashboard-shell .finance-sidebar,
@@ -130,7 +132,8 @@ body.dashboard-theme .dashboard-shell .trainee-sidebar {
     height: 100vh;
     width: 250px;
     z-index: 40;
-    overflow: visible;
+    overflow-y: auto;
+    overflow-x: hidden;
     border-radius: 0;
     transition: width 0.2s ease;
 }
@@ -143,7 +146,7 @@ body.dashboard-theme .dashboard-shell .trainee-sidebar.collapsed {
     width: 76px;
 }
 body.dashboard-theme .dashboard-shell .sidebar-nav {
-    overflow-y: visible !important;
+    overflow-y: visible;
 }
 body.dashboard-theme .dashboard-shell .hr-content,
 body.dashboard-theme .dashboard-shell .store-manager-content,
@@ -657,6 +660,20 @@ body.dashboard-theme .nav-item .nav-icon-wrap {
     justify-content: center;
     width: 24px;
     flex-shrink: 0;
+}
+
+/* The badge is positioned absolute (out of flow), so a long label like
+   "Approve Payments" doesn't know to make room for it and can run right
+   underneath the red circle. Reserve space for the badge and truncate the
+   label instead of letting the two overlap. */
+body.dashboard-theme .nav-item:has(.nav-badge) {
+    padding-right: 38px;
+}
+body.dashboard-theme .nav-item .nav-label {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 /* Expanded sidebar: badge sits at the row's far right, beside the label —

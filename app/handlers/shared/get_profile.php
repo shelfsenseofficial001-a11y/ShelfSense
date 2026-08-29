@@ -16,7 +16,7 @@ if (!Auth::check()) {
 }
 
 $db = Database::getInstance()->getConnection();
-$stmt = $db->prepare("SELECT user_id, employee_number, first_name, last_name, email, role, profile_pic, hired_date FROM users WHERE user_id = ?");
+$stmt = $db->prepare("SELECT user_id, employee_number, first_name, last_name, email, role, profile_pic, pending_profile_pic, pending_profile_pic_status, pending_profile_pic_reason, hired_date FROM users WHERE user_id = ?");
 $stmt->execute([Auth::userId()]);
 $user = $stmt->fetch();
 
@@ -33,5 +33,8 @@ Response::success([
     'role' => $user['role'],
     'role_label' => getRoleName($user['role']),
     'profile_pic' => $user['profile_pic'],
+    'pending_profile_pic' => $user['pending_profile_pic'],
+    'pending_profile_pic_status' => $user['pending_profile_pic_status'],
+    'pending_profile_pic_reason' => $user['pending_profile_pic_reason'],
     'hired_date' => $user['hired_date'],
 ]);

@@ -247,7 +247,7 @@ $content = '
     window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
     window.HR_IS_HEAD = ' . $isHRHeadJs . ';
 </script>
-<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260829181326"></script>
+<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260830010000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

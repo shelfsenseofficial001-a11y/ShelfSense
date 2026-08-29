@@ -2,7 +2,7 @@
 $title = 'Requisitions - Supplier';
 $pageTitle = 'Incoming Requisitions';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/requisitions.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/requisitions.js?v=20260830030000"></script>';
 
 $content = <<<'EOT'
 <!-- Tabs -->

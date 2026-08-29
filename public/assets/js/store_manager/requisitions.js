@@ -157,24 +157,11 @@ function renderCards(container, requisitions, tabKey) {
     container.querySelectorAll('.view-requisition-btn').forEach(btn => {
         btn.addEventListener('click', () => viewRequisition(btn.dataset.id));
     });
-    container.querySelectorAll('.forward-to-finance-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => { e.stopPropagation(); forwardToFinanceStaff(btn.dataset.id, tabKey); });
-    });
-    container.querySelectorAll('.receive-goods-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => { e.stopPropagation(); receiveGoods(btn.dataset.id, tabKey); });
-    });
 }
 
 function buildRequisitionCard(req) {
     const total = smCurrency(req.total);
     let actions = `<button class="btn btn-sm btn-outline-primary view-requisition-btn" data-id="${req.id}"><i class="bi bi-eye"></i> View Details</button>`;
-
-    if (req.status === 'supplier_processed') {
-        actions += `<button class="btn btn-sm btn-warning forward-to-finance-btn" data-id="${req.id}"><i class="bi bi-send"></i> Forward to Finance</button>`;
-    }
-    if (req.status === 'paid' || req.status === 'shipped') {
-        actions += `<button class="btn btn-sm btn-success receive-goods-btn" data-id="${req.id}"><i class="bi bi-box-arrow-in-down"></i> Receive Goods</button>`;
-    }
 
     return `
         <div class="sm-req-card" data-id="${req.id}">

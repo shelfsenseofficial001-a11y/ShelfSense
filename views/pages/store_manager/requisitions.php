@@ -2,7 +2,7 @@
 $title = 'Requisitions - Store Manager';
 $pageTitle = 'Requisitions';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260830030000"></script>';
 $additional_css = '
 <style>
     .product-card.clickable-card:hover { border-color: var(--brand-yellow); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
