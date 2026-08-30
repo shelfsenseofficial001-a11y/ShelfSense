@@ -8,6 +8,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const infoBody = document.getElementById('profileInfoBody');
     const changePasswordForm = document.getElementById('changePasswordForm');
     const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const pendingNotice = document.getElementById('pendingNotice');
+    const pendingNoticeImg = document.getElementById('pendingNoticeImg');
+    const cancelPendingBtn = document.getElementById('cancelPendingBtn');
+    const rejectedNotice = document.getElementById('rejectedNotice');
+    const rejectedReasonText = document.getElementById('rejectedReasonText');
 
     function setAvatar(path) {
         if (path) {
@@ -22,6 +27,18 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     }
 
+    function setPendingState(status, pendingPath, reason) {
+        pendingNotice.style.display = 'none';
+        rejectedNotice.style.display = 'none';
+        if (status === 'pending' && pendingPath) {
+            pendingNoticeImg.src = '/ShelfSense/public/' + pendingPath + '?t=' + Date.now();
+            pendingNotice.style.display = 'flex';
+        } else if (status === 'rejected') {
+            rejectedReasonText.textContent = reason ? ': "' + reason + '"' : '';
+            rejectedNotice.style.display = 'flex';
+        }
+    }
+
     function loadProfile() {
         fetch('?page=api_get_profile')
             .then(r => r.json())
@@ -29,6 +46,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 if (!res.success) return;
                 const p = res.data;
                 setAvatar(p.profile_pic);
+                setPendingState(p.pending_profile_pic_status, p.pending_profile_pic, p.pending_profile_pic_reason);
                 infoBody.innerHTML = `
                     <div class="profile-info-row">
                         <span class="label">Full name</span>
@@ -81,8 +99,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload image';
                 fileInput.value = '';
                 if (res.success) {
-                    setAvatar(res.data.profile_pic);
-                    Swal.fire({ icon: 'success', title: 'Profile picture updated', timer: 1200, showConfirmButton: false });
+                    setPendingState('pending', res.data.pending_profile_pic, null);
+                    Swal.fire({ icon: 'success', title: 'Submitted for approval', text: 'Your new profile picture will show once the owner approves it.', timer: 2000, showConfirmButton: false });
                 } else {
                     Swal.fire({ icon: 'error', title: 'Upload failed', text: res.message || 'Please try again.' });
                 }
@@ -91,6 +109,24 @@ document.addEventListener('DOMContentLoaded', function () {
                 uploadBtn.disabled = false;
                 uploadBtn.innerHTML = '<i class="bi bi-upload"></i> Upload image';
                 Swal.fire({ icon: 'error', title: 'Upload failed', text: 'Please try again.' });
+            });
+    });
+
+    cancelPendingBtn.addEventListener('click', function () {
+        cancelPendingBtn.disabled = true;
+        fetch('?page=api_cancel_pending_avatar', { method: 'POST' })
+            .then(r => r.json())
+            .then(res => {
+                cancelPendingBtn.disabled = false;
+                if (res.success) {
+                    setPendingState('none', null, null);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Failed', text: res.message || 'Please try again.' });
+                }
+            })
+            .catch(() => {
+                cancelPendingBtn.disabled = false;
+                Swal.fire({ icon: 'error', title: 'Failed', text: 'Please try again.' });
             });
     });
 

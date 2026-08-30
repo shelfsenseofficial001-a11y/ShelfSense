@@ -2,7 +2,7 @@
 $title = 'Pending Requisitions - Finance Staff';
 $pageTitle = 'Pending Requisitions';
 $activePage = 'staff_requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20260829181340"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20260830030000"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs fn-tabs mb-3" id="reqTabs" role="tablist">

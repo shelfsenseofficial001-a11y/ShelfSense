@@ -817,6 +817,26 @@ body.swal2-shown > .modal-backdrop {
     display: none !important;
 }
 
+/* ============================================
+   FIX: SCROLLABLE MODALS THAT WRAP THEIR BODY
+   IN A <form>
+   ============================================
+   .modal-dialog-scrollable relies on .modal-body being a direct flex
+   child of .modal-content so it can shrink to the available height and
+   scroll internally. Several modals in this app wrap .modal-body and
+   .modal-footer in a <form> (so one submit handles the whole thing),
+   which breaks that direct-child chain: the form has no height
+   constraint of its own, so it grows to fit its content and the
+   overflow is silently clipped by .modal-content instead of being
+   scrollable. Making the form itself a same-direction flex passthrough
+   restores the shrink-and-scroll behavior. */
+.modal-dialog-scrollable .modal-content > form {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
 .locked-cell {
     opacity: 0.7;
     background: var(--bg-card-subtle);

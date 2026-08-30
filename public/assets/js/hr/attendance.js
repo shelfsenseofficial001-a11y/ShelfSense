@@ -544,14 +544,22 @@ function openEditModal(userId, date, employeeName){
     let newTimeOut=timeOut.cloneNode(true); timeOut.parentNode.replaceChild(newTimeOut,timeOut);
     newTimeOut.addEventListener('input', function(){ updateStatusDisplay(); autoCalculateOvertime(); });
     let newOnLeave=onLeave.cloneNode(true); onLeave.parentNode.replaceChild(newOnLeave,onLeave);
-    newOnLeave.addEventListener('change', function(){ applyToggleStates(); updateStatusDisplay(); });
+    newOnLeave.addEventListener('change', function(){ enforceSingleToggle(this); applyToggleStates(); updateStatusDisplay(); });
     let newRestDay=restDay.cloneNode(true); restDay.parentNode.replaceChild(newRestDay,restDay);
-    newRestDay.addEventListener('change', function(){ applyToggleStates(); updateStatusDisplay(); });
+    newRestDay.addEventListener('change', function(){ enforceSingleToggle(this); applyToggleStates(); updateStatusDisplay(); });
     let newHoliday=holiday.cloneNode(true); holiday.parentNode.replaceChild(newHoliday,holiday);
-    newHoliday.addEventListener('change', function(){ applyToggleStates(); updateStatusDisplay(); });
+    newHoliday.addEventListener('change', function(){ enforceSingleToggle(this); applyToggleStates(); updateStatusDisplay(); });
     let newAbsent=absent.cloneNode(true); absent.parentNode.replaceChild(newAbsent,absent);
-    newAbsent.addEventListener('change', function(){ applyToggleStates(); updateStatusDisplay(); });
+    newAbsent.addEventListener('change', function(){ enforceSingleToggle(this); applyToggleStates(); updateStatusDisplay(); });
     new bootstrap.Modal(document.getElementById('editAttendanceModal')).show();
+}
+
+function enforceSingleToggle(changedEl){
+    if(!changedEl.checked) return;
+    ['editOnLeave','editRestDay','editHoliday','editAbsent'].forEach(function(id){
+        let el=document.getElementById(id);
+        if(el && el !== changedEl) el.checked=false;
+    });
 }
 
 function applyToggleStates(){

@@ -132,7 +132,7 @@ use App\Core\Auth;
     
     <!-- Custom JS -->
     <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
-    
+
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
     

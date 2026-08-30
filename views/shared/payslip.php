@@ -9,6 +9,14 @@ $role = $_SESSION['role'] ?? 'cashier';
 $layout = 'cashier';
 if (in_array($role, ['hr_head', 'hr_staff', 'owner'])) {
     $layout = 'hr';
+} elseif ($role === 'store_manager') {
+    $layout = 'store_manager';
+} elseif (in_array($role, ['finance_head', 'finance_staff'])) {
+    $layout = 'finance';
+} elseif ($role === 'supplier') {
+    $layout = 'supplier';
+} elseif ($role === 'trainee') {
+    $layout = 'trainee';
 }
 $activePage = 'payslip';
 
@@ -129,6 +137,14 @@ EOT;
 // Load the appropriate layout
 if ($layout === 'hr') {
     require_once __DIR__ . '/../layouts/hr.php';
+} elseif ($layout === 'store_manager') {
+    require_once __DIR__ . '/../layouts/store_manager.php';
+} elseif ($layout === 'finance') {
+    require_once __DIR__ . '/../layouts/finance.php';
+} elseif ($layout === 'supplier') {
+    require_once __DIR__ . '/../layouts/supplier.php';
+} elseif ($layout === 'trainee') {
+    require_once __DIR__ . '/../layouts/trainee.php';
 } else {
     require_once __DIR__ . '/../layouts/cashier.php';
 }

@@ -127,31 +127,13 @@ function renderSpCards(container, requisitions, tabKey) {
     container.querySelectorAll('.view-requisition-btn').forEach(btn => {
         btn.addEventListener('click', () => viewRequisition(btn.dataset.id));
     });
-    container.querySelectorAll('.accept-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => { e.stopPropagation(); openInvoiceModal(btn.dataset.id, tabKey); });
-    });
-    container.querySelectorAll('.reject-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => { e.stopPropagation(); openRejectModal(btn.dataset.id, tabKey); });
-    });
-    container.querySelectorAll('.ship-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => { e.stopPropagation(); openShipModal(btn.dataset.id, tabKey); });
-    });
 }
 
 function buildSpCard(req) {
     const total = spCurrency(req.total);
-    const isPending = req.status === 'pending_supplier' || req.status === 'sent_to_supplier';
-    const isPaid = req.status === 'paid';
     const alreadyRejected = (req.notes || '').indexOf('[SUPPLIER REJECTED]') !== -1;
 
     let actions = `<button class="btn btn-sm btn-outline-primary view-requisition-btn" data-id="${req.id}"><i class="bi bi-eye"></i> View Details</button>`;
-    if (isPending && !alreadyRejected) {
-        actions += `<button class="btn btn-sm btn-success accept-btn" data-id="${req.id}"><i class="bi bi-check-circle"></i> Accept</button>`;
-        actions += `<button class="btn btn-sm btn-outline-danger reject-btn" data-id="${req.id}"><i class="bi bi-x-circle"></i> Reject</button>`;
-    }
-    if (isPaid) {
-        actions += `<button class="btn btn-sm btn-primary ship-btn" data-id="${req.id}"><i class="bi bi-truck"></i> Ship Goods</button>`;
-    }
 
     return `
         <div class="sp-req-card" data-id="${req.id}">

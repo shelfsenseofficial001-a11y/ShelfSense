@@ -321,33 +321,41 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================
 
 function updatePendingBadge() {
-    const badge = document.getElementById('pendingBadge');
-    if (!badge) return;
-
-    const url = window.location.href;
-
-    // --- FINANCE MODULE ---
-    if (url.includes('finance_staff') || url.includes('finance_head')) {
-        let apiUrl = '';
-        if (url.includes('finance_staff')) {
-            apiUrl = '?page=api_finance_staff_dashboard_stats';
-        } else if (url.includes('finance_head')) {
-            apiUrl = '?page=api_finance_head_dashboard_stats';
-        } else {
-            return; // fallback: do nothing
-        }
-
-        fetch(apiUrl)
+    // --- FINANCE HEAD MODULE: "Approve Payments" nav badge ---
+    // Present in the sidebar on every page a finance head sees (including
+    // My Leaves / My Payslip), so key off the element itself rather than
+    // the current URL — that also keeps it live outside the head dashboard.
+    const headBadge = document.getElementById('headPendingBadge');
+    if (headBadge) {
+        fetch('?page=api_finance_head_dashboard_stats')
             .then(response => response.json())
             .then(data => {
                 if (data.success && data.data.stats) {
-                    let pending = 0;
-                    const stats = data.data.stats;
-                    if (stats.pending_requisitions !== undefined) {
-                        pending = stats.pending_requisitions;
-                    } else if (stats.pending !== undefined) {
-                        pending = stats.pending;
+                    const pending = data.data.stats.pending || 0;
+                    if (pending > 0) {
+                        headBadge.textContent = pending;
+                        headBadge.style.display = 'flex';
+                    } else {
+                        headBadge.style.display = 'none';
                     }
+                }
+            })
+            .catch(() => {});
+    }
+
+    const badge = document.getElementById('pendingBadge');
+    if (!badge) return;
+
+    // --- FINANCE STAFF MODULE ---
+    // #pendingBadge is shared with the HR "Applicants" badge, so tell them
+    // apart by the presence of the finance sidebar rather than the URL
+    // (which won't mention "finance_staff" on shared pages like My Leaves).
+    if (document.getElementById('financeSidebar')) {
+        fetch('?page=api_finance_staff_dashboard_stats')
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.data.stats) {
+                    const pending = data.data.stats.pending_requisitions || 0;
                     if (pending > 0) {
                         badge.textContent = pending;
                         badge.style.display = 'flex';

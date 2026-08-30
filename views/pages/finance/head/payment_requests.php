@@ -2,7 +2,7 @@
 $title = 'Payment Requests - Finance Head';
 $pageTitle = 'Approve Payments';
 $activePage = 'head_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260829181340"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260830030000"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs fn-tabs mb-3" id="reqTabs" role="tablist">

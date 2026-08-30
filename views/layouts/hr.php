@@ -108,6 +108,12 @@ use App\Core\Auth;
                 <a href="?page=hr_payroll" class="nav-item <?php echo $activePage === 'payroll' ? 'active' : ''; ?>" title="Payroll">
                     <span class="nav-icon-wrap"><i class="bi bi-cash-coin"></i></span> <span class="nav-label">Payroll</span>
                 </a>
+                <?php if (Auth::isOwner()): ?>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Owner</span></div>
+                <a href="?page=avatar_approvals" class="nav-item <?php echo $activePage === 'avatar_approvals' ? 'active' : ''; ?>" title="Profile Picture Approvals">
+                    <span class="nav-icon-wrap"><i class="bi bi-person-check-fill"></i></span> <span class="nav-label">Photo Approvals</span>
+                </a>
+                <?php endif; ?>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>" title="My Leaves">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
