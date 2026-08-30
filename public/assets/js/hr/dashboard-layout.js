@@ -4,6 +4,12 @@
 // move between rows, only within their own row). The resulting order is
 // saved per account via api_save_dashboard_layout and restored on load
 // via api_get_dashboard_layout.
+//
+// The tables and charts used to be two separate rows/groups; they're now
+// one merged "content" row (uniform-height cards) so users can freely mix
+// tables and charts together. collectAllOrders()/loadLayout() still read
+// a legacy pre-merge save (separate "tables"/"charts" arrays) so older
+// saved layouts don't silently reset.
 // ============================================
 
 (function () {
@@ -20,8 +26,7 @@
     function collectAllOrders() {
         return {
             stats: getRowOrder(document.getElementById('dashCanvasStats')),
-            tables: getRowOrder(document.getElementById('dashCanvasTables')),
-            charts: getRowOrder(document.getElementById('dashCanvasCharts')),
+            content: getRowOrder(document.getElementById('dashCanvasTables')),
         };
     }
 
@@ -53,8 +58,13 @@
                 var order = data.success && data.data ? data.data.widget_order : null;
                 if (!order) return;
                 applyOrder(document.getElementById('dashCanvasStats'), order.stats);
-                applyOrder(document.getElementById('dashCanvasTables'), order.tables);
-                applyOrder(document.getElementById('dashCanvasCharts'), order.charts);
+                // Legacy saves had "tables" and "charts" as two separate
+                // arrays; the current single merged row accepts a
+                // "content" array, falling back to the old pair appended
+                // in order (tables first, then charts) if that's all a
+                // previously-saved layout has.
+                var contentOrder = order.content || [].concat(order.tables || [], order.charts || []);
+                applyOrder(document.getElementById('dashCanvasTables'), contentOrder);
             })
             .catch(function (err) {
                 console.error('Failed to load dashboard layout:', err);
@@ -67,13 +77,27 @@
         if (btn) {
             btn.classList.toggle('active', on);
             btn.querySelector('i').className = on ? 'bi bi-check-lg' : 'bi bi-pencil-fill';
-            btn.title = on ? 'Done rearranging' : 'Rearrange dashboard widgets';
+            var labelEl = btn.querySelector('.dash-edit-label');
+            if (labelEl) labelEl.textContent = on ? 'Editing UI...' : 'Edit UI';
         }
         var widgets = document.querySelectorAll('.dash-widget');
         Array.prototype.forEach.call(widgets, function (el) {
             el.draggable = on;
         });
-        if (on) restartJiggle(widgets);
+        if (on) {
+            restartJiggle(widgets);
+        } else {
+            showSavedToast();
+        }
+    }
+
+    // Shown top-left when the user turns edit mode back off, confirming
+    // any rearranging they did during this session is persisted.
+    function showSavedToast() {
+        var toastEl = document.getElementById('dashSavedToast');
+        if (!toastEl || !window.bootstrap || !window.bootstrap.Toast) return;
+        var toast = window.bootstrap.Toast.getOrCreateInstance(toastEl);
+        toast.show();
     }
 
     // Forces the CSS shake animation to (re)start from frame 0 on every

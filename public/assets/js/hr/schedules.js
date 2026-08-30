@@ -174,7 +174,7 @@ function openContractDetail(userId) {
                     </div>
                     <div class="mt-3">
                         <p><strong>Job Details:</strong></p>
-                        <div class="p-3 bg-light rounded">${escapeHtml(jobDetails)}</div>
+                        <div class="p-3 rounded" style="background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(jobDetails)}</div>
                     </div>
                 `;
             } else {

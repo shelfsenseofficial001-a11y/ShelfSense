@@ -28,13 +28,13 @@ if (!Auth::canAccessModule('hr_head') && !$isHrTrainee) {
 $input = json_decode(file_get_contents('php://input'), true);
 $order = $input['widget_order'] ?? null;
 
-// Each group is independently reorderable (stats among themselves, tables
-// among themselves, charts among themselves) -- widgets never move
-// between groups since they have different card layouts/sizes.
+// Each group is independently reorderable -- widgets never move between
+// groups. The stat cards stay their own group (different card layout/
+// size), but the mini-tables and charts now share one uniform-height row
+// ("content") so they can be freely mixed with each other.
 $knownGroups = [
     'stats' => ['stat_total', 'stat_pending', 'stat_scheduled', 'stat_hired'],
-    'tables' => ['table_applicants', 'table_interviews', 'table_trainees'],
-    'charts' => ['chart_monthly', 'chart_pipeline'],
+    'content' => ['table_applicants', 'table_interviews', 'table_trainees', 'chart_monthly', 'chart_pipeline'],
 ];
 
 $valid = is_array($order) && array_keys($order) === array_keys($knownGroups);

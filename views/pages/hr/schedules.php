@@ -2,7 +2,7 @@
 $title = 'Employee Schedules - ShelfSense HR';
 $pageTitle = 'Employee Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260829191417"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260830123402"></script>';
 
 $content = <<<HTML
 <style>

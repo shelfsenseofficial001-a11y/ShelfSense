@@ -620,6 +620,16 @@ body.hr-theme .autocomplete-dropdown .item.selected {
    9b. DASHBOARD MINI TABLES (Applicants/Interviews/Trainees overview cards)
    ========================================================================== */
 
+/* Tables and charts share one drag-reorderable row (#dashCanvasTables) so
+   users can freely mix them. Bootstrap's row-wrap only stretches cards
+   to match height within their own wrapped line, which would let a
+   3-card line and a 2-card line end up different heights -- pinning an
+   explicit height here keeps every card in the row uniform regardless
+   of how they're rearranged or wrapped. */
+body.hr-theme #dashCanvasTables .dash-widget .modern-card {
+    height: 340px !important;
+}
+
 body.hr-theme .chart-wrap {
     position: relative;
     flex: 1 1 auto;
@@ -750,12 +760,11 @@ body.hr-theme .dash-edit-btn {
     background: var(--light-yellow-subtle);
     border: 1px solid var(--border-color);
     color: var(--brand-yellow-hover);
-    width: 38px;
     height: 38px;
-    border-radius: 50%;
+    padding: 0 14px 0 0;
+    border-radius: 19px;
     display: flex;
     align-items: center;
-    justify-content: center;
     cursor: pointer;
     transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
 }
@@ -764,6 +773,9 @@ body.hr-theme .dash-edit-btn {
 }
 body.hr-theme .dash-edit-btn i {
     font-size: 1.1rem;
+    width: 38px;
+    flex-shrink: 0;
+    text-align: center;
 }
 body.hr-theme .dash-edit-btn:hover {
     transform: rotate(-15deg) scale(1.05);
@@ -776,6 +788,35 @@ body.hr-theme .dash-edit-btn.active {
 }
 body.hr-theme .dash-edit-btn.active:hover {
     transform: scale(1.05);
+}
+
+/* The "Edit UI" / "Editing UI..." label beside the pen icon -- always
+   visible, its text just swaps with the button's state (see
+   dashboard-layout.js). */
+body.hr-theme .dash-edit-label {
+    display: inline-block;
+    margin-left: -4px;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* "Saved!" toast, shown top-left when the user exits edit mode. Always a
+   dark snackbar regardless of site theme -- deliberately NOT using
+   var(--brand-dark), since that token flips to near-white in dark mode
+   (it's meant for things that invert, like the active sidebar pill) and
+   would make this unreadable. */
+body.hr-theme .dash-saved-toast {
+    background: #20201d;
+    color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+body.hr-theme .dash-saved-toast .toast-body {
+    font-weight: 600;
+}
+body.hr-theme .dash-saved-toast i {
+    color: var(--success);
 }
 
 body.hr-theme .dash-widget {

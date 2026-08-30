@@ -73,7 +73,7 @@ $content = '
 
 </div>
 
-<div class="row g-3 mb-4 dash-canvas-row" id="dashCanvasTables" data-widget-group="tables">
+<div class="row g-3 mb-4 dash-canvas-row" id="dashCanvasTables" data-widget-group="content">
 
     <div class="col-lg-4 dash-widget" data-widget-id="table_applicants">
         <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
@@ -141,10 +141,6 @@ $content = '
         </div>
     </div>
 
-</div>
-
-<div class="row g-3 flex-grow-1 dash-canvas-row" id="dashCanvasCharts" data-widget-group="charts">
-
     <div class="col-lg-8 d-flex dash-widget" data-widget-id="chart_monthly">
         <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
         <div class="modern-card p-3 h-100 w-100 d-flex flex-column">
@@ -167,8 +163,8 @@ $content = '
 
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260829172913"></script>
-<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260829172913"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260830122553"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260830123737"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

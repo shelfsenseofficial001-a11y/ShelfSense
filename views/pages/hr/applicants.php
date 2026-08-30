@@ -300,9 +300,139 @@ input[type="datetime-local"].error {
     border-color: #dc3545;
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
 }
+
+/* Interview history timeline (replaces the old table view) */
+.interview-timeline {
+    position: relative;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 6px 8px;
+}
+
+.interview-timeline .timeline-item {
+    position: relative;
+    display: flex;
+    gap: 14px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    transition: background-color 0.15s ease;
+}
+
+.interview-timeline .timeline-item.is-current {
+    background: var(--light-yellow-accent);
+}
+
+.interview-timeline .timeline-item.is-upcoming {
+    opacity: 0.75;
+}
+
+.interview-timeline .timeline-dot-col {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.interview-timeline .timeline-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+    z-index: 1;
+}
+
+.interview-timeline .timeline-dot.passed {
+    background: var(--success);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(91, 170, 122, 0.18);
+}
+
+.interview-timeline .timeline-dot.failed {
+    background: var(--danger);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(223, 91, 85, 0.18);
+}
+
+.interview-timeline .timeline-dot.pending {
+    background: var(--brand-yellow);
+    color: #fff;
+    box-shadow: 0 0 0 4px rgba(244, 91, 53, 0.18);
+}
+
+.interview-timeline .timeline-dot.upcoming {
+    width: 12px;
+    height: 12px;
+    margin: 8px;
+    background: var(--bg-card);
+    border: 2px solid var(--border-color);
+}
+
+.interview-timeline .timeline-connector {
+    width: 2px;
+    flex: 1 1 auto;
+    background: var(--border-color);
+    margin: 2px 0;
+}
+
+.interview-timeline .timeline-connector.passed {
+    background: var(--success);
+    opacity: 0.4;
+}
+
+.interview-timeline .timeline-connector.failed {
+    background: var(--danger);
+    opacity: 0.4;
+}
+
+.interview-timeline .timeline-item:last-child .timeline-connector {
+    display: none;
+}
+
+.interview-timeline .timeline-content {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+    padding-bottom: 4px;
+}
+
+.interview-timeline .timeline-title {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.interview-timeline .timeline-item.is-current .timeline-title {
+    color: var(--brand-yellow-hover);
+}
+
+.interview-timeline .timeline-item.is-upcoming .timeline-title {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.interview-timeline .timeline-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.interview-timeline .timeline-date {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
 </style>
 
-<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260829175141"></script>
+<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260830120721"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

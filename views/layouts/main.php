@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260829192522">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260830122553">
     <?= $additional_css ?? '' ?>
 </head>
 <body>
@@ -34,7 +34,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260829192522"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
     <?= $additional_js ?? '' ?>
 </body>
 </html>

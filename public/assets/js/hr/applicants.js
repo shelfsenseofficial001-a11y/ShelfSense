@@ -712,34 +712,73 @@ function viewApplicant(id) {
         });
 }
 
+// Statuses where the applicant is between two interview stages: the
+// last interview is resolved but the pipeline isn't finished, so the
+// timeline should show a hollow "up next" node instead of just
+// stopping and leaving the viewer to guess what happens next.
+const NEXT_STAGE_BY_STATUS = {
+    'initial_passed': { label: 'Final Interview', sub: 'Not yet scheduled' },
+    'screening': { label: 'Final Interview', sub: 'Awaiting training completion' },
+    'screening_success': { label: 'Final Interview', sub: 'Not yet scheduled' },
+    'final_passed': { label: 'Job Offer', sub: 'Awaiting contract' },
+    'contract_offered': { label: 'Onboarding', sub: 'Awaiting acceptance' },
+};
+
 function renderApplicantDetail(applicant) {
     const body = document.getElementById('applicantDetailBody');
-    
+
     let interviewsHtml = '';
     if (applicant.interviews && applicant.interviews.length > 0) {
+        const sorted = [...applicant.interviews].sort((a, b) => new Date(a.scheduled_date) - new Date(b.scheduled_date));
+        const nextStage = NEXT_STAGE_BY_STATUS[applicant.status] || null;
+
+        const stepsHtml = sorted.map(i => {
+            const typeLabel = (i.interview_type === 'final' ? 'Final' : 'Initial') + ' Interview';
+            const hrName = (i.hr_name || '').trim();
+            const isCurrent = i.result !== 'passed' && i.result !== 'failed';
+            const dotClass = i.result === 'passed' ? 'passed' : i.result === 'failed' ? 'failed' : 'pending';
+            const dotIcon = i.result === 'passed' ? 'bi-check-lg' : i.result === 'failed' ? 'bi-x-lg' : 'bi-hourglass-split';
+            const subLine = i.result === 'passed'
+                ? `Passed${hrName ? ' &middot; ' + escapeHtml(hrName) : ''}`
+                : i.result === 'failed'
+                ? `Failed${hrName ? ' &middot; ' + escapeHtml(hrName) : ''}`
+                : `Waiting for result${hrName ? ' &middot; ' + escapeHtml(hrName) : ''}`;
+            return `
+                <div class="timeline-item ${isCurrent ? 'is-current' : ''}">
+                    <div class="timeline-dot-col">
+                        <div class="timeline-dot ${dotClass}"><i class="bi ${dotIcon}"></i></div>
+                        <div class="timeline-connector ${dotClass}"></div>
+                    </div>
+                    <div class="timeline-content">
+                        <div>
+                            <div class="timeline-title">${typeLabel}</div>
+                            <div class="timeline-sub">${subLine}</div>
+                        </div>
+                        <div class="timeline-date">${new Date(i.scheduled_date).toLocaleString()}</div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const nextStageHtml = nextStage ? `
+            <div class="timeline-item is-upcoming">
+                <div class="timeline-dot-col">
+                    <div class="timeline-dot upcoming"></div>
+                </div>
+                <div class="timeline-content">
+                    <div>
+                        <div class="timeline-title">${escapeHtml(nextStage.label)}</div>
+                        <div class="timeline-sub">${escapeHtml(nextStage.sub)}</div>
+                    </div>
+                </div>
+            </div>
+        ` : '';
+
         interviewsHtml = `
             <h6 class="mt-3">Interview History</h6>
-            <div class="table-responsive">
-                <table class="table table-sm">
-                    <thead>
-                        <tr>
-                            <th>Type</th>
-                            <th>Date</th>
-                            <th>HR</th>
-                            <th>Result</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${applicant.interviews.map(i => `
-                            <tr>
-                                <td>${i.interview_type}</td>
-                                <td>${new Date(i.scheduled_date).toLocaleString()}</td>
-                                <td>${i.hr_name || 'N/A'}</td>
-                                <td><span class="badge bg-${i.result === 'passed' ? 'success' : i.result === 'failed' ? 'danger' : 'secondary'}">${i.result || 'pending'}</span></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
+            <div class="interview-timeline">
+                ${stepsHtml}
+                ${nextStageHtml}
             </div>
         `;
     }

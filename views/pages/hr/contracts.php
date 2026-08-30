@@ -310,7 +310,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260829181202"></script>
+<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260830123402"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

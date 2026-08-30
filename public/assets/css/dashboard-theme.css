@@ -530,12 +530,15 @@ body.dashboard-theme .sidebar-brand {
     align-items: center;
 }
 
-/* Sidebar group separators — more visible than the faint card border */
+/* Sidebar group separators — thin and light, but still perceivable
+   against the faint card border. Bleeds edge-to-edge via the negative
+   margin on .sidebar-divider hr below, which cancels out .sidebar-nav's
+   horizontal padding. */
 body.dashboard-theme .sidebar-nav hr {
     margin: 12px 20px;
     border: none;
-    border-top: 2px solid var(--divider-color);
-    opacity: 1;
+    border-top: 1px solid var(--divider-color);
+    opacity: 0.8;
 }
 body.dashboard-theme .hr-sidebar.collapsed .sidebar-nav hr,
 body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-nav hr,
@@ -705,7 +708,9 @@ body.dashboard-theme .sidebar-divider-first {
     margin: 0 0 4px;
 }
 body.dashboard-theme .sidebar-divider hr {
-    margin: 0;
+    /* Bleed out of .sidebar-nav's 12px horizontal padding so the rule
+       spans the full width of the sidebar, edge to edge. */
+    margin: 0 -12px;
 }
 body.dashboard-theme .sidebar-divider-label {
     display: none;

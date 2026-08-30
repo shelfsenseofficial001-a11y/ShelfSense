@@ -489,7 +489,7 @@ function viewContract(id) {
                                 <p><strong>Status:</strong> <span class="badge bg-${contract.status === 'pending' ? 'warning' : contract.status === 'accepted' ? 'success' : 'danger'}">${contract.status}</span></p>
                             </div>
                         </div>
-                        ${contract.job_details ? `<div class="mt-3"><p><strong>Job Details:</strong></p><div class="p-3 bg-light rounded">${escapeHtml(contract.job_details)}</div></div>` : ''}
+                        ${contract.job_details ? `<div class="mt-3"><p><strong>Job Details:</strong></p><div class="p-3 rounded" style="background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(contract.job_details)}</div></div>` : ''}
                     `;
                 } else {
                     body.innerHTML = `<div class="text-center text-danger py-4">Contract not found</div>`;

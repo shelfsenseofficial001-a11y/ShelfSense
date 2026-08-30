@@ -24,9 +24,9 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260829192522">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260829192522">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260829192522">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260830122553">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260830122553">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260830123737">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -137,8 +137,9 @@ use App\Core\Auth;
                 <div class="d-flex align-items-center gap-3">
                     <?php if ($activePage === 'dashboard'): ?>
                     <!-- Dashboard Edit Mode -->
-                    <button class="dash-edit-btn" id="dashEditModeBtn" aria-label="Edit dashboard layout" title="Rearrange dashboard widgets">
+                    <button class="dash-edit-btn" id="dashEditModeBtn" aria-label="Rearrange dashboard widgets" type="button">
                         <i class="bi bi-pencil-fill"></i>
+                        <span class="dash-edit-label">Edit UI</span>
                     </button>
                     <?php endif; ?>
 
@@ -172,6 +173,16 @@ use App\Core\Auth;
     </div>
     </div>
 
+    <!-- Dashboard "Saved!" toast, shown top-left when edit mode is turned off -->
+    <div class="toast-container position-fixed top-0 start-0 p-3" style="z-index: 1080;">
+        <div id="dashSavedToast" class="toast align-items-center border-0 dash-saved-toast" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="1800">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>Saved!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -179,11 +190,11 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260829192522"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
     <?php echo $additional_js ?? ''; ?>
 
     <!-- Searchable Select Component -->
-    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260829192522"></script>
+    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
 
     <style>
         /* ============================================

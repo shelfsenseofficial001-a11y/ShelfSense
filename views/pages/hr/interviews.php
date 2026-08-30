@@ -347,7 +347,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260828210251"></script>
+<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260830123402"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
