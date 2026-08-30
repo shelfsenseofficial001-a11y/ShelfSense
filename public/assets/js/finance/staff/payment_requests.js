@@ -140,7 +140,7 @@ function viewRequestDetail(requisitionId) {
     const modal = document.getElementById('requestDetailModal');
     const body = document.getElementById('requestDetailBody');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
 
     fetch(`?page=api_finance_get_requisition_detail&id=${requisitionId}`)
         .then(r => r.json())

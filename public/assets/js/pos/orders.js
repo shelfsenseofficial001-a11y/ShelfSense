@@ -237,8 +237,8 @@ function viewOrder(orderId) {
     reprintBtn.style.display = "none";
     voidBtn.style.display = "none";
     
-    new bootstrap.Modal(modal).show();
-    
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
+
     fetch(`?page=api_get_order&id=${orderId}`)
         .then(response => {
             if (!response.ok) {
@@ -383,7 +383,7 @@ function voidOrder(orderId) {
                         timer: 2000,
                         showConfirmButton: false
                     });
-                    bootstrap.Modal.getInstance(document.getElementById("orderDetailModal")).hide();
+                    bootstrap.Offcanvas.getInstance(document.getElementById("orderDetailModal")).hide();
                     loadOrders(currentPage);
                 } else {
                     Swal.fire({ icon: "error", title: "Void Failed", text: data.message || "Please try again." });

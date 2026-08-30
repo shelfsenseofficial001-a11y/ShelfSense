@@ -15,7 +15,7 @@ if (!Auth::isHRHead() && !Auth::isOwner()) {
 }
 
 // We're in HR layout
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/leave_management.js?v=20260829181326"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/leave_management.js?v=20260831061347"></script>';
 $additional_css = '
 <style>
     .leave-status-pending { color: #d97706; }
@@ -158,28 +158,22 @@ $content = <<<'EOT'
 </div>
 
 <!-- Leave Detail Modal -->
-<div class="modal fade" id="leaveDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Leave Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="leaveDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-success btn-sm" id="approveLeaveBtn" style="display:none;">
-                    <i class="bi bi-check-circle"></i> Approve
-                </button>
-                <button type="button" class="btn btn-danger btn-sm" id="rejectLeaveBtn" style="display:none;">
-                    <i class="bi bi-x-circle"></i> Reject
-                </button>
-            </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="leaveDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="leaveDetailBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
+    </div>
+    <div class="p-3 border-top d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-success btn-sm" id="approveLeaveBtn" style="display:none;">
+            <i class="bi bi-check-circle"></i> Approve
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" id="rejectLeaveBtn" style="display:none;">
+            <i class="bi bi-x-circle"></i> Reject
+        </button>
     </div>
 </div>
 EOT;

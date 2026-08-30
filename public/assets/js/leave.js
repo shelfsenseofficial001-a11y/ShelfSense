@@ -364,8 +364,8 @@ function viewLeaveDetail(leaveId) {
         </div>
     `;
     
-    new bootstrap.Modal(modal).show();
-    
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
+
     // Fetch the list and find the specific leave
     fetch('?page=api_get_leave_requests&p=1&limit=100')
         .then(response => response.json())

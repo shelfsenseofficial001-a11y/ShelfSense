@@ -2,7 +2,7 @@
 $title = 'Requisitions - Store Manager';
 $pageTitle = 'Requisitions';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260830030000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260831061347"></script>';
 $additional_css = '
 <style>
     .product-card.clickable-card:hover { border-color: var(--brand-yellow); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
@@ -281,23 +281,16 @@ $content = <<<'EOT'
 </div>
 
 <!-- Requisition Detail Modal -->
-<div class="modal fade" id="requisitionDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Requisition Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="requisitionDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer" id="requisitionDetailFooter">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="requisitionDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="requisitionDetailBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     </div>
+    <div class="p-3 border-top d-flex gap-2 justify-content-end" id="requisitionDetailFooter"></div>
 </div>
 
 <!-- Create Requisition Confirm Modal -->

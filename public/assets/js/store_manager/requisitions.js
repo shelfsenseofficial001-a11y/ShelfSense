@@ -196,9 +196,9 @@ function viewRequisition(id) {
     const footer = document.getElementById('requisitionDetailFooter');
 
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    footer.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
+    footer.innerHTML = '';
 
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
 
     fetch(`?page=api_get_requisition&id=${id}`)
         .then(r => r.json())
@@ -270,7 +270,7 @@ function renderRequisitionDetail(req) {
         <p class="text-muted small mb-0">Timeline shows only events the project has real timestamps for. Intermediate workflow steps without a dedicated timestamp column (e.g. exact "sent to supplier" or "shipped" time) are reflected in the current status above instead of being guessed here.</p>
     `;
 
-    let actionsHtml = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
+    let actionsHtml = '';
     if (req.status === 'supplier_processed') {
         actionsHtml += `<button type="button" class="btn btn-warning btn-sm" id="detailForwardBtn" data-id="${req.id}"><i class="bi bi-send"></i> Forward to Finance</button>`;
     }
@@ -346,7 +346,7 @@ function forwardToFinanceStaff(id, tabKey) {
         })
         .then(r => r.json())
         .then(data => {
-            bootstrap.Modal.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
+            bootstrap.Offcanvas.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
             if (data.success) {
                 Swal.fire({ icon: 'success', title: 'Forwarded to Finance Staff!', timer: 1500, showConfirmButton: false });
                 loadTab(tabKey || 'mine', tabState[tabKey || 'mine'].page);
@@ -423,7 +423,7 @@ function receiveGoods(id, tabKey) {
                 .then(data => {
                     if (data.success) {
                         Swal.fire({ icon: 'success', title: 'Goods Received!', text: 'Stock has been updated.', timer: 2000, showConfirmButton: false });
-                        bootstrap.Modal.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
+                        bootstrap.Offcanvas.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
                         loadTab(tabKey || 'mine', tabState[tabKey || 'mine'].page);
                     } else {
                         Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to receive goods.' });

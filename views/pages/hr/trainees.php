@@ -155,21 +155,13 @@ $content = '
 </div>
 
 <!-- Trainee Detail Modal -->
-<div class="modal fade" id="traineeDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Trainee Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="traineeDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="traineeDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="traineeDetailBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     </div>
 </div>
@@ -247,7 +239,7 @@ $content = '
     window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
     window.HR_IS_HEAD = ' . $isHRHeadJs . ';
 </script>
-<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260830123402"></script>
+<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260831061347"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

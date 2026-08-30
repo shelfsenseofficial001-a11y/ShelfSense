@@ -174,7 +174,7 @@ function viewRequisitionDetail(id) {
     const modal = document.getElementById('requisitionDetailModal');
     const body = document.getElementById('requisitionDetailBody');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
 
     fetch(`?page=api_finance_get_requisition_detail&id=${id}`)
         .then(r => r.json())
@@ -265,7 +265,7 @@ function renderRequisitionDetail(req) {
         <p class="text-muted small mb-0">${gr ? 'Goods receipt data is available for this requisition.' : 'No Goods Receipt recorded yet — matching against actual received quantities is pending until the Store Manager receives the goods.'}</p>
     `;
 
-    let actionsHtml = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
+    let actionsHtml = '';
     if (req.status === 'awaiting_finance_staff') {
         actionsHtml += `<button type="button" class="btn btn-yellow-primary btn-sm" id="detailCreatePrBtn" data-id="${req.id}"><i class="bi bi-cash"></i> Create Payment Request</button>`;
     }
@@ -287,7 +287,7 @@ function setupModals() {
 }
 
 function openPaymentRequestModal(id) {
-    bootstrap.Modal.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
+    bootstrap.Offcanvas.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
 
     const modal = document.getElementById('paymentRequestModal');
     document.getElementById('paymentRequisitionId').value = id;

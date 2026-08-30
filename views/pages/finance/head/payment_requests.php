@@ -2,7 +2,7 @@
 $title = 'Payment Requests - Finance Head';
 $pageTitle = 'Approve Payments';
 $activePage = 'head_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260830030000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260831061347"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs fn-tabs mb-3" id="reqTabs" role="tablist">
@@ -51,21 +51,14 @@ $content = <<<'EOT'
 </div>
 
 <!-- Requisition / Payment Request Detail Modal -->
-<div class="modal fade" id="requestDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Payment Request Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="requestDetailBody">
-                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-            </div>
-            <div class="modal-footer" id="requestDetailFooter">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="requestDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
+    <div class="offcanvas-body" id="requestDetailBody">
+        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+    </div>
+    <div class="p-3 border-top d-flex gap-2 justify-content-end" id="requestDetailFooter"></div>
 </div>
 
 <!-- Approve Modal -->

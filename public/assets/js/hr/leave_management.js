@@ -271,8 +271,8 @@ function viewLeaveDetail(leaveId) {
     approveBtn.style.display = 'none';
     rejectBtn.style.display = 'none';
     
-    new bootstrap.Modal(modal).show();
-    
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
+
     fetch('?page=api_get_leave_requests&p=1&limit=100')
         .then(response => response.json())
         .then(data => {
@@ -403,7 +403,7 @@ function updateLeaveRequest(action, notes = null) {
                 timer: 2000,
                 showConfirmButton: false
             });
-            bootstrap.Modal.getInstance(document.getElementById('leaveDetailModal')).hide();
+            bootstrap.Offcanvas.getInstance(document.getElementById('leaveDetailModal')).hide();
             loadLeaveRequests(currentPage);
         } else {
             Swal.fire({ icon: 'error', title: 'Action Failed', text: data.message || 'Please try again.' });

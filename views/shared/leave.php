@@ -227,21 +227,13 @@ $content = <<<'EOT'
 </div>
 
 <!-- Leave Detail Modal -->
-<div class="modal fade" id="leaveDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Leave Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="leaveDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="leaveDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="leaveDetailBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     </div>
 </div>

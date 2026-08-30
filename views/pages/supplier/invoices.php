@@ -2,7 +2,7 @@
 $title = 'Invoices - Supplier';
 $pageTitle = 'My Invoices';
 $activePage = 'invoices';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/invoices.js?v=20260829181340"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/invoices.js?v=20260831061347"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-pills sp-tabs mb-3" id="invoiceStatusTabs">
@@ -53,20 +53,12 @@ $content = <<<'EOT'
 </div>
 
 <!-- Invoice Detail Modal -->
-<div class="modal fade" id="invoiceDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Invoice Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="invoiceDetailBody">
-                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="invoiceDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="invoiceDetailBody">
+        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
     </div>
 </div>
 EOT;

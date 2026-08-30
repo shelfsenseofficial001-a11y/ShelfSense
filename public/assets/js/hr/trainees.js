@@ -481,7 +481,7 @@ function viewTrainee(id) {
     const modal = document.getElementById('traineeDetailModal');
     const body = document.getElementById('traineeDetailBody');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
     const params = new URLSearchParams({ p: 1, status: 'all', role: 'all', search: '' });
     fetch(`?page=api_get_trainees&${params}`)
         .then(response => response.json())

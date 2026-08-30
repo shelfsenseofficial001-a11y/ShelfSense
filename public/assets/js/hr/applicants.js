@@ -16,6 +16,10 @@ let autocompleteResults = [];
 let selectedIndex = -1;
 let searchTimeout = null;
 
+// Applicant detail drawer state
+let currentDrawerApplicantId = null;
+let pendingScrollToScheduleForm = null;
+
 // ============================================
 // DATE PICKER RESTRICTION - BLOCK INVALID DATES
 // ============================================
@@ -218,13 +222,28 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // ============================================
-    // Schedule Interview Form Listener
+    // Applicant Drawer: delegated listeners for the dynamically-rendered
+    // Schedule Interview / Reject Applicant buttons and inline form,
+    // since #applicantDetailBody's innerHTML is replaced on every render.
     // ============================================
-    const scheduleForm = document.getElementById('scheduleInterviewForm');
-    if (scheduleForm) {
-        scheduleForm.addEventListener('submit', function(e) {
+    document.addEventListener('submit', function(e) {
+        if (e.target && e.target.id === 'scheduleInterviewForm') {
             e.preventDefault();
             scheduleInterview();
+        }
+    });
+
+    document.addEventListener('click', function(e) {
+        const rejectBtn = e.target.closest('#drawerRejectBtn');
+        if (rejectBtn) {
+            rejectApplicant(rejectBtn.dataset.id, rejectBtn.dataset.name, rejectBtn.dataset.status);
+        }
+    });
+
+    const applicantDetailModalEl = document.getElementById('applicantDetailModal');
+    if (applicantDetailModalEl) {
+        applicantDetailModalEl.addEventListener('hidden.bs.offcanvas', function() {
+            currentDrawerApplicantId = null;
         });
     }
     
@@ -512,9 +531,25 @@ function loadApplicants(page = currentPage) {
 // RENDER APPLICANTS TABLE
 // ============================================
 
+const APPLICANT_STATUS_COLORS = {
+    'pending': 'warning',
+    'initial_scheduled': 'info',
+    'initial_passed': 'primary',
+    'initial_failed': 'danger',
+    'final_scheduled': 'info',
+    'final_passed': 'primary',
+    'final_failed': 'danger',
+    'screening': 'warning',
+    'screening_success': 'success',
+    'screening_failed': 'danger',
+    'contract_offered': 'primary',
+    'contract_declined': 'secondary',
+    'hired': 'success'
+};
+
 function renderApplicants(applicants) {
     const tbody = document.getElementById('applicantsTableBody');
-    
+
     if (!Array.isArray(applicants) || applicants.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -526,23 +561,9 @@ function renderApplicants(applicants) {
         `;
         return;
     }
-    
-    const statusColors = {
-        'pending': 'warning',
-        'initial_scheduled': 'info',
-        'initial_passed': 'primary',
-        'initial_failed': 'danger',
-        'final_scheduled': 'info',
-        'final_passed': 'primary',
-        'final_failed': 'danger',
-        'screening': 'warning',
-        'screening_success': 'success',
-        'screening_failed': 'danger',
-        'contract_offered': 'primary',
-        'contract_declined': 'secondary',
-        'hired': 'success'
-    };
-    
+
+    const statusColors = APPLICANT_STATUS_COLORS;
+
     tbody.innerHTML = applicants.map(applicant => `
         <tr data-status="${applicant.status}">
             <td>
@@ -587,17 +608,14 @@ function renderApplicants(applicants) {
     
     tbody.querySelectorAll('.schedule-interview').forEach(btn => {
         btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const name = this.dataset.name;
-            const row = this.closest('tr');
-            const status = row.dataset.status;
-            openScheduleModal(id, name, status);
+            startScheduleInterview(this.dataset.id, this.dataset.name);
         });
     });
-    
+
     tbody.querySelectorAll('.reject-applicant').forEach(btn => {
         btn.addEventListener('click', function() {
-            rejectApplicant(this.dataset.id, this.dataset.name);
+            const row = this.closest('tr');
+            rejectApplicant(this.dataset.id, this.dataset.name, row.dataset.status);
         });
     });
 }
@@ -684,15 +702,25 @@ function renderStats(stats) {
 function viewApplicant(id) {
     const modal = document.getElementById('applicantDetailModal');
     const body = document.getElementById('applicantDetailBody');
-    
+    currentDrawerApplicantId = id;
+
     body.innerHTML = `
-        <div class="text-center py-4">
-            <div class="spinner-border text-primary" role="status"></div>
+        <div class="applicant-skeleton">
+            <div class="skeleton-row">
+                <div class="skeleton-avatar"></div>
+                <div class="flex-grow-1">
+                    <div class="skeleton-line" style="width:60%;height:18px;"></div>
+                    <div class="skeleton-line" style="width:40%;margin-top:8px;"></div>
+                </div>
+            </div>
+            <div class="skeleton-line" style="width:100%;height:60px;margin-top:20px;"></div>
+            <div class="skeleton-line" style="width:100%;height:60px;margin-top:10px;"></div>
+            <div class="skeleton-line" style="width:100%;height:100px;margin-top:20px;"></div>
         </div>
     `;
-    
-    new bootstrap.Modal(modal).show();
-    
+
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
+
     fetch(`?page=api_get_applicant&id=${id}`)
         .then(response => response.json())
         .then(data => {
@@ -780,54 +808,139 @@ function renderApplicantDetail(applicant) {
         ` : '';
 
         interviewsHtml = `
-            <h6 class="mt-3">Interview History</h6>
+            <div class="applicant-section-title">Interview History</div>
             <div class="interview-timeline">
                 ${stepsHtml}
                 ${nextStageHtml}
             </div>
         `;
     }
-    
+
+    const fullName = `${applicant.first_name} ${applicant.last_name}`;
+    const initials = ((applicant.first_name || '')[0] || '') + ((applicant.last_name || '')[0] || '');
+    const statusColor = APPLICANT_STATUS_COLORS[applicant.status] || 'secondary';
+    const canSchedule = canScheduleInterview(applicant.status);
+    const canRejectApplicant = canReject(applicant.status);
+
+    const rejectButtonHtml = canRejectApplicant ? `
+        <div class="applicant-drawer-actions">
+            <button type="button" class="btn btn-outline-danger btn-sm w-100" id="drawerRejectBtn" data-id="${applicant.id}" data-name="${escapeHtml(fullName)}" data-status="${applicant.status}">
+                <i class="bi bi-x-lg"></i> Reject Applicant
+            </button>
+        </div>
+    ` : '';
+
+    const inlineScheduleHtml = canSchedule ? `
+        <div class="applicant-inline-schedule" id="inlineScheduleSection">
+            <div class="applicant-section-title">Schedule Initial Interview</div>
+            <form id="scheduleInterviewForm">
+                <input type="hidden" name="interview_type" id="scheduleTypeHidden" value="initial">
+                <input type="hidden" name="applicant_id" id="scheduleApplicantId" value="${applicant.id}">
+                <div class="mb-2">
+                    <label class="form-label small">Date &amp; Time</label>
+                    <input type="datetime-local" name="scheduled_date" id="scheduleDate" class="form-control form-control-sm" required
+                           value="${defaultScheduleDateValue()}"
+                           oninput="validateDateInput(this)" onblur="validateDateInput(this)">
+                    <small class="text-muted">Min: Tomorrow, Max: 3 months from now</small>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Gmeet Link</label>
+                    <input type="url" name="gmeet_link" id="scheduleGmeet" class="form-control form-control-sm" placeholder="https://meet.google.com/xxx-xxxx-xxx" required>
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small">Message to Applicant</label>
+                    <textarea name="message" id="scheduleMessage" class="form-control form-control-sm" rows="2" maxlength="250" placeholder="Please join the interview via the link above..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-yellow-primary btn-sm mt-2">Schedule Interview</button>
+            </form>
+        </div>
+    ` : '';
+
     body.innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <p><strong>Name:</strong> ${escapeHtml(applicant.first_name)} ${escapeHtml(applicant.last_name)}</p>
-                <p><strong>Email:</strong> ${escapeHtml(applicant.email)}</p>
-                <p><strong>Phone:</strong> ${escapeHtml(applicant.phone || 'N/A')}</p>
-                <p><strong>Target Role:</strong> ${escapeHtml(applicant.target_role)}</p>
-            </div>
-            <div class="col-md-6">
-                <p><strong>Status:</strong> <span class="badge bg-${applicant.status === 'hired' ? 'success' : applicant.status === 'pending' ? 'warning' : 'secondary'}">${applicant.status_label}</span></p>
-                <p><strong>Applied:</strong> ${new Date(applicant.applied_date).toLocaleDateString()}</p>
-                <p><strong>Resume:</strong> <a href="${applicant.resume_url}" target="_blank" class="btn btn-sm btn-outline-primary"><i class="bi bi-file-earmark-pdf"></i> View Resume</a></p>
-                ${applicant.rejection_reason ? `<p><strong>Rejection Reason:</strong> ${escapeHtml(applicant.rejection_reason.reason || 'No reason provided')}</p>` : ''}
+        <div class="applicant-drawer-hero">
+            <div class="applicant-drawer-avatar">${escapeHtml(initials.toUpperCase())}</div>
+            <div>
+                <div class="applicant-drawer-name">${escapeHtml(fullName)}</div>
+                <div class="applicant-drawer-role">${escapeHtml(applicant.target_role)}</div>
+                <div class="applicant-drawer-status">
+                    <span class="badge bg-${statusColor}">${escapeHtml(applicant.status_label)}</span>
+                </div>
             </div>
         </div>
+
+        <div class="applicant-section-title">Contact</div>
+        <div class="applicant-info-row">
+            <div class="icon-box-sm"><i class="bi bi-envelope"></i></div>
+            <div>
+                <div class="info-label">Email</div>
+                <div class="info-value">${escapeHtml(applicant.email)}</div>
+            </div>
+        </div>
+        <div class="applicant-info-row">
+            <div class="icon-box-sm"><i class="bi bi-telephone"></i></div>
+            <div>
+                <div class="info-label">Phone</div>
+                <div class="info-value">${escapeHtml(applicant.phone || 'N/A')}</div>
+            </div>
+        </div>
+
+        <div class="applicant-section-title">Application</div>
+        <div class="applicant-info-row">
+            <div class="icon-box-sm"><i class="bi bi-calendar-event"></i></div>
+            <div>
+                <div class="info-label">Applied</div>
+                <div class="info-value">${new Date(applicant.applied_date).toLocaleDateString()}</div>
+            </div>
+        </div>
+        <div class="applicant-info-row">
+            <div class="icon-box-sm"><i class="bi bi-file-earmark-pdf"></i></div>
+            <div>
+                <div class="info-label">Resume</div>
+                <div class="info-value"><a href="${applicant.resume_url}" target="_blank" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-file-earmark-pdf"></i> View Resume</a></div>
+            </div>
+        </div>
+        ${inlineScheduleHtml}
+        ${rejectButtonHtml}
+        ${applicant.rejection_reason ? `
+            <div class="applicant-rejection-box">
+                <i class="bi bi-x-circle-fill me-1"></i>
+                <strong>Rejection reason:</strong> ${escapeHtml(applicant.rejection_reason.reason || 'No reason provided')}
+            </div>
+        ` : ''}
         ${interviewsHtml}
     `;
+
+    if (pendingScrollToScheduleForm && String(pendingScrollToScheduleForm) === String(applicant.id)) {
+        pendingScrollToScheduleForm = null;
+        const section = document.getElementById('inlineScheduleSection');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
 }
 
 // ============================================
-// SCHEDULE INTERVIEW
+// SCHEDULE INTERVIEW (inline in the drawer, no separate modal --
+// the form is always visible for a schedulable applicant, never toggled)
 // ============================================
 
-function openScheduleModal(id, name, status) {
-    document.getElementById('scheduleApplicantId').value = id;
-    
-    // Only pending can be scheduled (should always be initial)
-    document.getElementById('scheduleTypeHidden').value = 'initial';
-    
-    document.getElementById('scheduleDate').value = '';
-    document.getElementById('scheduleGmeet').value = '';
-    document.getElementById('scheduleMessage').value = '';
-    
-    // Set default date to tomorrow at 10am
+// Default date/time for a fresh schedule form: tomorrow at 10am.
+function defaultScheduleDateValue() {
     const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(10, 0, 0, 0);
-    document.getElementById('scheduleDate').value = tomorrow.toISOString().slice(0, 16);
-    
-    new bootstrap.Modal(document.getElementById('scheduleInterviewModal')).show();
+    return tomorrow.toISOString().slice(0, 16);
+}
+
+// Called from the applicants table row: opens the drawer for this
+// applicant (if not already open) and scrolls its always-visible
+// schedule form into view once the drawer finishes rendering.
+function startScheduleInterview(id, name) {
+    if (currentDrawerApplicantId && String(currentDrawerApplicantId) === String(id)) {
+        const section = document.getElementById('inlineScheduleSection');
+        if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+        pendingScrollToScheduleForm = id;
+        viewApplicant(id);
+    }
 }
 
 function scheduleInterview() {
@@ -839,8 +952,8 @@ function scheduleInterview() {
     
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
-    const applicantName = document.querySelector('#scheduleInterviewModal .modal-title')?.textContent || 'Applicant';
-    
+    const applicantName = document.querySelector('.applicant-drawer-name')?.textContent || 'Applicant';
+
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Scheduling...';
@@ -871,9 +984,11 @@ function scheduleInterview() {
                 `,
                 confirmButtonText: 'OK'
             });
-            bootstrap.Modal.getInstance(document.getElementById('scheduleInterviewModal')).hide();
             updatePendingBadge();
             loadApplicants(currentPage);
+            if (currentDrawerApplicantId) {
+                viewApplicant(currentDrawerApplicantId);
+            }
         } else {
             Swal.fire({
                 icon: 'error',
@@ -898,15 +1013,7 @@ function scheduleInterview() {
 // REJECT APPLICANT
 // ============================================
 
-function rejectApplicant(id, name) {
-    const row = document.querySelector(`button[data-id="${id}"]`).closest('tr');
-    if (!row) {
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Could not find applicant row.' });
-        return;
-    }
-    
-    const status = row.dataset.status;
-    
+function rejectApplicant(id, name, status) {
     if (status !== 'pending') {
         Swal.fire({
             icon: 'warning',
@@ -929,12 +1036,12 @@ function rejectApplicant(id, name) {
         inputAttributes: { rows: 3 }
     }).then(result => {
         if (result.isConfirmed) {
-            updateApplicantStatus(id, 'reject_initial', result.value);
+            updateApplicantStatus(id, 'reject_initial', result.value, name);
         }
     });
 }
 
-function updateApplicantStatus(id, action, reason) {
+function updateApplicantStatus(id, action, reason, name) {
     Swal.fire({
         title: 'Processing...',
         text: 'Please wait.',
@@ -965,6 +1072,9 @@ function updateApplicantStatus(id, action, reason) {
             });
             updatePendingBadge();
             loadApplicants(currentPage);
+            if (currentDrawerApplicantId && String(currentDrawerApplicantId) === String(id)) {
+                viewApplicant(id);
+            }
         } else {
             Swal.fire({
                 icon: 'error',

@@ -1079,3 +1079,46 @@ body.dashboard-theme .filter-chip.clear-all-chip:hover {
     color: var(--on-dark, #fff);
     border-color: var(--brand-dark, #20201d);
 }
+
+/* ==========================================================================
+   14. DETAIL DRAWER -- shared "View Details" slide-in panel, used app-wide
+   in place of a centered modal wherever an eye icon opens a read-only
+   detail view. Slides in from the right, dims the page behind it, with
+   the close (X) button pinned to the drawer's own top-left corner.
+   ========================================================================== */
+body.dashboard-theme .detail-drawer {
+    --bs-offcanvas-width: 460px;
+    background: var(--bg-card);
+    color: var(--text-main);
+}
+body.dashboard-theme .detail-drawer .offcanvas-header {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    padding: 0;
+    z-index: 2;
+}
+body.dashboard-theme .detail-drawer .btn-close {
+    width: 0.9em;
+    height: 0.9em;
+    padding: 10px;
+    border-radius: 50%;
+    background-color: var(--bg-card-subtle);
+    opacity: 1;
+}
+[data-bs-theme="dark"] body.dashboard-theme .detail-drawer .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+body.dashboard-theme .detail-drawer .offcanvas-body {
+    padding: 54px 24px 24px;
+}
+/* Bootstrap disables offcanvas/backdrop transitions entirely under
+   prefers-reduced-motion, which silently kills the slide/fade -- force
+   both back on with an explicit transition (not just timing-function,
+   since the reduced-motion rule zeroes out the duration too). */
+body.dashboard-theme .detail-drawer {
+    transition: transform 0.3s ease-in !important;
+}
+body.dashboard-theme .offcanvas-backdrop {
+    transition: opacity 0.3s ease-in !important;
+}

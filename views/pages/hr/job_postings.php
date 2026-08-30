@@ -170,19 +170,14 @@ $content = <<<EOT
 </div>
 
 <!-- Detail / Review Modal -->
-<div class="modal fade" id="postingDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Job Posting Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="postingDetailBody">
-                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-            </div>
-            <div class="modal-footer" id="postingDetailFooter"></div>
-        </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="postingDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
+    <div class="offcanvas-body" id="postingDetailBody">
+        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+    </div>
+    <div class="p-3 border-top" id="postingDetailFooter"></div>
 </div>
 
 <!-- Reject Modal -->
@@ -207,7 +202,7 @@ $content = <<<EOT
 </div>
 
 <script>const HR_IS_HEAD = {$isHRHeadJs};</script>
-<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260829181326"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260831061347"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

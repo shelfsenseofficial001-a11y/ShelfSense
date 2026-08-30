@@ -3,10 +3,6 @@ $title = 'Applicants - ShelfSense HR';
 $pageTitle = 'Applicants';
 $activePage = 'applicants';
 
-// Date restrictions
-$minDate = date('Y-m-d\TH:i', strtotime('+1 day'));
-$maxDate = date('Y-m-d\TH:i', strtotime('+3 months'));
-
 $content = '
 <!-- Filters -->
 <div class="row g-2 mb-3">
@@ -133,22 +129,23 @@ $content = '
     </div>
 </div>
 
-<!-- Applicant Detail Modal -->
-<div class="modal fade" id="applicantDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Applicant Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="applicantDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
+<!-- Applicant Detail Drawer -->
+<div class="offcanvas offcanvas-end detail-drawer applicant-drawer" id="applicantDetailModal" tabindex="-1">
+    <div class="offcanvas-header" id="applicantDetailHeader">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="applicantDetailBody">
+        <div class="applicant-skeleton">
+            <div class="skeleton-row">
+                <div class="skeleton-avatar"></div>
+                <div class="flex-grow-1">
+                    <div class="skeleton-line" style="width:60%;height:18px;"></div>
+                    <div class="skeleton-line" style="width:40%;margin-top:8px;"></div>
                 </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
+            <div class="skeleton-line" style="width:100%;height:60px;margin-top:20px;"></div>
+            <div class="skeleton-line" style="width:100%;height:60px;margin-top:10px;"></div>
+            <div class="skeleton-line" style="width:100%;height:100px;margin-top:20px;"></div>
         </div>
     </div>
 </div>
@@ -178,53 +175,6 @@ $content = '
                     <i class="bi bi-person-plus"></i> Create Trainee Account
                 </button>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Schedule Interview Modal -->
-<div class="modal fade" id="scheduleInterviewModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Schedule Interview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form id="scheduleInterviewForm">
-                <input type="hidden" name="interview_type" id="scheduleTypeHidden" value="initial">
-                <div class="modal-body">
-                    <input type="hidden" id="scheduleApplicantId" name="applicant_id">
-                    <div class="mb-3">
-                        <label class="form-label">Interview Type</label>
-                        <p class="form-control-plaintext fw-semibold mb-0"><i class="bi bi-chat"></i> Initial Interview</p>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Date & Time</label>
-                        <input type="datetime-local" 
-                               name="scheduled_date" 
-                               id="scheduleDate" 
-                               class="form-control" 
-                               required
-                               min="<?php echo $minDate; ?>"
-                               max="<?php echo $maxDate; ?>"
-                               oninput="validateDateInput(this)"
-                               onblur="validateDateInput(this)">
-                        <small class="text-muted">Min: Tomorrow, Max: 3 months from now</small>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Gmeet Link</label>
-                        <input type="url" name="gmeet_link" id="scheduleGmeet" class="form-control" placeholder="https://meet.google.com/xxx-xxxx-xxx" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Message to Applicant</label>
-                        <textarea name="message" id="scheduleMessage" class="form-control" rows="3" maxlength="250" placeholder="Please join the interview via the link above..."></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-yellow-primary btn-sm">Schedule Interview</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>
@@ -426,9 +376,149 @@ input[type="datetime-local"].error {
     white-space: nowrap;
     flex-shrink: 0;
 }
+
+/* Generic drawer shell (width, close button, transition-under-reduced-
+   motion fix) now lives in the shared .detail-drawer class in
+   dashboard-theme.css. Only applicant-specific content styling stays
+   here. */
+
+.applicant-drawer-hero {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+}
+.applicant-drawer-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.3rem;
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow-hover);
+}
+.applicant-drawer-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    line-height: 1.2;
+}
+.applicant-drawer-role {
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    margin-top: 2px;
+}
+.applicant-drawer-status {
+    margin-top: 8px;
+}
+
+.applicant-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin: 20px 0 8px;
+}
+.applicant-section-title:first-of-type {
+    margin-top: 0;
+}
+
+.applicant-info-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.applicant-info-row:last-child {
+    border-bottom: none;
+}
+.applicant-info-row .icon-box-sm {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--bg-card-subtle);
+    color: var(--brand-yellow-hover);
+}
+.applicant-info-row .info-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+.applicant-info-row .info-value {
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.applicant-rejection-box {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #fecaca;
+    color: #991b1b;
+    font-size: 0.85rem;
+}
+[data-bs-theme="dark"] .applicant-rejection-box {
+    background: #7f1d1d;
+    color: #fca5a5;
+}
+
+.applicant-drawer-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.applicant-inline-schedule {
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+.applicant-inline-schedule .applicant-section-title {
+    margin-top: 0;
+}
+
+/* Skeleton loading state, shown while the drawer data is in flight */
+.applicant-skeleton .skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.skeleton-avatar,
+.skeleton-line {
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--bg-card-subtle) 25%, var(--border-color) 50%, var(--bg-card-subtle) 75%);
+    background-size: 400px 100%;
+    animation: applicant-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+.skeleton-avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.skeleton-line {
+    height: 12px;
+}
+@keyframes applicant-skeleton-shimmer {
+    0% { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+}
 </style>
 
-<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260830120721"></script>
+<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260831061347"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

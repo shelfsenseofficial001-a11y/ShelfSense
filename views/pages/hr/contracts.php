@@ -291,26 +291,18 @@ $content = '
 <!-- ============================================ -->
 <!-- CONTRACT DETAIL MODAL                        -->
 <!-- ============================================ -->
-<div class="modal fade" id="contractDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Contract Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="contractDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="contractDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="contractDetailBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260830123402"></script>
+<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260831061347"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

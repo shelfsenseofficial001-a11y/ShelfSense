@@ -1249,7 +1249,7 @@ function viewInterview(id) {
     const body = document.getElementById('interviewDetailBody');
     if (!body || !modal) return;
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
     fetch(`?page=api_get_interviews&p=1&type=all&status=all&search=`)
         .then(response => response.json())
         .then(data => {
@@ -1292,14 +1292,14 @@ function viewInterview(id) {
                     const setResultBtn = document.getElementById('viewModalSetResultBtn');
                     if (setResultBtn) {
                         setResultBtn.addEventListener('click', function () {
-                            bootstrap.Modal.getInstance(modal)?.hide();
+                            bootstrap.Offcanvas.getInstance(modal)?.hide();
                             openSetResultModal(this.dataset.id, this.dataset.applicant);
                         });
                     }
                     const finalizeHireBtn = document.getElementById('viewModalFinalizeHireBtn');
                     if (finalizeHireBtn) {
                         finalizeHireBtn.addEventListener('click', function () {
-                            bootstrap.Modal.getInstance(modal)?.hide();
+                            bootstrap.Offcanvas.getInstance(modal)?.hide();
                             openFinalizeHireModal(this.dataset.applicantId, this.dataset.interviewId, this.dataset.name);
                         });
                     }

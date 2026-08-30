@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260830122553">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831061347">
     <style>
         /* ==========================================================================
            DESIGN SYSTEM & THEME MATCHING

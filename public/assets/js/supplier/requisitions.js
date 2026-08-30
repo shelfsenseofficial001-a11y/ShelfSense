@@ -167,9 +167,9 @@ function viewRequisition(id) {
     const footer = document.getElementById('requisitionDetailFooter');
 
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    footer.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
+    footer.innerHTML = '';
 
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
 
     fetch(`?page=api_supplier_get_requisition&id=${id}`)
         .then(r => r.json())
@@ -234,7 +234,7 @@ function renderRequisitionDetail(req) {
         <p class="text-muted small mb-0">Only events with a real recorded timestamp are shown.</p>
     `;
 
-    let actionsHtml = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
+    let actionsHtml = '';
     const isPending = req.status === 'pending_supplier' || req.status === 'sent_to_supplier';
     if (isPending && !alreadyRejected) {
         actionsHtml += `<button type="button" class="btn btn-outline-danger btn-sm" id="detailRejectBtn" data-id="${req.id}"><i class="bi bi-x-circle"></i> Reject</button>`;
@@ -292,7 +292,7 @@ function openRejectModal(id, tabKey) {
     document.getElementById('rejectReason').value = '';
     document.getElementById('rejectReason').classList.remove('is-invalid');
     document.getElementById('confirmRejectBtn').dataset.tabKey = tabKey || 'pending';
-    bootstrap.Modal.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
+    bootstrap.Offcanvas.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
     new bootstrap.Modal(document.getElementById('rejectModal')).show();
 }
 
@@ -356,7 +356,7 @@ function submitReject() {
 // ============================================
 
 function openInvoiceModal(id, tabKey) {
-    bootstrap.Modal.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
+    bootstrap.Offcanvas.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
 
     const modal = document.getElementById('invoiceModal');
     const requisitionSummary = document.getElementById('invoiceRequisitionSummary');
@@ -464,7 +464,7 @@ function submitInvoice() {
 // ============================================
 
 function openShipModal(id, tabKey) {
-    bootstrap.Modal.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
+    bootstrap.Offcanvas.getInstance(document.getElementById('requisitionDetailModal'))?.hide();
     document.getElementById('confirmShipBtn').dataset.id = id;
     document.getElementById('confirmShipBtn').dataset.tabKey = tabKey || 'paid';
     document.getElementById('shipTrackingNumber').value = '';

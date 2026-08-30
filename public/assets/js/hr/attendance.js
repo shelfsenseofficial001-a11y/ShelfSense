@@ -327,7 +327,7 @@ function openDtrModal(userId, weekStart, imagePath) {
         placeholder.style.display = 'block';
         deleteBtn.style.display = 'none';
     }
-    new bootstrap.Modal(document.getElementById('dtrViewModal')).show();
+    bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('dtrViewModal')).show();
 }
 
 document.getElementById('dtrDeleteBtn').addEventListener('click', function() {
@@ -353,7 +353,7 @@ document.getElementById('dtrDeleteBtn').addEventListener('click', function() {
             .then(data => {
                 if (data.success) {
                     Swal.fire({ icon: 'success', title: 'Deleted', timer: 1500, showConfirmButton: false });
-                    bootstrap.Modal.getInstance(document.getElementById('dtrViewModal')).hide();
+                    bootstrap.Offcanvas.getInstance(document.getElementById('dtrViewModal')).hide();
                     loadAttendance();
                 } else {
                     Swal.fire({ icon: 'error', title: 'Delete Failed', text: data.message });

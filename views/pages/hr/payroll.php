@@ -2,7 +2,7 @@
 $title = 'Payroll - ShelfSense HR';
 $pageTitle = 'Payroll Management';
 $activePage = 'payroll';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260829181326"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260831061347"></script>';
 
 $currentMonth = date('m');
 $currentYear = date('Y');
@@ -42,6 +42,8 @@ $content = <<<HTML
     .cycle-row:hover { background: var(--light-yellow-subtle); }
     .no-data { color: var(--text-muted); text-align: center; padding: 40px 0; }
     .no-data i { font-size: 3rem; display: block; margin-bottom: 16px; opacity: 0.5; }
+    /* Payroll entries table has many columns -- wider than the default drawer */
+    #entriesModal { --bs-offcanvas-width: 720px; }
 </style>
 
 <!-- Filters -->
@@ -190,19 +192,13 @@ $content = <<<HTML
 </div>
 
 <!-- Entries Modal -->
-<div class="modal fade" id="entriesModal" tabindex="-1">
-    <div class="modal-dialog modal-xl modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Payroll Entries</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="entriesBody"><div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div></div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                <a href="#" id="exportCsvBtn" class="btn btn-success btn-sm" target="_blank"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
-            </div>
-        </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="entriesModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="entriesBody"><div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div></div>
+    <div class="p-3 border-top text-end">
+        <a href="#" id="exportCsvBtn" class="btn btn-success btn-sm" target="_blank"><i class="bi bi-file-earmark-spreadsheet"></i> Export CSV</a>
     </div>
 </div>
 

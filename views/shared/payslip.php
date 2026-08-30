@@ -111,25 +111,19 @@ $content = <<<'EOT'
 </div>
 
 <!-- Payslip Detail Modal -->
-<div class="modal fade" id="payslipDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Payslip Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="payslipDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary btn-sm" id="printPayslipBtn" style="display:none;">
-                    <i class="bi bi-printer"></i> Print
-                </button>
-            </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="payslipDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="payslipDetailBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
+    </div>
+    <div class="p-3 border-top text-end">
+        <button type="button" class="btn btn-primary btn-sm" id="printPayslipBtn" style="display:none;">
+            <i class="bi bi-printer"></i> Print
+        </button>
     </div>
 </div>
 EOT;

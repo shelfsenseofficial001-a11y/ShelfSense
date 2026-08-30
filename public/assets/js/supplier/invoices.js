@@ -126,7 +126,7 @@ function viewInvoice(id) {
     const body = document.getElementById('invoiceDetailBody');
 
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
 
     fetch(`?page=api_supplier_get_invoice&id=${id}`)
         .then(r => r.json())

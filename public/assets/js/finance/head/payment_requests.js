@@ -169,8 +169,8 @@ function viewRequisitionDetail(requisitionId) {
     const body = document.getElementById('requestDetailBody');
     const footer = document.getElementById('requestDetailFooter');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    footer.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
-    new bootstrap.Modal(modal).show();
+    footer.innerHTML = '';
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
 
     fetch(`?page=api_finance_get_requisition_detail&id=${requisitionId}`)
         .then(r => r.json())
@@ -300,14 +300,13 @@ function renderRequisitionDetail(req) {
             budget_status: req.budget_status
         });
         footer.innerHTML = `
-            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
             <button type="button" class="btn btn-success btn-sm" id="detailApproveBtn"><i class="bi bi-check-circle"></i> Approve</button>
             <button type="button" class="btn btn-danger btn-sm" id="detailRejectBtn"><i class="bi bi-x-circle"></i> Reject</button>
         `;
         document.getElementById('detailApproveBtn').addEventListener('click', () => openApproveModalFromRow(row));
         document.getElementById('detailRejectBtn').addEventListener('click', () => openRejectModalFromRow(row));
     } else {
-        footer.innerHTML = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
+        footer.innerHTML = '';
     }
 }
 
@@ -322,7 +321,7 @@ function setupModals() {
 
 function openApproveModalFromRow(row) {
     fhActiveRow = row;
-    bootstrap.Modal.getInstance(document.getElementById('requestDetailModal'))?.hide();
+    bootstrap.Offcanvas.getInstance(document.getElementById('requestDetailModal'))?.hide();
 
     const bs = row.budget_status;
     const exceeded = bs ? bs.exceeded : false;
@@ -394,7 +393,7 @@ function submitApprove() {
 
 function openRejectModalFromRow(row) {
     fhActiveRow = row;
-    bootstrap.Modal.getInstance(document.getElementById('requestDetailModal'))?.hide();
+    bootstrap.Offcanvas.getInstance(document.getElementById('requestDetailModal'))?.hide();
 
     document.getElementById('rejectReason').value = '';
     document.getElementById('rejectReason').classList.remove('is-invalid');

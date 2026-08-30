@@ -2,7 +2,7 @@
 $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260829181340"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260831061347"></script>';
 $additional_css = '
 <style>
     .order-row:hover {
@@ -115,28 +115,22 @@ $content = <<<'EOT'
 </div>
 
 <!-- Order Detail Modal -->
-<div class="modal fade" id="orderDetailModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Order Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="orderDetailBody">
-                <div class="text-center py-4">
-                    <div class="spinner-border text-primary" role="status"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-primary btn-sm" id="reprintReceiptBtn" style="display:none;">
-                    <i class="bi bi-printer"></i> Reprint Receipt
-                </button>
-                <button type="button" class="btn btn-danger btn-sm" id="voidOrderBtn" style="display:none;">
-                    <i class="bi bi-x-circle"></i> Void Order
-                </button>
-            </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="orderDetailModal" tabindex="-1">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body" id="orderDetailBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
         </div>
+    </div>
+    <div class="p-3 border-top d-flex gap-2 justify-content-end">
+        <button type="button" class="btn btn-primary btn-sm" id="reprintReceiptBtn" style="display:none;">
+            <i class="bi bi-printer"></i> Reprint Receipt
+        </button>
+        <button type="button" class="btn btn-danger btn-sm" id="voidOrderBtn" style="display:none;">
+            <i class="bi bi-x-circle"></i> Void Order
+        </button>
     </div>
 </div>
 EOT;

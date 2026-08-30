@@ -2,7 +2,7 @@
 $title = 'Attendance - ShelfSense HR';
 $pageTitle = 'Attendance Management';
 $activePage = 'attendance';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260829200500"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260831061347"></script>';
 
 // Month/year options
 $currentMonth = date('m');
@@ -292,28 +292,22 @@ $content = <<<HTML
 </div>
 
 <!-- DTR Image View Modal -->
-<div class="modal fade" id="dtrViewModal" tabindex="-1">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">DTR Image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body text-center" id="dtrViewBody">
-                <img id="dtrViewImage" src="" alt="DTR Image" style="max-width:100%; max-height:600px; display:none;">
-                <p id="dtrViewPlaceholder" class="text-muted">No image available.</p>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-                <button type="button" class="btn btn-danger btn-sm" id="dtrDeleteBtn" style="display:none;">
-                    <i class="bi bi-trash"></i> Delete
-                </button>
-            </div>
-        </div>
+<div class="offcanvas offcanvas-end detail-drawer" id="dtrViewModal" tabindex="-1" style="--bs-offcanvas-width: 600px;">
+    <div class="offcanvas-header">
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+    </div>
+    <div class="offcanvas-body text-center" id="dtrViewBody">
+        <img id="dtrViewImage" src="" alt="DTR Image" style="max-width:100%; max-height:600px; display:none;">
+        <p id="dtrViewPlaceholder" class="text-muted">No image available.</p>
+    </div>
+    <div class="p-3 border-top text-end">
+        <button type="button" class="btn btn-danger btn-sm" id="dtrDeleteBtn" style="display:none;">
+            <i class="bi bi-trash"></i> Delete
+        </button>
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260829200500"></script>
+<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260831061347"></script>
 HTML;
 
 require_once __DIR__ . '/../../layouts/hr.php';

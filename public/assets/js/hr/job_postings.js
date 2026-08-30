@@ -229,7 +229,7 @@ function openFormModal(posting) {
     openUntilInput.max = toIso(maxDate);
     openUntilInput.value = posting ? posting.open_until : '';
 
-    bootstrap.Modal.getInstance(document.getElementById('postingDetailModal'))?.hide();
+    bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
     new bootstrap.Modal(document.getElementById('postingFormModal')).show();
 }
 
@@ -312,7 +312,7 @@ function viewPosting(id) {
     const footer = document.getElementById('postingDetailFooter');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
     footer.innerHTML = '';
-    new bootstrap.Modal(document.getElementById('postingDetailModal')).show();
+    bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('postingDetailModal')).show();
 
     fetch(`?page=api_hr_get_job_posting&id=${id}`)
         .then(r => r.json())
@@ -406,7 +406,7 @@ function reviewPosting(id, action, reason) {
         .then(data => {
             jpBusy = false;
             if (data.success) {
-                bootstrap.Modal.getInstance(document.getElementById('postingDetailModal'))?.hide();
+                bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
                 bootstrap.Modal.getInstance(document.getElementById('rejectPostingModal'))?.hide();
                 Swal.fire({ icon: 'success', title: action === 'approve' ? 'Approved' : 'Rejected', text: data.message, timer: 2000, showConfirmButton: false });
                 loadPostings(jpPage);
@@ -441,7 +441,7 @@ function archivePosting(id, action) {
         .then(r => r.json())
         .then(data => {
             jpBusy = false;
-            bootstrap.Modal.getInstance(document.getElementById('postingDetailModal'))?.hide();
+            bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
             if (data.success) {
                 Swal.fire({ icon: 'success', title: 'Done', text: data.message, timer: 2000, showConfirmButton: false });
             } else {
@@ -461,7 +461,7 @@ function reusePosting(id) {
         .then(r => r.json())
         .then(data => {
             jpBusy = false;
-            bootstrap.Modal.getInstance(document.getElementById('postingDetailModal'))?.hide();
+            bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
             if (data.success) {
                 Swal.fire({ icon: 'success', title: 'Draft Created', text: data.message, timer: 2500, showConfirmButton: false });
                 loadPostings(1);

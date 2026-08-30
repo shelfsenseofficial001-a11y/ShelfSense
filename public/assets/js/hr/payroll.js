@@ -277,7 +277,7 @@ function viewEntries(cycleId) {
 
     document.getElementById('exportCsvBtn').href = `?page=api_export_payroll&cycle_id=${cycleId}`;
 
-    new bootstrap.Modal(document.getElementById('entriesModal')).show();
+    bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('entriesModal')).show();
 
     fetch(`?page=api_get_payroll_entries&cycle_id=${cycleId}`)
         .then(r => r.json())
@@ -760,7 +760,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('cycleHalf')?.addEventListener('change', previewDates);
 
     // Auto-close modals when clicking outside
-    document.getElementById('entriesModal')?.addEventListener('hidden.bs.modal', function() {
+    document.getElementById('entriesModal')?.addEventListener('hidden.bs.offcanvas', function() {
         document.getElementById('entriesBody').innerHTML = '';
     });
     document.getElementById('logsModal')?.addEventListener('hidden.bs.modal', function() {

@@ -206,8 +206,8 @@ function viewPayslip(payslipId) {
     `;
     if (printBtn) printBtn.style.display = 'none';
     
-    new bootstrap.Modal(modal).show();
-    
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
+
     // Fetch the list and find the specific payslip
     fetch(`?page=api_get_payslip&p=1&limit=100`)
         .then(response => response.json())

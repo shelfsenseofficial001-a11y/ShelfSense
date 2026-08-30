@@ -144,7 +144,7 @@ function openContractDetail(userId) {
     const modal = document.getElementById('contractDetailModal');
     const body = document.getElementById('contractDetailBody');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
 
     fetch(`?page=api_get_employee_contract&user_id=${userId}`)
         .then(response => response.json())

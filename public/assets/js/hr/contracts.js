@@ -459,7 +459,7 @@ function viewContract(id) {
     const modal = document.getElementById('contractDetailModal');
     const body = document.getElementById('contractDetailBody');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    new bootstrap.Modal(modal).show();
+    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
     const params = new URLSearchParams({ p: 1, status: 'all', search: '' });
     fetch(`?page=api_get_contracts&${params}`)
         .then(response => response.json())
