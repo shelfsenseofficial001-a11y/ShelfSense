@@ -64,10 +64,12 @@ $additional_css = '
     .leave-type-badge.sick { background: #dbeafe; color: #1e40af; }
     .leave-type-badge.vacation { background: #d1fae5; color: #065f46; }
     .leave-type-badge.emergency { background: #fef3c7; color: #92400e; }
+    .leave-type-badge.maternity { background: #fce7f3; color: #9d174d; }
     .leave-type-badge.other { background: #f3e8ff; color: #6d28d9; }
     [data-bs-theme="dark"] .leave-type-badge.sick { background: #1e3a5f; color: #93c5fd; }
     [data-bs-theme="dark"] .leave-type-badge.vacation { background: #064e3b; color: #6ee7b7; }
     [data-bs-theme="dark"] .leave-type-badge.emergency { background: #78350f; color: #fcd34d; }
+    [data-bs-theme="dark"] .leave-type-badge.maternity { background: #831843; color: #f9a8d4; }
     [data-bs-theme="dark"] .leave-type-badge.other { background: #3b1e5f; color: #c4b5fd; }
     .leave-row:hover {
         background: var(--light-yellow-subtle);
@@ -101,6 +103,14 @@ $content = <<<'EOT'
             <div class="balance-number" id="balanceEmergency">0</div>
             <div class="balance-used">Used: <span id="usedEmergency">0</span></div>
             <div class="balance-remaining" id="remainingEmergency">0 remaining</div>
+        </div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="leave-balance-card">
+            <div class="balance-label">Maternity Leave</div>
+            <div class="balance-number" id="balanceMaternity">0</div>
+            <div class="balance-used">Used: <span id="usedMaternity">0</span></div>
+            <div class="balance-remaining" id="remainingMaternity">0 remaining</div>
         </div>
     </div>
     <div class="col-6 col-md-3">
@@ -184,6 +194,7 @@ $content = <<<'EOT'
                             <option value="sick">Sick Leave</option>
                             <option value="vacation">Vacation Leave</option>
                             <option value="emergency">Emergency Leave</option>
+                            <option value="maternity">Maternity Leave</option>
                             <option value="other">Other Leave</option>
                         </select>
                         <div class="form-text" id="leaveBalanceHint">Balance: 0 days</div>

@@ -140,10 +140,11 @@ class Leave
     public function getBalances($userId)
     {
         $stmt = $this->db->prepare("
-            SELECT 
+            SELECT
                 sick_leave_balance,
                 vacation_leave_balance,
                 emergency_leave_balance,
+                maternity_leave_balance,
                 other_leave_balance
             FROM users
             WHERE user_id = ?
@@ -153,10 +154,11 @@ class Leave
 
         // Get used leaves for the current year
         $stmt = $this->db->prepare("
-            SELECT 
+            SELECT
                 SUM(CASE WHEN leave_type = 'sick' AND status = 'approved' THEN 1 ELSE 0 END) as sick_used,
                 SUM(CASE WHEN leave_type = 'vacation' AND status = 'approved' THEN 1 ELSE 0 END) as vacation_used,
                 SUM(CASE WHEN leave_type = 'emergency' AND status = 'approved' THEN 1 ELSE 0 END) as emergency_used,
+                SUM(CASE WHEN leave_type = 'maternity' AND status = 'approved' THEN 1 ELSE 0 END) as maternity_used,
                 SUM(CASE WHEN leave_type = 'other' AND status = 'approved' THEN 1 ELSE 0 END) as other_used
             FROM leaves
             WHERE user_id = ? AND YEAR(created_at) = YEAR(NOW()) AND status = 'approved'
@@ -169,18 +171,21 @@ class Leave
                 'sick' => (float)($balances['sick_leave_balance'] ?? 15),
                 'vacation' => (float)($balances['vacation_leave_balance'] ?? 15),
                 'emergency' => (float)($balances['emergency_leave_balance'] ?? 5),
+                'maternity' => (float)($balances['maternity_leave_balance'] ?? 60),
                 'other' => (float)($balances['other_leave_balance'] ?? 0)
             ],
             'used' => [
                 'sick' => (int)($used['sick_used'] ?? 0),
                 'vacation' => (int)($used['vacation_used'] ?? 0),
                 'emergency' => (int)($used['emergency_used'] ?? 0),
+                'maternity' => (int)($used['maternity_used'] ?? 0),
                 'other' => (int)($used['other_used'] ?? 0)
             ],
             'remaining' => [
                 'sick' => (float)($balances['sick_leave_balance'] ?? 15) - (int)($used['sick_used'] ?? 0),
                 'vacation' => (float)($balances['vacation_leave_balance'] ?? 15) - (int)($used['vacation_used'] ?? 0),
                 'emergency' => (float)($balances['emergency_leave_balance'] ?? 5) - (int)($used['emergency_used'] ?? 0),
+                'maternity' => (float)($balances['maternity_leave_balance'] ?? 60) - (int)($used['maternity_used'] ?? 0),
                 'other' => (float)($balances['other_leave_balance'] ?? 0) - (int)($used['other_used'] ?? 0)
             ]
         ];

@@ -88,6 +88,8 @@ if ($page === 'dashboard') {
     $role = Auth::role();
     switch ($role) {
         case 'owner':
+            Response::redirect('?page=owner_dashboard');
+            break;
         case 'hr_head':
         case 'hr_staff':
             Response::redirect('?page=hr_dashboard');
@@ -182,6 +184,30 @@ if ($page === 'api_create_trainee_with_trainer') {
 // ============================================
 // HR PAGE ROUTES (Require authentication)
 // ============================================
+
+if ($page === 'owner_dashboard') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/owner/dashboard.php';
+    exit;
+}
+
+if ($page === 'api_owner_get_overview') {
+    if (!Auth::check()) {
+        Response::unauthorized('Please login');
+    }
+    if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Owner role required.');
+    }
+    require_once __DIR__ . '/../app/handlers/owner/get_overview.php';
+    exit;
+}
 
 if ($page === 'hr_dashboard') {
     if (!Auth::check()) {

@@ -59,36 +59,41 @@ function validateDateInput(input) {
     }
     
     if (selected < tomorrow) {
-        input.value = '';
+        input.value = toDatetimeLocalString(tomorrow);
         input.classList.add('error');
         closeDatePicker(input);
         Swal.fire({
             icon: 'warning',
             title: 'Date Too Early',
-            text: '❌ Cannot select yesterday or earlier. Please select a date from tomorrow onwards.',
+            text: '❌ Cannot select yesterday or earlier. Snapped to the earliest allowed date.',
             timer: 3000,
             timerProgressBar: true
         });
         setTimeout(() => input.classList.remove('error'), 3000);
         return;
     }
-    
+
     if (selected > maxDate) {
-        input.value = '';
+        input.value = toDatetimeLocalString(maxDate);
         input.classList.add('error');
         closeDatePicker(input);
         Swal.fire({
             icon: 'warning',
             title: 'Date Too Far',
-            text: '❌ Cannot select beyond 3 months from now. Please select a date within 3 months.',
+            text: '❌ Cannot select beyond 3 months from now. Snapped to the latest allowed date.',
             timer: 3000,
             timerProgressBar: true
         });
         setTimeout(() => input.classList.remove('error'), 3000);
         return;
     }
-    
+
     input.classList.remove('error');
+}
+
+function toDatetimeLocalString(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function validateScheduleDate(dateStr) {
@@ -256,10 +261,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Working hours are fixed at exactly 5 hours -- keep the preview in sync
+    // and let createTraineeWithTrainer compute the real end time itself so a
+    // tampered/stale value can never reach the backend as anything else.
+    document.getElementById('traineeScheduleStart')?.addEventListener('input', function() {
+        document.getElementById('traineeScheduleEndPreview').textContent = computeFiveHourEndLabel(this.value);
+    });
+
+    document.querySelectorAll('.trainee-rest-day').forEach(cb => {
+        cb.addEventListener('change', function() {
+            const checked = document.querySelectorAll('.trainee-rest-day:checked');
+            if (checked.length > 2) {
+                this.checked = false;
+                Swal.fire({ icon: 'warning', title: 'Too Many Rest Days', text: 'A trainee cannot have more than 2 rest days per week.', timer: 2500, timerProgressBar: true });
+            }
+        });
+    });
+
     document.getElementById('confirmCreateTraineeBtn')?.addEventListener('click', function() {
         const trainerId = document.getElementById('trainerSelect').value;
-        const salaryMin = document.getElementById('traineeSalaryMin').value || 3900;
-        const salaryMax = document.getElementById('traineeSalaryMax').value || 4500;
+        const salary = document.getElementById('traineeSalary').value;
+        const scheduleStart = document.getElementById('traineeScheduleStart').value || '10:00';
+        const restDays = Array.from(document.querySelectorAll('.trainee-rest-day:checked')).map(cb => cb.value);
 
         if (!trainerId) {
             Swal.fire({
@@ -271,9 +294,19 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
+        if (!salary || Number(salary) <= 0) {
+            Swal.fire({ icon: 'warning', title: 'Salary Required', text: 'Please enter a valid salary.' });
+            return;
+        }
+
+        if (restDays.length > 2) {
+            Swal.fire({ icon: 'warning', title: 'Too Many Rest Days', text: 'A trainee cannot have more than 2 rest days per week.' });
+            return;
+        }
+
         Swal.fire({
             title: 'Create Trainee Account?',
-            html: 'This will create a trainee account with the selected trainer assigned.',
+            html: `This will create a trainee account with the selected trainer assigned, a fixed 5-hour shift starting at ${scheduleStart}, and ${restDays.length} rest day(s)/week.`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#198754',
@@ -281,7 +314,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: 'Cancel'
         }).then(result => {
             if (result.isConfirmed) {
-                createTraineeWithTrainer(currentApplicantIdForTraining, trainerId, salaryMin, salaryMax);
+                createTraineeWithTrainer(currentApplicantIdForTraining, trainerId, salary, scheduleStart, restDays);
             }
         });
     });
@@ -351,29 +384,10 @@ function renderInitialInterviews(interviews) {
             `<span class="badge bg-${interview.result_color}">${interview.result ? interview.result.charAt(0).toUpperCase() + interview.result.slice(1) : '—'}</span>`
             : `<span class="badge bg-secondary">—</span>`;
 
-        const showFinalBtn = (interview.status === 'completed' && interview.result === 'passed' && !interview.has_final_interview);
-
-        // ✅ Locked Final button if current HR conducted the interview
-        let finalButtonHtml = '';
-        if (showFinalBtn) {
-            if (!interview.is_current_hr) {
-                finalButtonHtml = `
-                    <button class="btn btn-sm btn-outline-primary schedule-final-btn"
-                            data-applicant-id="${interview.applicant_id}"
-                            data-name="${escapeHtml(applicantName)}">
-                        <i class="bi bi-calendar-plus"></i> Final
-                    </button>
-                `;
-            } else {
-                finalButtonHtml = `
-                    <button class="btn btn-sm btn-outline-secondary" disabled
-                            title="You conducted the Initial interview. Another HR must conduct the Final."
-                            data-bs-toggle="tooltip" data-bs-placement="top">
-                        <i class="bi bi-calendar-plus"></i> Final (Locked)
-                    </button>
-                `;
-            }
-        }
+        // Trainer assignment (Trainee Contract) is the correct next step
+        // once Initial passes -- Final Interview only happens after 3 months
+        // of training, scheduled separately once training is complete.
+        const showTrainerBtn = (interview.status === 'completed' && interview.result === 'passed' && !interview.has_trainee_account);
 
         html += `
             <tr>
@@ -384,13 +398,16 @@ function renderInitialInterviews(interviews) {
                 <td>${resultBadge}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-primary view-interview" data-id="${interview.id}"><i class="bi bi-eye"></i></button>
-                    ${finalButtonHtml}
-                    ${interview.status === 'scheduled' ? `
-                        <button class="btn btn-sm btn-outline-success set-result-btn" data-id="${interview.id}" data-applicant="${escapeHtml(applicantName)}"><i class="bi bi-check2-circle"></i></button>
-                        <button class="btn btn-sm btn-outline-danger cancel-interview" data-id="${interview.id}" data-applicant="${escapeHtml(applicantName)}"><i class="bi bi-x-circle"></i></button>
+                    ${showTrainerBtn ? `
+                        <button class="btn btn-sm btn-outline-success move-to-training-btn"
+                                data-applicant-id="${interview.applicant_id}"
+                                data-name="${escapeHtml(applicantName)}"
+                                data-role="${escapeHtml(interview.target_role || '')}">
+                            <i class="bi bi-person-plus"></i> Assign Trainer
+                        </button>
                     ` : ''}
-                    ${interview.status === 'completed' && interview.result === 'pending' ? `
-                        <button class="btn btn-sm btn-outline-success set-result-btn" data-id="${interview.id}" data-applicant="${escapeHtml(applicantName)}"><i class="bi bi-check2-circle"></i></button>
+                    ${interview.status === 'scheduled' ? `
+                        <button class="btn btn-sm btn-outline-danger cancel-interview" data-id="${interview.id}" data-applicant="${escapeHtml(applicantName)}"><i class="bi bi-x-circle"></i></button>
                     ` : ''}
                 </td>
             </tr>
@@ -401,13 +418,11 @@ function renderInitialInterviews(interviews) {
 
     // Attach event listeners
     document.querySelectorAll('#initialInterviewsTableBody .view-interview').forEach(btn => btn.addEventListener('click', function() { viewInterview(this.dataset.id); }));
-    document.querySelectorAll('#initialInterviewsTableBody .schedule-final-btn').forEach(btn => btn.addEventListener('click', function() {
+    document.querySelectorAll('#initialInterviewsTableBody .move-to-training-btn').forEach(btn => btn.addEventListener('click', function() {
         const applicantId = this.dataset.applicantId;
         const name = this.dataset.name;
-        checkAndOpenFinalModal(applicantId, name);
-    }));
-    document.querySelectorAll('#initialInterviewsTableBody .set-result-btn').forEach(btn => btn.addEventListener('click', function() {
-        openSetResultModal(this.dataset.id, this.dataset.applicant);
+        const role = this.dataset.role;
+        openTrainerSelectionModalFromFinal(applicantId, name, role);
     }));
     document.querySelectorAll('#initialInterviewsTableBody .cancel-interview').forEach(btn => btn.addEventListener('click', function() {
         cancelInterview(this.dataset.id, this.dataset.applicant);
@@ -481,20 +496,8 @@ function renderFinalInterviews(interviews) {
                 <td>${resultBadge}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-primary view-interview" data-id="${interview.id}"><i class="bi bi-eye"></i></button>
-                    ${interview.status === 'completed' && interview.result === 'passed' && !interview.has_trainee_account ? `
-                        <button class="btn btn-sm btn-outline-success move-to-training-btn"
-                                data-applicant-id="${interview.applicant_id}"
-                                data-name="${escapeHtml(applicantName)}"
-                                data-role="${escapeHtml(interview.target_role || '')}">
-                            <i class="bi bi-box-arrow-in-right"></i> Training
-                        </button>
-                    ` : ''}
                     ${interview.status === 'scheduled' ? `
-                        <button class="btn btn-sm btn-outline-success set-result-btn" data-id="${interview.id}" data-applicant="${escapeHtml(applicantName)}"><i class="bi bi-check2-circle"></i></button>
                         <button class="btn btn-sm btn-outline-danger cancel-interview" data-id="${interview.id}" data-applicant="${escapeHtml(applicantName)}"><i class="bi bi-x-circle"></i></button>
-                    ` : ''}
-                    ${interview.status === 'completed' && interview.result === 'pending' ? `
-                        <button class="btn btn-sm btn-outline-success set-result-btn" data-id="${interview.id}" data-applicant="${escapeHtml(applicantName)}"><i class="bi bi-check2-circle"></i></button>
                     ` : ''}
                 </td>
             </tr>
@@ -504,15 +507,6 @@ function renderFinalInterviews(interviews) {
     tbody.innerHTML = html;
 
     document.querySelectorAll('#finalInterviewsTableBody .view-interview').forEach(btn => btn.addEventListener('click', function() { viewInterview(this.dataset.id); }));
-    document.querySelectorAll('#finalInterviewsTableBody .move-to-training-btn').forEach(btn => btn.addEventListener('click', function() {
-        const applicantId = this.dataset.applicantId;
-        const name = this.dataset.name;
-        const role = this.dataset.role;
-        openTrainerSelectionModalFromFinal(applicantId, name, role);
-    }));
-    document.querySelectorAll('#finalInterviewsTableBody .set-result-btn').forEach(btn => btn.addEventListener('click', function() {
-        openSetResultModal(this.dataset.id, this.dataset.applicant);
-    }));
     document.querySelectorAll('#finalInterviewsTableBody .cancel-interview').forEach(btn => btn.addEventListener('click', function() {
         cancelInterview(this.dataset.id, this.dataset.applicant);
     }));
@@ -526,9 +520,11 @@ function loadContractInterviews(page = 1) {
         status: contractFilters.status,
         search: contractFilters.search
     });
+    // The Contract Interviews tab was removed (contract is a legacy,
+    // no-longer-schedulable stage) -- this is now a harmless no-op kept only
+    // because a few call sites still reference it defensively.
     const tbody = document.getElementById('contractInterviewsTableBody');
     if (!tbody) {
-        console.error('❌ contractInterviewsTableBody not found');
         return;
     }
     tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>`;
@@ -627,7 +623,7 @@ function updateInitialBadges() {
             if (data.success) {
                 const interviews = data.data.interviews || [];
                 const scheduled = interviews.filter(i => i.status === 'scheduled').length;
-                const needsFinal = interviews.filter(i => i.status === 'completed' && i.result === 'passed' && !i.has_final_interview).length;
+                const needsTrainer = interviews.filter(i => i.status === 'completed' && i.result === 'passed' && !i.has_trainee_account).length;
                 // Update badge elements
                 const scheduledBadge = document.getElementById('initialScheduledBadge');
                 if (scheduledBadge) {
@@ -636,8 +632,8 @@ function updateInitialBadges() {
                 }
                 const completedBadge = document.getElementById('initialCompletedBadge');
                 if (completedBadge) {
-                    completedBadge.textContent = needsFinal;
-                    completedBadge.style.display = needsFinal > 0 ? 'inline-block' : 'none';
+                    completedBadge.textContent = needsTrainer;
+                    completedBadge.style.display = needsTrainer > 0 ? 'inline-block' : 'none';
                 }
                 const tabBadge = document.getElementById('initialTabBadge');
                 if (tabBadge) {
@@ -731,17 +727,12 @@ function loadAllStats() {
                 const initialCompleted = interviews.filter(i => i.interview_type === 'initial' && i.status === 'completed').length;
                 const finalScheduled = interviews.filter(i => i.interview_type === 'final' && i.status === 'scheduled').length;
                 const finalCompleted = interviews.filter(i => i.interview_type === 'final' && i.status === 'completed').length;
-                const contractScheduled = interviews.filter(i => i.interview_type === 'contract' && i.status === 'scheduled').length;
-                const contractCompleted = interviews.filter(i => i.interview_type === 'contract' && i.status === 'completed').length;
                 document.getElementById('statInitialScheduled').textContent = initialScheduled;
                 document.getElementById('statInitialCompleted').textContent = initialCompleted;
                 document.getElementById('statFinalScheduled').textContent = finalScheduled;
                 document.getElementById('statFinalCompleted').textContent = finalCompleted;
-                document.getElementById('statContractScheduled').textContent = contractScheduled;
-                document.getElementById('statContractCompleted').textContent = contractCompleted;
                 updateInitialBadges(interviews.filter(i => i.interview_type === 'initial'));
                 updateFinalBadges(interviews.filter(i => i.interview_type === 'final'));
-                updateContractBadges(interviews.filter(i => i.interview_type === 'contract'));
             }
         })
         .catch(error => console.error('Error loading stats:', error));
@@ -785,7 +776,6 @@ function checkAndOpenFinalModal(applicantId, applicantName) {
 function openScheduleFinalModal(applicantId, applicantName) {
     document.getElementById('scheduleApplicantId').value = applicantId;
     document.getElementById('scheduleTypeHidden').value = 'final';
-    document.getElementById('scheduleType').value = 'final';
     document.getElementById('scheduleDate').value = '';
     document.getElementById('scheduleGmeet').value = '';
     document.getElementById('scheduleMessage').value = '';
@@ -1015,11 +1005,82 @@ function openTrainerSelectionModalFromFinal(applicantId, applicantName, targetRo
     currentApplicantIdForTraining = applicantId;
     document.getElementById('trainerApplicantName').textContent = applicantName;
     document.getElementById('trainerTargetRole').textContent = targetRole;
-    document.getElementById('traineeSalaryMin').value = 3900;
-    document.getElementById('traineeSalaryMax').value = 4500;
+    document.getElementById('traineeSalary').value = 4200;
     loadTrainersForRole(targetRole);
     new bootstrap.Modal(document.getElementById('trainerSelectionModal')).show();
 }
+
+// ============================================
+// FINALIZE HIRE (after Final Interview passes)
+// ============================================
+
+function openFinalizeHireModal(applicantId, interviewId, applicantName) {
+    document.getElementById('finalizeApplicantId').value = applicantId;
+    document.getElementById('finalizeInterviewId').value = interviewId;
+    document.getElementById('finalizeApplicantName').textContent = applicantName;
+    document.getElementById('finalizeShift').value = 'opening';
+    document.getElementById('finalizeSalary').value = '';
+    document.getElementById('finalizeStartDate').value = '';
+    document.getElementById('finalizeJobDetails').value = '';
+    document.querySelectorAll('.finalize-rest-day').forEach(cb => { cb.checked = (cb.value === 'saturday' || cb.value === 'sunday'); });
+    new bootstrap.Modal(document.getElementById('finalizeHireModal')).show();
+}
+
+document.querySelectorAll('.finalize-rest-day').forEach(cb => {
+    cb.addEventListener('change', function () {
+        const checked = document.querySelectorAll('.finalize-rest-day:checked');
+        if (checked.length > 2) {
+            this.checked = false;
+            Swal.fire({ icon: 'warning', title: 'Too Many Rest Days', text: 'An employee cannot have more than 2 rest days per week.', timer: 2500, timerProgressBar: true });
+        }
+    });
+});
+
+document.getElementById('confirmFinalizeHireBtn')?.addEventListener('click', function () {
+    const applicantId = document.getElementById('finalizeApplicantId').value;
+    const interviewId = document.getElementById('finalizeInterviewId').value;
+    const shift = document.getElementById('finalizeShift').value;
+    const salary = document.getElementById('finalizeSalary').value;
+    const startDate = document.getElementById('finalizeStartDate').value;
+    const jobDetails = document.getElementById('finalizeJobDetails').value;
+    const restDays = Array.from(document.querySelectorAll('.finalize-rest-day:checked')).map(cb => cb.value);
+
+    if (!salary || Number(salary) <= 0) {
+        Swal.fire({ icon: 'warning', title: 'Salary Required', text: 'Please enter a valid salary.' });
+        return;
+    }
+    if (!startDate) {
+        Swal.fire({ icon: 'warning', title: 'Start Date Required', text: 'Please select a start date.' });
+        return;
+    }
+
+    const btn = this;
+    btn.disabled = true;
+    fetch('?page=api_create_contract_from_interview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+            applicant_id: applicantId, interview_id: interviewId, shift, salary, start_date: startDate,
+            rest_days: restDays.join(','), job_details: jobDetails
+        })
+    })
+        .then(r => r.json())
+        .then(result => {
+            btn.disabled = false;
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('finalizeHireModal'))?.hide();
+                Swal.fire({ icon: 'success', title: 'Hired Contract Sent', text: result.message, timer: 2500, showConfirmButton: false });
+                loadFinalInterviews(finalPage);
+                loadAllStats();
+            } else {
+                Swal.fire({ icon: 'error', title: 'Failed', text: result.message || 'Please try again.' });
+            }
+        })
+        .catch(() => {
+            btn.disabled = false;
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+        });
+});
 
 function loadTrainersForRole(targetRole) {
     const select = document.getElementById('trainerSelect');
@@ -1046,12 +1107,36 @@ function loadTrainersForRole(targetRole) {
         });
 }
 
-function createTraineeWithTrainer(applicantId, trainerId, salaryMin, salaryMax) {
+// Trainee shifts are always exactly 5 hours -- compute the end time from
+// the chosen start rather than ever accepting a separate end-time input.
+function computeFiveHourEndLabel(startValue) {
+    if (!startValue) return '3:00 PM';
+    const [h, m] = startValue.split(':').map(Number);
+    const end = new Date(2000, 0, 1, h, m);
+    end.setHours(end.getHours() + 5);
+    let hours = end.getHours();
+    const minutes = String(end.getMinutes()).padStart(2, '0');
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+    hours = hours % 12 || 12;
+    return `${hours}:${minutes} ${ampm}`;
+}
+
+function computeFiveHourEnd24(startValue) {
+    if (!startValue) return '15:00';
+    const [h, m] = startValue.split(':').map(Number);
+    const end = new Date(2000, 0, 1, h, m);
+    end.setHours(end.getHours() + 5);
+    return `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
+}
+
+function createTraineeWithTrainer(applicantId, trainerId, salary, scheduleStart, restDays) {
     const data = {
         applicant_id: applicantId,
         trainer_id: trainerId,
-        salary_min: salaryMin,
-        salary_max: salaryMax
+        salary: salary,
+        schedule_start: scheduleStart || '10:00',
+        schedule_end: computeFiveHourEnd24(scheduleStart || '10:00'),
+        rest_days: (restDays && restDays.length ? restDays : ['saturday', 'sunday']).join(',')
     };
     const modal = bootstrap.Modal.getInstance(document.getElementById('trainerSelectionModal'));
     Swal.fire({
@@ -1080,7 +1165,7 @@ function createTraineeWithTrainer(applicantId, trainerId, salaryMin, salaryMax) 
                     <p><strong>Employee Number:</strong> ${result.data.employee_number}</p>
                     ${passwordDisplay}
                     <p><strong>Trainer:</strong> ${result.data.trainer_name}</p>
-                    <p><strong>Salary Range:</strong> ₱${result.data.salary_min} – ₱${result.data.salary_max}</p>
+                    <p><strong>Salary:</strong> ₱${result.data.salary}</p>
                     <p class="text-muted">The trainee will appear in the Trainees tab.</p>
                 `,
                 confirmButtonText: 'OK'
@@ -1189,7 +1274,35 @@ function viewInterview(id) {
                         ${interview.gmeet_link ? `<div class="mt-3"><p><strong>Gmeet Link:</strong> <a href="${interview.gmeet_link}" target="_blank">${interview.gmeet_link}</a></p></div>` : ''}
                         ${interview.message ? `<div class="mt-3"><p><strong>Message:</strong></p><div class="p-3 rounded" style="background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(interview.message)}</div></div>` : ''}
                         ${interview.notes ? `<div class="mt-3"><p><strong>HR Notes:</strong></p><div class="p-3 rounded" style="background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(interview.notes)}</div></div>` : ''}
+                        ${(interview.status === 'scheduled' || (interview.status === 'completed' && interview.result === 'pending')) ? `
+                            <div class="mt-4 text-end">
+                                <button type="button" class="btn btn-yellow-primary btn-sm" id="viewModalSetResultBtn" data-id="${interview.id}" data-applicant="${escapeHtml(interview.applicant_name)}">
+                                    <i class="bi bi-check2-circle"></i> Set Result
+                                </button>
+                            </div>
+                        ` : ''}
+                        ${(interview.interview_type === 'final' && interview.status === 'completed' && interview.result === 'passed' && !interview.has_contract) ? `
+                            <div class="mt-4 text-end">
+                                <button type="button" class="btn btn-yellow-primary btn-sm" id="viewModalFinalizeHireBtn" data-applicant-id="${interview.applicant_id}" data-interview-id="${interview.id}" data-name="${escapeHtml(interview.applicant_name)}">
+                                    <i class="bi bi-file-earmark-check"></i> Finalize Hire
+                                </button>
+                            </div>
+                        ` : ''}
                     `;
+                    const setResultBtn = document.getElementById('viewModalSetResultBtn');
+                    if (setResultBtn) {
+                        setResultBtn.addEventListener('click', function () {
+                            bootstrap.Modal.getInstance(modal)?.hide();
+                            openSetResultModal(this.dataset.id, this.dataset.applicant);
+                        });
+                    }
+                    const finalizeHireBtn = document.getElementById('viewModalFinalizeHireBtn');
+                    if (finalizeHireBtn) {
+                        finalizeHireBtn.addEventListener('click', function () {
+                            bootstrap.Modal.getInstance(modal)?.hide();
+                            openFinalizeHireModal(this.dataset.applicantId, this.dataset.interviewId, this.dataset.name);
+                        });
+                    }
                 } else {
                     body.innerHTML = `<div class="text-center text-danger py-4">Interview not found</div>`;
                 }

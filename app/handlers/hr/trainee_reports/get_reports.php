@@ -52,12 +52,9 @@ try {
     $stmt->execute([$traineeId]);
     $reports = $stmt->fetchAll();
 
-    // Expected week count derived from the trainee's real start/end dates,
-    // not a hard-coded "12 weeks" assumption.
-    $start = new DateTime($trainee['start_date']);
-    $end = new DateTime($trainee['end_date']);
-    $totalDays = max(1, $start->diff($end)->days);
-    $expectedWeeks = (int)ceil($totalDays / 7);
+    // Training is fixed at exactly 3 months / 12 weekly reports (4 per
+    // month) -- never fewer, never more, regardless of exact day counts.
+    $expectedWeeks = 12;
 
     $submittedWeeks = array_column($reports, 'week_number');
     $missingWeeks = [];

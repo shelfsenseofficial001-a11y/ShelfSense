@@ -58,36 +58,41 @@ function validateDateInput(input) {
     }
     
     if (selected < tomorrow) {
-        input.value = '';
+        input.value = toDatetimeLocalString(tomorrow);
         input.classList.add('error');
         closeDatePicker(input);
         Swal.fire({
             icon: 'warning',
             title: 'Date Too Early',
-            text: '❌ Cannot select yesterday or earlier. Please select a date from tomorrow onwards.',
+            text: '❌ Cannot select yesterday or earlier. Snapped to the earliest allowed date.',
             timer: 3000,
             timerProgressBar: true
         });
         setTimeout(() => input.classList.remove('error'), 3000);
         return;
     }
-    
+
     if (selected > maxDate) {
-        input.value = '';
+        input.value = toDatetimeLocalString(maxDate);
         input.classList.add('error');
         closeDatePicker(input);
         Swal.fire({
             icon: 'warning',
             title: 'Date Too Far',
-            text: '❌ Cannot select beyond 3 months from now. Please select a date within 3 months.',
+            text: '❌ Cannot select beyond 3 months from now. Snapped to the latest allowed date.',
             timer: 3000,
             timerProgressBar: true
         });
         setTimeout(() => input.classList.remove('error'), 3000);
         return;
     }
-    
+
     input.classList.remove('error');
+}
+
+function toDatetimeLocalString(d) {
+    const pad = n => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function validateScheduleDate(dateStr) {

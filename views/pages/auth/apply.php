@@ -722,7 +722,7 @@ $content = '
             dot.setAttribute("aria-label", "View " + job.title + " position details");
             dot.setAttribute("aria-current", job.id === activeId ? "true" : "false");
             dot.dataset.jobId = job.id;
-            dot.addEventListener("click", function () { selectJob(job.id, true); });
+            dot.addEventListener("click", function () { selectJob(job.id, true); markUserChoice(); });
             nav.appendChild(dot);
         });
     }
@@ -773,6 +773,10 @@ $content = '
     var currentJobId = null;
     var autoSwipeTimer = null;
     var AUTO_SWIPE_MS = 6000;
+    // Once the user makes a deliberate choice (dropdown, arrow, or dot),
+    // auto-swipe stops for good -- it should never carry the user away from
+    // the position they picked.
+    var userHasChosen = false;
 
     function goToRelative(offset) {
         var idx = APPLY_JOBS.findIndex(function (j) { return j.id === currentJobId; });
@@ -782,7 +786,7 @@ $content = '
     }
 
     function startAutoSwipe() {
-        if (APPLY_JOBS.length < 2) return;
+        if (APPLY_JOBS.length < 2 || userHasChosen) return;
         stopAutoSwipe();
         autoSwipeTimer = setInterval(function () { goToRelative(1); }, AUTO_SWIPE_MS);
     }
@@ -794,11 +798,9 @@ $content = '
         }
     }
 
-    // Any manual interaction restarts the auto-swipe timer so it does not
-    // fire again immediately after the user just picked something.
-    function restartAutoSwipe() {
+    function markUserChoice() {
+        userHasChosen = true;
         stopAutoSwipe();
-        startAutoSwipe();
     }
 
     document.addEventListener("DOMContentLoaded", function () {
@@ -808,7 +810,7 @@ $content = '
         select.addEventListener("change", function () {
             if (this.value) {
                 applySelection(this.value);
-                restartAutoSwipe();
+                markUserChoice();
             } else {
                 clearSelectionState();
             }
@@ -816,8 +818,8 @@ $content = '
 
         var prevBtn = document.getElementById("carouselPrevBtn");
         var nextBtn = document.getElementById("carouselNextBtn");
-        if (prevBtn) prevBtn.addEventListener("click", function () { goToRelative(-1); restartAutoSwipe(); });
-        if (nextBtn) nextBtn.addEventListener("click", function () { goToRelative(1); restartAutoSwipe(); });
+        if (prevBtn) prevBtn.addEventListener("click", function () { goToRelative(-1); markUserChoice(); });
+        if (nextBtn) nextBtn.addEventListener("click", function () { goToRelative(1); markUserChoice(); });
 
         var visualPanel = document.querySelector(".left-visual-panel");
         if (visualPanel) {
@@ -829,6 +831,7 @@ $content = '
         });
 
         var initialId = (PRESELECT_ID && jobsById[PRESELECT_ID]) ? PRESELECT_ID : APPLY_JOBS[0].id;
+        if (PRESELECT_ID && jobsById[PRESELECT_ID]) userHasChosen = true;
         select.value = initialId;
         if (window.refreshSearchableSelect) window.refreshSearchableSelect(select);
         applySelection(initialId);

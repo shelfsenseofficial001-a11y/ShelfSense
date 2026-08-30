@@ -10,6 +10,7 @@ let leaveTypes = {
     'sick': 'Sick Leave',
     'vacation': 'Vacation Leave',
     'emergency': 'Emergency Leave',
+    'maternity': 'Maternity Leave',
     'other': 'Other Leave'
 };
 
@@ -51,16 +52,19 @@ function loadLeaveBalances() {
                 document.getElementById('balanceSick').textContent = b.entitled.sick;
                 document.getElementById('balanceVacation').textContent = b.entitled.vacation;
                 document.getElementById('balanceEmergency').textContent = b.entitled.emergency;
+                document.getElementById('balanceMaternity').textContent = b.entitled.maternity;
                 document.getElementById('balanceOther').textContent = b.entitled.other;
                 // Used
                 document.getElementById('usedSick').textContent = b.used.sick;
                 document.getElementById('usedVacation').textContent = b.used.vacation;
                 document.getElementById('usedEmergency').textContent = b.used.emergency;
+                document.getElementById('usedMaternity').textContent = b.used.maternity;
                 document.getElementById('usedOther').textContent = b.used.other;
                 // Remaining
                 updateRemainingDisplay('Sick', b.remaining.sick);
                 updateRemainingDisplay('Vacation', b.remaining.vacation);
                 updateRemainingDisplay('Emergency', b.remaining.emergency);
+                updateRemainingDisplay('Maternity', b.remaining.maternity);
                 updateRemainingDisplay('Other', b.remaining.other);
             }
         })

@@ -93,37 +93,38 @@ $content = <<<EOT
                         </div>
                         <div class="col-md-3 mb-2">
                             <label class="form-label fw-semibold">Department</label>
-                            <select id="postingDepartment" class="form-select searchable-select" data-placeholder="Select department..." required>
+                            <select id="postingDepartmentGroup" class="form-select searchable-select" data-placeholder="Select department..." required>
                                 <option value=""></option>
-                                <option value="Cashier">Cashier</option>
-                                <option value="HR Staff">HR Staff</option>
-                                <option value="Finance Staff">Finance Staff</option>
+                                <option value="Front Department">Front Department</option>
+                                <option value="Human Resources Department">Human Resources Department</option>
+                                <option value="Finance Department">Finance Department</option>
                             </select>
                         </div>
                         <div class="col-md-3 mb-2">
-                            <label class="form-label fw-semibold">Role Key</label>
-                            <input type="text" id="postingRole" class="form-control" maxlength="50" required placeholder="e.g. cashier">
-                            <div class="form-text">Used internally; matches the applicant's target role.</div>
+                            <label class="form-label fw-semibold">Position</label>
+                            <select id="postingDepartment" class="form-select searchable-select" data-placeholder="Select department first..." required disabled>
+                                <option value=""></option>
+                            </select>
+                            <div class="form-text">Options depend on the selected department.</div>
                         </div>
                     </div>
                     <div class="row g-2">
                         <div class="col-md-6 mb-2">
+                            <label class="form-label fw-semibold">Role Key</label>
+                            <input type="text" id="postingRole" class="form-control" maxlength="50" required placeholder="e.g. cashier">
+                            <div class="form-text">Used internally; matches the applicant's target role. Must be unique across active postings.</div>
+                        </div>
+                        <div class="col-md-6 mb-2">
                             <label class="form-label fw-semibold">Location</label>
                             <input type="text" id="postingLocation" class="form-control" maxlength="150" placeholder="e.g. Main Store, Dasmarinas">
+                            <div class="form-text" id="postingLocationHint"></div>
                         </div>
-                        <div class="col-md-3 mb-2">
-                            <label class="form-label fw-semibold">Employment Type</label>
-                            <select id="postingEmploymentType" class="form-select">
-                                <option value="Full-Time">Full-Time</option>
-                                <option value="Part-Time">Part-Time</option>
-                                <option value="Contract">Contract</option>
-                                <option value="Internship">Internship</option>
-                            </select>
-                        </div>
-                        <div class="col-md-3 mb-2">
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4 mb-2">
                             <label class="form-label fw-semibold">Open Slots</label>
-                            <input type="number" id="postingSlots" class="form-control" min="1" step="1" placeholder="Unlimited">
-                            <div class="form-text">Leave blank for unlimited.</div>
+                            <input type="number" id="postingSlots" class="form-control" min="1" max="299" step="1" placeholder="Unlimited">
+                            <div class="form-text">1&ndash;299, or leave blank for unlimited.</div>
                         </div>
                     </div>
                     <div class="mb-2">
@@ -149,7 +150,11 @@ $content = <<<EOT
                         </div>
                         <div class="col-md-4 mb-2">
                             <label class="form-label fw-semibold">Closing Date</label>
-                            <input type="date" id="postingOpenUntil" class="form-control" required>
+                            <input type="date" id="postingOpenUntil" class="form-control" required
+                                   min="<?php echo date('Y-m-d'); ?>"
+                                   max="<?php echo date('Y-m-d', strtotime('+6 months')); ?>"
+                                   oninput="validatePostingDate(this)"
+                                   onblur="validatePostingDate(this)">
                             <div class="form-text">Must be within the next 6 months.</div>
                         </div>
                     </div>

@@ -10,6 +10,7 @@ let leaveTypes = {
     'sick': 'Sick Leave',
     'vacation': 'Vacation Leave',
     'emergency': 'Emergency Leave',
+    'maternity': 'Maternity Leave',
     'other': 'Other Leave'
 };
 let currentLeaveId = null;

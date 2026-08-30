@@ -196,11 +196,7 @@ $content = '
                     <input type="hidden" id="scheduleApplicantId" name="applicant_id">
                     <div class="mb-3">
                         <label class="form-label">Interview Type</label>
-                        <select name="interview_type_visible" id="scheduleType" class="form-select" disabled>
-                            <option value="initial">Initial Interview</option>
-                            <option value="final">Final Interview</option>
-                        </select>
-                        <small class="text-muted">Type is locked for this action.</small>
+                        <p class="form-control-plaintext fw-semibold mb-0"><i class="bi bi-chat"></i> Initial Interview</p>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Date & Time</label>

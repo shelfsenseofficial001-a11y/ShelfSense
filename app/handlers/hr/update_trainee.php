@@ -107,9 +107,8 @@ try {
             $stmt->execute([$traineeId]);
             $reports = $stmt->fetchAll();
 
-            $start = new DateTime($trainee['start_date']);
-            $end = new DateTime($trainee['end_date']);
-            $expectedWeeks = (int)ceil(max(1, $start->diff($end)->days) / 7);
+            // Training is fixed at exactly 3 months / 12 weekly reports.
+            $expectedWeeks = 12;
             $submittedWeeks = array_column($reports, 'week_number');
             $missing = array_diff(range(1, $expectedWeeks), $submittedWeeks);
             $notForwarded = array_filter($reports, fn($r) => !in_array($r['status'], ['forwarded', 'hr_reviewed'], true));

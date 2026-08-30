@@ -1,11 +1,29 @@
 <?php
 
-// Allowed department values for job postings (kept in sync with the
-// searchable-select options in views/pages/hr/job_postings.php).
+// Allowed position values for job postings (kept in sync with the
+// searchable-select options in views/pages/hr/job_postings.php). This is the
+// controlled value that actually drives an applicant's target_role -- see
+// jobPostingDepartmentToTargetRole() below. Historically called "department"
+// throughout the codebase; conceptually it is now the *position* nested one
+// level below the department group.
 define('JOB_POSTING_DEPARTMENTS', ['Cashier', 'HR Staff', 'Finance Staff']);
 
-// Allowed employment_type values for job postings (kept in sync with the
-// select options in views/pages/hr/job_postings.php).
+// Top-level department groups shown to HR Staff when creating a posting.
+// Each group scopes which JOB_POSTING_DEPARTMENTS positions are selectable,
+// so the form is a two-step Department -> Position cascade rather than one
+// flat list -- ready for more positions to be added under a group later
+// without changing the target-role plumbing below.
+define('JOB_POSTING_DEPARTMENT_GROUPS', ['Front Department', 'Human Resources Department', 'Finance Department']);
+
+define('JOB_POSTING_GROUP_POSITIONS', [
+    'Front Department' => ['Cashier'],
+    'Human Resources Department' => ['HR Staff'],
+    'Finance Department' => ['Finance Staff'],
+]);
+
+// Employment type is no longer chosen at posting time -- every posting is
+// Full-Time. The column and constant are kept only so existing rows/reads
+// don't need a schema change.
 define('JOB_POSTING_EMPLOYMENT_TYPES', ['Full-Time', 'Part-Time', 'Contract', 'Internship']);
 
 // ============================================
@@ -293,6 +311,12 @@ function activateEmployeeFromAcceptedContract($db, $contract)
         $timeOut = $isRestDay ? '00:00:00' : $hours[1];
         $stmt->execute([$userId, $day, $timeIn, $timeOut, $isRestDay]);
     }
+
+    // The trainee record is now historical -- the account itself has just
+    // been promoted to a real employee role above, so its trainee record is
+    // archived rather than deleted (never overwrites its training history).
+    $db->prepare("UPDATE trainees SET archived_at = NOW() WHERE applicant_id = ? AND archived_at IS NULL")
+        ->execute([$contract['applicant_id']]);
 
     logRecruitmentEvent('applicant', $contract['applicant_id'], 'hired', [
         'previous_status' => 'contract_offered', 'new_status' => 'hired'

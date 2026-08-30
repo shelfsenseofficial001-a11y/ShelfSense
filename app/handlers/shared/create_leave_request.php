@@ -24,7 +24,7 @@ $startDate = $input['start_date'] ?? '';
 $endDate = $input['end_date'] ?? '';
 $reason = isset($input['reason']) ? trim($input['reason']) : '';
 
-if (empty($leaveType) || !in_array($leaveType, ['sick', 'vacation', 'emergency', 'other'])) {
+if (empty($leaveType) || !in_array($leaveType, ['sick', 'vacation', 'emergency', 'maternity', 'other'])) {
     Response::error('Invalid leave type', 400);
 }
 

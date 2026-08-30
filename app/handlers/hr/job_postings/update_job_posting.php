@@ -50,10 +50,11 @@ if (!$isHead) {
 }
 
 $title = isset($input['title']) ? trim($input['title']) : $posting['title'];
+$departmentGroup = isset($input['department_group']) ? trim($input['department_group']) : ($posting['department_group'] ?? '');
 $department = isset($input['department']) ? trim($input['department']) : $posting['department'];
 $role = isset($input['role']) ? trim($input['role']) : $posting['role'];
 $location = array_key_exists('location', $input) ? trim((string)$input['location']) : ($posting['location'] ?? '');
-$employmentType = isset($input['employment_type']) && $input['employment_type'] !== '' ? trim($input['employment_type']) : ($posting['employment_type'] ?? 'Full-Time');
+$employmentType = 'Full-Time'; // no longer chosen at posting time
 $slots = array_key_exists('slots', $input) ? trim((string)$input['slots']) : ($posting['slots'] !== null ? (string)$posting['slots'] : '');
 $description = isset($input['description']) ? trim($input['description']) : $posting['description'];
 $requirements = array_key_exists('requirements', $input) ? trim((string)$input['requirements']) : ($posting['requirements'] ?? '');
@@ -64,11 +65,15 @@ $openUntil = isset($input['open_until']) ? trim($input['open_until']) : $posting
 
 $errors = [];
 if ($title === '' || mb_strlen($title) > 100) $errors['title'] = 'Title is required (max 100 characters).';
-if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) $errors['department'] = 'Please select a valid department.';
+if (!in_array($departmentGroup, JOB_POSTING_DEPARTMENT_GROUPS, true)) $errors['department_group'] = 'Please select a valid department.';
+if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) {
+    $errors['department'] = 'Please select a valid position.';
+} elseif (!empty($departmentGroup) && !in_array($department, JOB_POSTING_GROUP_POSITIONS[$departmentGroup] ?? [], true)) {
+    $errors['department'] = 'This position does not belong to the selected department.';
+}
 if ($role === '' || mb_strlen($role) > 50) $errors['role'] = 'Role is required (max 50 characters).';
 if (mb_strlen($location) > 150) $errors['location'] = 'Location cannot exceed 150 characters.';
-if (!in_array($employmentType, JOB_POSTING_EMPLOYMENT_TYPES, true)) $errors['employment_type'] = 'Please select a valid employment type.';
-if ($slots !== '' && (!ctype_digit($slots) || (int)$slots < 1)) $errors['slots'] = 'Slots must be a positive whole number, or left blank for unlimited.';
+if ($slots !== '' && (!ctype_digit($slots) || (int)$slots < 1 || (int)$slots > 299)) $errors['slots'] = 'Slots must be a whole number between 1 and 299, or left blank for unlimited.';
 if ($description === '' || mb_strlen($description) > 5000) $errors['description'] = 'Description is required (max 5000 characters).';
 if ($requirements !== '' && mb_strlen($requirements) > 5000) $errors['requirements'] = 'Requirements cannot exceed 5000 characters.';
 if ($responsibilities !== '' && mb_strlen($responsibilities) > 5000) $errors['responsibilities'] = 'Responsibilities cannot exceed 5000 characters.';
@@ -85,13 +90,28 @@ if ($openUntil === '' || !validateDate($openUntil)) {
     $errors['open_until'] = 'Closing date cannot be more than 6 months out.';
 }
 
+if (empty($errors)) {
+    $db = \App\Core\Database::getInstance()->getConnection();
+    $liveStatuses = "'draft','pending_approval','approved'";
+    if ($title !== '') {
+        $stmt = $db->prepare("SELECT id FROM job_postings WHERE LOWER(title) = LOWER(?) AND status IN ($liveStatuses) AND id != ?");
+        $stmt->execute([$title, $id]);
+        if ($stmt->fetch()) $errors['title'] = 'Another active job posting already uses this title.';
+    }
+    if ($role !== '') {
+        $stmt = $db->prepare("SELECT id FROM job_postings WHERE LOWER(role) = LOWER(?) AND status IN ($liveStatuses) AND id != ?");
+        $stmt->execute([$role, $id]);
+        if ($stmt->fetch()) $errors['role'] = 'Another active job posting already uses this role.';
+    }
+}
+
 if (!empty($errors)) {
     Response::error('Please correct the highlighted fields.', 400, $errors);
 }
 
 try {
     $result = $model->update($id, [
-        'title' => $title, 'department' => $department, 'role' => $role,
+        'title' => $title, 'department_group' => $departmentGroup, 'department' => $department, 'role' => $role,
         'location' => $location !== '' ? $location : null,
         'employment_type' => $employmentType,
         'slots' => $slots !== '' ? (int)$slots : null,

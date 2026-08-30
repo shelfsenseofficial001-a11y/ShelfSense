@@ -6,6 +6,23 @@ let jpPage = 1;
 let jpBusy = false;
 let jpCurrentDetail = null;
 
+// Mirrors JOB_POSTING_GROUP_POSITIONS in app/helpers/functions.php -- keep
+// in sync if a department ever gets more positions.
+const JP_GROUP_POSITIONS = {
+    'Front Department': ['Cashier'],
+    'Human Resources Department': ['HR Staff'],
+    'Finance Department': ['Finance Staff'],
+};
+
+function populatePositionOptions(group, selectedPosition) {
+    const posSelect = document.getElementById('postingDepartment');
+    const positions = JP_GROUP_POSITIONS[group] || [];
+    posSelect.innerHTML = '<option value=""></option>' + positions.map(p => `<option value="${p}">${p}</option>`).join('');
+    posSelect.disabled = positions.length === 0;
+    posSelect.value = selectedPosition && positions.includes(selectedPosition) ? selectedPosition : '';
+    window.refreshSearchableSelect && window.refreshSearchableSelect(posSelect);
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     loadPostings(1);
     setupFilters();
@@ -20,6 +37,10 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.getElementById('confirmRejectPostingBtn')?.addEventListener('click', submitReject);
+
+    document.getElementById('postingDepartmentGroup').addEventListener('change', function () {
+        populatePositionOptions(this.value, null);
+    });
 });
 
 function jpEscapeHtml(text) {
@@ -32,6 +53,27 @@ function jpEscapeHtml(text) {
 function jpCurrency(v) {
     if (v === null || v === undefined || v === '') return '—';
     return '₱' + parseFloat(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Snaps an out-of-range closing date to the nearest allowed bound instead of
+// silently clearing it, so a typed/invalid date never gets past validation.
+function validatePostingDate(input) {
+    const value = input.value;
+    if (!value) return;
+    const selected = new Date(value + 'T00:00:00');
+    const min = new Date(input.min + 'T00:00:00');
+    const max = new Date(input.max + 'T00:00:00');
+    if (isNaN(selected.getTime())) {
+        input.value = '';
+        return;
+    }
+    if (selected < min) {
+        input.value = input.min;
+        Swal.fire({ icon: 'warning', title: 'Date Too Early', text: 'Closing date cannot be in the past. Snapped to today.', timer: 2500, timerProgressBar: true });
+    } else if (selected > max) {
+        input.value = input.max;
+        Swal.fire({ icon: 'warning', title: 'Date Too Far', text: 'Closing date cannot exceed 6 months out. Snapped to the latest allowed date.', timer: 2500, timerProgressBar: true });
+    }
 }
 
 function jpFormatDate(d, withTime = false) {
@@ -110,8 +152,8 @@ function renderTable(postings) {
     }
     tbody.innerHTML = postings.map(p => `
         <tr>
-            <td><strong>${jpEscapeHtml(p.title)}</strong>${p.reused_from_id ? ' <span class="badge bg-info-subtle text-info-emphasis" title="Reused from an earlier posting">reused</span>' : ''}</td>
-            <td>${jpEscapeHtml(p.department)}</td>
+            <td><strong>${jpEscapeHtml(p.title)}</strong>${p.reused_from_id ? ' <span class="badge bg-info-subtle text-info-emphasis" title="Reused from an earlier posting">reused</span>' : ''}${(p.shares_location_count > 0) ? ` <span class="badge bg-warning-subtle text-warning-emphasis" title="Shares this location with ${p.shares_location_count} other active posting(s)"><i class="bi bi-geo-alt"></i> shared location</span>` : ''}</td>
+            <td>${jpEscapeHtml(p.department_group || p.department)}</td>
             <td>${jpFormatDate(p.open_until)}</td>
             <td>${jpEscapeHtml(p.creator_first)} ${jpEscapeHtml(p.creator_last)}</td>
             <td>${jpStatusBadge(p.status)}</td>
@@ -166,11 +208,11 @@ function openFormModal(posting) {
     document.getElementById('postingId').value = posting ? posting.id : '';
     document.getElementById('postingFormTitle').textContent = posting ? 'Edit Job Posting' : 'New Job Posting';
     document.getElementById('postingTitle').value = posting ? posting.title : '';
-    document.getElementById('postingDepartment').value = posting ? posting.department : '';
-    window.refreshSearchableSelect && window.refreshSearchableSelect('postingDepartment');
+    document.getElementById('postingDepartmentGroup').value = posting ? (posting.department_group || '') : '';
+    window.refreshSearchableSelect && window.refreshSearchableSelect('postingDepartmentGroup');
+    populatePositionOptions(posting ? (posting.department_group || '') : '', posting ? posting.department : null);
     document.getElementById('postingRole').value = posting ? posting.role : '';
     document.getElementById('postingLocation').value = posting ? (posting.location || '') : '';
-    document.getElementById('postingEmploymentType').value = posting ? (posting.employment_type || 'Full-Time') : 'Full-Time';
     document.getElementById('postingSlots').value = posting && posting.slots !== null ? posting.slots : '';
     document.getElementById('postingDescription').value = posting ? posting.description : '';
     document.getElementById('postingRequirements').value = posting ? (posting.requirements || '') : '';
@@ -195,10 +237,10 @@ function collectFormPayload() {
     return {
         id: document.getElementById('postingId').value || undefined,
         title: document.getElementById('postingTitle').value.trim(),
+        department_group: document.getElementById('postingDepartmentGroup').value.trim(),
         department: document.getElementById('postingDepartment').value.trim(),
         role: document.getElementById('postingRole').value.trim(),
         location: document.getElementById('postingLocation').value.trim(),
-        employment_type: document.getElementById('postingEmploymentType').value,
         slots: document.getElementById('postingSlots').value,
         description: document.getElementById('postingDescription').value.trim(),
         requirements: document.getElementById('postingRequirements').value.trim(),
@@ -229,7 +271,7 @@ function submitForm(alsoSubmit) {
         .then(data => {
             jpBusy = false;
             if (!data.success) {
-                const errs = data.data ? Object.values(data.data).join(' ') : '';
+                const errs = data.errors ? Object.values(data.errors).join(' ') : '';
                 alertBox.innerHTML = `<div class="alert alert-danger small">${jpEscapeHtml(data.message)} ${jpEscapeHtml(errs)}</div>`;
                 return;
             }
@@ -299,8 +341,10 @@ function renderDetail(p) {
         <div class="row mb-2">
             <div class="col-md-6">
                 <p class="mb-1"><strong>Title:</strong> ${jpEscapeHtml(p.title)}</p>
-                <p class="mb-1"><strong>Department:</strong> ${jpEscapeHtml(p.department)}</p>
+                <p class="mb-1"><strong>Department:</strong> ${jpEscapeHtml(p.department_group || '—')}</p>
+                <p class="mb-1"><strong>Position:</strong> ${jpEscapeHtml(p.department)}</p>
                 <p class="mb-0"><strong>Role Key:</strong> ${jpEscapeHtml(p.role)}</p>
+                ${p.shares_location_count > 0 ? `<p class="mb-0 mt-1"><span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-geo-alt"></i> Shares location "${jpEscapeHtml(p.location || '')}" with ${p.shares_location_count} other active posting(s)</span></p>` : ''}
             </div>
             <div class="col-md-6">
                 <p class="mb-1"><strong>Status:</strong> ${jpStatusBadge(p.status)}</p>

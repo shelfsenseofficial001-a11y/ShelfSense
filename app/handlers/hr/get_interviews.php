@@ -104,6 +104,12 @@ try {
         $traineeMap[$row['applicant_id']] = true;
     }
 
+    $contractMap = [];
+    $contractStmt = $db->query("SELECT DISTINCT applicant_id FROM contracts");
+    while ($row = $contractStmt->fetch()) {
+        $contractMap[$row['applicant_id']] = true;
+    }
+
     // 'contract' is a removed stage kept only for historical records -- no
     // new interviews of this type can be created (see schedule_interview.php).
     $typeLabels = [
@@ -141,10 +147,15 @@ try {
         if ($interview['interview_type'] === 'initial') {
             $interview['has_final_interview'] = isset($finalMap[$interview['applicant_id']]);
             $interview['is_current_hr'] = ($interview['hr_user_id'] == $currentUserId);
+            // Trainer assignment now happens right after Initial passes (not
+            // after Final -- Final only happens after 3 months of training,
+            // gated on applicants.status = 'screening_success' in
+            // schedule_interview.php), so this is the flag that matters here.
+            $interview['has_trainee_account'] = isset($traineeMap[$interview['applicant_id']]);
         }
 
         if ($interview['interview_type'] === 'final') {
-            $interview['has_trainee_account'] = isset($traineeMap[$interview['applicant_id']]);
+            $interview['has_contract'] = isset($contractMap[$interview['applicant_id']]);
         }
 
         if ($interview['interview_type'] === 'contract') {

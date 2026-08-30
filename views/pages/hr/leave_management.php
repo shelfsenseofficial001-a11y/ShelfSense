@@ -100,6 +100,7 @@ $content = <<<'EOT'
             <option value="sick">Sick Leave</option>
             <option value="vacation">Vacation Leave</option>
             <option value="emergency">Emergency Leave</option>
+            <option value="maternity">Maternity Leave</option>
             <option value="other">Other Leave</option>
         </select>
     </div>

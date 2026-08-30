@@ -106,6 +106,12 @@ if (!in_array($applicant['status'], $validStatuses[$interviewType])) {
 }
 
 if ($interviewType === 'final') {
+    // The Owner is always present at the Final Interview, so only HR Head
+    // (who coordinates with the Owner) may schedule it -- not HR Staff.
+    if (!Auth::isHRHead() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Only HR Head may schedule the Final Interview.');
+    }
+
     $interviewModel = new Interview();
     $initialInterview = $interviewModel->getInitialInterview($applicantId);
 
@@ -198,6 +204,21 @@ try {
         error_log("Interview email sent to: " . $applicant['email'] . " for " . $interviewType . " interview");
     } else {
         error_log("Interview email failed: " . $result['message'] . " for applicant: " . $applicant['email']);
+    }
+
+    // The Owner is always present at the Final Interview -- notify them
+    // in-app and by email the moment HR Head schedules it.
+    if ($interviewType === 'final') {
+        $ownerStmt = $db->prepare("SELECT user_id, first_name, email FROM users WHERE role = 'owner' AND is_active = 1");
+        $ownerStmt->execute();
+        foreach ($ownerStmt->fetchAll() as $owner) {
+            createNotification($owner['user_id'], 'final_interview_scheduled', "Final Interview scheduled for {$applicant['first_name']} {$applicant['last_name']} on " . date('F j, Y h:i A', strtotime($scheduledDate)) . ".", "?page=hr_interviews");
+            $mailer->send(
+                $owner['email'],
+                "Final Interview Scheduled - {$applicant['first_name']} {$applicant['last_name']}",
+                "<p>Dear {$owner['first_name']},</p><p>A Final Interview has been scheduled for <strong>{$applicant['first_name']} {$applicant['last_name']}</strong> ({$applicant['target_role']}) on <strong>" . date('F j, Y h:i A', strtotime($scheduledDate)) . "</strong>.</p><p>Join via Google Meet: <a href=\"{$gmeetLink}\">{$gmeetLink}</a></p><p>Your presence is required, as always, for the Final Interview.</p>"
+            );
+        }
     }
 } catch (Exception $e) {
     error_log('Failed to send interview email: ' . $e->getMessage());

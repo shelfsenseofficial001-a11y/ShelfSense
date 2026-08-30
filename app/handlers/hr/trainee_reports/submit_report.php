@@ -32,6 +32,11 @@ $recommendation = isset($input['recommendation']) ? trim($input['recommendation'
 if ($traineeId <= 0 || $weekNumber <= 0) {
     Response::error('Invalid trainee or week number', 400);
 }
+// Training is fixed at exactly 3 months / 12 weekly reports (4 per month) --
+// never fewer, never more.
+if ($weekNumber > 12) {
+    Response::error('Only 12 weekly reports are expected over the 3-month training period.', 400);
+}
 if ($content === '' || mb_strlen($content) > 5000) {
     Response::error('Report content is required (max 5000 characters).', 400);
 }

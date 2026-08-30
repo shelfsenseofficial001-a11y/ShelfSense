@@ -137,6 +137,22 @@ class Mailer
         return $this->send($user['email'], $subject, $body);
     }
 
+    /** Sent to the applicant once their Trainee Contract terms are set and a trainer is assigned. */
+    public function sendTraineeContractNotice($applicant, $terms)
+    {
+        $subject = "Your Trainee Contract - ShelfSense";
+        $body = $this->getTraineeContractTemplate($applicant, $terms);
+        return $this->send($applicant['email'], $subject, $body);
+    }
+
+    /** Sent to the trainer when they're assigned a new trainee. */
+    public function sendTrainerAssignmentNotice($trainer, $traineeName, $targetRole)
+    {
+        $subject = "New Trainee Assigned - ShelfSense";
+        $body = $this->getTrainerAssignmentTemplate($trainer, $traineeName, $targetRole);
+        return $this->send($trainer['email'], $subject, $body);
+    }
+
     // ============================================
     // EMAIL TEMPLATES
     // ============================================
@@ -274,6 +290,44 @@ class Mailer
                 <p style='font-size:12px;color:#6b7280;'>Please enter this OTP on the password reset page to set a new password.</p>
             </div>
         ", "Password Reset OTP - ShelfSense");
+    }
+
+    private function getTraineeContractTemplate($applicant, $terms)
+    {
+        return $this->getLayout("
+            <div style='text-align:center;padding:20px;background:#facc15;border-radius:8px 8px 0 0;'>
+                <h2 style='margin:0;color:#1a1a1a;'>📄 Your Trainee Contract</h2>
+            </div>
+            <div style='padding:20px;background:#ffffff;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;'>
+                <p>Dear <strong>{$applicant['first_name']}</strong>,</p>
+                <p>Congratulations on passing your initial interview! Here are your Trainee Contract terms as discussed:</p>
+                <ul>
+                    <li><strong>Trainer:</strong> {$terms['trainer_name']}</li>
+                    <li><strong>Salary:</strong> ₱" . number_format($terms['salary'], 2) . "</li>
+                    <li><strong>Working Hours:</strong> {$terms['schedule_start']} – {$terms['schedule_end']} (5 hours/day)</li>
+                    <li><strong>Rest Days:</strong> {$terms['rest_days']}</li>
+                    <li><strong>Training Period:</strong> {$terms['start_date']} to {$terms['end_date']} (3 months)</li>
+                </ul>
+                <hr style='border:none;border-top:1px solid #e5e7eb;'>
+                <p style='font-size:12px;color:#6b7280;'>Please log in to the portal for more details.</p>
+            </div>
+        ", "Your Trainee Contract - ShelfSense");
+    }
+
+    private function getTrainerAssignmentTemplate($trainer, $traineeName, $targetRole)
+    {
+        return $this->getLayout("
+            <div style='text-align:center;padding:20px;background:#facc15;border-radius:8px 8px 0 0;'>
+                <h2 style='margin:0;color:#1a1a1a;'>🎓 New Trainee Assigned</h2>
+            </div>
+            <div style='padding:20px;background:#ffffff;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;'>
+                <p>Dear <strong>{$trainer['first_name']}</strong>,</p>
+                <p>You have been assigned as the trainer for <strong>{$traineeName}</strong> (target role: {$targetRole}).</p>
+                <p>Please prepare to submit weekly training reports for this trainee over the next 3 months.</p>
+                <hr style='border:none;border-top:1px solid #e5e7eb;'>
+                <p style='font-size:12px;color:#6b7280;'>Please log in to the portal for more details.</p>
+            </div>
+        ", "New Trainee Assigned - ShelfSense");
     }
 
     private function getLayout($content, $subject)

@@ -1097,7 +1097,56 @@ body.swal2-shown > .modal-backdrop {
     background: #78350f;
     color: #fcd34d;
 }
+[data-bs-theme="dark"] .leave-type-badge.maternity {
+    background: #831843;
+    color: #f9a8d4;
+}
 [data-bs-theme="dark"] .leave-type-badge.other {
     background: #3b1e5f;
     color: #c4b5fd;
+}
+
+/* ==========================================================================
+   SWEETALERT2 - DARK MODE
+   Swal ships its own light-mode-only popup styling; without this override,
+   dark mode renders dark text on a dark background (or vice versa).
+   ========================================================================== */
+[data-bs-theme="dark"] .swal2-popup {
+    background: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    border: 1px solid var(--border-color);
+}
+[data-bs-theme="dark"] .swal2-title,
+[data-bs-theme="dark"] .swal2-html-container,
+[data-bs-theme="dark"] .swal2-close {
+    color: var(--text-main) !important;
+}
+[data-bs-theme="dark"] .swal2-input,
+[data-bs-theme="dark"] .swal2-textarea,
+[data-bs-theme="dark"] .swal2-select {
+    background: var(--bg-card-subtle) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+[data-bs-theme="dark"] .swal2-input::placeholder,
+[data-bs-theme="dark"] .swal2-textarea::placeholder {
+    color: var(--text-muted) !important;
+}
+[data-bs-theme="dark"] .swal2-actions .swal2-cancel {
+    background: #3f3922 !important;
+    color: var(--text-main) !important;
+}
+[data-bs-theme="dark"] .swal2-timer-progress-bar {
+    background: var(--brand-yellow) !important;
+}
+
+/* Outline-dark buttons (e.g. "Mark Not Hiring") are unreadable against a
+   dark-mode card/modal background — flip them to a visible outline. */
+[data-bs-theme="dark"] .btn-outline-dark {
+    color: var(--text-main) !important;
+    border-color: var(--border-color) !important;
+}
+[data-bs-theme="dark"] .btn-outline-dark:hover {
+    background: var(--bg-card-subtle) !important;
+    color: var(--text-main) !important;
 }
