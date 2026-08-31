@@ -1,7 +1,10 @@
 <?php
 namespace App\Models;
 
+require_once __DIR__ . '/../core/CutoffPeriod.php';
+
 use App\Core\Database;
+use App\Core\CutoffPeriod;
 
 class StoreRequisition
 {
@@ -40,7 +43,7 @@ class StoreRequisition
             $data['created_by'],
             $data['supplier_id'],
             $data['department'] ?? 'store',
-            $data['budget_month_year'] ?? date('Y-m'),
+            $data['budget_month_year'] ?? CutoffPeriod::getCurrentKey(),
             $data['order_date'],
             $data['expected_delivery'] ?? null,
             $data['notes'] ?? null,

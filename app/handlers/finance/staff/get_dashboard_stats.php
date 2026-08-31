@@ -7,10 +7,12 @@ require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/StoreRequisition.php';
 require_once __DIR__ . '/../../../models/PaymentRequest.php';
 require_once __DIR__ . '/../../../models/Budget.php';
+require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\StoreRequisition;
 use App\Models\PaymentRequest;
 use App\Models\Budget;
@@ -40,7 +42,7 @@ try {
     $pendingCount = count($pendingRows);
     $exceededCount = 0;
     foreach ($pendingRows as $row) {
-        $bs = $budgetModel->getBudgetStatus($row['department'] ?: 'store', $row['budget_month_year'] ?: date('Y-m'), (float)$row['total']);
+        $bs = $budgetModel->getBudgetStatus($row['department'] ?: 'store', $row['budget_month_year'] ?: CutoffPeriod::getCurrentKey(), (float)$row['total']);
         if ($bs['exceeded']) $exceededCount++;
     }
 
@@ -51,7 +53,7 @@ try {
     // Budget for the primary department (store) this month — the dashboard's single
     // headline bar. Other departments are visible on the full Budget View page.
     $department = 'store';
-    $monthYear = date('Y-m');
+    $monthYear = CutoffPeriod::getCurrentKey();
     $budgetStatus = $budgetModel->getBudgetStatus($department, $monthYear);
 
     // Recent activity (last 5 notifications for this user)

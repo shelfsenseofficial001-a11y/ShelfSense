@@ -34,9 +34,7 @@ try {
     $halves = $model->getHalves($year, $month);
     $period = $halves[$half - 1];
 
-    $monthYear = sprintf('%04d-%02d', $year, $month);
-
-    $split = $model->computeDraft($period['start_date'], $period['end_date'], $period['label'], $monthYear, Auth::userId());
+    $split = $model->computeDraft($period['start_date'], $period['end_date'], $period['label'], $period['key'], Auth::userId());
 
     Response::success(['split' => $split], 'Revenue split computed');
 } catch (Exception $e) {

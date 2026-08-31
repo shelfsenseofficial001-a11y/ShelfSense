@@ -1,7 +1,10 @@
 <?php
 namespace App\Models;
 
+require_once __DIR__ . '/../core/CutoffPeriod.php';
+
 use App\Core\Database;
+use App\Core\CutoffPeriod;
 
 class RevenueSplit
 {
@@ -89,36 +92,13 @@ class RevenueSplit
     }
 
     // ------------------------------------------------------------------
-    // Cutoff periods (same semi-monthly halves used by payroll: 1-15/16,
-    // 16-30/31, calendar-aware for February)
+    // Cutoff periods (same semi-monthly halves used by payroll and the
+    // department budgets system -- see App\Core\CutoffPeriod)
     // ------------------------------------------------------------------
 
     public function getHalves($year, $month)
     {
-        $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-        $mid = $daysInMonth >= 30 ? ($daysInMonth === 31 ? 16 : 15) : 15;
-
-        $half1Start = sprintf('%04d-%02d-01', $year, $month);
-        $half1End = sprintf('%04d-%02d-%02d', $year, $month, $mid - 1);
-        $half2Start = sprintf('%04d-%02d-%02d', $year, $month, $mid);
-        $half2End = sprintf('%04d-%02d-%02d', $year, $month, $daysInMonth);
-
-        $monthName = date('F', mktime(0, 0, 0, $month, 1, $year));
-
-        return [
-            [
-                'half' => 1,
-                'start_date' => $half1Start,
-                'end_date' => $half1End,
-                'label' => "$monthName 1-" . ($mid - 1) . ", $year"
-            ],
-            [
-                'half' => 2,
-                'start_date' => $half2Start,
-                'end_date' => $half2End,
-                'label' => "$monthName $mid-$daysInMonth, $year"
-            ]
-        ];
+        return CutoffPeriod::getHalves($year, $month);
     }
 
     // ------------------------------------------------------------------
@@ -172,7 +152,7 @@ class RevenueSplit
      * per-department share breakdown using the current rules. Not written to
      * `budgets` yet -- that only happens on apply().
      */
-    public function computeDraft($periodStart, $periodEnd, $periodLabel, $monthYear, $userId)
+    public function computeDraft($periodStart, $periodEnd, $periodLabel, $budgetPeriod, $userId)
     {
         $totalRevenue = $this->getTotalRevenue($periodStart, $periodEnd);
         $rules = $this->getRules();
@@ -216,19 +196,19 @@ class RevenueSplit
                 $splitId = $existingDraft['id'];
                 $stmt = $this->db->prepare("
                     UPDATE revenue_splits
-                    SET total_revenue = ?, period_label = ?, month_year = ?, computed_by = ?, computed_at = NOW()
+                    SET total_revenue = ?, period_label = ?, budget_period = ?, computed_by = ?, computed_at = NOW()
                     WHERE id = ?
                 ");
-                $stmt->execute([$totalRevenue, $periodLabel, $monthYear, $userId, $splitId]);
+                $stmt->execute([$totalRevenue, $periodLabel, $budgetPeriod, $userId, $splitId]);
 
                 $stmt = $this->db->prepare("DELETE FROM revenue_split_shares WHERE revenue_split_id = ?");
                 $stmt->execute([$splitId]);
             } else {
                 $stmt = $this->db->prepare("
-                    INSERT INTO revenue_splits (period_start, period_end, period_label, month_year, total_revenue, computed_by)
+                    INSERT INTO revenue_splits (period_start, period_end, period_label, budget_period, total_revenue, computed_by)
                     VALUES (?, ?, ?, ?, ?, ?)
                 ");
-                $stmt->execute([$periodStart, $periodEnd, $periodLabel, $monthYear, $totalRevenue, $userId]);
+                $stmt->execute([$periodStart, $periodEnd, $periodLabel, $budgetPeriod, $totalRevenue, $userId]);
                 $splitId = $this->db->lastInsertId();
             }
 
@@ -266,7 +246,7 @@ class RevenueSplit
 
     /**
      * Apply a draft split: for each department share, add the amount on top of
-     * that department's current allocated_budget for the split's month_year
+     * that department's current allocated_budget for the split's cutoff period
      * (via Budget::adjustAllocation, which already writes a budget_adjustments
      * audit row), then lock the split as 'applied'.
      */
@@ -293,11 +273,11 @@ class RevenueSplit
         // already applied stay applied (visible in budget_adjustments) and
         // the split stays 'draft' so Finance Head can see and retry it.
         foreach ($split['shares'] as $share) {
-            $current = $budgetModel->getOrCreate($share['department'], $split['month_year']);
+            $current = $budgetModel->getOrCreate($share['department'], $split['budget_period']);
             $newAmount = round((float)$current['allocated_budget'] + (float)$share['amount'], 2);
             $budgetModel->adjustAllocation(
                 $share['department'],
-                $split['month_year'],
+                $split['budget_period'],
                 $newAmount,
                 $userId,
                 "Revenue split for {$split['period_label']} (+" . number_format($share['amount'], 2) . ")"

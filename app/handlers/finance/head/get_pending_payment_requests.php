@@ -6,10 +6,12 @@ require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/Budget.php';
+require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\Budget;
 
 header('Content-Type: application/json');
@@ -110,7 +112,7 @@ try {
             // must not be subtracted from availability twice.
             $req['budget_status'] = $budgetModel->getBudgetStatus(
                 $req['department'] ?: 'store',
-                $req['budget_month_year'] ?: date('Y-m'),
+                $req['budget_month_year'] ?: CutoffPeriod::getCurrentKey(),
                 (float)$req['requisition_total'],
                 $req['requisition_id']
             );

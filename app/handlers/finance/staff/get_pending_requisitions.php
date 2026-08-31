@@ -6,10 +6,12 @@ require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/StoreRequisition.php';
 require_once __DIR__ . '/../../../models/Budget.php';
+require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\StoreRequisition;
 use App\Models\Budget;
 
@@ -92,7 +94,7 @@ try {
             $req['item_count'] = (int)$stmt->fetchColumn();
 
             $dept = $req['department'] ?: 'store';
-            $monthYear = $req['budget_month_year'] ?: date('Y-m');
+            $monthYear = $req['budget_month_year'] ?: CutoffPeriod::getCurrentKey();
             $budgetStatus = $budgetModel->getBudgetStatus($dept, $monthYear, (float)$req['total']);
             $req['budget_status'] = $budgetStatus;
         }
@@ -131,7 +133,7 @@ try {
         $rows = $stmt->fetchAll();
         $exceededCount = 0;
         foreach ($rows as $row) {
-            $bs = $budgetModel->getBudgetStatus($row['department'] ?: 'store', $row['budget_month_year'] ?: date('Y-m'), (float)$row['total']);
+            $bs = $budgetModel->getBudgetStatus($row['department'] ?: 'store', $row['budget_month_year'] ?: CutoffPeriod::getCurrentKey(), (float)$row['total']);
             if ($bs['exceeded']) $exceededCount++;
         }
         $toReviewCount = count($rows) - $exceededCount;

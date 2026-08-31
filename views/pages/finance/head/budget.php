@@ -1,16 +1,25 @@
 <?php
+require_once __DIR__ . '/../../../../app/core/CutoffPeriod.php';
+
+use App\Core\CutoffPeriod;
+
 $title = 'Budget Management - Finance Head';
 $pageTitle = 'Budget Management';
 $activePage = 'head_budget';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260829181340"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260901010000"></script>';
 
-$defaultMonth = date('Y-m');
+$defaultPeriod = CutoffPeriod::getCurrentKey();
+$periodOptionsHtml = '';
+foreach (CutoffPeriod::getRecentHalves(2, 1) as $half) {
+    $selected = $half['key'] === $defaultPeriod ? ' selected' : '';
+    $periodOptionsHtml .= '<option value="' . htmlspecialchars($half['key']) . '"' . $selected . '>' . htmlspecialchars($half['label']) . '</option>';
+}
 
 $content = <<<EOT
 <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div class="d-flex align-items-center gap-2 flex-wrap">
         <label class="form-label fw-semibold mb-0">Period:</label>
-        <input type="month" id="monthFilter" class="form-control form-control-sm" style="max-width:180px;" value="{$defaultMonth}">
+        <select id="monthFilter" class="form-select form-select-sm" style="max-width:220px;">{$periodOptionsHtml}</select>
         <label class="form-label fw-semibold mb-0 ms-2">Department:</label>
         <select id="departmentFilter" class="form-select form-select-sm searchable-select" style="min-width:160px;" data-placeholder="All departments"></select>
     </div>
@@ -43,8 +52,8 @@ $content = <<<EOT
                     <select id="budgetDepartment" class="form-select searchable-select" required></select>
                 </div>
                 <div class="mb-2">
-                    <label class="form-label fw-semibold">Month</label>
-                    <input type="month" id="budgetMonth" class="form-control" value="{$defaultMonth}" required>
+                    <label class="form-label fw-semibold">Cutoff Period</label>
+                    <select id="budgetMonth" class="form-select" required>{$periodOptionsHtml}</select>
                 </div>
                 <div id="currentBudgetInfo" class="small text-muted mb-2"></div>
                 <div class="mb-2">

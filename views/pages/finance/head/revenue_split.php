@@ -2,7 +2,7 @@
 $title = 'Revenue Split - Finance Head';
 $pageTitle = 'Revenue Split';
 $activePage = 'head_revenue_split';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/revenue_split.js?v=20260831440000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/revenue_split.js?v=20260901010000"></script>';
 
 $defaultMonthPicker = date('Y-m');
 
@@ -11,11 +11,10 @@ $content = <<<EOT
     <div class="col-lg-5">
         <div class="modern-card p-3">
             <h6 class="fw-bold mb-3"><i class="bi bi-sliders text-yellow me-2"></i>Split Rules</h6>
-            <p class="text-muted small">Percentage of total store revenue each department gets per cutoff. One department must be the remainder (gets whatever's left).</p>
+            <p class="text-muted small">Percentage of total store revenue each department gets per cutoff. General Budget always absorbs whatever's left.</p>
             <div id="rsRulesTable">
                 <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary" role="status"></div></div>
             </div>
-            <button class="btn btn-yellow-outline btn-sm mt-2" id="rsAddRuleBtn"><i class="bi bi-plus-circle"></i> Add Department</button>
             <button class="btn btn-yellow-primary btn-sm mt-2 w-100" id="rsSaveRulesBtn"><i class="bi bi-save"></i> Save Rules</button>
             <div id="rsRulesMessage" class="mt-2"></div>
         </div>

@@ -6,10 +6,12 @@ require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/PaymentRequest.php';
 require_once __DIR__ . '/../../../models/Budget.php';
+require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\PaymentRequest;
 use App\Models\Budget;
 
@@ -27,23 +29,28 @@ try {
     $db = Database::getInstance()->getConnection();
     $paymentRequestModel = new PaymentRequest();
     $budgetModel = new Budget();
-    $monthYear = date('Y-m');
+    // "This month" KPIs below are a plain calendar-month count (independent of
+    // the budget cutoff period), while budget status is looked up for the
+    // CURRENT cutoff half specifically -- these are two different period
+    // concepts and must not share one variable.
+    $calendarMonth = date('Y-m');
+    $cutoffKey = CutoffPeriod::getCurrentKey();
 
     $pending = (int)$paymentRequestModel->getCountByStatus('pending');
 
     $stmt = $db->prepare("SELECT COUNT(*) as c FROM payment_requests WHERE status = 'approved' AND DATE_FORMAT(approved_at, '%Y-%m') = ?");
-    $stmt->execute([$monthYear]);
+    $stmt->execute([$calendarMonth]);
     $approvedThisMonth = (int)$stmt->fetch()['c'];
 
     // No dedicated rejected_at column — updated_at reflects the moment status was
     // last changed, which for a rejected request is truthfully the rejection time.
     $stmt = $db->prepare("SELECT COUNT(*) as c FROM payment_requests WHERE status = 'rejected' AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
-    $stmt->execute([$monthYear]);
+    $stmt->execute([$calendarMonth]);
     $rejectedThisMonth = (int)$stmt->fetch()['c'];
 
     // Real per-department budget status (same definitions as Finance Staff's budget model).
-    $departments = $budgetModel->getAllDepartmentsStatus($monthYear);
-    $nearLimit = $budgetModel->getDepartmentsNearLimit($monthYear, 80.0);
+    $departments = $budgetModel->getAllDepartmentsStatus($cutoffKey);
+    $nearLimit = $budgetModel->getDepartmentsNearLimit($cutoffKey, 80.0);
 
     $allocatedSum = 0.0;
     $committedSum = 0.0; // used + reserved, across departments that have an allocation
@@ -79,7 +86,7 @@ try {
             'approved_this_month' => $approvedThisMonth,
             'rejected_this_month' => $rejectedThisMonth,
             'budget_used_percentage' => $overallUsedPercentage,
-            'month_year' => $monthYear
+            'month_year' => $cutoffKey
         ],
         'budget_departments' => $departments,
         'departments_near_limit' => $nearLimit,

@@ -111,13 +111,13 @@ function renderDashboard(data) {
         <div class="fn-budget-warning mb-4">
             <i class="bi bi-exclamation-triangle-fill me-1"></i>
             <strong>${nearLimit.length}</strong> department${nearLimit.length > 1 ? 's are' : ' is'} at or above 80% of its allocated budget:
-            ${nearLimit.map(d => `${fnEscapeHtml(d.department)} (${d.used_percentage}%)`).join(', ')}.
+            ${nearLimit.map(d => `${fnEscapeHtml(fnDeptLabel(d.department))} (${d.used_percentage}%)`).join(', ')}.
         </div>
         ` : ''}
 
         <!-- Budget Overview -->
         <div class="modern-card p-3 mb-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart text-yellow me-2"></i>Budget Overview (${fnEscapeHtml(stats.month_year)})</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart text-yellow me-2"></i>Budget Overview (${fnEscapeHtml(fnCutoffLabel(stats.month_year))})</h6>
             ${departments.length > 0 ? departments.map(d => fnDeptBudgetRow(d)).join('') : fnEmptyState('No department budgets found for this period.')}
         </div>
 
@@ -144,7 +144,7 @@ function fnDeptBudgetRow(d) {
         return `
             <div class="mb-3">
                 <div class="d-flex justify-content-between small mb-1">
-                    <strong class="text-capitalize">${fnEscapeHtml(d.department)}</strong>
+                    <strong>${fnEscapeHtml(fnDeptLabel(d.department))}</strong>
                     <span class="text-muted">No budget allocated</span>
                 </div>
             </div>

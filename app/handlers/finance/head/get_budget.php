@@ -10,10 +10,12 @@ require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/Budget.php';
 require_once __DIR__ . '/../../../models/StoreRequisition.php';
+require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\Budget;
 use App\Models\StoreRequisition;
 
@@ -27,9 +29,9 @@ if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
     Response::forbidden('Access denied. Finance Head role required.');
 }
 
-$monthYear = isset($_GET['month']) ? trim($_GET['month']) : date('Y-m');
-if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $monthYear)) {
-    Response::error('Invalid month format. Use YYYY-MM.', 400);
+$monthYear = isset($_GET['month']) ? trim($_GET['month']) : CutoffPeriod::getCurrentKey();
+if (!preg_match('/^\d{4}-\d{2}-H[12]$/', $monthYear)) {
+    Response::error('Invalid period. Expected a cutoff key like 2026-08-H1.', 400);
 }
 $department = isset($_GET['department']) ? trim($_GET['department']) : '';
 

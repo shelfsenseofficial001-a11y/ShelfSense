@@ -5,11 +5,9 @@
 console.log('✅ finance/staff/budget.js loaded');
 
 document.addEventListener('DOMContentLoaded', function () {
-    const now = new Date();
-    const defaultMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    document.getElementById('monthFilter').value = defaultMonth;
-
-    loadBudget(defaultMonth);
+    // The period <select> is pre-populated server-side with real cutoff
+    // options and already has the current cutoff selected -- just read it.
+    loadBudget(document.getElementById('monthFilter').value);
 
     document.getElementById('monthFilter').addEventListener('change', function () {
         loadBudget(this.value);
@@ -40,7 +38,7 @@ function renderBudgetTable(budgets, monthYear) {
     const container = document.getElementById('fn-budget-table');
 
     if (!budgets || budgets.length === 0) {
-        container.innerHTML = fnEmptyState(`No budget allocations or requisitions found for ${monthYear}.`);
+        container.innerHTML = fnEmptyState(`No budget allocations or requisitions found for ${fnCutoffLabel(monthYear)}.`);
         return;
     }
 
@@ -60,7 +58,7 @@ function renderBudgetTable(budgets, monthYear) {
                 <tbody>
                     ${budgets.map(b => `
                         <tr>
-                            <td class="fw-semibold text-capitalize">${fnEscapeHtml(b.department)}</td>
+                            <td class="fw-semibold">${fnEscapeHtml(fnDeptLabel(b.department))}</td>
                             <td>${b.has_allocation ? fnCurrency(b.allocated) : '<span class="text-muted">—</span>'}</td>
                             <td>${fnCurrency(b.used)}</td>
                             <td>${fnCurrency(b.reserved)}</td>

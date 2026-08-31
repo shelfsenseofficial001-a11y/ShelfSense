@@ -34,8 +34,8 @@ $reason = isset($input['reason']) ? trim($input['reason']) : '';
 if ($department === '' || strlen($department) > 20 || !preg_match('/^[a-zA-Z0-9_ -]+$/', $department)) {
     Response::error('A valid department is required', 400);
 }
-if (!preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', $monthYear)) {
-    Response::error('Budget period must be a valid YYYY-MM month', 400);
+if (!preg_match('/^\d{4}-\d{2}-H[12]$/', $monthYear)) {
+    Response::error('Budget period must be a valid cutoff key (e.g. 2026-08-H1)', 400);
 }
 if (!is_numeric($amount) || !is_finite((float)$amount) || (float)$amount < 0) {
     Response::error('Budget amount must be a valid number that is 0 or greater', 400);

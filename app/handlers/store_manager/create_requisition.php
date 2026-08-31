@@ -4,10 +4,12 @@
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 
 header('Content-Type: application/json');
 
@@ -82,7 +84,7 @@ try {
         $orderDate,
         $expectedDelivery !== '' ? $expectedDelivery : null,
         $notes,
-        date('Y-m')
+        CutoffPeriod::getCurrentKey()
     ]);
     $requisitionId = $db->lastInsertId();
 

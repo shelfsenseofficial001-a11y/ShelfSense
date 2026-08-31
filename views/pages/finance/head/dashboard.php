@@ -2,7 +2,7 @@
 $title = 'Finance Head Dashboard';
 $pageTitle = 'Head Dashboard';
 $activePage = 'head_dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/dashboard.js?v=20260828210251"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/dashboard.js?v=20260901010000"></script>';
 
 $content = <<<'EOT'
 <div id="dashboardContent">

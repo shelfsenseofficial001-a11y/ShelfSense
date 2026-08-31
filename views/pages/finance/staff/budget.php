@@ -1,14 +1,25 @@
 <?php
+require_once __DIR__ . '/../../../../app/core/CutoffPeriod.php';
+
+use App\Core\CutoffPeriod;
+
 $title = 'Budget Status - Finance Staff';
 $pageTitle = 'Budget Status';
 $activePage = 'staff_budget';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/budget.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/budget.js?v=20260901010000"></script>';
 
-$content = <<<'EOT'
+$defaultPeriod = CutoffPeriod::getCurrentKey();
+$periodOptionsHtml = '';
+foreach (CutoffPeriod::getRecentHalves(2, 1) as $half) {
+    $selected = $half['key'] === $defaultPeriod ? ' selected' : '';
+    $periodOptionsHtml .= '<option value="' . htmlspecialchars($half['key']) . '"' . $selected . '>' . htmlspecialchars($half['label']) . '</option>';
+}
+
+$content = <<<EOT
 <div class="d-flex justify-content-between align-items-center mb-3">
     <div class="d-flex align-items-center gap-2">
         <label class="form-label fw-semibold mb-0">Period:</label>
-        <input type="month" id="monthFilter" class="form-control form-control-sm" style="max-width:180px;">
+        <select id="monthFilter" class="form-select form-select-sm" style="max-width:220px;">{$periodOptionsHtml}</select>
     </div>
     <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
 </div>

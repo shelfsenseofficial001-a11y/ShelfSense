@@ -13,6 +13,36 @@ function fnCurrency(amount) {
     return '₱' + (parseFloat(amount) || 0).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// The four standardized budget departments (see revenue_split_rules) with
+// their display names -- any other department slug (e.g. an older
+// free-text value) just falls back to a capitalized version of itself.
+const FN_DEPARTMENT_LABELS = {
+    hr: 'Human Resources Department',
+    store: 'Store Department',
+    finance: 'Finance Department',
+    general: 'General Budget'
+};
+function fnDeptLabel(dept) {
+    if (!dept) return '';
+    return FN_DEPARTMENT_LABELS[dept] || (dept.charAt(0).toUpperCase() + dept.slice(1));
+}
+
+// Turns a budget cutoff key ("2026-08-H1"/"2026-08-H2") into a human label
+// ("August 1-15, 2026"), mirroring App\Core\CutoffPeriod::describeKey() on
+// the PHP side so raw keys are never shown to users. Falls back to the raw
+// value for anything that isn't a recognized cutoff key (e.g. legacy data).
+function fnCutoffLabel(key) {
+    const m = /^(\d{4})-(\d{2})-H([12])$/.exec(key || '');
+    if (!m) return key || '';
+    const year = parseInt(m[1], 10);
+    const month = parseInt(m[2], 10);
+    const half = parseInt(m[3], 10);
+    const daysInMonth = new Date(year, month, 0).getDate();
+    const mid = daysInMonth >= 30 ? (daysInMonth === 31 ? 16 : 15) : 15;
+    const monthName = new Date(year, month - 1, 1).toLocaleDateString('en-US', { month: 'long' });
+    return half === 1 ? `${monthName} 1-${mid - 1}, ${year}` : `${monthName} ${mid}-${daysInMonth}, ${year}`;
+}
+
 function fnFormatDate(dateStr, withTime = false) {
     if (!dateStr) return '—';
     const d = new Date(dateStr.replace(' ', 'T'));
@@ -123,7 +153,7 @@ function fnBudgetBox(bs) {
             <div class="fn-doc-box">
                 <div class="fn-doc-title">💰 Budget Status</div>
                 <div class="fn-status-badge status-no_budget">No budget allocated</div>
-                <div class="small text-muted mt-1">No allocation exists for ${fnEscapeHtml(bs.department)} / ${fnEscapeHtml(bs.month_year)}. Requested: ${fnCurrency(bs.requested)}.</div>
+                <div class="small text-muted mt-1">No allocation exists for ${fnEscapeHtml(fnDeptLabel(bs.department))} / ${fnEscapeHtml(fnCutoffLabel(bs.month_year))}. Requested: ${fnCurrency(bs.requested)}.</div>
             </div>
         `;
     }
@@ -131,7 +161,7 @@ function fnBudgetBox(bs) {
     const pct = Math.min(100, bs.used_percentage || 0);
     return `
         <div class="fn-doc-box">
-            <div class="fn-doc-title">💰 Budget Status (${fnEscapeHtml(bs.department)} — ${fnEscapeHtml(bs.month_year)})</div>
+            <div class="fn-doc-title">💰 Budget Status (${fnEscapeHtml(fnDeptLabel(bs.department))} — ${fnEscapeHtml(fnCutoffLabel(bs.month_year))})</div>
             <div class="d-flex justify-content-between small mb-1">
                 <span>Allocated: <strong>${fnCurrency(bs.allocated)}</strong></span>
                 <span>Used: <strong>${fnCurrency(bs.used)}</strong></span>

@@ -81,7 +81,7 @@ function renderDashboard(data) {
         </div>
 
         <div class="modern-card p-3 mb-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart text-yellow me-2"></i>Budget Status — ${fnEscapeHtml(s.budget_department)} (${fnEscapeHtml(s.budget_month_year)})</h6>
+            <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart text-yellow me-2"></i>Budget Status — ${fnEscapeHtml(fnDeptLabel(s.budget_department))} (${fnEscapeHtml(fnCutoffLabel(s.budget_month_year))})</h6>
             ${fnBudgetBox(budgetStatus)}
         </div>
 

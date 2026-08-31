@@ -7,10 +7,12 @@ require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/StoreRequisition.php';
 require_once __DIR__ . '/../../../models/Budget.php';
+require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\StoreRequisition;
 use App\Models\Budget;
 
@@ -74,7 +76,7 @@ try {
         : null;
     $requisition['budget_status'] = $budgetModel->getBudgetStatus(
         $requisition['department'] ?: 'store',
-        $requisition['budget_month_year'] ?: date('Y-m'),
+        $requisition['budget_month_year'] ?: CutoffPeriod::getCurrentKey(),
         (float)$requisition['total'],
         $excludeId
     );

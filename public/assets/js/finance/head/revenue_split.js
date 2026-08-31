@@ -13,14 +13,17 @@ document.addEventListener('DOMContentLoaded', function () {
     loadPeriods();
     loadHistory();
 
-    document.getElementById('rsAddRuleBtn').addEventListener('click', addRuleRow);
     document.getElementById('rsSaveRulesBtn').addEventListener('click', saveRules);
     document.getElementById('rsLoadPeriodsBtn').addEventListener('click', loadPeriods);
 });
 
 // ------------------------------------------------------------------
-// Rules
+// Rules — the department list is fixed (HR, Store, Finance, General), not
+// user-extensible: General Budget is always the remainder fallback, so only
+// the other three departments' percentages are ever editable.
 // ------------------------------------------------------------------
+
+const RS_EDITABLE_DEPARTMENTS = ['hr', 'store', 'finance'];
 
 function loadRules() {
     fetch('?page=api_finance_get_revenue_split_rules')
@@ -40,74 +43,54 @@ function loadRules() {
 
 function renderRules() {
     const container = document.getElementById('rsRulesTable');
-    if (rsRules.length === 0) {
-        container.innerHTML = fnEmptyState('No split rules configured yet', 'bi-sliders');
-        return;
-    }
+    const byDept = {};
+    rsRules.forEach(r => { byDept[r.department] = r; });
 
     container.innerHTML = `
         <table class="table table-sm mb-0">
-            <thead><tr><th>Department</th><th>%</th><th>Remainder</th><th></th></tr></thead>
+            <thead><tr><th>Department</th><th>%</th></tr></thead>
             <tbody id="rsRulesBody"></tbody>
         </table>
     `;
     const body = document.getElementById('rsRulesBody');
-    rsRules.forEach((rule, i) => body.appendChild(buildRuleRow(rule, i)));
+    RS_EDITABLE_DEPARTMENTS.forEach(dept => {
+        const rule = byDept[dept] || { department: dept, percentage: 0 };
+        body.appendChild(buildRuleRow(rule));
+    });
+
+    const generalRow = document.createElement('tr');
+    generalRow.innerHTML = `
+        <td>${fnEscapeHtml(fnDeptLabel('general'))}</td>
+        <td class="text-muted small">Remainder (auto)</td>
+    `;
+    body.appendChild(generalRow);
 }
 
-function buildRuleRow(rule, index) {
+function buildRuleRow(rule) {
     const tr = document.createElement('tr');
-    tr.dataset.index = index;
+    tr.dataset.department = rule.department;
     tr.innerHTML = `
-        <td><input type="text" class="form-control form-control-sm rs-dept-input" value="${fnEscapeHtml(rule.department || '')}" maxlength="20" placeholder="e.g. store"></td>
-        <td style="width:110px;"><input type="number" class="form-control form-control-sm rs-pct-input" value="${rule.is_remainder ? '' : (rule.percentage ?? 0)}" min="0" max="100" step="0.01" ${rule.is_remainder ? 'disabled placeholder="auto"' : ''}></td>
-        <td class="text-center" style="width:80px;"><input type="radio" name="rsRemainder" class="form-check-input rs-remainder-radio" ${rule.is_remainder ? 'checked' : ''}></td>
-        <td style="width:40px;"><button type="button" class="btn btn-sm btn-link text-danger rs-remove-row p-0"><i class="bi bi-x-circle"></i></button></td>
+        <td>${fnEscapeHtml(fnDeptLabel(rule.department))}</td>
+        <td style="width:130px;">
+            <div class="input-group input-group-sm">
+                <input type="number" class="form-control rs-pct-input" value="${rule.percentage ?? 0}" min="0" max="100" step="0.01">
+                <span class="input-group-text">%</span>
+            </div>
+        </td>
     `;
-    tr.querySelector('.rs-remainder-radio').addEventListener('change', function () {
-        const pctInput = tr.querySelector('.rs-pct-input');
-        if (this.checked) {
-            pctInput.disabled = true;
-            pctInput.value = '';
-            pctInput.placeholder = 'auto';
-        }
-        document.querySelectorAll('#rsRulesBody tr').forEach(row => {
-            if (row !== tr) {
-                const otherRadio = row.querySelector('.rs-remainder-radio');
-                const otherPct = row.querySelector('.rs-pct-input');
-                if (otherRadio.checked) {
-                    otherRadio.checked = false;
-                }
-                otherPct.disabled = false;
-                if (otherPct.placeholder === 'auto') otherPct.placeholder = '';
-            }
-        });
-    });
-    tr.querySelector('.rs-remove-row').addEventListener('click', () => tr.remove());
     return tr;
 }
 
-function addRuleRow() {
-    const body = document.getElementById('rsRulesBody');
-    if (!body) {
-        rsRules = [{ department: '', percentage: 0, is_remainder: false }];
-        renderRules();
-        return;
-    }
-    body.appendChild(buildRuleRow({ department: '', percentage: 0, is_remainder: false }, body.children.length));
-}
-
 function saveRules() {
-    const rows = document.querySelectorAll('#rsRulesBody tr');
+    const rows = document.querySelectorAll('#rsRulesBody tr[data-department]');
     const rules = [];
     rows.forEach(row => {
-        const department = row.querySelector('.rs-dept-input').value.trim();
-        const isRemainder = row.querySelector('.rs-remainder-radio').checked;
+        const department = row.dataset.department;
         const percentage = parseFloat(row.querySelector('.rs-pct-input').value) || 0;
-        if (department) {
-            rules.push({ department, percentage, is_remainder: isRemainder });
-        }
+        rules.push({ department, percentage, is_remainder: false });
     });
+    // General Budget is always the fixed fallback -- never sent as editable.
+    rules.push({ department: 'general', percentage: 0, is_remainder: true });
 
     const msgEl = document.getElementById('rsRulesMessage');
     const btn = document.getElementById('rsSaveRulesBtn');
@@ -231,7 +214,7 @@ function renderPreview(split) {
             <tbody>
                 ${(split.shares || []).map(s => `
                     <tr>
-                        <td>${fnEscapeHtml(s.department)}</td>
+                        <td>${fnEscapeHtml(fnDeptLabel(s.department))}</td>
                         <td>${s.percentage !== null ? s.percentage + '%' : '<span class="text-muted">remainder</span>'}</td>
                         <td>${fnCurrency(s.amount)}</td>
                     </tr>
@@ -329,7 +312,7 @@ function renderHistory(history) {
                     <tr>
                         <td>${fnEscapeHtml(h.period_label)}</td>
                         <td>${fnCurrency(h.total_revenue)}</td>
-                        <td class="small">${(h.shares || []).map(s => `${fnEscapeHtml(s.department)}: ${fnCurrency(s.amount)}`).join(', ')}</td>
+                        <td class="small">${(h.shares || []).map(s => `${fnEscapeHtml(fnDeptLabel(s.department))}: ${fnCurrency(s.amount)}`).join(', ')}</td>
                         <td><span class="fn-status-badge status-${h.status === 'applied' ? 'approved' : 'pending'}">${h.status === 'applied' ? 'Applied' : 'Draft'}</span></td>
                         <td class="small text-muted">${fnFormatDate(h.computed_at)}</td>
                     </tr>

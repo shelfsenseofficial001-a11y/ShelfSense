@@ -45,7 +45,9 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 
 function currentMonth() {
-    return document.getElementById('monthFilter').value || new Date().toISOString().slice(0, 7);
+    // The period <select> is always pre-populated server-side with the
+    // current cutoff selected, so .value is never actually empty in practice.
+    return document.getElementById('monthFilter').value;
 }
 function currentDepartment() {
     return document.getElementById('departmentFilter').value || '';
@@ -96,13 +98,22 @@ function populateDepartmentSelects(selectedDept) {
 }
 
 function fhbDeptLabel(d) {
-    return d.charAt(0).toUpperCase() + d.slice(1);
+    return fnDeptLabel(d);
+}
+
+// The period pickers are <select> elements pre-populated server-side with a
+// real human label per cutoff ("August 1-15, 2026") as the option text --
+// reuse that instead of re-deriving date math from the raw key in JS.
+function fhbPeriodLabel(selectId) {
+    const sel = document.getElementById(selectId || 'monthFilter');
+    const opt = sel && sel.selectedOptions[0];
+    return opt ? opt.textContent : '';
 }
 
 function renderOverviewTable(statuses, monthYear) {
     const container = document.getElementById('fn-overview-table');
     if (!statuses || statuses.length === 0) {
-        container.innerHTML = fnEmptyState(`No departments found for ${monthYear}.`);
+        container.innerHTML = fnEmptyState(`No departments found for ${fhbPeriodLabel()}.`);
         return;
     }
     container.innerHTML = `
@@ -116,7 +127,7 @@ function renderOverviewTable(statuses, monthYear) {
                 <tbody>
                     ${statuses.map(d => `
                         <tr>
-                            <td class="fw-semibold text-capitalize">${fnEscapeHtml(d.department)}</td>
+                            <td class="fw-semibold">${fnEscapeHtml(fhbDeptLabel(d.department))}</td>
                             <td>${d.has_allocation ? fnCurrency(d.allocated) : '<span class="text-muted">—</span>'}</td>
                             <td>${fnCurrency(d.used)}</td>
                             <td>${fnCurrency(d.reserved)}</td>
@@ -153,12 +164,12 @@ function renderUsageTable(usage, department, monthYear) {
         return;
     }
     if (!usage || usage.length === 0) {
-        container.innerHTML = fnEmptyState(`No requisitions booked against ${fhbDeptLabel(department)} for ${monthYear}.`);
+        container.innerHTML = fnEmptyState(`No requisitions booked against ${fhbDeptLabel(department)} for ${fhbPeriodLabel()}.`);
         return;
     }
     const total = usage.reduce((sum, r) => sum + parseFloat(r.total || 0), 0);
     container.innerHTML = `
-        <p class="text-muted small mb-2">Department: <strong class="text-capitalize">${fnEscapeHtml(department)}</strong> — Period: <strong>${fnEscapeHtml(monthYear)}</strong></p>
+        <p class="text-muted small mb-2">Department: <strong>${fnEscapeHtml(fhbDeptLabel(department))}</strong> — Period: <strong>${fnEscapeHtml(fhbPeriodLabel())}</strong></p>
         <div class="table-responsive">
             <table class="table table-sm table-hover">
                 <thead><tr><th>Requisition #</th><th>Supplier</th><th>Amount</th><th>Date</th><th>Status</th></tr></thead>
@@ -307,12 +318,12 @@ function renderAdjustmentHistory(rows) {
     container.innerHTML = rows.map(a => `
         <div class="border-bottom py-2 small">
             <div class="d-flex justify-content-between">
-                <strong class="text-capitalize">${fnEscapeHtml(a.department)}</strong>
+                <strong>${fnEscapeHtml(fhbDeptLabel(a.department))}</strong>
                 <span class="text-muted">${fnFormatDate(a.created_at, true)}</span>
             </div>
             <div>${fnCurrency(a.previous_allocated)} → ${fnCurrency(a.new_allocated)}
                 <span class="${a.adjustment_amount >= 0 ? 'text-success' : 'text-danger'}">(${a.adjustment_amount >= 0 ? '+' : ''}${fnCurrency(a.adjustment_amount)})</span>
-                — ${fnEscapeHtml(a.month_year)}
+                — ${fnEscapeHtml(fnCutoffLabel(a.month_year))}
             </div>
             <div class="text-muted">By ${fnEscapeHtml(a.first_name)} ${fnEscapeHtml(a.last_name)}${a.reason ? ' — ' + fnEscapeHtml(a.reason) : ''}</div>
         </div>

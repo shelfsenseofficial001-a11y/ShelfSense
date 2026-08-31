@@ -7,10 +7,12 @@ require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/StoreRequisition.php';
 require_once __DIR__ . '/../../../models/Budget.php';
 require_once __DIR__ . '/../../../models/PaymentRequest.php';
+require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\StoreRequisition;
 use App\Models\Budget;
 use App\Models\PaymentRequest;
@@ -76,7 +78,7 @@ try {
     // (server-computed at creation from real item totals), not anything submitted here.
     $budgetModel = new Budget();
     $department = $requisition['department'] ?? 'store';
-    $monthYear = $requisition['budget_month_year'] ?: date('Y-m');
+    $monthYear = $requisition['budget_month_year'] ?: CutoffPeriod::getCurrentKey();
     $total = floatval($requisition['total']);
 
     // Recalculated fresh, right before creating the request, so a concurrently-created
