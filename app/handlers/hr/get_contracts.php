@@ -98,6 +98,9 @@ try {
         $contract['status_color'] = $statusColors[$contract['status']] ?? 'secondary';
         $contract['formatted_start'] = date('M d, Y', strtotime($contract['start_date']));
         $contract['formatted_salary'] = '₱' . number_format($contract['salary'], 2);
+        $contract['formatted_salary_range'] = ($contract['salary_range_min'] !== null && $contract['salary_range_max'] !== null)
+            ? '₱' . number_format($contract['salary_range_min'], 2) . ' – ₱' . number_format($contract['salary_range_max'], 2)
+            : null;
     }
 
     $statsSql = "SELECT 

@@ -164,9 +164,16 @@ $content = '
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Salary (₱)</label>
-                        <input type="number" name="salary" id="contractSalary" class="form-control" step="0.01" min="0" placeholder="e.g., 15000.00" required>
-                        <div class="form-text" id="salaryHint">Enter a valid salary for the selected role.</div>
+                        <label class="form-label">Salary Range (₱)</label>
+                        <div class="row g-2">
+                            <div class="col-6">
+                                <input type="number" name="salary_min" id="contractSalaryMin" class="form-control" step="0.01" min="0" placeholder="Min" required>
+                            </div>
+                            <div class="col-6">
+                                <input type="number" name="salary_max" id="contractSalaryMax" class="form-control" step="0.01" min="0" placeholder="Max" required>
+                            </div>
+                        </div>
+                        <div class="form-text" id="salaryHint">Enter a valid salary range for the selected role. The midpoint is used as the base rate for payroll.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Start Date</label>
@@ -302,7 +309,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260831061347"></script>
+<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260831170000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

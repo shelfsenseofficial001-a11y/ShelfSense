@@ -29,9 +29,9 @@ error_log('📥 create_trainee_with_trainer input: ' . print_r($input, true));
 
 $applicantId = isset($input['applicant_id']) ? intval($input['applicant_id']) : 0;
 $trainerId = isset($input['trainer_id']) ? intval($input['trainer_id']) : 0;
-// A single figure, as actually discussed and agreed in the interview --
-// ₱3,900–₱4,500 is only a suggested guide shown in the UI, never enforced.
-$salary = isset($input['salary']) ? floatval($input['salary']) : 0;
+// A range, as discussed in the interview -- not a single agreed figure.
+$salaryMin = isset($input['salary_min']) ? floatval($input['salary_min']) : 0;
+$salaryMax = isset($input['salary_max']) ? floatval($input['salary_max']) : 0;
 $scheduleStartRaw = isset($input['schedule_start']) ? trim($input['schedule_start']) : '10:00';
 $restDays = isset($input['rest_days']) ? trim($input['rest_days']) : 'saturday,sunday';
 
@@ -43,8 +43,11 @@ if ($trainerId <= 0) {
     Response::error('Please select a valid trainer.', 400);
 }
 
-if ($salary <= 0) {
-    Response::error('Please enter a valid salary.', 400);
+if ($salaryMin <= 0 || $salaryMax <= 0) {
+    Response::error('Please enter a valid salary range.', 400);
+}
+if ($salaryMax < $salaryMin) {
+    Response::error('Maximum salary cannot be less than minimum salary.', 400);
 }
 
 // Trainee shifts are always exactly 5 hours -- the end time is always
@@ -135,8 +138,8 @@ try {
     $endDate = date('Y-m-d', strtotime('+3 months'));
 
     $stmt = $db->prepare("
-        INSERT INTO trainees (applicant_id, user_id, trainer_id, target_role, start_date, end_date, schedule_start, schedule_end, status, trainee_salary)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?)
+        INSERT INTO trainees (applicant_id, user_id, trainer_id, target_role, start_date, end_date, schedule_start, schedule_end, status, trainee_salary_min, trainee_salary_max, trainee_salary_set_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, NOW())
     ");
     $stmt->execute([
         $applicantId,
@@ -147,7 +150,8 @@ try {
         $endDate,
         $scheduleStart,
         $scheduleEnd,
-        $salary
+        $salaryMin,
+        $salaryMax
     ]);
     $traineeId = $db->lastInsertId();
 
@@ -191,13 +195,15 @@ try {
 
     // Notify both the new trainee and the trainer -- in-app and by email.
     $restDaysLabel = ucwords(str_replace(',', ', ', $restDays));
-    createNotification($newUserId, 'trainee_contract_ready', "Your Trainee Contract is ready. Trainer: {$trainerName}. Salary: ₱{$salary}. Hours: {$scheduleStart}–{$scheduleEnd}. Rest days: {$restDaysLabel}.");
+    $salaryLabel = '₱' . number_format($salaryMin, 2) . ' – ₱' . number_format($salaryMax, 2);
+    createNotification($newUserId, 'trainee_contract_ready', "Your Trainee Contract is ready. Trainer: {$trainerName}. Salary: {$salaryLabel}. Hours: {$scheduleStart}–{$scheduleEnd}. Rest days: {$restDaysLabel}.");
     createNotification($trainerId, 'trainee_assigned', "You have been assigned as trainer for {$applicant['first_name']} {$applicant['last_name']} ({$applicant['target_role']}).");
 
     $mailer = new Mailer();
     $mailer->sendTraineeContractNotice($applicant, [
         'trainer_name' => $trainerName,
-        'salary' => $salary,
+        'salary_min' => $salaryMin,
+        'salary_max' => $salaryMax,
         'schedule_start' => date('g:i A', strtotime($scheduleStart)),
         'schedule_end' => date('g:i A', strtotime($scheduleEnd)),
         'rest_days' => $restDaysLabel,
@@ -211,7 +217,8 @@ try {
         'user_id' => $newUserId,
         'employee_number' => $employeeNumber ?? '',
         'default_password' => $defaultPassword,
-        'salary' => $salary,
+        'salary_min' => $salaryMin,
+        'salary_max' => $salaryMax,
         'schedule_start' => $scheduleStart,
         'schedule_end' => $scheduleEnd,
         'rest_days' => $restDays,

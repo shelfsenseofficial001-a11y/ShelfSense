@@ -123,7 +123,7 @@ try {
     $moduleMap = [
         'cashier' => [
             'name' => 'Cashier / POS',
-            'url' => '?page=pos_dashboard',
+            'url' => '?page=pos_checkout',
             'icon' => 'bi-cart-plus',
             'description' => 'Process sales, manage orders, and handle daily transactions.'
         ],

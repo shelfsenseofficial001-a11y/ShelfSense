@@ -68,6 +68,8 @@ try {
         'contract' => [
             'shift' => $contract['shift'],
             'salary' => $contract['salary'],
+            'salary_range_min' => $contract['salary_range_min'],
+            'salary_range_max' => $contract['salary_range_max'],
             'target_role' => $contract['target_role'],
             'start_date' => $contract['start_date'],
             'job_details' => $contract['job_details']

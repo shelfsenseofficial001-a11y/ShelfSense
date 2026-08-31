@@ -64,13 +64,22 @@ try {
         }
     }
 
+    // Rest days for the calendar widget on the report-submission form --
+    // keyed by the trainee's user_id, same table/pattern as Attendance.
+    $stmt = $db->prepare("SELECT day_of_week FROM schedules WHERE user_id = ? AND is_rest_day = 1");
+    $stmt->execute([$trainee['user_id']]);
+    $restDays = array_column($stmt->fetchAll(), 'day_of_week');
+
     Response::success([
         'reports' => $reports,
         'expected_weeks' => $expectedWeeks,
         'submitted_weeks' => count($reports),
         'missing_weeks' => $missingWeeks,
         'all_reports_complete' => empty($missingWeeks),
-        'all_forwarded' => count(array_filter($reports, fn($r) => in_array($r['status'], ['forwarded', 'hr_reviewed'], true))) === count($reports) && !empty($reports)
+        'all_forwarded' => count(array_filter($reports, fn($r) => in_array($r['status'], ['forwarded', 'hr_reviewed'], true))) === count($reports) && !empty($reports),
+        'trainee_start_date' => $trainee['start_date'],
+        'trainee_end_date' => $trainee['end_date'],
+        'trainee_rest_days' => $restDays
     ], 'Trainee reports fetched');
 
 } catch (Exception $e) {

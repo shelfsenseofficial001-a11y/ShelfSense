@@ -6,3 +6,7 @@ node_modules/
 # folder's own hardening tracked, but never commit what people upload to it.
 public/uploads/*
 !public/uploads/.htaccess
+
+# Local DB dumps taken as safety snapshots during development -- not project
+# code, and may contain real data.
+database/local_backups/

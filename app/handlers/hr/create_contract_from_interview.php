@@ -31,7 +31,8 @@ $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $applicantId = isset($input['applicant_id']) ? intval($input['applicant_id']) : 0;
 $interviewId = isset($input['interview_id']) ? intval($input['interview_id']) : 0;
 $shift = isset($input['shift']) ? trim($input['shift']) : '';
-$salary = isset($input['salary']) ? $input['salary'] : null;
+$salaryMin = isset($input['salary_min']) ? $input['salary_min'] : null;
+$salaryMax = isset($input['salary_max']) ? $input['salary_max'] : null;
 $startDate = isset($input['start_date']) ? trim($input['start_date']) : '';
 $restDays = isset($input['rest_days']) ? trim($input['rest_days']) : '';
 $jobDetails = isset($input['job_details']) ? trim($input['job_details']) : '';
@@ -42,9 +43,17 @@ if ($applicantId <= 0 || $interviewId <= 0) {
 if (!in_array($shift, ['opening', 'closing', 'midshift'], true)) {
     Response::error('A valid shift (opening, closing, or midshift) is required.', 400);
 }
-if (!is_numeric($salary) || (float)$salary <= 0) {
-    Response::error('A valid salary is required.', 400);
+if (!is_numeric($salaryMin) || !is_numeric($salaryMax) || (float)$salaryMin <= 0 || (float)$salaryMax <= 0) {
+    Response::error('A valid salary range is required.', 400);
 }
+if ((float)$salaryMax < (float)$salaryMin) {
+    Response::error('Maximum salary cannot be less than minimum salary.', 400);
+}
+// The range is a guide for the offer; the midpoint becomes the concrete base
+// rate payroll uses to compute the hourly rate for attendance-based pay.
+// Overtime, lateness deductions, and bonuses can bring the final monthly pay
+// above or below this range -- it is not a hard ceiling on actual pay.
+$salary = round(((float)$salaryMin + (float)$salaryMax) / 2, 2);
 if ($startDate === '' || !validateDate($startDate) || $startDate < date('Y-m-d')) {
     Response::error('A valid start date (today or later) is required.', 400);
 }
@@ -88,11 +97,11 @@ try {
     }
 
     $stmt = $db->prepare("
-        INSERT INTO contracts (applicant_id, user_id, contract_type, status, shift, salary, job_details, start_date, rest_days, offered_by, offered_at, created_at)
-        VALUES (?, ?, 'hired', 'pending', ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        INSERT INTO contracts (applicant_id, user_id, contract_type, status, shift, salary, salary_range_min, salary_range_max, job_details, start_date, rest_days, offered_by, offered_at, created_at)
+        VALUES (?, ?, 'hired', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     ");
     $stmt->execute([
-        $applicantId, $trainee['user_id'], $shift, $salary,
+        $applicantId, $trainee['user_id'], $shift, $salary, $salaryMin, $salaryMax,
         $jobDetails !== '' ? $jobDetails : null, $startDate,
         !empty($restDaysArray) ? implode(',', $restDaysArray) : null,
         Auth::userId()
@@ -113,7 +122,7 @@ try {
     $mailer->send(
         $applicant['email'],
         'Your Employment Contract - ShelfSense',
-        "<p>Dear {$applicant['first_name']},</p><p>Following your Final Interview, your Hired Contract is ready: shift <strong>{$shift}</strong>, salary <strong>₱" . number_format((float)$salary, 2) . "</strong>, starting <strong>" . date('F j, Y', strtotime($startDate)) . "</strong>.</p><p>Please log in to the portal to accept or decline.</p>"
+        "<p>Dear {$applicant['first_name']},</p><p>Following your Final Interview, your Hired Contract is ready: shift <strong>{$shift}</strong>, salary range <strong>₱" . number_format((float)$salaryMin, 2) . " – ₱" . number_format((float)$salaryMax, 2) . "</strong>, starting <strong>" . date('F j, Y', strtotime($startDate)) . "</strong>.</p><p>Please log in to the portal to accept or decline.</p>"
     );
 
     // Notify the Owner too -- they were present at this Final Interview.

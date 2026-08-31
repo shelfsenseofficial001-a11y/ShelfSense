@@ -69,6 +69,21 @@ try {
 
     if ($action === 'accept') {
         activateEmployeeFromAcceptedContract($db, $contract);
+
+        // The accepting user is always the currently logged-in session
+        // (enforced by the ownership check above), so refresh the session
+        // immediately -- otherwise Auth::role()/isTrainee() keep evaluating
+        // against the pre-hire 'trainee' role for the rest of this login,
+        // even though the users row itself is already correct.
+        $stmt = $db->prepare("SELECT role, permission_level, employee_number, is_first_login FROM users WHERE user_id = ?");
+        $stmt->execute([Auth::userId()]);
+        if ($refreshed = $stmt->fetch()) {
+            $_SESSION['role'] = $refreshed['role'];
+            $_SESSION['permission_level'] = (int)$refreshed['permission_level'];
+            $_SESSION['employee_number'] = $refreshed['employee_number'];
+            $_SESSION['is_first_login'] = $refreshed['is_first_login'];
+        }
+
         $message = 'Contract accepted! Your employee account is now active.';
 
         try {

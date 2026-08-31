@@ -126,6 +126,21 @@ document.addEventListener('DOMContentLoaded', function() {
     loadContractInterviews();
     loadAllStats();
 
+    // Deep link from the Trainees page's "Schedule Final Interview" button
+    // (?page=hr_interviews&schedule_final=<applicant_id>&name=<name>) --
+    // jumps straight into the same modal reused by the Final tab, instead of
+    // requiring HR Head to manually search for the applicant here.
+    const deepLinkParams = new URLSearchParams(window.location.search);
+    const scheduleFinalApplicantId = deepLinkParams.get('schedule_final');
+    if (scheduleFinalApplicantId) {
+        const applicantName = deepLinkParams.get('name') || 'Applicant';
+        checkAndOpenFinalModal(scheduleFinalApplicantId, applicantName);
+        deepLinkParams.delete('schedule_final');
+        deepLinkParams.delete('name');
+        const cleanUrl = window.location.pathname + '?' + deepLinkParams.toString();
+        window.history.replaceState(null, '', cleanUrl);
+    }
+
     // Initial filter buttons
     document.querySelectorAll('.filter-btn-initial').forEach(btn => {
         btn.addEventListener('click', function() {
@@ -280,7 +295,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.getElementById('confirmCreateTraineeBtn')?.addEventListener('click', function() {
         const trainerId = document.getElementById('trainerSelect').value;
-        const salary = document.getElementById('traineeSalary').value;
+        const salaryMin = document.getElementById('traineeSalaryMin').value;
+        const salaryMax = document.getElementById('traineeSalaryMax').value;
         const scheduleStart = document.getElementById('traineeScheduleStart').value || '10:00';
         const restDays = Array.from(document.querySelectorAll('.trainee-rest-day:checked')).map(cb => cb.value);
 
@@ -294,8 +310,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (!salary || Number(salary) <= 0) {
-            Swal.fire({ icon: 'warning', title: 'Salary Required', text: 'Please enter a valid salary.' });
+        if (!salaryMin || !salaryMax || Number(salaryMin) <= 0 || Number(salaryMax) <= 0) {
+            Swal.fire({ icon: 'warning', title: 'Salary Range Required', text: 'Please enter a valid salary range.' });
+            return;
+        }
+
+        if (Number(salaryMax) < Number(salaryMin)) {
+            Swal.fire({ icon: 'warning', title: 'Invalid Salary Range', text: 'Maximum salary cannot be less than minimum salary.' });
             return;
         }
 
@@ -314,7 +335,7 @@ document.addEventListener('DOMContentLoaded', function() {
             cancelButtonText: 'Cancel'
         }).then(result => {
             if (result.isConfirmed) {
-                createTraineeWithTrainer(currentApplicantIdForTraining, trainerId, salary, scheduleStart, restDays);
+                createTraineeWithTrainer(currentApplicantIdForTraining, trainerId, salaryMin, salaryMax, scheduleStart, restDays);
             }
         });
     });
@@ -776,6 +797,7 @@ function checkAndOpenFinalModal(applicantId, applicantName) {
 function openScheduleFinalModal(applicantId, applicantName) {
     document.getElementById('scheduleApplicantId').value = applicantId;
     document.getElementById('scheduleTypeHidden').value = 'final';
+    document.getElementById('scheduleApplicantName').textContent = applicantName;
     document.getElementById('scheduleDate').value = '';
     document.getElementById('scheduleGmeet').value = '';
     document.getElementById('scheduleMessage').value = '';
@@ -802,10 +824,34 @@ function scheduleInterview(type) {
         return;
     }
 
+    const applicantName = document.getElementById('scheduleApplicantName')?.textContent
+        || document.querySelector('#scheduleInterviewModal .modal-title')?.textContent
+        || 'Applicant';
+
+    if (type === 'final') {
+        Swal.fire({
+            icon: 'question',
+            title: 'Confirm Final Interview',
+            html: `
+                <p>Schedule the Final Interview for <strong>${escapeHtml(applicantName)}</strong>?</p>
+                <p class="text-muted small">The Owner will be notified and is required to attend for questioning, per the format used for Trainee Contract terms.</p>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Schedule It',
+            cancelButtonText: 'Cancel'
+        }).then(result => {
+            if (result.isConfirmed) doScheduleInterview(form, data, applicantName);
+        });
+        return;
+    }
+
+    doScheduleInterview(form, data, applicantName);
+}
+
+function doScheduleInterview(form, data, applicantName) {
     const submitBtn = form.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Scheduling...';
-    const applicantName = document.querySelector('#scheduleInterviewModal .modal-title')?.textContent || 'Applicant';
 
     fetch('?page=api_schedule_interview', {
         method: 'POST',
@@ -1005,7 +1051,8 @@ function openTrainerSelectionModalFromFinal(applicantId, applicantName, targetRo
     currentApplicantIdForTraining = applicantId;
     document.getElementById('trainerApplicantName').textContent = applicantName;
     document.getElementById('trainerTargetRole').textContent = targetRole;
-    document.getElementById('traineeSalary').value = 4200;
+    document.getElementById('traineeSalaryMin').value = 3900;
+    document.getElementById('traineeSalaryMax').value = 4500;
     loadTrainersForRole(targetRole);
     new bootstrap.Modal(document.getElementById('trainerSelectionModal')).show();
 }
@@ -1019,7 +1066,8 @@ function openFinalizeHireModal(applicantId, interviewId, applicantName) {
     document.getElementById('finalizeInterviewId').value = interviewId;
     document.getElementById('finalizeApplicantName').textContent = applicantName;
     document.getElementById('finalizeShift').value = 'opening';
-    document.getElementById('finalizeSalary').value = '';
+    document.getElementById('finalizeSalaryMin').value = '';
+    document.getElementById('finalizeSalaryMax').value = '';
     document.getElementById('finalizeStartDate').value = '';
     document.getElementById('finalizeJobDetails').value = '';
     document.querySelectorAll('.finalize-rest-day').forEach(cb => { cb.checked = (cb.value === 'saturday' || cb.value === 'sunday'); });
@@ -1040,13 +1088,18 @@ document.getElementById('confirmFinalizeHireBtn')?.addEventListener('click', fun
     const applicantId = document.getElementById('finalizeApplicantId').value;
     const interviewId = document.getElementById('finalizeInterviewId').value;
     const shift = document.getElementById('finalizeShift').value;
-    const salary = document.getElementById('finalizeSalary').value;
+    const salaryMin = document.getElementById('finalizeSalaryMin').value;
+    const salaryMax = document.getElementById('finalizeSalaryMax').value;
     const startDate = document.getElementById('finalizeStartDate').value;
     const jobDetails = document.getElementById('finalizeJobDetails').value;
     const restDays = Array.from(document.querySelectorAll('.finalize-rest-day:checked')).map(cb => cb.value);
 
-    if (!salary || Number(salary) <= 0) {
-        Swal.fire({ icon: 'warning', title: 'Salary Required', text: 'Please enter a valid salary.' });
+    if (!salaryMin || !salaryMax || Number(salaryMin) <= 0 || Number(salaryMax) <= 0) {
+        Swal.fire({ icon: 'warning', title: 'Salary Range Required', text: 'Please enter a valid salary range.' });
+        return;
+    }
+    if (Number(salaryMax) < Number(salaryMin)) {
+        Swal.fire({ icon: 'warning', title: 'Invalid Salary Range', text: 'Maximum salary cannot be less than minimum salary.' });
         return;
     }
     if (!startDate) {
@@ -1060,7 +1113,7 @@ document.getElementById('confirmFinalizeHireBtn')?.addEventListener('click', fun
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-            applicant_id: applicantId, interview_id: interviewId, shift, salary, start_date: startDate,
+            applicant_id: applicantId, interview_id: interviewId, shift, salary_min: salaryMin, salary_max: salaryMax, start_date: startDate,
             rest_days: restDays.join(','), job_details: jobDetails
         })
     })
@@ -1129,11 +1182,12 @@ function computeFiveHourEnd24(startValue) {
     return `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
 }
 
-function createTraineeWithTrainer(applicantId, trainerId, salary, scheduleStart, restDays) {
+function createTraineeWithTrainer(applicantId, trainerId, salaryMin, salaryMax, scheduleStart, restDays) {
     const data = {
         applicant_id: applicantId,
         trainer_id: trainerId,
-        salary: salary,
+        salary_min: salaryMin,
+        salary_max: salaryMax,
         schedule_start: scheduleStart || '10:00',
         schedule_end: computeFiveHourEnd24(scheduleStart || '10:00'),
         rest_days: (restDays && restDays.length ? restDays : ['saturday', 'sunday']).join(',')
@@ -1165,7 +1219,7 @@ function createTraineeWithTrainer(applicantId, trainerId, salary, scheduleStart,
                     <p><strong>Employee Number:</strong> ${result.data.employee_number}</p>
                     ${passwordDisplay}
                     <p><strong>Trainer:</strong> ${result.data.trainer_name}</p>
-                    <p><strong>Salary:</strong> ₱${result.data.salary}</p>
+                    <p><strong>Salary Range:</strong> ₱${result.data.salary_min} – ₱${result.data.salary_max}</p>
                     <p class="text-muted">The trainee will appear in the Trainees tab.</p>
                 `,
                 confirmButtonText: 'OK'

@@ -23,14 +23,21 @@ if (!Auth::isHR() && !Auth::isOwner()) {
 $input = json_decode(file_get_contents('php://input'), true);
 $applicantId = isset($input['applicant_id']) ? intval($input['applicant_id']) : 0;
 $shift = isset($input['shift']) ? trim($input['shift']) : '';
-$salary = isset($input['salary']) ? floatval($input['salary']) : 0;
+$salaryMin = isset($input['salary_min']) ? floatval($input['salary_min']) : 0;
+$salaryMax = isset($input['salary_max']) ? floatval($input['salary_max']) : 0;
 $jobDetails = isset($input['job_details']) ? trim($input['job_details']) : '';
 $startDate = isset($input['start_date']) ? trim($input['start_date']) : '';
 $restDays = isset($input['rest_days']) ? trim($input['rest_days']) : '';
 
-if ($applicantId <= 0 || empty($shift) || $salary <= 0 || empty($startDate)) {
+if ($applicantId <= 0 || empty($shift) || $salaryMin <= 0 || $salaryMax <= 0 || empty($startDate)) {
     Response::error('Missing required fields', 400);
 }
+if ($salaryMax < $salaryMin) {
+    Response::error('Maximum salary cannot be less than minimum salary.', 400);
+}
+// The range is a guide for the offer; the midpoint becomes the concrete base
+// rate payroll uses to compute the hourly rate for attendance-based pay.
+$salary = round(($salaryMin + $salaryMax) / 2, 2);
 
 if (strlen($jobDetails) > 250) {
     Response::error('Job details cannot exceed 250 characters.', 400);
@@ -77,14 +84,16 @@ try {
     
     // Create contract with rest_days
     $stmt = $db->prepare("
-        INSERT INTO contracts (applicant_id, user_id, shift, salary, job_details, start_date, rest_days, status) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+        INSERT INTO contracts (applicant_id, user_id, shift, salary, salary_range_min, salary_range_max, job_details, start_date, rest_days, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
     ");
     $stmt->execute([
         $applicantId,
         $userId,
         $shift,
         $salary,
+        $salaryMin,
+        $salaryMax,
         $jobDetails,
         $startDate,
         $restDays

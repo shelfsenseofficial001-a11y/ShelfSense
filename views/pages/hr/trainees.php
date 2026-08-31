@@ -19,6 +19,15 @@ while ($trainer = $trainers->fetch()) {
 }
 
 $content = '
+<style>
+    .trainee-week-day { flex: 1 1 0; min-width: 44px; text-align: center; padding: 6px 2px; border-radius: 6px; background: var(--bg-card-subtle); border: 1px solid var(--border-color, #e5e7eb); }
+    .trainee-week-day-name { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
+    .trainee-week-day-num { font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
+    .trainee-week-day-tag { font-size: 0.6rem; font-weight: 600; color: #4b5563; }
+    .trainee-week-day.is-rest-day { background: #e5e7eb; }
+    [data-bs-theme="dark"] .trainee-week-day.is-rest-day { background: #374151; }
+    [data-bs-theme="dark"] .trainee-week-day.is-rest-day .trainee-week-day-tag { color: #9ca3af; }
+</style>
 <!-- Filters -->
 <div class="row g-2 mb-3">
     <div class="col-md-3">
@@ -239,7 +248,7 @@ $content = '
     window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
     window.HR_IS_HEAD = ' . $isHRHeadJs . ';
 </script>
-<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260831061347"></script>
+<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260831160000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

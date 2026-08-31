@@ -240,7 +240,10 @@ function traineeEscapeHtml(text) {
 }
 
 function renderContractCard(c) {
-    const salary = c.salary ? '₱' + parseFloat(c.salary).toLocaleString('en-PH', { minimumFractionDigits: 2 }) : '—';
+    const formatPeso = v => '₱' + parseFloat(v).toLocaleString('en-PH', { minimumFractionDigits: 2 });
+    const salary = (c.salary_range_min && c.salary_range_max)
+        ? `${formatPeso(c.salary_range_min)} – ${formatPeso(c.salary_range_max)}`
+        : (c.salary ? formatPeso(c.salary) : '—');
     const restDays = c.rest_days ? c.rest_days.split(',').map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') : '—';
     return `
         <div class="modern-card p-4 mb-4" style="border:2px solid var(--brand-yellow);">
@@ -248,7 +251,7 @@ function renderContractCard(c) {
             <p class="text-muted mb-3">Review the terms below and accept or decline. Accepting will activate your official employee account.</p>
             <div class="row g-2 mb-3">
                 <div class="col-md-4"><small class="text-muted d-block">Shift</small><strong>${traineeEscapeHtml(c.shift)}</strong></div>
-                <div class="col-md-4"><small class="text-muted d-block">Monthly Salary</small><strong>${salary}</strong></div>
+                <div class="col-md-4"><small class="text-muted d-block">Salary Range</small><strong>${salary}</strong></div>
                 <div class="col-md-4"><small class="text-muted d-block">Start Date</small><strong>${traineeEscapeHtml(c.start_date)}</strong></div>
                 <div class="col-md-4"><small class="text-muted d-block">Rest Days</small><strong>${restDays}</strong></div>
                 <div class="col-md-4"><small class="text-muted d-block">Decision Deadline</small><strong>${traineeEscapeHtml(c.decision_deadline || '—')}</strong></div>

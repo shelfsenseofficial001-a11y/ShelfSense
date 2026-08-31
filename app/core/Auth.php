@@ -250,7 +250,6 @@ class Auth
             }
             $sidebar['hr_payroll'] = '?page=hr_payroll';
         } elseif ($moduleRole === 'employee') {
-            $sidebar['pos_dashboard'] = '?page=pos_dashboard';
             $sidebar['pos_checkout'] = '?page=pos_checkout';
             $sidebar['pos_orders'] = '?page=pos_orders';
         } elseif ($moduleRole === 'finance_head') {

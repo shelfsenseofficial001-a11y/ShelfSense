@@ -358,7 +358,7 @@ function renderContracts(contracts) {
             </td>
             <td><span class="badge bg-info">${escapeHtml(contract.target_role)}</span></td>
             <td>${escapeHtml(shiftLabels[contract.shift] || contract.shift || '—')}</td>
-            <td>₱${formatCurrency(contract.salary)}</td>
+            <td>${contract.formatted_salary_range || ('₱' + formatCurrency(contract.salary))}</td>
             <td>${contract.formatted_start || '—'}</td>
             <td>
                 <span class="badge bg-${statusColors[contract.status] || 'secondary'}">
@@ -482,7 +482,8 @@ function viewContract(id) {
                             </div>
                             <div class="col-md-6">
                                 <p><strong>Shift:</strong> ${shiftLabels[contract.shift] || contract.shift || '—'}</p>
-                                <p><strong>Salary:</strong> ₱${formatCurrency(contract.salary)}</p>
+                                <p><strong>Salary Range:</strong> ${contract.formatted_salary_range || 'N/A'}</p>
+                                <p><strong>Base Rate (payroll midpoint):</strong> ₱${formatCurrency(contract.salary)}</p>
                                 <p><strong>Start Date:</strong> ${contract.formatted_start || '—'}</p>
                                 <p><strong>Decision Deadline:</strong> ${contract.decision_deadline ? new Date(contract.decision_deadline).toLocaleDateString() : '—'}</p>
                                 <p><strong>Rest Days:</strong> ${contract.rest_days ? contract.rest_days.split(',').map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') : 'None'}</p>
@@ -524,9 +525,14 @@ function createContract() {
     const form = document.getElementById('createContractForm');
     const formData = new FormData(form);
     const data = Object.fromEntries(formData);
-    const salary = parseFloat(data.salary);
-    if (isNaN(salary) || salary <= 0) {
-        Swal.fire({ icon: 'warning', title: 'Invalid Salary', text: 'Please enter a valid salary amount.' });
+    const salaryMin = parseFloat(data.salary_min);
+    const salaryMax = parseFloat(data.salary_max);
+    if (isNaN(salaryMin) || isNaN(salaryMax) || salaryMin <= 0 || salaryMax <= 0) {
+        Swal.fire({ icon: 'warning', title: 'Invalid Salary Range', text: 'Please enter a valid salary range.' });
+        return;
+    }
+    if (salaryMax < salaryMin) {
+        Swal.fire({ icon: 'warning', title: 'Invalid Salary Range', text: 'Maximum salary cannot be less than minimum salary.' });
         return;
     }
     const submitBtn = form.querySelector('button[type="submit"]');

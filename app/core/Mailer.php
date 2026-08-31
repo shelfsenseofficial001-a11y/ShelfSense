@@ -303,7 +303,7 @@ class Mailer
                 <p>Congratulations on passing your initial interview! Here are your Trainee Contract terms as discussed:</p>
                 <ul>
                     <li><strong>Trainer:</strong> {$terms['trainer_name']}</li>
-                    <li><strong>Salary:</strong> ₱" . number_format($terms['salary'], 2) . "</li>
+                    <li><strong>Salary Range:</strong> ₱" . number_format($terms['salary_min'], 2) . " – ₱" . number_format($terms['salary_max'], 2) . "</li>
                     <li><strong>Working Hours:</strong> {$terms['schedule_start']} – {$terms['schedule_end']} (5 hours/day)</li>
                     <li><strong>Rest Days:</strong> {$terms['rest_days']}</li>
                     <li><strong>Training Period:</strong> {$terms['start_date']} to {$terms['end_date']} (3 months)</li>

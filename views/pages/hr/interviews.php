@@ -8,6 +8,15 @@ $minDate = date('Y-m-d\TH:i', strtotime('+1 day'));
 $maxDate = date('Y-m-d\TH:i', strtotime('+3 months'));
 $todayDate = date('Y-m-d');
 
+// The Owner is always required at the Final Interview -- shown as a
+// read-only confirmation row on the scheduling modal (same format as the
+// Applicant/Target Role rows on the Trainee Contract and Finalize Hire
+// modals), matching whoever schedule_interview.php actually notifies.
+$db = \App\Core\Database::getInstance()->getConnection();
+$owners = $db->query("SELECT first_name, last_name FROM users WHERE role = 'owner' AND is_active = 1 ORDER BY first_name")->fetchAll();
+$ownerNames = implode(', ', array_map(fn($o) => $o['first_name'] . ' ' . $o['last_name'], $owners));
+$ownerDisplay = $ownerNames !== '' ? $ownerNames : 'No active Owner account found';
+
 $content = '
 <!-- Stats Row -->
 <div class="row g-2 mb-3" id="statsRow">
@@ -181,7 +190,7 @@ $content = '
 
 <!-- Schedule Interview Modal -->
 <div class="modal fade" id="scheduleInterviewModal" tabindex="-1">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Schedule Interview</h5>
@@ -191,6 +200,8 @@ $content = '
                 <input type="hidden" name="interview_type" id="scheduleTypeHidden" value="final">
                 <div class="modal-body">
                     <input type="hidden" id="scheduleApplicantId" name="applicant_id">
+                    <p><strong>Applicant:</strong> <span id="scheduleApplicantName"></span></p>
+                    <p><strong>Owner (required for questioning):</strong> <span class="' . ($ownerNames !== '' ? 'text-success' : 'text-danger') . '">' . htmlspecialchars($ownerDisplay) . '</span></p>
                     <div class="mb-3">
                         <label class="form-label">Interview Type</label>
                         <p class="form-control-plaintext fw-semibold mb-0"><i class="bi bi-chat-dots"></i> Final Interview</p>
@@ -255,9 +266,16 @@ $content = '
                     <div class="form-text">Trainer must have the same role as the trainee\'s target role.</div>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Trainee Salary</label>
-                    <input type="number" id="traineeSalary" class="form-control" placeholder="e.g. 4200" value="4200" step="100" min="1">
-                    <div class="form-text">Enter the exact figure agreed with the trainee. Guide: ₱3,900 – ₱4,500 (not enforced).</div>
+                    <label class="form-label fw-semibold">Trainee Salary Range</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="number" id="traineeSalaryMin" class="form-control" placeholder="Min" value="3900" step="100" min="1">
+                        </div>
+                        <div class="col-6">
+                            <input type="number" id="traineeSalaryMax" class="form-control" placeholder="Max" value="4500" step="100" min="1">
+                        </div>
+                    </div>
+                    <div class="form-text">Enter the range discussed with the trainee.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Working Hours (as discussed in the interview)</label>
@@ -310,8 +328,16 @@ $content = '
                     </select>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label fw-semibold">Salary</label>
-                    <input type="number" id="finalizeSalary" class="form-control" placeholder="e.g. 12000" step="100" min="1">
+                    <label class="form-label fw-semibold">Salary Range</label>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <input type="number" id="finalizeSalaryMin" class="form-control" placeholder="Min" step="100" min="1">
+                        </div>
+                        <div class="col-6">
+                            <input type="number" id="finalizeSalaryMax" class="form-control" placeholder="Max" step="100" min="1">
+                        </div>
+                    </div>
+                    <div class="form-text">The midpoint of this range is used as the base rate for payroll; overtime, bonuses, and deductions may bring the final monthly pay above or below it.</div>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Start Date</label>
@@ -344,7 +370,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260831061347"></script>
+<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260831170000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
