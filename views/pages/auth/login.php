@@ -30,7 +30,7 @@ $content = '
     /* Left Visual Panel - Light Mode Default */
     .visual-panel {
         flex: 1;
-                background: radial-gradient(circle at 50% 0%, #fcd34d 0%, #fbbf24 35%, #f59e0b 70%, #d97706 100%);
+        background: radial-gradient(circle at 50% 0%, #ff8a65 0%, #f45b35 35%, #df4d29 70%, #a83a1f 100%);
         border-radius: 16px;
         padding: 40px;
         display: flex;
@@ -45,7 +45,7 @@ $content = '
     /* Left Visual Panel - Dark Mode Override */
     [data-bs-theme="dark"] .visual-panel,
     .dark-mode .visual-panel {
-        background: radial-gradient(circle at 50% 0%, #d97706 0%, #78350f 35%, #180d05 70%, #0d0703 100%);
+        background: radial-gradient(circle at 50% 0%, #df4d29 0%, #7a2814 35%, #1c0d07 70%, #0d0703 100%);
     }
 
     .visual-panel::before {
@@ -56,7 +56,7 @@ $content = '
         transform: translateX(-50%);
         width: 220px;
         height: 120px;
-        background: #f59e0b;
+        background: #f45b35;
         filter: blur(50px);
         opacity: 0.8;
         border-radius: 50%;
@@ -104,9 +104,9 @@ $content = '
     .form-panel .form-control,
     .form-panel .input-group-text,
     .form-panel .btn-outline-secondary {
-        background-color: var(--bg-card-subtle, #f4f4f5) !important;
-        border-color: var(--border-color, #e4e4e7) !important;
-        color: var(--text-primary, #09090b) !important;
+        background-color: var(--bg-card-subtle) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-main) !important;
     }
 
     /* Dark Mode Specific Overrides for Inputs */
@@ -116,9 +116,9 @@ $content = '
     .dark-mode .form-panel .form-control,
     .dark-mode .form-panel .input-group-text,
     .dark-mode .form-panel .btn-outline-secondary {
-        background-color: #1f1c13 !important;
-        border-color: #383321 !important;
-        color: #f4f4f5 !important;
+        background-color: var(--bg-card-subtle) !important;
+        border-color: var(--border-color) !important;
+        color: var(--text-main) !important;
     }
 
     /* Mobile Responsiveness */

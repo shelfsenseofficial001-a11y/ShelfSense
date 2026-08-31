@@ -21,7 +21,7 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831061347">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
     <?= $additional_css ?? '' ?>
 </head>
@@ -104,10 +104,7 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
                 <?php endif; ?>
 
                 <?php if ($isCashierTrainee): ?>
-                <a href="?page=pos_dashboard" class="nav-item <?= $activePage === 'pos_dashboard' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">POS Dashboard</span>
-                </a>
-                <a href="?page=pos_checkout" class="nav-item <?= $activePage === 'pos_checkout' ? 'active' : '' ?>">
+                <a href="?page=pos_checkout" class="nav-item <?= $activePage === 'checkout' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-cart-plus-fill"></i></span> <span class="nav-label">Checkout</span>
                 </a>
                 <a href="?page=pos_orders" class="nav-item <?= $activePage === 'pos_orders' ? 'active' : '' ?>">
@@ -158,7 +155,7 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260831360000"></script>
     <?= $additional_js ?? '' ?>
 
     <style>

@@ -67,20 +67,20 @@ $content = '
         --input-bg: #f9fafb;
         --input-border: #d1d5db;
         --input-text: #111827;
-        --brand-accent: #f59e0b;
-        --brand-accent-hover: #d97706;
+        --brand-accent: #f45b35;
+        --brand-accent-hover: #df4d29;
 
         /* Visual Panel Variables (Light Mode) */
-        --panel-bg: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        --panel-bg: linear-gradient(135deg, #fde8e2 0%, #fbcfc3 100%);
         --panel-title: #1f2937;
         --panel-text: #4b5563;
         --panel-feature-text: #374151;
-        --panel-badge-bg: rgba(217, 119, 6, 0.15);
-        --panel-badge-border: rgba(217, 119, 6, 0.3);
-        --panel-badge-text: #b45309;
+        --panel-badge-bg: rgba(223, 77, 41, 0.15);
+        --panel-badge-border: rgba(223, 77, 41, 0.3);
+        --panel-badge-text: #b23d1f;
         --panel-footer-text: #6b7280;
         --panel-divider: rgba(107, 114, 128, 0.2);
-        --panel-glow: rgba(245, 158, 11, 0.35);
+        --panel-glow: rgba(244, 91, 53, 0.35);
         --panel-card-bg: rgba(255, 255, 255, 0.55);
         --panel-dot-inactive: rgba(107, 114, 128, 0.35);
     }
@@ -95,16 +95,16 @@ $content = '
         --input-text: #f4f4f5;
 
         /* Visual Panel Variables (Dark Mode) */
-        --panel-bg: linear-gradient(135deg, #262018 0%, #18130e 100%);
+        --panel-bg: linear-gradient(135deg, #2a1f1a 0%, #1c1310 100%);
         --panel-title: #ffffff;
         --panel-text: #d1d5db;
         --panel-feature-text: #9ca3af;
-        --panel-badge-bg: rgba(245, 158, 11, 0.15);
-        --panel-badge-border: rgba(245, 158, 11, 0.3);
-        --panel-badge-text: #fbbf24;
+        --panel-badge-bg: rgba(244, 91, 53, 0.15);
+        --panel-badge-border: rgba(244, 91, 53, 0.3);
+        --panel-badge-text: #ff9270;
         --panel-footer-text: #9ca3af;
         --panel-divider: rgba(255, 255, 255, 0.15);
-        --panel-glow: rgba(245, 158, 11, 0.2);
+        --panel-glow: rgba(244, 91, 53, 0.2);
         --panel-card-bg: rgba(0, 0, 0, 0.2);
         --panel-dot-inactive: rgba(255, 255, 255, 0.25);
     }
@@ -331,13 +331,13 @@ $content = '
 
     .job-detail-list li::before {
         content: "\2713";
-        color: #d97706;
+        color: #df4d29;
         font-weight: 700;
         flex-shrink: 0;
     }
 
     [data-bs-theme="dark"] .job-detail-list li::before {
-        color: #f59e0b;
+        color: #f45b35;
     }
 
     /* Carousel Dots */
@@ -469,7 +469,7 @@ $content = '
     .form-control:focus,
     .form-select:focus {
         border-color: var(--brand-accent) !important;
-        box-shadow: 0 0 0 0.25rem rgba(245, 158, 11, 0.2) !important;
+        box-shadow: 0 0 0 0.25rem rgba(244, 91, 53, 0.2) !important;
     }
 
     .form-control::placeholder {

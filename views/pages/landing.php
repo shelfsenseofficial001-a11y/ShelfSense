@@ -60,6 +60,7 @@ if (empty($publicJobs)) {
 
 $additional_css = '
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+<noscript><style>.animate-reveal { opacity: 1 !important; transform: none !important; }</style></noscript>
 ';
 
 $additional_js = '
@@ -121,6 +122,16 @@ const revealObserver = new IntersectionObserver((entries) => {
 document.querySelectorAll(".animate-reveal").forEach(element => {
     revealObserver.observe(element);
 });
+
+// Fallback: if IntersectionObserver never fires for an element (e.g. a
+// scripting error elsewhere on the page interrupts execution before this
+// point, or a browser quirk), force everything visible after 2s so content
+// never stays permanently hidden behind the reveal animation.
+setTimeout(() => {
+    document.querySelectorAll(".animate-reveal:not(.revealed)").forEach(element => {
+        element.classList.add("revealed");
+    });
+}, 2000);
 
 // Mobile Sidebar
 const hamburgerBtn = document.getElementById("hamburgerBtn");
@@ -315,7 +326,7 @@ $content = '
                     Next-Gen Retail Infrastructure
                 </div>
                 <h1 class="hero-title">
-                    The Future of Retail Operations: <span class="text-yellow">Smart Inventory</span> & <span class="text-muted">Seamless HR</span>
+                    The Future of Retail Operations: <span class="text-yellow">Smart Inventory</span> & Seamless HR
                 </h1>
                 <p class="text-muted fs-5 mb-4">
                     Streamlining high-tempo retail environments—from front-desk POS checkout to backend inventory synchronization, employee scheduling, attendance, and automated payroll.

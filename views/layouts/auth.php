@@ -18,47 +18,47 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831061347">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
     <style>
         /* ==========================================================================
            DESIGN SYSTEM & THEME MATCHING
            ========================================================================== */
         :root {
-            /* Light Mode Palette */
-            --bg-body: #fefdfa;
+            /* Light Mode Palette -- matches the internal dashboards (white / orange / black) */
+            --bg-body: #f4f4f2;
             --bg-card: #ffffff;
-            --bg-card-subtle: #fefce8;
-            --border-color: #fef08a;
-            
-            --brand-yellow: #eab308;
-            --brand-yellow-hover: #ca8a04;
-            --brand-yellow-btn-text: #1a1a1a;
-            --light-yellow-accent: #fef9c3;
-            --light-yellow-subtle: #fefce8;
-            
-            --text-main: #18181b;
-            --text-muted: #71717a;
+            --bg-card-subtle: #f8f8f7;
+            --border-color: #ebebe7;
+
+            --brand-yellow: #f45b35;
+            --brand-yellow-hover: #df4d29;
+            --brand-yellow-btn-text: #ffffff;
+            --light-yellow-accent: #fde8e2;
+            --light-yellow-subtle: #fdf1ee;
+
+            --text-main: #20201d;
+            --text-muted: #73736f;
             --grid-opacity: 0.05;
-            --glow-opacity: 0.25;
+            --glow-opacity: 0.18;
         }
 
         [data-bs-theme="dark"] {
             /* Dark Mode Palette */
-            --bg-body: #121210;
-            --bg-card: #1c1a14;
-            --bg-card-subtle: #262319;
-            --border-color: #3f3922;
-            
-            --brand-yellow: #facc15;
-            --brand-yellow-hover: #eab308;
-            --brand-yellow-btn-text: #1a1a1a;
-            --light-yellow-accent: #2e2a17;
-            --light-yellow-subtle: #1e1b10;
-            
-            --text-main: #f4f4f5;
-            --text-muted: #a1a1aa;
+            --bg-body: #161615;
+            --bg-card: #201f1d;
+            --bg-card-subtle: #262523;
+            --border-color: #35342f;
+
+            --brand-yellow: #f45b35;
+            --brand-yellow-hover: #ff6d45;
+            --brand-yellow-btn-text: #ffffff;
+            --light-yellow-accent: #33241d;
+            --light-yellow-subtle: #241c18;
+
+            --text-main: #f4f4f2;
+            --text-muted: #a8a8a2;
             --grid-opacity: 0.08;
-            --glow-opacity: 0.15;
+            --glow-opacity: 0.14;
         }
 
         body {
@@ -79,9 +79,9 @@
             left: 0;
             width: 100vw;
             height: 100vh;
-            background-image: 
-                linear-gradient(to right, rgba(234, 179, 8, var(--grid-opacity)) 1px, transparent 1px),
-                linear-gradient(to bottom, rgba(234, 179, 8, var(--grid-opacity)) 1px, transparent 1px);
+            background-image:
+                linear-gradient(to right, rgba(244, 91, 53, var(--grid-opacity)) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(244, 91, 53, var(--grid-opacity)) 1px, transparent 1px);
             background-size: 40px 40px;
             z-index: -2;
             pointer-events: none;
@@ -94,7 +94,7 @@
             left: -10%;
             width: 50vw;
             height: 50vw;
-            background: radial-gradient(circle, rgba(250, 204, 21, var(--glow-opacity)) 0%, rgba(254, 253, 250, 0) 70%);
+            background: radial-gradient(circle, rgba(244, 91, 53, var(--glow-opacity)) 0%, rgba(244, 244, 242, 0) 70%);
             z-index: -1;
             pointer-events: none;
         }
@@ -105,7 +105,7 @@
             right: -10%;
             width: 50vw;
             height: 50vw;
-            background: radial-gradient(circle, rgba(234, 179, 8, var(--glow-opacity)) 0%, rgba(254, 253, 250, 0) 70%);
+            background: radial-gradient(circle, rgba(223, 77, 41, var(--glow-opacity)) 0%, rgba(244, 244, 242, 0) 70%);
             z-index: -1;
             pointer-events: none;
         }
@@ -184,7 +184,7 @@
             background-color: var(--bg-card-subtle) !important;
             color: var(--text-main) !important;
             border-color: var(--brand-yellow) !important;
-            box-shadow: 0 0 0 0.2rem rgba(234, 179, 8, 0.25) !important;
+            box-shadow: 0 0 0 0.2rem rgba(244, 91, 53, 0.25) !important;
         }
 
         /* Select Dropdown Options */
@@ -214,8 +214,8 @@
 
         .custom-file-input::file-selector-button:active,
         .custom-file-input:focus::file-selector-button {
-            background-color: #a16207 !important;
-            border-color: #854d0e !important;
+            background-color: var(--brand-yellow-hover) !important;
+            border-color: var(--brand-yellow-hover) !important;
             color: #ffffff !important;
         }
 
@@ -226,14 +226,14 @@
             font-weight: 600;
             border: none;
             padding: 10px;
-            box-shadow: 0 4px 14px rgba(234, 179, 8, 0.3);
+            box-shadow: 0 4px 14px rgba(244, 91, 53, 0.3);
             transition: all 0.3s ease;
         }
 
         .btn-yellow-primary:hover {
             background: var(--brand-yellow-hover);
             color: #ffffff !important;
-            box-shadow: 0 6px 20px rgba(234, 179, 8, 0.4);
+            box-shadow: 0 6px 20px rgba(244, 91, 53, 0.4);
             transform: translateY(-1px);
         }
 
@@ -276,7 +276,7 @@
         .back-nav-btn:hover {
             background: var(--brand-yellow);
             border-color: var(--brand-yellow);
-            color: #1a1a1a;
+            color: #ffffff;
         }
 
         /* Flash Messages */
@@ -368,6 +368,6 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260831360000"></script>
 </body>
 </html>
