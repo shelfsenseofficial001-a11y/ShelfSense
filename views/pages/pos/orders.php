@@ -2,7 +2,7 @@
 $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260831250000"></script>';
 $additional_css = '
 <style>
     .order-row:hover {

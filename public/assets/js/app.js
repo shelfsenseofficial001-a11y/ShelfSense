@@ -416,3 +416,64 @@ function validateScheduleDate(dateStr) {
 document.addEventListener('DOMContentLoaded', function() {
     updatePendingBadge();
 });
+
+// ============================================
+// CLEARABLE SEARCH INPUTS (global "X" button)
+// ============================================
+// Every "Search ..." text input across the app gets an inline clear button.
+// Works without knowing each page's own search-handling code: clicking it
+// just empties the field and re-dispatches a native 'input' event, which
+// every page's own existing search listener already reacts to.
+
+(function() {
+    function attachClearButton(input) {
+        if (input.dataset.clearableInit) return;
+        input.dataset.clearableInit = '1';
+        input.classList.add('has-clear-btn');
+
+        // Reuse the parent as the positioning context if it's already
+        // positioned (e.g. .autocomplete-wrapper); otherwise wrap the input
+        // so the button has something to anchor to.
+        let container = input.parentElement;
+        const parentPosition = container ? getComputedStyle(container).position : 'static';
+        if (!container || (parentPosition !== 'relative' && parentPosition !== 'absolute' && parentPosition !== 'sticky')) {
+            container = document.createElement('div');
+            container.className = 'search-clearable-wrapper';
+            input.parentNode.insertBefore(container, input);
+            container.appendChild(input);
+        }
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'autocomplete-clear' + (input.value ? ' show' : '');
+        btn.title = 'Clear search';
+        btn.innerHTML = '<i class="bi bi-x-circle-fill"></i>';
+        container.appendChild(btn);
+
+        input.addEventListener('input', function() {
+            btn.classList.toggle('show', input.value.length > 0);
+        });
+
+        btn.addEventListener('click', function() {
+            input.value = '';
+            btn.classList.remove('show');
+            input.dispatchEvent(new Event('input', { bubbles: true }));
+            input.focus();
+        });
+    }
+
+    function initClearableSearchInputs() {
+        document.querySelectorAll('input[type="text"][placeholder^="Search" i]').forEach(attachClearButton);
+    }
+
+    document.addEventListener('DOMContentLoaded', initClearableSearchInputs);
+
+    // Exposed for pages that set a search input's value programmatically
+    // (e.g. selecting an autocomplete suggestion) so the button's visibility
+    // stays correct without needing a full synthetic 'input' event.
+    window.ShelfSenseUpdateClearBtn = function(input) {
+        if (!input) return;
+        const btn = input.parentElement?.querySelector('.autocomplete-clear');
+        if (btn) btn.classList.toggle('show', input.value.length > 0);
+    };
+})();

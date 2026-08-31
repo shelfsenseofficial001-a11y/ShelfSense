@@ -6,6 +6,8 @@ console.log('✅ pos.js loaded');
 
 let cart = [];
 let currentPage = 1;
+let currentSearch = '';
+let activeCategory = 0;
 let selectedPaymentMethod = 'cash';
 let currentOrderId = null;
 
@@ -15,9 +17,123 @@ let selectedIndex = -1;
 let searchTimeout = null;
 
 document.addEventListener('DOMContentLoaded', function() {
+    loadTopBarData();
+    loadCategories();
     loadProducts();
     setupEventListeners();
 });
+
+// ============================================
+// TOP BAR: SHIFT, STATS, RECENT ORDERS
+// ============================================
+
+function loadTopBarData() {
+    fetch('?page=api_get_my_shift')
+        .then(response => response.json())
+        .then(data => {
+            const label = document.getElementById('myShiftLabel');
+            if (!label) return;
+            if (data.success) {
+                const s = data.data;
+                if (s.is_rest_day || !s.time_in) {
+                    label.textContent = 'Rest Day';
+                } else {
+                    label.textContent = `${formatTime(s.time_in)} – ${formatTime(s.time_out)}`;
+                }
+            } else {
+                label.textContent = '—';
+            }
+        })
+        .catch(() => {
+            const label = document.getElementById('myShiftLabel');
+            if (label) label.textContent = '—';
+        });
+
+    fetch('?page=api_get_daily_sales')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) return;
+            const d = data.data;
+            const salesLabel = document.getElementById('todaySalesLabel');
+            const txLabel = document.getElementById('todayTransactionsLabel');
+            if (salesLabel) salesLabel.textContent = '₱' + d.today.total_sales.toFixed(2);
+            if (txLabel) txLabel.textContent = d.today.transaction_count;
+            renderRecentOrders(d.recent_transactions);
+        })
+        .catch(() => {
+            const row = document.getElementById('recentOrdersRow');
+            if (row) row.innerHTML = '<div class="text-danger small py-2">Failed to load recent orders.</div>';
+        });
+}
+
+function formatTime(time24) {
+    if (!time24) return '—';
+    const [h, m] = time24.split(':').map(Number);
+    const d = new Date(2000, 0, 1, h, m);
+    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+}
+
+function renderRecentOrders(orders) {
+    const row = document.getElementById('recentOrdersRow');
+    if (!row) return;
+    if (!orders || orders.length === 0) {
+        row.innerHTML = '<div class="text-muted small py-2">No orders yet today.</div>';
+        return;
+    }
+
+    // Let the cashier reprint their last receipt even after a page refresh.
+    if (!currentOrderId) {
+        currentOrderId = orders[0].id;
+        const printLastBtn = document.getElementById('printLastReceiptBtn');
+        if (printLastBtn) printLastBtn.disabled = false;
+    }
+
+    row.innerHTML = orders.slice(0, 8).map(order => {
+        const time = new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        return `
+            <div class="recent-order-card">
+                <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
+                    <strong class="recent-order-number" title="#${escapeHtml(order.order_number)}">#${escapeHtml(order.order_number)}</strong>
+                    <span class="badge bg-success">Paid</span>
+                </div>
+                <div class="text-muted small">${order.item_count || 0} items · ${time}</div>
+                <div class="d-flex justify-content-between align-items-center mt-1">
+                    <span class="fw-bold text-yellow">₱${parseFloat(order.total).toFixed(2)}</span>
+                    <a href="?page=pos_orders&view=${order.id}" class="recent-order-view-more">View More</a>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================
+// CATEGORIES
+// ============================================
+
+function loadCategories() {
+    fetch('?page=api_get_categories')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) return;
+            const row = document.getElementById('categoryRow');
+            if (!row) return;
+            const categories = data.data.categories || [];
+            let html = `<button class="pos-category-chip active" data-category="0"><i class="bi bi-grid-fill"></i> All</button>`;
+            categories.forEach(cat => {
+                html += `<button class="pos-category-chip" data-category="${cat.id}">${escapeHtml(cat.name)}</button>`;
+            });
+            row.innerHTML = html;
+            row.querySelectorAll('.pos-category-chip').forEach(chip => {
+                chip.addEventListener('click', function() {
+                    row.querySelectorAll('.pos-category-chip').forEach(c => c.classList.remove('active'));
+                    this.classList.add('active');
+                    activeCategory = parseInt(this.dataset.category) || 0;
+                    loadProducts(currentSearch, 1);
+                });
+            });
+        })
+        .catch(error => console.error('Error loading categories:', error));
+}
 
 // ============================================
 // EVENT LISTENERS
@@ -27,13 +143,13 @@ function setupEventListeners() {
     // Search input - Autocomplete
     const searchInput = document.getElementById('searchInput');
     const autocompleteDropdown = document.getElementById('searchAutocomplete');
-    
+
     if (searchInput) {
         searchInput.addEventListener('input', function() {
             const query = this.value.trim();
-            
+
             clearTimeout(searchTimeout);
-            
+
             if (query.length < 1) {
                 autocompleteDropdown.classList.remove('show');
                 autocompleteResults = [];
@@ -42,12 +158,12 @@ function setupEventListeners() {
                 loadProducts('');
                 return;
             }
-            
+
             searchTimeout = setTimeout(() => {
                 fetchAutocompleteSuggestions(query);
             }, 300);
         });
-        
+
         // Keyboard navigation for autocomplete
         searchInput.addEventListener('keydown', function(e) {
             const items = autocompleteDropdown.querySelectorAll('.item');
@@ -116,6 +232,14 @@ function setupEventListeners() {
         const search = document.getElementById('searchInput').value.trim();
         loadProducts(search);
     });
+
+    // Grid / List view toggle
+    document.querySelectorAll('#productViewToggle button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === productViewMode);
+        btn.addEventListener('click', function() {
+            setProductViewMode(this.dataset.view);
+        });
+    });
     
     // Clear cart
     document.getElementById('clearCartBtn')?.addEventListener('click', function() {
@@ -181,6 +305,23 @@ function setupEventListeners() {
     // Print receipt - only print the receipt content
     document.getElementById('printReceiptBtn')?.addEventListener('click', function() {
         window.print();
+    });
+
+    // Re-open the receipt for the last order placed this session
+    document.getElementById('printLastReceiptBtn')?.addEventListener('click', function() {
+        if (!currentOrderId) return;
+        fetch(`?page=api_get_order&id=${currentOrderId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showReceipt(data.data.order);
+                } else {
+                    Swal.fire({ icon: 'error', title: 'Failed', text: data.message || 'Could not load the receipt.' });
+                }
+            })
+            .catch(() => {
+                Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+            });
     });
 }
 
@@ -257,14 +398,13 @@ function renderAutocomplete(results) {
 function selectAutocompleteItem(product) {
     const searchInput = document.getElementById('searchInput');
     searchInput.value = product.name;
+    window.ShelfSenseUpdateClearBtn?.(searchInput);
     document.getElementById('searchAutocomplete').classList.remove('show');
     selectedIndex = -1;
     autocompleteResults = [];
-    
-    // Add to cart
-    addToCart(product.id, product.name, parseFloat(product.price));
-    
-    // Keep search input value and reload products with search
+
+    // Just filter the product list to this item -- adding to cart is a
+    // separate, explicit action (the qty stepper on the product card).
     loadProducts(product.name);
 }
 
@@ -287,21 +427,23 @@ function highlightItem(items) {
 
 function loadProducts(search = '', page = 1) {
     currentPage = page;
+    currentSearch = search;
     const grid = document.getElementById('productGrid');
-    
+
     grid.innerHTML = `
         <div class="text-center py-4">
             <div class="spinner-border text-primary" role="status"></div>
             <p class="mt-2 text-muted">Loading products...</p>
         </div>
     `;
-    
+
     const params = new URLSearchParams({
         p: page,
-        limit: 20
+        limit: 24
     });
     if (search) params.append('search', search);
-    
+    if (activeCategory > 0) params.append('category', activeCategory);
+
     fetch(`?page=api_get_products&${params}`)
         .then(response => response.json())
         .then(data => {
@@ -330,10 +472,15 @@ function loadProducts(search = '', page = 1) {
 // RENDER PRODUCTS
 // ============================================
 
+let lastRenderedProducts = [];
+let productViewMode = localStorage.getItem('pos_product_view') || 'grid';
+
 function renderProducts(products) {
     const grid = document.getElementById('productGrid');
     const info = document.getElementById('productInfo');
-    
+
+    lastRenderedProducts = products || [];
+
     if (!products || products.length === 0) {
         grid.innerHTML = `
             <div class="text-center text-muted py-4">
@@ -344,38 +491,131 @@ function renderProducts(products) {
         info.textContent = '0 products';
         return;
     }
-    
+
     info.textContent = `${products.length} products loaded`;
-    
-    let html = '<div class="row g-2">';
+    grid.innerHTML = productViewMode === 'list' ? renderProductsAsList(products) : renderProductsAsGrid(products);
+}
+
+function renderProductsAsGrid(products) {
+    let html = '<div class="pos-product-tiles">';
     products.forEach(product => {
         const isOutOfStock = product.stock_quantity <= 0;
+        const qty = getCartQty(product.id);
         html += `
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="product-card modern-card p-0 ${isOutOfStock ? 'out-of-stock' : ''}" 
-                     onclick="${isOutOfStock ? '' : `addToCart(${product.id}, '${escapeJs(product.name)}', ${product.price})`}">
-                    <div class="product-image-wrapper">
-                        ${product.image_url 
-                            ? `<img src="${product.image_url}" class="product-image" alt="${escapeHtml(product.name)}">`
-                            : `<div class="placeholder-image"><i class="bi bi-box"></i></div>`
-                        }
-                    </div>
-                    <div class="p-2">
-                        <div class="product-name" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</div>
-                        <div class="product-price">₱${parseFloat(product.price).toFixed(2)}</div>
-                        <div class="product-stock">${product.stock_quantity} in stock</div>
-                        <button class="btn btn-sm btn-yellow-primary w-100 mt-1" 
-                                ${isOutOfStock ? 'disabled' : ''}
-                                onclick="event.stopPropagation(); addToCart(${product.id}, '${escapeJs(product.name)}', ${product.price})">
-                            ${isOutOfStock ? 'Out of Stock' : '<i class="bi bi-plus"></i> Add'}
-                        </button>
-                    </div>
+            <div class="pos-product-tile modern-card p-0 ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id}">
+                <div class="pos-product-tile-img">
+                    ${product.image_url
+                        ? `<img src="${product.image_url}" alt="${escapeHtml(product.name)}">`
+                        : `<div class="placeholder-image"><i class="bi bi-box"></i></div>`
+                    }
                 </div>
+                <div class="pos-product-tile-body">
+                    <div class="pos-product-tile-name" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</div>
+                    ${product.category_name ? `<span class="pos-product-category-chip pos-tile-category-chip">${escapeHtml(product.category_name)}</span>` : ''}
+                    <div class="pos-product-tile-price">₱${parseFloat(product.price).toFixed(2)}</div>
+                </div>
+                ${isOutOfStock ? `
+                    <div class="pos-product-tile-oos">Out of Stock</div>
+                ` : `
+                    <div class="pos-product-tile-qty">
+                        <button class="qty-minus" ${qty === 0 ? 'disabled' : ''} onclick="stepProductQty(${product.id}, -1)">−</button>
+                        <input type="number" class="qty-value" min="0" value="${qty}" onchange="setProductQty(${product.id}, this.value)">
+                        <button class="qty-plus" onclick="stepProductQty(${product.id}, 1)">+</button>
+                    </div>
+                `}
             </div>
         `;
     });
     html += '</div>';
-    grid.innerHTML = html;
+    return html;
+}
+
+function renderProductsAsList(products) {
+    let html = '<div class="pos-product-list">';
+    products.forEach(product => {
+        const isOutOfStock = product.stock_quantity <= 0;
+        const qty = getCartQty(product.id);
+        html += `
+            <div class="pos-product-list-row ${isOutOfStock ? 'out-of-stock' : ''}" data-product-id="${product.id}">
+                <div class="pos-product-list-img">
+                    ${product.image_url
+                        ? `<img src="${product.image_url}" alt="${escapeHtml(product.name)}">`
+                        : `<div class="placeholder-image"><i class="bi bi-box"></i></div>`
+                    }
+                </div>
+                <div class="pos-product-list-info">
+                    <div class="pos-product-list-name" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</div>
+                    <div class="pos-product-list-meta">
+                        ${product.category_name ? `<span class="pos-product-category-chip">${escapeHtml(product.category_name)}</span>` : ''}
+                        <span class="pos-product-list-stock">${isOutOfStock ? 'Out of Stock' : product.stock_quantity + ' in stock'}</span>
+                    </div>
+                </div>
+                <div class="pos-product-list-price">₱${parseFloat(product.price).toFixed(2)}</div>
+                ${isOutOfStock ? '' : `
+                    <div class="pos-product-tile-qty pos-product-list-qty">
+                        <button class="qty-minus" ${qty === 0 ? 'disabled' : ''} onclick="stepProductQty(${product.id}, -1)">−</button>
+                        <input type="number" class="qty-value" min="0" value="${qty}" onchange="setProductQty(${product.id}, this.value)">
+                        <button class="qty-plus" onclick="stepProductQty(${product.id}, 1)">+</button>
+                    </div>
+                `}
+            </div>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+function setProductViewMode(mode) {
+    if (mode !== 'grid' && mode !== 'list') return;
+    productViewMode = mode;
+    localStorage.setItem('pos_product_view', mode);
+    document.querySelectorAll('#productViewToggle button').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === mode);
+    });
+    renderProducts(lastRenderedProducts);
+}
+
+function getCartQty(productId) {
+    const item = cart.find(i => i.product_id === productId);
+    return item ? item.quantity : 0;
+}
+
+function stepProductQty(productId, delta) {
+    const product = lastRenderedProducts.find(p => p.id === productId);
+    if (!product) return;
+    if (delta > 0) {
+        addToCart(product.id, product.name, parseFloat(product.price));
+    } else {
+        const index = cart.findIndex(i => i.product_id === productId);
+        if (index >= 0) updateQuantity(index, -1);
+    }
+}
+
+function setProductQty(productId, value) {
+    const product = lastRenderedProducts.find(p => p.id === productId);
+    if (!product) return;
+    const qty = Math.floor(Number(value));
+    const index = cart.findIndex(i => i.product_id === productId);
+
+    if (!Number.isFinite(qty) || qty <= 0) {
+        if (index >= 0) cart.splice(index, 1);
+    } else if (index >= 0) {
+        cart[index].quantity = qty;
+    } else {
+        cart.push({ product_id: product.id, name: product.name, price: parseFloat(product.price), quantity: qty });
+    }
+    updateCart();
+}
+
+function syncProductTiles() {
+    document.querySelectorAll('#productGrid [data-product-id]').forEach(tile => {
+        const productId = parseInt(tile.dataset.productId);
+        const qty = getCartQty(productId);
+        const valueEl = tile.querySelector('.qty-value');
+        const minusBtn = tile.querySelector('.qty-minus');
+        if (valueEl) valueEl.value = qty;
+        if (minusBtn) minusBtn.disabled = qty === 0;
+    });
 }
 
 // ============================================
@@ -477,20 +717,23 @@ function updateCart() {
     const emptyMessage = document.getElementById('emptyCartMessage');
     const countBadge = document.getElementById('cartCount');
     const totalDisplay = document.getElementById('cartTotal');
+    const subtotalDisplay = document.getElementById('cartSubtotal');
     const checkoutBtn = document.getElementById('checkoutBtn');
-    
+
     if (cart.length === 0) {
         container.style.display = 'none';
         emptyMessage.style.display = 'block';
         countBadge.textContent = '0';
         totalDisplay.textContent = '₱0.00';
+        if (subtotalDisplay) subtotalDisplay.textContent = '₱0.00';
         checkoutBtn.disabled = true;
+        syncProductTiles();
         return;
     }
-    
+
     container.style.display = 'block';
     emptyMessage.style.display = 'none';
-    
+
     let total = 0;
     let itemCount = 0;
     let html = '';
@@ -502,21 +745,17 @@ function updateCart() {
         
         html += `
             <div class="cart-item">
-                <div class="item-info">
+                <div class="cart-item-top">
                     <div class="item-name">${escapeHtml(item.name)}</div>
+                    <button class="cart-item-remove" onclick="removeFromCart(${index})" title="Remove">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="cart-item-bottom">
                     <div class="item-price">₱${item.price.toFixed(2)} each</div>
+                    <div class="cart-item-qty">${item.quantity}</div>
+                    <div class="cart-item-subtotal">₱${subtotal.toFixed(2)}</div>
                 </div>
-                <div class="qty-control">
-                    <button onclick="updateQuantity(${index}, -1)">−</button>
-                    <span>${item.quantity}</span>
-                    <button onclick="updateQuantity(${index}, 1)">+</button>
-                </div>
-                <div class="fw-bold" style="min-width:60px;text-align:right;">
-                    ₱${subtotal.toFixed(2)}
-                </div>
-                <button class="btn btn-sm btn-link text-danger p-0" onclick="removeFromCart(${index})">
-                    <i class="bi bi-x-circle"></i>
-                </button>
             </div>
         `;
     });
@@ -524,7 +763,9 @@ function updateCart() {
     container.innerHTML = html;
     countBadge.textContent = itemCount;
     totalDisplay.textContent = '₱' + total.toFixed(2);
+    if (subtotalDisplay) subtotalDisplay.textContent = '₱' + total.toFixed(2);
     checkoutBtn.disabled = false;
+    syncProductTiles();
 }
 
 function updateQuantity(index, delta) {
@@ -535,6 +776,7 @@ function updateQuantity(index, delta) {
     }
     updateCart();
 }
+
 
 function removeFromCart(index) {
     if (index < 0 || index >= cart.length) return;
@@ -665,16 +907,20 @@ function completePayment() {
         if (data.success) {
             const order = data.data.order;
             currentOrderId = order.id;
-            
+            const printLastBtn = document.getElementById('printLastReceiptBtn');
+            if (printLastBtn) printLastBtn.disabled = false;
+
             bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
             showReceipt(order);
             cart = [];
             updateCart();
             
-            // Refresh product grid to update stock counts
+            // Refresh product grid to update stock counts, and the top bar
+            // (Today's Sales / Recent Orders) to reflect the new order.
             const search = document.getElementById('searchInput').value.trim();
             loadProducts(search, currentPage);
-            
+            loadTopBarData();
+
         } else {
             Swal.fire({
                 icon: 'error',

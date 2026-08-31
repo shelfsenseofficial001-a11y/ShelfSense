@@ -9,6 +9,17 @@ document.addEventListener("DOMContentLoaded", function() {
     const todayStr = new Date().toISOString().split("T")[0];
     document.getElementById("filterDate").value = todayStr;
 
+    // Deep link from the Checkout page's "View More" on a Recent Order card
+    // (?page=pos_orders&view=<order_id>) -- opens that order's detail drawer
+    // immediately instead of making the cashier hunt for it in the list.
+    const deepLinkParams = new URLSearchParams(window.location.search);
+    const viewOrderId = deepLinkParams.get('view');
+    if (viewOrderId) {
+        viewOrder(viewOrderId);
+        deepLinkParams.delete('view');
+        window.history.replaceState(null, '', window.location.pathname + '?' + deepLinkParams.toString());
+    }
+
     if (window.ShelfSenseFilterChips) {
         window.ShelfSenseFilterChips.init('activeFilterChips', [
             { key: 'search', type: 'search', elementId: 'searchOrderInput' },
