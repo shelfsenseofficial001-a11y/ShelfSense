@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../models/OrderItem.php';
 require_once __DIR__ . '/../../models/Product.php';
+require_once __DIR__ . '/../../models/Register.php';
 
 use App\Core\Auth;
 use App\Core\Database;
@@ -14,6 +15,7 @@ use App\Core\Response;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
+use App\Models\Register;
 
 header('Content-Type: application/json');
 
@@ -57,13 +59,28 @@ if (strlen($notes) > 500) {
 
 try {
     $db = Database::getInstance()->getConnection();
+
+    $cashierId = Auth::userId();
+
+    // Cashiers must have a register budget allocated before ringing up sales;
+    // the order is tied to that allocation so cash-out totals stay scoped to
+    // the current float and never bleed into a prior or future shift.
+    $registerAllocationId = null;
+    if (Auth::isEmployee()) {
+        $registerModel = new Register();
+        $allocation = $registerModel->getActiveAllocationForCashier($cashierId);
+        if (!$allocation) {
+            Response::error('No budget has been allocated to your register yet. Please see your Store Manager.', 400);
+        }
+        $registerAllocationId = $allocation['id'];
+    }
+
     $db->beginTransaction();
 
     $orderModel = new Order();
     $orderItemModel = new OrderItem();
     $productModel = new Product();
 
-    $cashierId = Auth::userId();
     $orderNumber = $orderModel->generateOrderNumber();
 
     $subtotal = 0;
@@ -119,6 +136,7 @@ try {
     $orderId = $orderModel->create([
         'order_number' => $orderNumber,
         'cashier_id' => $cashierId,
+        'register_allocation_id' => $registerAllocationId,
         'subtotal' => $subtotal,
         'total' => $total,
         'amount_paid' => $amountPaid,

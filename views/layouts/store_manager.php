@@ -16,9 +16,9 @@ use App\Core\Auth;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831061347">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/store_manager.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/store_manager.css?v=20260831430000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -71,6 +71,9 @@ use App\Core\Auth;
                 <a href="?page=store_manager_inventory" class="nav-item <?= $activePage === 'inventory' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-box-seam"></i></span> <span class="nav-label">Inventory</span>
                 </a>
+                <a href="?page=store_manager_budget" class="nav-item <?= $activePage === 'budget' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-cash-stack"></i></span> <span class="nav-label">Budget</span>
+                </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?= $activePage === 'my_leaves' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
@@ -108,7 +111,7 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260831360000"></script>
     <script src="/ShelfSense/public/assets/js/store_manager/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>

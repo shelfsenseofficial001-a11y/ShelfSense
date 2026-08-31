@@ -21,7 +21,7 @@ $role = Auth::role();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831061347">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/finance.css">
     <?= $additional_css ?? '' ?>
@@ -93,6 +93,9 @@ $role = Auth::role();
                 <a href="?page=finance_head_budget" class="nav-item <?= $activePage === 'head_budget' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-pie-chart"></i></span> <span class="nav-label">Budget</span>
                 </a>
+                <a href="?page=finance_head_revenue_split" class="nav-item <?= $activePage === 'head_revenue_split' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-percent"></i></span> <span class="nav-label">Revenue Split</span>
+                </a>
                 <?php endif; ?>
 
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
@@ -132,7 +135,7 @@ $role = Auth::role();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260831360000"></script>
     <script src="/ShelfSense/public/assets/js/finance/staff/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>

@@ -24,7 +24,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831061347">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
     <?= $additional_css ?? '' ?>
 </head>
@@ -69,14 +69,14 @@ use App\Core\Auth;
 
             <nav class="sidebar-nav">
                 <div class="sidebar-divider sidebar-divider-first"><span class="sidebar-divider-label">Main</span></div>
-                <a href="?page=pos_dashboard" class="nav-item <?= $activePage === 'dashboard' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">Dashboard</span>
-                </a>
                 <a href="?page=pos_checkout" class="nav-item <?= $activePage === 'checkout' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-cart-plus-fill"></i></span> <span class="nav-label">Checkout</span>
                 </a>
                 <a href="?page=pos_orders" class="nav-item <?= $activePage === 'orders' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Order History</span>
+                </a>
+                <a href="?page=pos_budget" class="nav-item <?= $activePage === 'budget' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-cash-stack"></i></span> <span class="nav-label">Budget</span>
                 </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?= $activePage === 'my_leaves' ? 'active' : '' ?>">
@@ -86,7 +86,7 @@ use App\Core\Auth;
                     <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span> <span class="nav-label">My Payslip</span>
                 </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Account</span></div>
-                <a href="?page=logout" class="nav-item text-danger">
+                <a href="?page=logout" class="nav-item text-danger" id="posLogoutLink">
                     <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Logout</span>
                 </a>
             </nav>
@@ -97,7 +97,12 @@ use App\Core\Auth;
             <!-- Top Bar -->
             <div class="pos-topbar d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="mb-0"><?= $pageTitle ?? 'POS Dashboard' ?></h5>
+                    <div class="topbar-greeting">Hello, <span class="text-yellow"><?php echo htmlspecialchars($_SESSION['first_name'] ?? 'there'); ?></span>!</div>
+                    <div class="topbar-subtitle">
+                        <span class="topbar-page-label"><?= $pageTitle ?? 'POS Dashboard' ?></span>
+                        <span class="topbar-dot">•</span>
+                        <span id="topbarDateTime"></span>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
                     <!-- Theme Toggle -->
@@ -131,7 +136,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260830122553"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260831360000"></script>
 
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
@@ -231,8 +236,10 @@ use App\Core\Auth;
             padding: 0;
             min-height: 100%;
             background: var(--bg-body);
+            display: flex;
+            flex-direction: column;
         }
-        
+
         .pos-topbar {
             padding: 12px 24px;
             background: var(--bg-card);
@@ -240,15 +247,49 @@ use App\Core\Auth;
             position: sticky;
             top: 0;
             z-index: 100;
+            flex-shrink: 0;
         }
-        
+
         .pos-topbar h5 {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 600;
         }
-        
+
+        .pos-topbar .topbar-greeting {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+        .pos-topbar .topbar-greeting .text-yellow {
+            background: linear-gradient(135deg, var(--brand-yellow), var(--brand-yellow-hover));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .pos-topbar .topbar-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .pos-topbar .topbar-subtitle .topbar-page-label {
+            font-weight: 600;
+            color: var(--brand-yellow);
+        }
+        .pos-topbar .topbar-subtitle .topbar-dot {
+            opacity: 0.5;
+        }
+
         .pos-page-content {
             padding: 20px 24px;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
         }
         
         /* Flash messages */
@@ -308,8 +349,22 @@ use App\Core\Auth;
             }
         }
     </style>
-    
+
     <script>
+        // Live date/time in the topbar greeting
+        (function() {
+            const el = document.getElementById('topbarDateTime');
+            if (!el) return;
+            function tick() {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+                el.textContent = dateStr + ' — ' + timeStr;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
+
         // Sidebar toggle for mobile
         document.addEventListener('DOMContentLoaded', function() {
             const topbar = document.querySelector('.pos-topbar');
@@ -323,6 +378,45 @@ use App\Core\Auth;
                 topbar.prepend(toggleBtn);
             }
         });
+
+        // Cashiers must cash out their register budget before logging out.
+        <?php if (($_SESSION['role'] ?? '') === 'employee'): ?>
+        document.addEventListener('DOMContentLoaded', function() {
+            const logoutLink = document.getElementById('posLogoutLink');
+            if (!logoutLink) return;
+
+            logoutLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                fetch('?page=api_pos_get_budget_status')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.data.allocation) {
+                            if (window.Swal) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Cash out required',
+                                    text: 'You must cash out your register budget before logging out.',
+                                    confirmButtonText: 'Go to Budget',
+                                    confirmButtonColor: '#eeab1a'
+                                }).then(result => {
+                                    if (result.isConfirmed) {
+                                        window.location.href = '?page=pos_budget';
+                                    }
+                                });
+                            } else {
+                                alert('You must cash out your register budget before logging out.');
+                                window.location.href = '?page=pos_budget';
+                            }
+                        } else {
+                            window.location.href = '?page=logout';
+                        }
+                    })
+                    .catch(() => {
+                        window.location.href = '?page=logout';
+                    });
+            });
+        });
+        <?php endif; ?>
     </script>
 </body>
 </html>

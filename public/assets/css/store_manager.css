@@ -327,6 +327,140 @@
     color: var(--text-muted);
 }
 
+/* ---------- Dashboard header (greeting + date + action) ---------- */
+.sm-dash-header h4 {
+    font-family: 'Space Grotesk', sans-serif;
+}
+.sm-date-pill {
+    padding: 6px 14px;
+    border-radius: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+
+/* ---------- Stat card trend sublabel ---------- */
+.sm-stat-trend {
+    font-size: 0.72rem;
+    margin-top: 4px;
+}
+.sm-stat-trend.up { color: #059669; }
+.sm-stat-trend.warn { color: #d97706; }
+.sm-stat-trend.muted { color: var(--text-muted); }
+
+/* ---------- Quick preview mini-tables (always visible, HR-dashboard style) ---------- */
+.sm-mini-table-scroll {
+    max-height: 220px;
+    overflow-y: auto;
+}
+.sm-mini-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card-subtle, var(--bg-card));
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    z-index: 1;
+}
+.sm-mini-table-scroll td {
+    vertical-align: middle;
+    font-size: 0.84rem;
+}
+.sm-mini-row {
+    cursor: pointer;
+}
+
+/* ---------- Dashboard charts ---------- */
+.sm-chart-wrap {
+    position: relative;
+    height: 260px;
+}
+.sm-chart-wrap-donut {
+    height: 240px;
+}
+
+/* ---------- Recent Requisitions (list rows) ---------- */
+.sm-recent-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 4px;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.sm-recent-row:last-child {
+    border-bottom: none;
+}
+.sm-recent-row:hover {
+    background: var(--bg-card-subtle);
+}
+.sm-recent-rank {
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--light-yellow-subtle);
+    color: var(--brand-yellow-hover);
+    font-weight: 700;
+    font-size: 0.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.sm-recent-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.sm-recent-name {
+    font-weight: 600;
+    font-size: 0.88rem;
+}
+.sm-recent-sub {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+.sm-recent-right {
+    flex-shrink: 0;
+    text-align: right;
+}
+.sm-recent-amount {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 3px;
+}
+
+/* ---------- Business Insights panel ---------- */
+.sm-insight-row {
+    padding: 12px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+.sm-insight-row:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+.sm-insight-label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+.sm-insight-value {
+    font-weight: 700;
+    font-size: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sm-insight-delta {
+    font-size: 0.78rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+}
+
 /* ---------- Responsive breakpoints per spec ---------- */
 @media (max-width: 767.98px) {
     .sm-stats-grid { grid-template-columns: repeat(2, 1fr); }

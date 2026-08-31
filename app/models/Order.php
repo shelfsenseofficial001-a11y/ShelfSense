@@ -16,13 +16,14 @@ class Order
     {
         $stmt = $this->db->prepare("
             INSERT INTO orders (
-                order_number, cashier_id, subtotal, total, 
+                order_number, cashier_id, register_allocation_id, subtotal, total,
                 amount_paid, change_amount, payment_method, payment_reference, notes
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $result = $stmt->execute([
             $data['order_number'],
             $data['cashier_id'],
+            $data['register_allocation_id'] ?? null,
             $data['subtotal'],
             $data['total'],
             $data['amount_paid'] ?? 0,

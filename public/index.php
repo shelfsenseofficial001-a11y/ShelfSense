@@ -95,7 +95,7 @@ if ($page === 'dashboard') {
             Response::redirect('?page=hr_dashboard');
             break;
         case 'employee':
-            Response::redirect('?page=pos_dashboard');
+            Response::redirect('?page=pos_checkout');
             break;
         case 'trainee':
             Response::redirect('?page=trainee_dashboard');
@@ -641,16 +641,10 @@ if ($page === 'api_cancel_payroll') {
 // POS / employee PAGE ROUTES
 // ============================================
 
+// The POS Dashboard and Checkout pages have been combined into one --
+// this redirect keeps any old bookmarks/links working.
 if ($page === 'pos_dashboard') {
-    if (!Auth::check()) {
-        Response::redirect('?page=login');
-        exit;
-    }
-    if (!Auth::isEmployee() && !Auth::isOwner() && !(Auth::isTrainee() && Auth::getTraineeTargetRole() === 'employee')) {
-        Response::redirect('?page=dashboard');
-        exit;
-    }
-    require_once __DIR__ . '/../views/pages/pos/dashboard.php';
+    Response::redirect('?page=pos_checkout');
     exit;
 }
 
@@ -659,7 +653,7 @@ if ($page === 'pos_checkout') {
         Response::redirect('?page=login');
         exit;
     }
-    if (!Auth::isEmployee() && !Auth::isOwner()) {
+    if (!Auth::isEmployee() && !Auth::isOwner() && !(Auth::isTrainee() && Auth::getTraineeTargetRole() === 'employee')) {
         Response::redirect('?page=dashboard');
         exit;
     }
@@ -677,6 +671,19 @@ if ($page === 'pos_orders') {
         exit;
     }
     require_once __DIR__ . '/../views/pages/pos/orders.php';
+    exit;
+}
+
+if ($page === 'pos_budget') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isEmployee() && !Auth::isOwner() && !(Auth::isTrainee() && Auth::getTraineeTargetRole() === 'employee')) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/pos/budget.php';
     exit;
 }
 
@@ -708,10 +715,22 @@ if ($page === 'api_get_daily_sales') {
     require_once __DIR__ . '/../app/handlers/pos/get_daily_sales.php';
     exit;
 }
+if ($page === 'api_get_my_shift') {
+    require_once __DIR__ . '/../app/handlers/pos/get_my_shift.php';
+    exit;
+}
 if ($page === 'api_void_order') {
     require_once __DIR__ . '/../app/handlers/pos/void_order.php';
     exit;
-}   
+}
+if ($page === 'api_pos_get_budget_status') {
+    require_once __DIR__ . '/../app/handlers/pos/get_budget_status.php';
+    exit;
+}
+if ($page === 'api_pos_cash_out') {
+    require_once __DIR__ . '/../app/handlers/pos/cash_out.php';
+    exit;
+}
 
 // ============================================
 // STORE MANAGER ROUTES
@@ -797,6 +816,38 @@ if ($page === 'store_manager_inventory') {
 
 if ($page === 'api_store_manager_inventory') {
     require_once __DIR__ . '/../app/handlers/store_manager/get_inventory.php';
+    exit;
+}
+
+// ============================================
+// STORE MANAGER - REGISTER BUDGET
+// ============================================
+
+if ($page === 'store_manager_budget') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/store_manager/budget.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_get_register_status') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_register_status.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_allocate_register_budget') {
+    require_once __DIR__ . '/../app/handlers/store_manager/allocate_register_budget.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_get_register_allocation_history') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_register_allocation_history.php';
     exit;
 }
 
@@ -1026,6 +1077,19 @@ if ($page === 'finance_head_budget') {
     exit;
 }
 
+if ($page === 'finance_head_revenue_split') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/finance/head/revenue_split.php';
+    exit;
+}
+
 // --- Finance API Routes (Staff) ---
 if ($page === 'api_finance_staff_dashboard_stats') {
     require_once __DIR__ . '/../app/handlers/finance/staff/get_dashboard_stats.php';
@@ -1090,6 +1154,36 @@ if ($page === 'api_finance_set_budget') {
 
 if ($page === 'api_finance_get_budget_adjustments') {
     require_once __DIR__ . '/../app/handlers/finance/head/get_budget_adjustments.php';
+    exit;
+}
+
+if ($page === 'api_finance_get_revenue_split_rules') {
+    require_once __DIR__ . '/../app/handlers/finance/head/get_revenue_split_rules.php';
+    exit;
+}
+
+if ($page === 'api_finance_set_revenue_split_rules') {
+    require_once __DIR__ . '/../app/handlers/finance/head/set_revenue_split_rules.php';
+    exit;
+}
+
+if ($page === 'api_finance_get_revenue_periods') {
+    require_once __DIR__ . '/../app/handlers/finance/head/get_revenue_periods.php';
+    exit;
+}
+
+if ($page === 'api_finance_compute_revenue_split') {
+    require_once __DIR__ . '/../app/handlers/finance/head/compute_revenue_split.php';
+    exit;
+}
+
+if ($page === 'api_finance_apply_revenue_split') {
+    require_once __DIR__ . '/../app/handlers/finance/head/apply_revenue_split.php';
+    exit;
+}
+
+if ($page === 'api_finance_get_revenue_split_history') {
+    require_once __DIR__ . '/../app/handlers/finance/head/get_revenue_split_history.php';
     exit;
 }
 
