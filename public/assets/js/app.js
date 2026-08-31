@@ -96,12 +96,17 @@ console.log('✅ ShelfSense app.js loaded');
     // means every existing and future icon-only button gets a correct
     // tooltip for free, with no per-file changes.
     var TOOLTIP_SKIP_CLASSES = ['btn', 'btn-icon-only', 'btn-icon-checked'];
+    // Generic Bootstrap utility classes (color, spacing, sizing, layout,
+    // typography helpers) never describe what a button DOES, so they must
+    // never be picked as the tooltip label even when they appear before the
+    // button's real semantic/JS-hook class in the class list.
+    var TOOLTIP_SKIP_PATTERN = /^(btn-(outline-)?[a-z]+|text-[a-z-]+|bg-[a-z-]+|border(-[a-z0-9]+)?|rounded(-[a-z0-9]+)?|[pmxy]{1,2}-[a-z0-9]+|fw-[a-z]+|fs-[0-9]+|d-[a-z-]+|gap-[0-9]+|align-[a-z-]+|justify-[a-z-]+|[wh]-[0-9]+|opacity-[0-9]+|shadow(-[a-z]+)?|small|position-[a-z]+)$/;
     function deriveTooltipLabel(btn) {
         var candidate = null;
         for (var i = 0; i < btn.classList.length; i++) {
             var c = btn.classList[i];
             if (TOOLTIP_SKIP_CLASSES.indexOf(c) !== -1) continue;
-            if (/^btn-(outline-)?[a-z]+$/.test(c)) continue; // btn-outline-primary, btn-success, ...
+            if (TOOLTIP_SKIP_PATTERN.test(c)) continue; // btn-outline-primary, text-danger, p-0, rounded-circle, ...
             candidate = c;
             break;
         }
@@ -120,7 +125,7 @@ console.log('✅ ShelfSense app.js loaded');
             const isOnlyChild = btn.children.length === 1 && btn.children[0] === icon;
             if (isOnlyChild && btn.textContent.trim() === '') {
                 btn.classList.add('btn-icon-only');
-                const label = deriveTooltipLabel(btn);
+                const label = btn.getAttribute('title') || deriveTooltipLabel(btn);
                 if (label && window.bootstrap && window.bootstrap.Tooltip) {
                     btn.setAttribute('title', label);
                     btn.setAttribute('data-bs-toggle', 'tooltip');
@@ -129,14 +134,30 @@ console.log('✅ ShelfSense app.js loaded');
             }
         });
     }
+    // A tooltip's visible bubble is a separate element Bootstrap appends to
+    // <body>, not a child of the trigger button -- so if a page removes the
+    // button itself (e.g. deleting a table row) without hiding the tooltip
+    // first, the bubble is orphaned on screen with nothing left to dismiss
+    // it. Dispose any live tooltip instance still attached to a node (or one
+    // of its descendants) right before it leaves the DOM.
+    function disposeTooltipsIn(node) {
+        if (!(node instanceof Element) || !window.bootstrap || !window.bootstrap.Tooltip) return;
+        const targets = node.matches('[data-bs-toggle="tooltip"]') ? [node] : [];
+        targets.push(...node.querySelectorAll('[data-bs-toggle="tooltip"]'));
+        targets.forEach(function (el) {
+            const instance = window.bootstrap.Tooltip.getInstance(el);
+            if (instance) instance.dispose();
+        });
+    }
+
     markIconOnlyButtons(document);
     const observer = new MutationObserver(function(mutations) {
+        let added = false;
         for (const m of mutations) {
-            if (m.addedNodes.length) {
-                markIconOnlyButtons(document.body);
-                break;
-            }
+            m.removedNodes.forEach(disposeTooltipsIn);
+            if (m.addedNodes.length) added = true;
         }
+        if (added) markIconOnlyButtons(document.body);
     });
     if (document.body) {
         observer.observe(document.body, { childList: true, subtree: true });

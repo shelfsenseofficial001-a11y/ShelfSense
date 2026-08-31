@@ -155,7 +155,7 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260831360000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260831460000"></script>
     <?= $additional_js ?? '' ?>
 
     <style>

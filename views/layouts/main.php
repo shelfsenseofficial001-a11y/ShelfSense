@@ -34,7 +34,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260831360000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260831460000"></script>
     <?= $additional_js ?? '' ?>
 </body>
 </html>
