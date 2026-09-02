@@ -7,7 +7,6 @@ require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../models/Register.php';
 
 use App\Core\Auth;
-use App\Core\Database;
 use App\Core\Response;
 use App\Models\Register;
 
@@ -26,12 +25,12 @@ if (!$input) {
     Response::error('Invalid request data. Please try again.', 400);
 }
 
-$cashierId = intval($input['cashier_id'] ?? 0);
+$registerId = isset($input['register_id']) ? intval($input['register_id']) : 0;
 $initialBudget = isset($input['initial_budget']) ? floatval($input['initial_budget']) : 0;
 $notes = isset($input['notes']) ? trim($input['notes']) : null;
 
-if ($cashierId <= 0) {
-    Response::error('Please select a cashier', 400);
+if ($registerId <= 0) {
+    Response::error('Invalid register.', 400);
 }
 
 if ($initialBudget <= 0) {
@@ -43,15 +42,8 @@ if ($initialBudget > 1000000) {
 }
 
 try {
-    $db = Database::getInstance()->getConnection();
-    $stmt = $db->prepare("SELECT user_id FROM users WHERE user_id = ? AND role = 'employee' AND is_active = 1");
-    $stmt->execute([$cashierId]);
-    if (!$stmt->fetch()) {
-        Response::error('Selected cashier is not a valid active employee', 400);
-    }
-
     $registerModel = new Register();
-    $allocation = $registerModel->allocateBudget(Auth::userId(), $cashierId, $initialBudget, $notes);
+    $allocation = $registerModel->allocateBudget($registerId, Auth::userId(), $initialBudget, $notes);
 
     Response::success(['allocation' => $allocation], 'Budget allocated to register');
 

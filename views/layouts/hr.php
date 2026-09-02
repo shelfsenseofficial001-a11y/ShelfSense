@@ -113,6 +113,9 @@ use App\Core\Auth;
                 <a href="?page=avatar_approvals" class="nav-item <?php echo $activePage === 'avatar_approvals' ? 'active' : ''; ?>" title="Profile Picture Approvals">
                     <span class="nav-icon-wrap"><i class="bi bi-person-check-fill"></i></span> <span class="nav-label">Photo Approvals</span>
                 </a>
+                <a href="?page=owner_pos_accounts" class="nav-item <?php echo $activePage === 'pos_accounts' ? 'active' : ''; ?>" title="POS Accounts">
+                    <span class="nav-icon-wrap"><i class="bi bi-credit-card-2-front"></i></span> <span class="nav-label">POS Accounts</span>
+                </a>
                 <?php endif; ?>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>" title="My Leaves">

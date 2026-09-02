@@ -13,14 +13,19 @@ use App\Models\Schedule;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+if (!Auth::posCheck() && !Auth::check()) {
     Response::unauthorized('Please login to access this resource');
+}
+
+$cashierId = Auth::posCheck() ? Auth::posCashierId() : Auth::userId();
+if (!$cashierId) {
+    Response::success(['day' => strtolower(date('l')), 'is_rest_day' => true, 'time_in' => null, 'time_out' => null], 'Shift fetched successfully');
 }
 
 try {
     $dayOfWeek = strtolower(date('l'));
     $scheduleModel = new Schedule();
-    $today = $scheduleModel->getScheduleByDay(Auth::userId(), $dayOfWeek);
+    $today = $scheduleModel->getScheduleByDay($cashierId, $dayOfWeek);
 
     Response::success([
         'day' => $dayOfWeek,

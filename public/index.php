@@ -95,7 +95,7 @@ if ($page === 'dashboard') {
             Response::redirect('?page=hr_dashboard');
             break;
         case 'employee':
-            Response::redirect('?page=pos_checkout');
+            Response::redirect('?page=pos_orders');
             break;
         case 'trainee':
             Response::redirect('?page=trainee_dashboard');
@@ -124,6 +124,11 @@ if ($page === 'dashboard') {
 
 if ($page === 'api_login') {
     require_once __DIR__ . '/../app/handlers/api_login.php';
+    exit;
+}
+
+if ($page === 'api_check_employee_number') {
+    require_once __DIR__ . '/../app/handlers/check_employee_number.php';
     exit;
 }
 
@@ -206,6 +211,34 @@ if ($page === 'api_owner_get_overview') {
         Response::forbidden('Access denied. Owner role required.');
     }
     require_once __DIR__ . '/../app/handlers/owner/get_overview.php';
+    exit;
+}
+
+if ($page === 'owner_pos_accounts') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/owner/pos_accounts.php';
+    exit;
+}
+
+if ($page === 'api_owner_get_pos_accounts') {
+    require_once __DIR__ . '/../app/handlers/owner/get_pos_accounts.php';
+    exit;
+}
+
+if ($page === 'api_owner_create_pos_account') {
+    require_once __DIR__ . '/../app/handlers/owner/create_pos_account.php';
+    exit;
+}
+
+if ($page === 'api_owner_reset_pos_pin') {
+    require_once __DIR__ . '/../app/handlers/owner/reset_pos_pin.php';
     exit;
 }
 
@@ -305,7 +338,19 @@ if ($page === 'login') {
         Response::redirect('?page=dashboard');
         exit;
     }
+    require_once __DIR__ . '/../app/core/PortalGate.php';
+    if (!\App\Core\PortalGate::hasPassed()) {
+        Response::redirect('?page=home&notice=login_locked');
+        exit;
+    }
     require_once __DIR__ . '/../views/pages/auth/login.php';
+    exit;
+}
+
+if ($page === 'portal_gate_leave') {
+    require_once __DIR__ . '/../app/core/PortalGate.php';
+    \App\Core\PortalGate::leave();
+    Response::redirect('?page=home');
     exit;
 }
 
@@ -649,12 +694,17 @@ if ($page === 'pos_dashboard') {
 }
 
 if ($page === 'pos_checkout') {
-    if (!Auth::check()) {
+    if (!Auth::posCheck()) {
         Response::redirect('?page=login');
         exit;
     }
-    if (!Auth::isEmployee() && !Auth::isOwner() && !(Auth::isTrainee() && Auth::getTraineeTargetRole() === 'employee')) {
-        Response::redirect('?page=dashboard');
+    if (!Auth::posCashierId()) {
+        Response::redirect('?page=pos_select_cashier');
+        exit;
+    }
+    $registerModel = new \App\Models\Register();
+    if (!$registerModel->getActiveAllocation(Auth::posRegisterId())) {
+        Response::redirect('?page=pos_budget&notice=no_budget');
         exit;
     }
     require_once __DIR__ . '/../views/pages/pos/checkout.php';
@@ -675,15 +725,40 @@ if ($page === 'pos_orders') {
 }
 
 if ($page === 'pos_budget') {
-    if (!Auth::check()) {
+    if (!Auth::posCheck()) {
         Response::redirect('?page=login');
         exit;
     }
-    if (!Auth::isEmployee() && !Auth::isOwner() && !(Auth::isTrainee() && Auth::getTraineeTargetRole() === 'employee')) {
-        Response::redirect('?page=dashboard');
+    if (!Auth::posCashierId()) {
+        Response::redirect('?page=pos_select_cashier');
         exit;
     }
     require_once __DIR__ . '/../views/pages/pos/budget.php';
+    exit;
+}
+
+if ($page === 'pos_select_cashier') {
+    if (!Auth::posCheck()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/pos/pos_select_cashier.php';
+    exit;
+}
+
+if ($page === 'api_pos_select_cashier') {
+    require_once __DIR__ . '/../app/handlers/pos/pos_select_cashier.php';
+    exit;
+}
+
+if ($page === 'api_pos_get_cashiers') {
+    require_once __DIR__ . '/../app/handlers/pos/get_cashiers.php';
+    exit;
+}
+
+if ($page === 'pos_logout') {
+    Auth::posLogout();
+    Response::redirect('?page=login');
     exit;
 }
 

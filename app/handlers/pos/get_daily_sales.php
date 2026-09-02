@@ -12,16 +12,19 @@ use App\Models\Order;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
+$isPosSession = Auth::posCheck();
 
-if (!Auth::isEmployee() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
-    Response::forbidden('Access denied. Employee role required.');
+if (!$isPosSession) {
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+    if (!Auth::isEmployee() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
+        Response::forbidden('Access denied. Employee role required.');
+    }
 }
 
 try {
-    $cashierId = Auth::userId();
+    $cashierId = $isPosSession ? Auth::posCashierId() : Auth::userId();
     $orderModel = new Order();
 
     $todaySales = $orderModel->getTodaySales($cashierId);

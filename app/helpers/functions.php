@@ -35,22 +35,44 @@ function escape($string)
     return htmlspecialchars($string, ENT_QUOTES, 'UTF-8');
 }
 
+// Role -> employee_number prefix. Shared by every place that mints a new
+// number (trainee creation, direct hire, and the trainee-to-hired upgrade in
+// activateEmployeeFromAcceptedContract()) so the scheme never drifts between
+// call sites.
+const EMPLOYEE_NUMBER_PREFIXES = [
+    'owner' => 'SA',
+    'hr_head' => 'HH',
+    'hr_staff' => 'HS',
+    'employee' => 'EM',
+    'finance_head' => 'FH',
+    'finance_staff' => 'FS',
+    'trainee' => 'TR',
+    'store_manager' => 'SM',
+    'supplier' => 'SP',
+];
+
+/**
+ * Generates a unique employee_number for $role (e.g. "EM-042"), retrying on
+ * collision -- employee_number is UNIQUE in the DB, and the old
+ * implementation used a bare rand(100,999) with no existence check, which
+ * could throw a duplicate-key error under real concurrent use. Falls back to
+ * a timestamp-suffixed number in the near-impossible case all retries collide.
+ */
 function generateEmployeeNumber($role)
 {
-    $prefixes = [
-        'owner' => 'SA',
-        'hr_head' => 'HH',
-        'hr_staff' => 'HS',
-        'employee' => 'EM',
-        'finance_head' => 'FH',
-        'finance_staff' => 'FS',
-        'trainee' => 'TR'
-    ];
+    $prefix = EMPLOYEE_NUMBER_PREFIXES[$role] ?? 'USR';
+    $db = \App\Core\Database::getInstance()->getConnection();
 
-    $prefix = $prefixes[$role] ?? 'USR';
-    $random = str_pad(rand(100, 999), 3, '0', STR_PAD_LEFT);
+    for ($attempt = 0; $attempt < 10; $attempt++) {
+        $number = $prefix . '-' . str_pad((string)random_int(1, 999), 3, '0', STR_PAD_LEFT);
+        $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE employee_number = ?");
+        $stmt->execute([$number]);
+        if ((int)$stmt->fetchColumn() === 0) {
+            return $number;
+        }
+    }
 
-    return $prefix . '-' . $random;
+    return $prefix . '-' . substr((string)time(), -3);
 }
 
 function generateDefaultPassword($firstName, $lastName)
@@ -260,28 +282,10 @@ function activateEmployeeFromAcceptedContract($db, $contract)
 
     $dbRole = mapDisplayRoleToDbRole($targetRole);
 
-    $rolePrefixes = [
-        'Employee' => 'EM', 'HR Staff' => 'HS', 'Finance Staff' => 'FS',
-        'Head HR' => 'HH', 'Head Finance' => 'FH'
-    ];
-    $prefix = $rolePrefixes[$targetRole] ?? 'EM';
-
-    $unique = false;
-    $attempts = 0;
-    $newEmployeeNumber = null;
-    while (!$unique && $attempts < 10) {
-        $number = str_pad((string)random_int(1, 999), 3, '0', STR_PAD_LEFT);
-        $newEmployeeNumber = $prefix . '-' . $number;
-        $stmt = $db->prepare("SELECT COUNT(*) FROM users WHERE employee_number = ?");
-        $stmt->execute([$newEmployeeNumber]);
-        if ($stmt->fetchColumn() == 0) {
-            $unique = true;
-        }
-        $attempts++;
-    }
-    if (!$unique) {
-        $newEmployeeNumber = $prefix . '-' . substr((string)time(), -3);
-    }
+    // Trainee ID (TR-xxx) upgrades to a real role-prefixed employee number
+    // the moment the contract is accepted -- same collision-safe generator
+    // used everywhere else a number is minted.
+    $newEmployeeNumber = generateEmployeeNumber($dbRole);
 
     $db->prepare("UPDATE contracts SET status = 'accepted', accepted_at = NOW(), updated_at = NOW() WHERE id = ?")
         ->execute([$contract['id']]);

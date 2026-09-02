@@ -2,7 +2,7 @@
 $title = 'Register Budget - Store Manager';
 $pageTitle = 'Register Budget';
 $activePage = 'budget';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/budget.js?v=20260831440000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/budget.js?v=20260902040000"></script>';
 
 $content = <<<'EOT'
 <div id="smBudgetContent">

@@ -22,33 +22,24 @@ if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
 }
 
 try {
-    $db = Database::getInstance()->getConnection();
     $registerModel = new Register();
 
     $storeManagerId = Auth::userId();
-    $register = $registerModel->getOrCreateForStoreManager($storeManagerId);
-    $activeAllocation = $registerModel->getActiveAllocation($register['id']);
+    $registers = $registerModel->getAllForStoreManager($storeManagerId);
 
-    $liveSales = null;
-    if ($activeAllocation) {
-        $liveSales = $registerModel->getLiveSalesForAllocation($activeAllocation['id']);
+    $result = [];
+    foreach ($registers as $register) {
+        $activeAllocation = $registerModel->getActiveAllocation($register['id']);
+        $liveSales = $activeAllocation ? $registerModel->getLiveSalesForAllocation($activeAllocation['id']) : null;
+
+        $result[] = [
+            'register' => $register,
+            'active_allocation' => $activeAllocation ?: null,
+            'live_sales' => $liveSales
+        ];
     }
 
-    $stmt = $db->prepare("
-        SELECT user_id, first_name, last_name, employee_number
-        FROM users
-        WHERE role = 'employee' AND is_active = 1
-        ORDER BY first_name ASC
-    ");
-    $stmt->execute();
-    $cashiers = $stmt->fetchAll();
-
-    Response::success([
-        'register' => $register,
-        'active_allocation' => $activeAllocation ?: null,
-        'live_sales' => $liveSales,
-        'cashiers' => $cashiers
-    ], 'Register status fetched');
+    Response::success(['registers' => $result], 'Register status fetched');
 
 } catch (Exception $e) {
     error_log('get_register_status.php error: ' . $e->getMessage());

@@ -19,12 +19,14 @@ use App\Models\Register;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+$isPosSession = Auth::posCheck();
+
+if (!$isPosSession && !(Auth::check() && (Auth::isEmployee() || Auth::isSuperAdmin() || Auth::isStoreManager()))) {
     Response::unauthorized('Please login to access this resource');
 }
 
-if (!Auth::isEmployee() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
-    Response::forbidden('Access denied. Employee role required.');
+if ($isPosSession && !Auth::posCashierId()) {
+    Response::forbidden('Select which cashier is ringing up sales before checking out.');
 }
 
 $input = json_decode(file_get_contents('php://input'), true);
@@ -60,17 +62,20 @@ if (strlen($notes) > 500) {
 try {
     $db = Database::getInstance()->getConnection();
 
-    $cashierId = Auth::userId();
+    $cashierId = $isPosSession ? Auth::posCashierId() : Auth::userId();
 
-    // Cashiers must have a register budget allocated before ringing up sales;
-    // the order is tied to that allocation so cash-out totals stay scoped to
-    // the current float and never bleed into a prior or future shift.
+    // A POS terminal must have a register budget allocated before ringing up
+    // sales; the order is tied to that allocation so cash-out totals stay
+    // scoped to the current float and never bleed into a prior or future
+    // shift. Legacy staff-session checkout (Owner/Store Manager override,
+    // no POS terminal involved) has no register concept, so no allocation
+    // is required there.
     $registerAllocationId = null;
-    if (Auth::isEmployee()) {
+    if ($isPosSession) {
         $registerModel = new Register();
-        $allocation = $registerModel->getActiveAllocationForCashier($cashierId);
+        $allocation = $registerModel->getActiveAllocation(Auth::posRegisterId());
         if (!$allocation) {
-            Response::error('No budget has been allocated to your register yet. Please see your Store Manager.', 400);
+            Response::error('No budget has been allocated to this register yet. Please see your Store Manager.', 400);
         }
         $registerAllocationId = $allocation['id'];
     }
@@ -160,12 +165,14 @@ try {
     $order = $orderModel->getById($orderId);
     $order['items'] = $orderItemModel->getByOrderId($orderId);
 
-    createNotification(
-        Auth::userId(),
-        'order_completed',
-        "Order #{$orderNumber} completed. Total: ₱" . number_format($total, 2),
-        "?page=pos_orders&view={$orderId}"
-    );
+    if ($cashierId) {
+        createNotification(
+            $cashierId,
+            'order_completed',
+            "Order #{$orderNumber} completed. Total: ₱" . number_format($total, 2),
+            "?page=pos_orders&view={$orderId}"
+        );
+    }
 
     Response::success([
         'order' => $order,

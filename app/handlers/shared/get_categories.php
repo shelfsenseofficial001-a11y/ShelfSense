@@ -11,7 +11,7 @@ use App\Core\Response;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+if (!Auth::posCheck() && !Auth::check()) {
     Response::unauthorized('Please login to access this resource');
 }
 

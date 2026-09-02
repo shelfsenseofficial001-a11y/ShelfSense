@@ -6,24 +6,17 @@ use App\Core\Auth;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= $title ?? 'ShelfSense POS' ?></title>
+    <title><?= $title ?? 'ShelfSense POS Terminal' ?></title>
     <link rel="icon" type="image/png" href="/ShelfSense/public/assets/images/logo-black.png">
 
-    <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Bootstrap 5 CSS -->
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Bootstrap Icons -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
-    <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
     <?= $additional_css ?? '' ?>
@@ -44,22 +37,13 @@ use App\Core\Auth;
             </div>
 
             <div class="sidebar-user">
-                <a href="?page=profile" class="user-profile-link" title="Profile">
-                    <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
-                        <?php if (!empty($_SESSION['profile_pic'])): ?>
-                        <img src="/ShelfSense/public/<?php echo htmlspecialchars($_SESSION['profile_pic']); ?>" alt="Profile">
-                        <?php else: ?>
-                        <i class="bi bi-person-fill text-dark"></i>
-                        <?php endif; ?>
-                    </div>
-                    <div class="user-info">
-                        <div class="fw-semibold"><?= htmlspecialchars($_SESSION['fullname'] ?? 'Cashier') ?></div>
-                        <small class="text-muted"><?= getRoleName($_SESSION['role'] ?? 'cashier') ?></small>
-                    </div>
-                </a>
-                <a href="?page=profile" class="user-edit-btn" title="Edit Profile">
-                    <i class="bi bi-pencil-square"></i>
-                </a>
+                <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
+                    <i class="bi bi-shop text-dark"></i>
+                </div>
+                <div class="user-info">
+                    <div class="fw-semibold"><?= htmlspecialchars(Auth::posRegisterName() ?? 'Register') ?></div>
+                    <small class="text-muted"><?= htmlspecialchars(Auth::posCashierName() ?? 'No cashier selected') ?></small>
+                </div>
             </div>
 
             <button class="sidebar-collapse-btn" id="sidebarCollapseBtn" type="button" title="Collapse">
@@ -69,48 +53,46 @@ use App\Core\Auth;
 
             <nav class="sidebar-nav">
                 <div class="sidebar-divider sidebar-divider-first"><span class="sidebar-divider-label">Main</span></div>
-                <a href="?page=pos_orders" class="nav-item <?= $activePage === 'orders' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Order History</span>
+                <a href="?page=pos_checkout" class="nav-item <?= $activePage === 'checkout' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-cart-plus-fill"></i></span> <span class="nav-label">Checkout</span>
                 </a>
-                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
-                <a href="?page=my_leaves" class="nav-item <?= $activePage === 'my_leaves' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
+                <a href="?page=pos_budget" class="nav-item <?= $activePage === 'budget' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-cash-stack"></i></span> <span class="nav-label">Budget</span>
                 </a>
-                <a href="?page=my_payslip" class="nav-item <?= $activePage === 'payslip' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span> <span class="nav-label">My Payslip</span>
+                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Session</span></div>
+                <a href="?page=pos_select_cashier" class="nav-item" id="posSwitchCashierLink">
+                    <span class="nav-icon-wrap"><i class="bi bi-person-badge"></i></span> <span class="nav-label">Switch Cashier</span>
                 </a>
-                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Account</span></div>
-                <a href="?page=logout" class="nav-item text-danger">
-                    <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Logout</span>
+                <a href="?page=pos_logout" class="nav-item text-danger" id="posLeaveRegisterLink">
+                    <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Leave Register</span>
                 </a>
             </nav>
         </div>
-        
+
         <!-- Main Content -->
         <div class="pos-content flex-grow-1">
             <!-- Top Bar -->
             <div class="pos-topbar d-flex justify-content-between align-items-center">
                 <div>
-                    <div class="topbar-greeting">Hello, <span class="text-yellow"><?php echo htmlspecialchars($_SESSION['first_name'] ?? 'there'); ?></span>!</div>
+                    <div class="topbar-greeting"><span class="text-yellow"><?= htmlspecialchars(Auth::posRegisterName() ?? 'Register') ?></span></div>
                     <div class="topbar-subtitle">
-                        <span class="topbar-page-label"><?= $pageTitle ?? 'POS Dashboard' ?></span>
+                        <span class="topbar-page-label"><?= $pageTitle ?? 'POS Terminal' ?></span>
                         <span class="topbar-dot">•</span>
                         <span id="topbarDateTime"></span>
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
-                    <!-- Theme Toggle -->
                     <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
                 </div>
             </div>
-            
+
             <!-- Page Content -->
             <div class="pos-page-content">
                 <?= $content ?? '' ?>
             </div>
-            
+
             <!-- Flash Messages -->
             <?php $flash = getFlash(); ?>
             <?php if ($flash): ?>
@@ -123,25 +105,14 @@ use App\Core\Auth;
     </div>
     </div>
 
-    <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
-    <!-- Custom JS -->
     <script src="/ShelfSense/public/assets/js/app.js?v=20260831460000"></script>
-
-    <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
-    
+
     <?= $additional_js ?? '' ?>
-    
+
     <style>
-        /* ============================================
-           POS LAYOUT STYLES
-           ============================================ */
-        
         .pos-sidebar {
             width: 250px;
             min-height: 100%;
@@ -150,7 +121,6 @@ use App\Core\Auth;
             padding: 20px 0;
             flex-shrink: 0;
         }
-        
         .pos-sidebar .sidebar-brand {
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 700;
@@ -159,20 +129,7 @@ use App\Core\Auth;
             border-bottom: 1px solid var(--border-color);
             color: var(--text-main);
         }
-        
-        .pos-sidebar .sidebar-brand .brand-mark {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            background-color: var(--brand-yellow);
-            border-radius: 3px;
-            margin-right: 6px;
-        }
-        
-        .pos-sidebar .sidebar-brand .text-yellow {
-            color: var(--brand-yellow);
-        }
-        
+        .pos-sidebar .sidebar-brand .text-yellow { color: var(--brand-yellow); }
         .pos-sidebar .sidebar-user {
             display: flex;
             align-items: center;
@@ -180,18 +137,13 @@ use App\Core\Auth;
             padding: 10px 20px;
             border-bottom: 1px solid var(--border-color);
         }
-        
         .pos-sidebar .sidebar-user .avatar-sm {
             width: 36px;
             height: 36px;
             background: var(--light-yellow-accent);
             color: var(--brand-yellow-btn-text);
         }
-        
-        .pos-sidebar .sidebar-nav {
-            padding: 10px 12px;
-        }
-
+        .pos-sidebar .sidebar-nav { padding: 10px 12px; }
         .pos-sidebar .sidebar-nav .nav-item {
             display: flex;
             align-items: center;
@@ -203,37 +155,11 @@ use App\Core\Auth;
             transition: all 0.2s;
             margin-bottom: 1px;
         }
-        
-        .pos-sidebar .sidebar-nav .nav-item:hover {
-            background: var(--light-yellow-subtle);
-            color: var(--text-main);
-        }
-        
-        .pos-sidebar .sidebar-nav .nav-item.active {
-            background: var(--light-yellow-subtle);
-            color: var(--brand-yellow-hover);
-            font-weight: 600;
-        }
-        
-        .pos-sidebar .sidebar-nav .nav-item i {
-            font-size: 1.1rem;
-            width: 24px;
-            text-align: center;
-        }
-        
-        .pos-sidebar .sidebar-nav hr {
-            margin: 12px 0;
-            border-color: var(--border-color);
-        }
-        
-        .pos-content {
-            padding: 0;
-            min-height: 100%;
-            background: var(--bg-body);
-            display: flex;
-            flex-direction: column;
-        }
-
+        .pos-sidebar .sidebar-nav .nav-item:hover { background: var(--light-yellow-subtle); color: var(--text-main); }
+        .pos-sidebar .sidebar-nav .nav-item.active { background: var(--light-yellow-subtle); color: var(--brand-yellow-hover); font-weight: 600; }
+        .pos-sidebar .sidebar-nav .nav-item i { font-size: 1.1rem; width: 24px; text-align: center; }
+        .pos-sidebar .sidebar-nav hr { margin: 12px 0; border-color: var(--border-color); }
+        .pos-content { padding: 0; min-height: 100%; background: var(--bg-body); display: flex; flex-direction: column; }
         .pos-topbar {
             padding: 12px 24px;
             background: var(--bg-card);
@@ -243,12 +169,6 @@ use App\Core\Auth;
             z-index: 100;
             flex-shrink: 0;
         }
-
-        .pos-topbar h5 {
-            font-family: 'Space Grotesk', sans-serif;
-            font-weight: 600;
-        }
-
         .pos-topbar .topbar-greeting {
             font-family: 'Space Grotesk', sans-serif;
             font-size: 1.4rem;
@@ -257,95 +177,25 @@ use App\Core\Auth;
             color: var(--text-main);
             line-height: 1.2;
         }
-        .pos-topbar .topbar-greeting .text-yellow {
-            background: linear-gradient(135deg, var(--brand-yellow), var(--brand-yellow-hover));
-            -webkit-background-clip: text;
-            background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-        .pos-topbar .topbar-subtitle {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 0.78rem;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-        .pos-topbar .topbar-subtitle .topbar-page-label {
-            font-weight: 600;
-            color: var(--brand-yellow);
-        }
-        .pos-topbar .topbar-subtitle .topbar-dot {
-            opacity: 0.5;
-        }
-
-        .pos-page-content {
-            padding: 20px 24px;
-            flex: 1 1 auto;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        /* Flash messages */
-        .flash-message {
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9rem;
-        }
-        .flash-message.success {
-            background: #d1e7dd;
-            color: #0f5132;
-            border: 1px solid #badbcc;
-        }
-        .flash-message.error {
-            background: #f8d7da;
-            color: #842029;
-            border: 1px solid #f5c6cb;
-        }
-        .flash-message.warning {
-            background: #fff3cd;
-            color: #664d03;
-            border: 1px solid #ffecb5;
-        }
-        .flash-message.info {
-            background: #cff4fc;
-            color: #055160;
-            border: 1px solid #b6effb;
-        }
-        
-        /* Responsive */
+        .pos-topbar .topbar-subtitle { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
+        .pos-topbar .topbar-subtitle .topbar-page-label { font-weight: 600; color: var(--brand-yellow); }
+        .pos-topbar .topbar-subtitle .topbar-dot { opacity: 0.5; }
+        .pos-page-content { padding: 20px 24px; flex: 1 1 auto; display: flex; flex-direction: column; }
+        .flash-message { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
+        .flash-message.success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
+        .flash-message.error { background: #f8d7da; color: #842029; border: 1px solid #f5c6cb; }
+        .flash-message.warning { background: #fff3cd; color: #664d03; border: 1px solid #ffecb5; }
+        .flash-message.info { background: #cff4fc; color: #055160; border: 1px solid #b6effb; }
         @media (max-width: 768px) {
-            .pos-sidebar {
-                position: fixed;
-                left: -250px;
-                top: 0;
-                bottom: 0;
-                z-index: 1050;
-                transition: left 0.3s ease;
-                background: var(--bg-card);
-            }
-            
-            .pos-sidebar.open {
-                left: 0;
-            }
-            
-            .pos-content {
-                margin-left: 0;
-            }
-            
-            .pos-topbar {
-                padding: 10px 16px;
-            }
-            
-            .pos-page-content {
-                padding: 12px 16px;
-            }
+            .pos-sidebar { position: fixed; left: -250px; top: 0; bottom: 0; z-index: 1050; transition: left 0.3s ease; background: var(--bg-card); }
+            .pos-sidebar.open { left: 0; }
+            .pos-content { margin-left: 0; }
+            .pos-topbar { padding: 10px 16px; }
+            .pos-page-content { padding: 12px 16px; }
         }
     </style>
 
     <script>
-        // Live date/time in the topbar greeting
         (function() {
             const el = document.getElementById('topbarDateTime');
             if (!el) return;
@@ -359,7 +209,6 @@ use App\Core\Auth;
             setInterval(tick, 1000);
         })();
 
-        // Sidebar toggle for mobile
         document.addEventListener('DOMContentLoaded', function() {
             const topbar = document.querySelector('.pos-topbar');
             if (topbar && window.innerWidth <= 768) {
@@ -373,6 +222,75 @@ use App\Core\Auth;
             }
         });
 
+        // Switching cashiers only changes who's attributed for sales -- it
+        // doesn't touch the register's budget/checkout state -- but it's
+        // still a deliberate action worth a confirmation, since whoever's
+        // signed in on screen right now will stop being credited for sales.
+        document.addEventListener('DOMContentLoaded', function() {
+            const switchLink = document.getElementById('posSwitchCashierLink');
+            if (!switchLink) return;
+
+            switchLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                const href = this.getAttribute('href');
+                if (!window.Swal) {
+                    window.location.href = href;
+                    return;
+                }
+                Swal.fire({
+                    icon: 'question',
+                    title: 'Switch cashier?',
+                    text: 'Sales rung up after this will be credited to the new cashier instead.',
+                    showCancelButton: true,
+                    confirmButtonText: 'Switch Cashier',
+                    confirmButtonColor: '#eeab1a',
+                    cancelButtonText: 'Cancel'
+                }).then(function (result) {
+                    if (result.isConfirmed) {
+                        window.location.href = href;
+                    }
+                });
+            });
+        });
+
+        // Whoever is on this register must cash out before leaving it --
+        // "leaving" means logging the register itself out (POS logout), not
+        // just switching which cashier is attributed to sales.
+        document.addEventListener('DOMContentLoaded', function() {
+            const leaveLink = document.getElementById('posLeaveRegisterLink');
+            if (!leaveLink) return;
+
+            leaveLink.addEventListener('click', function (e) {
+                e.preventDefault();
+                fetch('?page=api_pos_get_budget_status')
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success && data.data.allocation) {
+                            if (window.Swal) {
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Cash out required',
+                                    text: 'This register still has an active budget. Cash out before leaving.',
+                                    confirmButtonText: 'Go to Budget',
+                                    confirmButtonColor: '#eeab1a'
+                                }).then(result => {
+                                    if (result.isConfirmed) {
+                                        window.location.href = '?page=pos_budget';
+                                    }
+                                });
+                            } else {
+                                alert('This register still has an active budget. Cash out before leaving.');
+                                window.location.href = '?page=pos_budget';
+                            }
+                        } else {
+                            window.location.href = '?page=pos_logout';
+                        }
+                    })
+                    .catch(() => {
+                        window.location.href = '?page=pos_logout';
+                    });
+            });
+        });
     </script>
 </body>
 </html>

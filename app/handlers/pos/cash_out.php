@@ -12,25 +12,22 @@ use App\Models\Register;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
+if (!Auth::posCheck()) {
+    Response::unauthorized('Please log in to a register first.');
 }
 
-if (!Auth::isEmployee() && !Auth::isOwner() && !(Auth::isTrainee() && Auth::getTraineeTargetRole() === 'employee')) {
-    Response::forbidden('Access denied. Employee role required.');
-}
-
-$cashierId = Auth::userId();
+$registerId = Auth::posRegisterId();
+$cashierId = Auth::posCashierId(); // whoever's currently picked closes the drawer, recorded for the audit trail
 
 try {
     $registerModel = new Register();
-    $allocation = $registerModel->getActiveAllocationForCashier($cashierId);
+    $allocation = $registerModel->getActiveAllocation($registerId);
 
     if (!$allocation) {
         Response::error('No active budget to cash out', 400);
     }
 
-    $result = $registerModel->cashOut($allocation['id'], $cashierId);
+    $result = $registerModel->cashOut($allocation['id'], $registerId, $cashierId);
 
     Response::success(['allocation' => $result], 'Cashed out successfully');
 

@@ -12,19 +12,14 @@ use App\Models\Register;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-if (!Auth::isEmployee() && !Auth::isOwner() && !(Auth::isTrainee() && Auth::getTraineeTargetRole() === 'employee')) {
-    Response::forbidden('Access denied. Employee role required.');
+if (!Auth::posCheck()) {
+    Response::unauthorized('Please log in to a register first.');
 }
 
 try {
     $registerModel = new Register();
-    $cashierId = Auth::userId();
 
-    $allocation = $registerModel->getActiveAllocationForCashier($cashierId);
+    $allocation = $registerModel->getActiveAllocation(Auth::posRegisterId());
     $liveSales = null;
     if ($allocation) {
         $liveSales = $registerModel->getLiveSalesForAllocation($allocation['id']);

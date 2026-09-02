@@ -5,12 +5,18 @@ use App\Core\Database;
 
 class Auth
 {
-    public static function login($email, $password)
+    /**
+     * $identifier may be either the account's email or its employee_number --
+     * the Staff Portal landing-page gate already confirmed a real employee
+     * number exists before sending someone here, so the login form itself
+     * accepts whichever one the person actually has memorized.
+     */
+    public static function login($identifier, $password)
     {
         $db = Database::getInstance()->getConnection();
 
-        $stmt = $db->prepare("SELECT * FROM users WHERE email = ? AND is_active = 1");
-        $stmt->execute([$email]);
+        $stmt = $db->prepare("SELECT * FROM users WHERE (email = ? OR employee_number = ?) AND is_active = 1");
+        $stmt->execute([$identifier, $identifier]);
         $user = $stmt->fetch();
 
         if (!$user || !password_verify($password, $user['password'])) {
@@ -27,6 +33,11 @@ class Auth
         $_SESSION['is_first_login'] = $user['is_first_login'];
         $_SESSION['profile_pic'] = $user['profile_pic'];
         $_SESSION['email'] = $user['email'];
+
+        // A successful login re-locks the Staff Portal gate for this browser
+        // session -- the next visitor (or this one, after logging out) must
+        // verify a real employee number again before the login page opens.
+        unset($_SESSION['portal_gate_passed'], $_SESSION['portal_gate_employee_number']);
 
         session_regenerate_id(true);
 
@@ -259,5 +270,85 @@ class Auth
         }
 
         return $sidebar;
+    }
+
+    // ============================================
+    // POS SESSION (register/terminal login -- separate from a staff account
+    // login above: a POS session has no user_id of its own, only a
+    // register_id, plus whichever cashier is currently picked for
+    // attribution on this terminal)
+    // ============================================
+
+    /**
+     * Verifies a POS ID + 4-digit PIN against the registers table and, on
+     * success, opens a POS session. Returns the register row, or false.
+     */
+    public static function posLogin($posId, $pin)
+    {
+        $db = Database::getInstance()->getConnection();
+
+        $stmt = $db->prepare("SELECT * FROM registers WHERE pos_id = ?");
+        $stmt->execute([$posId]);
+        $register = $stmt->fetch();
+
+        if (!$register || empty($register['pin_hash']) || !password_verify($pin, $register['pin_hash'])) {
+            return false;
+        }
+
+        $_SESSION['pos_register_id'] = (int)$register['id'];
+        $_SESSION['pos_register_name'] = $register['name'];
+        $_SESSION['pos_id'] = $register['pos_id'];
+        unset($_SESSION['pos_cashier_id'], $_SESSION['pos_cashier_name']);
+
+        session_regenerate_id(true);
+
+        return $register;
+    }
+
+    public static function posCheck()
+    {
+        return isset($_SESSION['pos_register_id']);
+    }
+
+    public static function posRegisterId()
+    {
+        return $_SESSION['pos_register_id'] ?? null;
+    }
+
+    public static function posRegisterName()
+    {
+        return $_SESSION['pos_register_name'] ?? null;
+    }
+
+    /**
+     * Attributes subsequent orders on this POS session to a specific staff
+     * member (picked after PIN login, purely for accountability -- it does
+     * not authenticate them and grants no staff-portal access).
+     */
+    public static function posSetCashier($userId, $fullName)
+    {
+        $_SESSION['pos_cashier_id'] = (int)$userId;
+        $_SESSION['pos_cashier_name'] = $fullName;
+    }
+
+    public static function posCashierId()
+    {
+        return $_SESSION['pos_cashier_id'] ?? null;
+    }
+
+    public static function posCashierName()
+    {
+        return $_SESSION['pos_cashier_name'] ?? null;
+    }
+
+    public static function posLogout()
+    {
+        unset(
+            $_SESSION['pos_register_id'],
+            $_SESSION['pos_register_name'],
+            $_SESSION['pos_id'],
+            $_SESSION['pos_cashier_id'],
+            $_SESSION['pos_cashier_name']
+        );
     }
 }

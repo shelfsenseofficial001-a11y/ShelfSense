@@ -12,13 +12,11 @@ use App\Models\Product;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+// A POS terminal session (POS ID + PIN) is a valid caller here, same as a
+// logged-in staff account with checkout access -- the two are independent
+// auth systems (see App\Core\Auth's POS session methods).
+if (!Auth::posCheck() && !(Auth::check() && (Auth::isEmployee() || Auth::isSuperAdmin() || Auth::isStoreManager()))) {
     Response::unauthorized('Please login to access this resource');
-}
-
-// Allow Employees and SuperAdmins
-if (!Auth::isEmployee() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
-    Response::forbidden('Access denied. Employee role required.');
 }
 
 try {

@@ -2,7 +2,7 @@
 $title = 'Budget - ShelfSense POS';
 $pageTitle = 'Budget';
 $activePage = 'budget';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/budget.js?v=20260831440000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/pos/budget.js?v=20260902020000"></script>';
 
 $content = <<<'EOT'
 <div id="posBudgetContent">
@@ -13,4 +13,4 @@ $content = <<<'EOT'
 </div>
 EOT;
 
-require_once __DIR__ . '/../../layouts/cashier.php';
+require_once __DIR__ . '/../../layouts/pos_terminal.php';

@@ -6,6 +6,24 @@ console.log('✅ pos/budget.js loaded');
 
 document.addEventListener('DOMContentLoaded', function () {
     loadBudgetStatus();
+
+    // Checkout redirects here when the register has no active budget --
+    // the cashier lands on this page either way, so surface why with a
+    // one-time prompt rather than leaving them to guess.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('notice') === 'no_budget') {
+        if (window.Swal) {
+            Swal.fire({
+                icon: 'info',
+                title: 'Checkout is locked',
+                text: 'Contact your Store Manager for Budget allocation for Changes.',
+                confirmButtonColor: '#eeab1a'
+            });
+        }
+        params.delete('notice');
+        const query = params.toString();
+        window.history.replaceState({}, '', window.location.pathname + (query ? '?' + query : ''));
+    }
 });
 
 function loadBudgetStatus() {

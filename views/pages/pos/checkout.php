@@ -255,4 +255,4 @@ $content = <<<'EOT'
 </div>
 EOT;
 
-require_once __DIR__ . '/../../layouts/cashier.php';
+require_once __DIR__ . '/../../layouts/pos_terminal.php';

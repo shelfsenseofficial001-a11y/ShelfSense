@@ -1,7 +1,16 @@
 <?php
 // views/pages/auth/login.php
+require_once __DIR__ . '/../../../app/core/PortalGate.php';
+
+use App\Core\PortalGate;
+
 $title = 'Staff Login - ShelfSense';
 $subtitle = 'Staff Portal Login';
+
+// The landing-page gate already confirmed this employee number is real --
+// carry it into the identifier field so the person only has to type their
+// password here.
+$prefillIdentifier = htmlspecialchars(PortalGate::getPassedEmployeeNumber() ?? '', ENT_QUOTES);
 
 $content = '
 <style>
@@ -147,7 +156,7 @@ $content = '
     <!-- Right Section: Form Content -->
     <div class="form-panel">
         <div class="mb-3">
-            <a href="?page=home" class="back-nav-btn">
+            <a href="?page=portal_gate_leave" class="back-nav-btn">
                 <i class="bi bi-arrow-left"></i>Back
             </a>
         </div>
@@ -159,8 +168,8 @@ $content = '
 
         <form method="POST" action="?page=api_login" id="loginForm">
             <div class="mb-3">
-                <label class="form-label fw-semibold">Email Address</label>
-                <input type="email" name="email" class="form-control" placeholder="you@company.com" required>
+                <label class="form-label fw-semibold">Email or Employee Number</label>
+                <input type="text" name="identifier" class="form-control" placeholder="you@company.com or EM-001" value="' . $prefillIdentifier . '" required>
             </div>
             <div class="mb-3">
                 <div class="d-flex justify-content-between align-items-center">
@@ -215,7 +224,7 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         const result = await response.json();
         
         if (result.success) {
-            window.location.href = "?page=dashboard";
+            window.location.href = result.data && result.data.redirect ? result.data.redirect : "?page=dashboard";
         } else {
             Swal.fire({
                 icon: "error",

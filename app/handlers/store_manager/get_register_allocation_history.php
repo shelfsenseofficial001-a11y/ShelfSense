@@ -20,11 +20,21 @@ if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
     Response::forbidden('Access denied. Store Manager role required.');
 }
 
+$registerId = isset($_GET['register_id']) ? intval($_GET['register_id']) : 0;
+if ($registerId <= 0) {
+    Response::error('Invalid register.', 400);
+}
+
 try {
     $registerModel = new Register();
     $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 20;
 
-    $history = $registerModel->getAllocationHistory(Auth::userId(), $limit);
+    $register = $registerModel->getById($registerId);
+    if (!$register || (int)$register['store_manager_id'] !== Auth::userId()) {
+        Response::error('Register not found.', 404);
+    }
+
+    $history = $registerModel->getAllocationHistory($registerId, $limit);
 
     Response::success(['history' => $history], 'Allocation history fetched');
 

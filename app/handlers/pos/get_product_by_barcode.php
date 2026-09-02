@@ -11,12 +11,8 @@ use App\Models\Product;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+if (!Auth::posCheck() && !(Auth::check() && (Auth::isEmployee() || Auth::isSuperAdmin() || Auth::isStoreManager()))) {
     Response::unauthorized('Please login to access this resource');
-}
-
-if (!Auth::isEmployee() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
-    Response::forbidden('Access denied. Employee role required.');
 }
 
 $barcode = isset($_GET['barcode']) ? trim($_GET['barcode']) : '';

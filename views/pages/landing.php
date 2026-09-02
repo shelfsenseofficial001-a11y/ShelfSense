@@ -259,6 +259,97 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
+// ============================================
+// STAFF PORTAL GATE -- verify an employee number exists before the actual
+// Login page opens (see app/core/PortalGate.php for the server-side rules).
+// ============================================
+document.addEventListener("DOMContentLoaded", function() {
+    function wirePortalGate(btnId, dropdownId) {
+        const btn = document.getElementById(btnId);
+        const dropdown = document.getElementById(dropdownId);
+        if (!btn || !dropdown) return;
+
+        const input = dropdown.querySelector(".staff-portal-id-input");
+        const submitBtn = dropdown.querySelector(".staff-portal-submit");
+        const msg = dropdown.querySelector(".staff-portal-msg");
+
+        btn.addEventListener("click", function(e) {
+            e.stopPropagation();
+            const isOpen = dropdown.classList.contains("show");
+            document.querySelectorAll(".staff-portal-dropdown").forEach(d => d.classList.remove("show"));
+            if (!isOpen) {
+                dropdown.classList.add("show");
+                setTimeout(() => input.focus(), 50);
+            }
+        });
+
+        function submit() {
+            const value = input.value.trim();
+            if (!value) {
+                msg.className = "small mt-2 staff-portal-msg text-danger";
+                msg.textContent = "Please enter your employee number.";
+                return;
+            }
+            submitBtn.disabled = true;
+            msg.className = "small mt-2 staff-portal-msg text-muted";
+            msg.textContent = "Checking...";
+
+            fetch("?page=api_check_employee_number", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ employee_number: value })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    submitBtn.disabled = false;
+                    if (data.success) {
+                        msg.className = "small mt-2 staff-portal-msg text-success";
+                        msg.textContent = "Verified! Redirecting...";
+                        window.location.href = data.data.redirect;
+                    } else {
+                        msg.className = "small mt-2 staff-portal-msg text-danger";
+                        msg.textContent = data.message || "Employee number not found.";
+                        if (data.errors && data.errors.locked_out) {
+                            input.disabled = true;
+                            submitBtn.disabled = true;
+                        }
+                    }
+                })
+                .catch(() => {
+                    submitBtn.disabled = false;
+                    msg.className = "small mt-2 staff-portal-msg text-danger";
+                    msg.textContent = "Something went wrong. Please try again.";
+                });
+        }
+
+        submitBtn.addEventListener("click", submit);
+        input.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") { e.preventDefault(); submit(); }
+        });
+    }
+
+    wirePortalGate("staffPortalBtn", "staffPortalDropdown");
+    wirePortalGate("staffPortalBtnMobile", "staffPortalDropdownMobile");
+
+    document.addEventListener("click", function(e) {
+        if (!e.target.closest(".staff-portal-wrap")) {
+            document.querySelectorAll(".staff-portal-dropdown").forEach(d => d.classList.remove("show"));
+        }
+    });
+
+    // Bounced back here because someone tried the Login page directly
+    // without verifying an employee number first.
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("notice") === "login_locked" && window.Swal) {
+        Swal.fire({
+            icon: "info",
+            title: "Verify your employee number first",
+            text: "Use the Staff Portal button above to check in before signing in.",
+            confirmButtonColor: "#f45b35"
+        });
+    }
+});
+
 </script>
 ';
 
@@ -266,6 +357,39 @@ $content = '
 <!-- Ambient Background Glows -->
 <div class="ambient-glow-1"></div>
 <div class="ambient-glow-2"></div>
+
+<style>
+    .staff-portal-wrap {
+        position: relative;
+    }
+    .staff-portal-dropdown {
+        display: none;
+        position: absolute;
+        top: calc(100% + 8px);
+        right: 0;
+        z-index: 1050;
+        width: 240px;
+        background: var(--bg-card);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.15);
+        padding: 12px 14px;
+    }
+    .staff-portal-dropdown.show {
+        display: block;
+    }
+    .staff-portal-wrap-mobile {
+        margin-top: 12px;
+    }
+    .staff-portal-dropdown-mobile {
+        position: static;
+        width: 100%;
+        margin-top: 10px;
+        box-shadow: none;
+    }
+    .staff-portal-msg.text-danger { color: #df4d29 !important; }
+    .staff-portal-msg.text-success { color: #16a34a !important; }
+</style>
 
 <!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg fixed-top">
@@ -285,9 +409,19 @@ $content = '
             </button>
 
             <!-- Staff Portal - Desktop only -->
-            <a href="?page=login" class="btn btn-portal px-3 py-2 rounded-pill btn-sm d-none d-sm-inline-flex align-items-center">
-                <i class="bi bi-shield-lock me-2"></i>Staff Portal
-            </a>
+            <div class="staff-portal-wrap d-none d-sm-block">
+                <button type="button" class="btn btn-portal px-3 py-2 rounded-pill btn-sm d-inline-flex align-items-center" id="staffPortalBtn">
+                    <i class="bi bi-shield-lock me-2"></i>Staff Portal
+                </button>
+                <div class="staff-portal-dropdown" id="staffPortalDropdown">
+                    <label class="small fw-semibold mb-1 d-block">ID:</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm staff-portal-id-input" placeholder="e.g. EM-001" maxlength="20" autocomplete="off">
+                        <button type="button" class="btn btn-yellow-primary btn-sm staff-portal-submit"><i class="bi bi-arrow-right"></i></button>
+                    </div>
+                    <div class="small mt-2 staff-portal-msg"></div>
+                </div>
+            </div>
 
             <!-- Hamburger Button -->
             <button class="navbar-toggler border-0 p-1 ms-1 shadow-none" type="button" id="hamburgerBtn" aria-controls="navbarContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -304,9 +438,19 @@ $content = '
                 <li class="nav-item"><a class="nav-link" href="?page=home#contact">Contact</a></li>
             </ul>
             <!-- Staff Portal - Mobile sidebar only -->
-            <a href="?page=login" class="btn btn-portal px-3 py-2 rounded-pill btn-sm sidebar-portal-btn align-items-center">
-                <i class="bi bi-shield-lock me-2"></i>Staff Portal
-            </a>
+            <div class="staff-portal-wrap staff-portal-wrap-mobile">
+                <button type="button" class="btn btn-portal px-3 py-2 rounded-pill btn-sm sidebar-portal-btn align-items-center" id="staffPortalBtnMobile">
+                    <i class="bi bi-shield-lock me-2"></i>Staff Portal
+                </button>
+                <div class="staff-portal-dropdown staff-portal-dropdown-mobile" id="staffPortalDropdownMobile">
+                    <label class="small fw-semibold mb-1 d-block">ID:</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm staff-portal-id-input" placeholder="e.g. EM-001" maxlength="20" autocomplete="off">
+                        <button type="button" class="btn btn-yellow-primary btn-sm staff-portal-submit"><i class="bi bi-arrow-right"></i></button>
+                    </div>
+                    <div class="small mt-2 staff-portal-msg"></div>
+                </div>
+            </div>
         </div>
     </div>
 </nav>
