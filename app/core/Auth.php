@@ -66,9 +66,38 @@ class Auth
         session_destroy();
     }
 
+    private static $profilePicSynced = false;
+
     public static function check()
     {
-        return isset($_SESSION['user_id']);
+        if (!isset($_SESSION['user_id'])) {
+            return false;
+        }
+        self::syncProfilePic();
+        return true;
+    }
+
+    // Approving someone's pending profile picture (app/handlers/hr/approve_avatar.php)
+    // only touches the DB -- it can't reach into the approved user's own
+    // browser session (that's a different, unrelated PHP session), so
+    // without this their sidebar avatar would stay stuck on the old photo
+    // until they happened to log out and back in. Runs at most once per
+    // request (static flag), so the extra query is cheap even though
+    // check() itself gets called many times (once per API call a page fires).
+    private static function syncProfilePic()
+    {
+        if (self::$profilePicSynced) {
+            return;
+        }
+        self::$profilePicSynced = true;
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT profile_pic FROM users WHERE user_id = ?");
+        $stmt->execute([$_SESSION['user_id']]);
+        $row = $stmt->fetch();
+        if ($row && $row['profile_pic'] !== ($_SESSION['profile_pic'] ?? null)) {
+            $_SESSION['profile_pic'] = $row['profile_pic'];
+        }
     }
 
     public static function user()

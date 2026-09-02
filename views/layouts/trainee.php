@@ -21,8 +21,8 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260902212026">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260902225847">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -155,7 +155,7 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260831460000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260902204001"></script>
     <?= $additional_js ?? '' ?>
 
     <style>

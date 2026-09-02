@@ -152,7 +152,6 @@ h1, h2, h3, h4, h5, .font-heading {
    light/dark theme, wherever the wordmark appears (sidebars, navbar, auth) */
 .brand-logo {
     display: inline-flex;
-    align-items: center;
     margin-right: 8px;
     vertical-align: middle;
 }

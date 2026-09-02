@@ -842,6 +842,26 @@ if ($page === 'api_store_manager_dashboard') {
     exit;
 }
 
+if ($page === 'api_get_store_manager_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_dashboard_layout.php';
+    exit;
+}
+
+if ($page === 'api_save_store_manager_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/store_manager/save_dashboard_layout.php';
+    exit;
+}
+
+if ($page === 'api_get_tour_preference') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_tour_preference.php';
+    exit;
+}
+
+if ($page === 'api_save_tour_preference') {
+    require_once __DIR__ . '/../app/handlers/store_manager/save_tour_preference.php';
+    exit;
+}
+
 if ($page === 'api_get_requisitions') {
     require_once __DIR__ . '/../app/handlers/store_manager/get_requisitions.php';
     exit;

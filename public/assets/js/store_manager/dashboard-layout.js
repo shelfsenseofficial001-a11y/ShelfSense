@@ -1,15 +1,10 @@
 // ============================================
-// HR DASHBOARD - DRAG-TO-REORDER EDIT MODE
-// Each .dash-canvas-row is an independent sortable zone (widgets never
-// move between rows, only within their own row). The resulting order is
-// saved per account via api_save_dashboard_layout and restored on load
-// via api_get_dashboard_layout.
-//
-// The tables and charts used to be two separate rows/groups; they're now
-// one merged "content" row (uniform-height cards) so users can freely mix
-// tables and charts together. collectAllOrders()/loadLayout() still read
-// a legacy pre-merge save (separate "tables"/"charts" arrays) so older
-// saved layouts don't silently reset.
+// STORE MANAGER DASHBOARD - DRAG-TO-REORDER EDIT MODE
+// Same mechanic as the HR dashboard (see hr/dashboard-layout.js): each
+// .dash-canvas-row is an independent sortable zone (widgets never move
+// between rows, only within their own row). The resulting order is saved
+// per account via api_save_store_manager_dashboard_layout and restored on
+// load via api_get_store_manager_dashboard_layout.
 // ============================================
 
 (function () {
@@ -27,13 +22,13 @@
 
     function collectAllOrders() {
         return {
-            stats: getRowOrder(document.getElementById('dashCanvasStats')),
-            content: getRowOrder(document.getElementById('dashCanvasTables')),
+            stats: getRowOrder(document.getElementById('smDashCanvasStats')),
+            content: getRowOrder(document.getElementById('smDashCanvasContent')),
         };
     }
 
     function saveLayout() {
-        fetch('?page=api_save_dashboard_layout', {
+        fetch('?page=api_save_store_manager_dashboard_layout', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ widget_order: collectAllOrders() }),
@@ -54,19 +49,13 @@
     }
 
     function loadLayout() {
-        fetch('?page=api_get_dashboard_layout')
+        fetch('?page=api_get_store_manager_dashboard_layout')
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 var order = data.success && data.data ? data.data.widget_order : null;
                 if (!order) return;
-                applyOrder(document.getElementById('dashCanvasStats'), order.stats);
-                // Legacy saves had "tables" and "charts" as two separate
-                // arrays; the current single merged row accepts a
-                // "content" array, falling back to the old pair appended
-                // in order (tables first, then charts) if that's all a
-                // previously-saved layout has.
-                var contentOrder = order.content || [].concat(order.tables || [], order.charts || []);
-                applyOrder(document.getElementById('dashCanvasTables'), contentOrder);
+                applyOrder(document.getElementById('smDashCanvasStats'), order.stats);
+                applyOrder(document.getElementById('smDashCanvasContent'), order.content);
             })
             .catch(function (err) {
                 console.error('Failed to load dashboard layout:', err);
@@ -136,8 +125,8 @@
             if (editBtn) editBtn.disabled = false;
 
             if (!keep) {
-                applyOrder(document.getElementById('dashCanvasStats'), preEditSnapshot.stats);
-                applyOrder(document.getElementById('dashCanvasTables'), preEditSnapshot.content);
+                applyOrder(document.getElementById('smDashCanvasStats'), preEditSnapshot.stats);
+                applyOrder(document.getElementById('smDashCanvasContent'), preEditSnapshot.content);
             }
             preEditSnapshot = null;
             saveLayout();
@@ -275,8 +264,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        loadLayout();
-
         var editBtn = document.getElementById('dashEditModeBtn');
         if (editBtn) {
             editBtn.addEventListener('click', function () {
@@ -284,14 +271,22 @@
             });
         }
 
-        Array.prototype.forEach.call(document.querySelectorAll('.dash-canvas-row'), function (row) {
-            row.addEventListener('dragover', handleDragOver);
-        });
         document.addEventListener('dragstart', handleDragStart);
         document.addEventListener('dragend', handleDragEnd);
         // Page-wide, unlike the row-scoped listeners in handleDragOver --
         // needed so the auto-scroll edge zones work even when the pointer
         // is over a different row, a gap between cards, or the sidebar.
         document.addEventListener('dragover', trackPointerForAutoScroll);
+
+        // The dashboard's own canvas rows are injected async by
+        // dashboard.js after its fetch resolves, so wiring dragover
+        // listeners and loading the saved layout has to wait for that
+        // instead of running at DOMContentLoaded.
+        document.addEventListener('sm-dashboard-rendered', function () {
+            Array.prototype.forEach.call(document.querySelectorAll('.dash-canvas-row'), function (row) {
+                row.addEventListener('dragover', handleDragOver);
+            });
+            loadLayout();
+        });
     });
 })();

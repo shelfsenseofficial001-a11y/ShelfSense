@@ -164,7 +164,7 @@ $content = '
 </div>
 
 <script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260830122553"></script>
-<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260830123737"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260902220726"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

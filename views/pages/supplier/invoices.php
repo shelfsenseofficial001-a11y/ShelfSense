@@ -37,19 +37,21 @@ $content = <<<'EOT'
 
 <div class="active-filter-chips" id="activeFilterChips"></div>
 
-<div id="invoiceCardsContainer" class="sp-card-grid">
-    <div class="text-center py-4" style="grid-column:1/-1;">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">Loading invoices...</p>
+<div class="modern-card p-3 sm-fill-card">
+    <div id="invoiceCardsContainer" class="sp-card-grid">
+        <div class="text-center py-4" style="grid-column:1/-1;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading invoices...</p>
+        </div>
     </div>
-</div>
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <span class="text-muted small" id="tableInfo">Loading...</span>
-    <nav aria-label="Page navigation">
-        <ul class="pagination pagination-sm mb-0" id="paginationContainer">
-            <li class="page-item disabled"><span class="page-link">1</span></li>
-        </ul>
-    </nav>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <span class="text-muted small" id="tableInfo">Loading...</span>
+        <nav aria-label="Page navigation">
+            <ul class="pagination pagination-sm mb-0" id="paginationContainer">
+                <li class="page-item disabled"><span class="page-link">1</span></li>
+            </ul>
+        </nav>
+    </div>
 </div>
 
 <!-- Invoice Detail Modal -->

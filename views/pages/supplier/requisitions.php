@@ -47,10 +47,12 @@ $content = <<<'EOT'
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
             </div>
         </div>
-        <div class="sp-card-grid" data-cards-container></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sp-card-grid" data-cards-container></div>
         <div class="d-flex justify-content-between align-items-center mt-3">
             <span class="text-muted small" data-info></span>
             <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        </div>
         </div>
     </div>
 
@@ -66,10 +68,12 @@ $content = <<<'EOT'
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
             </div>
         </div>
-        <div class="sp-card-grid" data-cards-container></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sp-card-grid" data-cards-container></div>
         <div class="d-flex justify-content-between align-items-center mt-3">
             <span class="text-muted small" data-info></span>
             <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        </div>
         </div>
     </div>
 
@@ -85,10 +89,12 @@ $content = <<<'EOT'
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
             </div>
         </div>
-        <div class="sp-card-grid" data-cards-container></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sp-card-grid" data-cards-container></div>
         <div class="d-flex justify-content-between align-items-center mt-3">
             <span class="text-muted small" data-info></span>
             <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        </div>
         </div>
     </div>
 
@@ -104,10 +110,12 @@ $content = <<<'EOT'
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
             </div>
         </div>
-        <div class="sp-card-grid" data-cards-container></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sp-card-grid" data-cards-container></div>
         <div class="d-flex justify-content-between align-items-center mt-3">
             <span class="text-muted small" data-info></span>
             <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        </div>
         </div>
     </div>
 
@@ -137,10 +145,12 @@ $content = <<<'EOT'
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
             </div>
         </div>
-        <div class="sp-card-grid" data-cards-container></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sp-card-grid" data-cards-container></div>
         <div class="d-flex justify-content-between align-items-center mt-3">
             <span class="text-muted small" data-info></span>
             <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        </div>
         </div>
     </div>
 </div>

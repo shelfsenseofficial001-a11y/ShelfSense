@@ -30,7 +30,29 @@ document.addEventListener('DOMContentLoaded', function () {
     setupTabs();
     setupCreateTab();
     setupModals();
+    setupViewToggle();
+    setupRestockViewToggle();
     loadTab('mine', 1);
+
+    if (window.ShelfSenseFilterChips) {
+        window.ShelfSenseFilterChips.init('mineFilterChips', [
+            { key: 'search', type: 'search', elementId: 'mineSearchInput' },
+            { key: 'status', type: 'select', elementId: 'mineStatusFilter', defaultValue: '' },
+            { key: 'sort_by', type: 'select', elementId: 'mineSortBy', defaultValue: 'created_at' },
+        ]);
+        window.ShelfSenseFilterChips.init('pendingSupplierFilterChips', [
+            { key: 'search', type: 'search', elementId: 'pendingSupplierSearchInput' },
+        ]);
+        window.ShelfSenseFilterChips.init('awaitingFinanceFilterChips', [
+            { key: 'search', type: 'search', elementId: 'awaitingFinanceSearchInput' },
+        ]);
+        window.ShelfSenseFilterChips.init('historyFilterChips', [
+            { key: 'search', type: 'search', elementId: 'historySearchInput' },
+            { key: 'status', type: 'select', elementId: 'historyStatusFilter', defaultValue: '' },
+            { key: 'date_from', type: 'date', elementId: 'historyDateFrom', labelPrefix: 'From' },
+            { key: 'date_to', type: 'date', elementId: 'historyDateTo', labelPrefix: 'To' },
+        ]);
+    }
 });
 
 // ============================================
@@ -70,6 +92,70 @@ function setupTabs() {
             });
         }
     });
+}
+
+// ============================================
+// GRID / ROWS VIEW TOGGLE (Modrinth-style)
+// One shared preference across all 4 tabs, persisted so it survives a
+// page reload. No markup swap involved -- .sm-view-rows just re-flexes
+// the same card DOM into a single-column list (see store_manager.css).
+// ============================================
+
+const SM_VIEW_STORAGE_KEY = 'sm_requisitions_view';
+
+function setupViewToggle() {
+    const saved = localStorage.getItem(SM_VIEW_STORAGE_KEY);
+    applyRequisitionView(saved === 'rows' ? 'rows' : 'grid');
+
+    document.querySelectorAll('[data-view-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const isRows = document.querySelector('.sm-requisition-grid')?.classList.contains('sm-view-rows');
+            applyRequisitionView(isRows ? 'grid' : 'rows');
+        });
+    });
+}
+
+function applyRequisitionView(mode) {
+    const isRows = mode === 'rows';
+    document.querySelectorAll('.sm-requisition-grid').forEach(grid => {
+        grid.classList.toggle('sm-view-rows', isRows);
+    });
+    document.querySelectorAll('[data-view-toggle]').forEach(btn => {
+        btn.classList.toggle('active', isRows);
+        btn.innerHTML = `<i class="bi ${isRows ? 'bi-list-ul' : 'bi-grid-3x3-gap-fill'}"></i>`;
+        btn.title = isRows ? 'Switch to grid view' : 'Switch to row view';
+    });
+    localStorage.setItem(SM_VIEW_STORAGE_KEY, mode);
+}
+
+// Separate toggle + preference for the Create Requisition product picker --
+// independent of the requisition-list one above since they're different
+// grids the user may want in different views.
+const SM_RESTOCK_VIEW_KEY = 'sm_restock_view';
+
+function setupRestockViewToggle() {
+    const btn = document.getElementById('restockViewToggle');
+    if (!btn) return;
+
+    applyRestockView(localStorage.getItem(SM_RESTOCK_VIEW_KEY) === 'rows' ? 'rows' : 'grid');
+
+    btn.addEventListener('click', () => {
+        const isRows = document.getElementById('productGrid')?.classList.contains('sm-view-rows');
+        applyRestockView(isRows ? 'grid' : 'rows');
+    });
+}
+
+function applyRestockView(mode) {
+    const isRows = mode === 'rows';
+    const grid = document.getElementById('productGrid');
+    const btn = document.getElementById('restockViewToggle');
+    if (grid) grid.classList.toggle('sm-view-rows', isRows);
+    if (btn) {
+        btn.classList.toggle('active', isRows);
+        btn.innerHTML = `<i class="bi ${isRows ? 'bi-list-ul' : 'bi-grid-3x3-gap-fill'}"></i>`;
+        btn.title = isRows ? 'Switch to grid view' : 'Switch to row view';
+    }
+    localStorage.setItem(SM_RESTOCK_VIEW_KEY, mode);
 }
 
 function loadTab(tabKey, page) {
@@ -178,7 +264,7 @@ function buildRequisitionCard(req) {
                 ${req.actual_delivery_date ? `<div>Delivered: <strong>${smFormatDate(req.actual_delivery_date)}</strong></div>` : ''}
                 <div>Items: <strong>${req.item_count ?? 0}</strong></div>
             </div>
-            <div class="d-flex justify-content-between align-items-center">
+            <div class="sm-req-total-row">
                 <div class="sm-req-total">${total}</div>
             </div>
             <div class="sm-req-actions">${actions}</div>
@@ -550,54 +636,46 @@ function renderProducts(search = '') {
         return;
     }
 
-    info.textContent = `${filtered.length} products`;
+    info.textContent = `${filtered.length} product${filtered.length === 1 ? '' : 's'}`;
 
     grid.innerHTML = filtered.map(product => {
         const inCart = cart.find(c => c.store_product_id === product.store_product_id);
         const qtyInCart = inCart ? inCart.quantity : 0;
         const stockClass = product.stock_quantity <= product.reorder_level ? 'text-danger' : 'text-muted';
         const hasSupplierProduct = product.supplier_product_id !== null;
+        const cardClasses = ['sm-restock-card'];
+        if (!hasSupplierProduct) cardClasses.push('unavailable');
+        if (qtyInCart > 0) cardClasses.push('in-cart');
+
         return `
-            <div class="col-6 col-md-4 col-lg-3">
-                <div class="product-card modern-card p-0 ${hasSupplierProduct ? 'clickable-card' : 'opacity-50'}"
-                     style="cursor:${hasSupplierProduct ? 'pointer' : 'not-allowed'};border:2px solid transparent;overflow:hidden;"
-                     data-product-id="${product.store_product_id}"
-                     onclick="${hasSupplierProduct ? `addToCartFromCard(${product.store_product_id})` : ''}">
-                    <div class="product-image-container" style="width:100%;height:110px;overflow:hidden;background:var(--bg-card-subtle);">
-                        ${product.image_path
-                            ? `<img src="/ShelfSense/public/${product.image_path}" alt="${escapeHtmlSM(product.name)}" style="width:100%;height:100%;object-fit:cover;">`
-                            : `<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:2rem;"><i class="bi bi-box"></i></div>`
-                        }
-                    </div>
-                    <div class="p-2">
-                        <div class="product-name" title="${escapeHtmlSM(product.name)}" style="font-weight:600;font-size:0.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${escapeHtmlSM(product.name)}</div>
-                        <div class="product-price" style="font-weight:700;color:var(--brand-yellow-hover);">${smCurrency(product.supplier_price)}</div>
-                        <div class="product-stock" style="font-size:0.7rem;color:var(--text-muted);">Stock: ${product.stock_quantity} <span class="${stockClass}">(Reorder: ${product.reorder_level})</span></div>
-                        ${!hasSupplierProduct ? '<div class="text-danger small">⚠️ Not offered by this supplier</div>' : ''}
-                        <div class="mt-1">
-                            <div class="input-group input-group-sm">
-                                <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); updateCartQty(${product.store_product_id}, -1)" ${!hasSupplierProduct ? 'disabled' : ''}>−</button>
-                                <input type="number" class="form-control form-control-sm text-center qty-input"
-                                       data-store-id="${product.store_product_id}"
-                                       value="${qtyInCart}" min="0" max="999"
-                                       style="max-width:50px;"
-                                       ${!hasSupplierProduct ? 'disabled' : ''}
-                                       onclick="event.stopPropagation();"
-                                       onchange="setCartQty(${product.store_product_id}, this.value)">
-                                <button class="btn btn-sm btn-outline-secondary" onclick="event.stopPropagation(); updateCartQty(${product.store_product_id}, 1)" ${!hasSupplierProduct ? 'disabled' : ''}>+</button>
-                            </div>
-                        </div>
+            <div class="${cardClasses.join(' ')}"
+                 data-product-id="${product.store_product_id}">
+                <div class="sm-restock-image">
+                    ${product.image_path
+                        ? `<img src="/ShelfSense/public/${product.image_path}" alt="${escapeHtmlSM(product.name)}">`
+                        : `<i class="bi bi-box"></i>`
+                    }
+                </div>
+                <div class="sm-restock-body">
+                    <div class="sm-restock-name" title="${escapeHtmlSM(product.name)}">${escapeHtmlSM(product.name)}</div>
+                    <div class="sm-restock-price">${smCurrency(product.supplier_price)}</div>
+                    <div class="sm-restock-stock">Stock: ${product.stock_quantity} <span class="${stockClass}">(Reorder: ${product.reorder_level})</span></div>
+                    ${!hasSupplierProduct ? '<div class="sm-restock-unavailable-note"><i class="bi bi-exclamation-triangle"></i> Not offered by this supplier</div>' : ''}
+                    <div class="sm-restock-qty">
+                        <button type="button" onclick="event.stopPropagation(); updateCartQty(${product.store_product_id}, -1)" ${!hasSupplierProduct ? 'disabled' : ''}>−</button>
+                        <input type="number"
+                               class="qty-input"
+                               data-store-id="${product.store_product_id}"
+                               value="${qtyInCart}" min="0" max="999"
+                               ${!hasSupplierProduct ? 'disabled' : ''}
+                               onclick="event.stopPropagation();"
+                               onchange="setCartQty(${product.store_product_id}, this.value)">
+                        <button type="button" onclick="event.stopPropagation(); updateCartQty(${product.store_product_id}, 1)" ${!hasSupplierProduct ? 'disabled' : ''}>+</button>
                     </div>
                 </div>
             </div>
         `;
     }).join('');
-}
-
-function addToCartFromCard(storeProductId) {
-    const product = products.find(p => p.store_product_id === storeProductId);
-    if (!product || !product.supplier_product_id) return;
-    updateCartQty(storeProductId, 1);
 }
 
 function updateCartQty(storeProductId, delta) {
@@ -659,21 +737,20 @@ function updateCartUI() {
         total += subtotal;
         itemCount += item.quantity;
         return `
-            <div class="cart-item">
-                <div class="item-info">
-                    <div class="item-name">${escapeHtmlSM(item.name)}</div>
-                    <div class="item-price">${smCurrency(item.unit_price)} each</div>
+            <div class="sm-cart-item">
+                <div class="sm-cart-item-info">
+                    <div class="sm-cart-item-name" title="${escapeHtmlSM(item.name)}">${escapeHtmlSM(item.name)}</div>
+                    <div class="sm-cart-item-price">${smCurrency(item.unit_price)} each</div>
                 </div>
-                <div class="qty-control">
-                    <button onclick="updateCartQty(${item.store_product_id}, -1)">−</button>
-                    <input type="number" class="form-control form-control-sm text-center"
+                <div class="sm-restock-qty">
+                    <button type="button" onclick="updateCartQty(${item.store_product_id}, -1)">−</button>
+                    <input type="number"
                            value="${item.quantity}" min="0" max="999"
-                           style="width:50px; padding:2px;"
                            onchange="setCartQty(${item.store_product_id}, this.value)">
-                    <button onclick="updateCartQty(${item.store_product_id}, 1)">+</button>
+                    <button type="button" onclick="updateCartQty(${item.store_product_id}, 1)">+</button>
                 </div>
-                <div class="fw-bold" style="min-width:60px;text-align:right;">${smCurrency(subtotal)}</div>
-                <button class="btn btn-sm btn-link text-danger p-0" onclick="removeFromCart(${index})"><i class="bi bi-x-circle"></i></button>
+                <div class="sm-cart-item-subtotal">${smCurrency(subtotal)}</div>
+                <button type="button" class="sm-cart-remove" onclick="removeFromCart(${index})" title="Remove"><i class="bi bi-x-circle"></i></button>
             </div>
         `;
     }).join('');

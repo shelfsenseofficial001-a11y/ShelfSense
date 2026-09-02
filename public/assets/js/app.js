@@ -303,6 +303,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 placement: 'right',
             });
         });
+
+        // The "Edit Profile" pencil is icon-only in both collapsed and
+        // expanded states (it never gets a visible text label like nav
+        // items do), so it always gets a tooltip -- not gated by collapse
+        // state the way syncSidebarTooltips() gates the nav-item ones.
+        const editBtn = sidebar.querySelector('.user-edit-btn');
+        if (editBtn && !editBtn.__editTooltip) {
+            editBtn.__editTooltip = new window.bootstrap.Tooltip(editBtn, {
+                trigger: 'hover focus',
+                placement: 'right',
+            });
+        }
+
+        // Profile avatar link: same gating as nav items -- redundant once
+        // expanded (the name/role are already visible as text next to it).
+        const profileLink = sidebar.querySelector('.user-profile-link');
+        if (profileLink && !profileLink.__sidebarTooltip) {
+            profileLink.__sidebarTooltip = new window.bootstrap.Tooltip(profileLink, {
+                trigger: 'hover focus',
+                placement: 'right',
+            });
+        }
+
+        // Collapse/expand toggle: also gated like nav items (its own
+        // "Collapse"/"Expand" label is visible text once expanded), but
+        // its tooltip text has to flip with the state -- unlike a nav
+        // item, what this button *does* changes depending on whether the
+        // sidebar is currently collapsed or not.
+        const collapseBtn = sidebar.querySelector('.sidebar-collapse-btn');
+        if (collapseBtn && !collapseBtn.__sidebarTooltip) {
+            collapseBtn.__sidebarTooltip = new window.bootstrap.Tooltip(collapseBtn, {
+                trigger: 'hover focus',
+                placement: 'right',
+            });
+        }
     }
 
     function syncSidebarTooltips(sidebar) {
@@ -316,6 +351,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 item.__sidebarTooltip.disable();
             }
         });
+
+        const profileLink = sidebar.querySelector('.user-profile-link');
+        if (profileLink && profileLink.__sidebarTooltip) {
+            if (collapsed) {
+                profileLink.__sidebarTooltip.enable();
+            } else {
+                profileLink.__sidebarTooltip.hide();
+                profileLink.__sidebarTooltip.disable();
+            }
+        }
+
+        const collapseBtn = sidebar.querySelector('.sidebar-collapse-btn');
+        if (collapseBtn && collapseBtn.__sidebarTooltip) {
+            collapseBtn.__sidebarTooltip.setContent({ '.tooltip-inner': collapsed ? 'Expand' : 'Collapse' });
+            if (collapsed) {
+                collapseBtn.__sidebarTooltip.enable();
+            } else {
+                collapseBtn.__sidebarTooltip.hide();
+                collapseBtn.__sidebarTooltip.disable();
+            }
+        }
     }
 
     document.querySelectorAll('.sidebar-collapse-btn').forEach(function(btn) {

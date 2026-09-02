@@ -36,63 +36,71 @@ function renderDashboard(data) {
     const insights = data.insights || {};
 
     container.innerHTML = `
+        <!-- Dashboard Canvas: each row below is its own drag-reorderable
+             zone (stats / mini-tables+charts). Order is user-customizable
+             (see dashboard-layout.js) and persisted per account via
+             api_save_store_manager_dashboard_layout / api_get_store_manager_dashboard_layout. -->
+
         <!-- Summary cards -->
-        <div class="sm-stats-grid">
-            <div class="sm-stat-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="sm-stat-label">Total Requisitions</div>
-                        <div class="sm-stat-number primary">${stats.total_requisitions ?? 0}</div>
-                        ${stats.created_this_week ? `<div class="sm-stat-trend up"><i class="bi bi-graph-up-arrow"></i> +${stats.created_this_week} this week</div>` : `<div class="sm-stat-trend muted">No new ones this week</div>`}
+        <div class="sm-stats-grid dash-canvas-row" id="smDashCanvasStats" data-widget-group="stats">
+            <div class="dash-widget" data-widget-id="stat_total">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
+                <div class="sm-stat-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="sm-stat-label">Total Requisitions</div>
+                            <div class="sm-stat-number primary">${stats.total_requisitions ?? 0}</div>
+                            ${stats.created_this_week ? `<div class="sm-stat-trend up"><i class="bi bi-graph-up-arrow"></i> +${stats.created_this_week} this week</div>` : `<div class="sm-stat-trend muted">No new ones this week</div>`}
+                        </div>
+                        <div class="sm-stat-icon"><i class="bi bi-clipboard-data text-primary"></i></div>
                     </div>
-                    <div class="sm-stat-icon"><i class="bi bi-clipboard-data text-primary"></i></div>
                 </div>
             </div>
-            <div class="sm-stat-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="sm-stat-label">Pending Supplier</div>
-                        <div class="sm-stat-number warning">${stats.pending_supplier ?? 0}</div>
-                        ${stats.pending_supplier_this_week ? `<div class="sm-stat-trend up"><i class="bi bi-graph-up-arrow"></i> +${stats.pending_supplier_this_week} this week</div>` : `<div class="sm-stat-trend muted">No new ones this week</div>`}
+            <div class="dash-widget" data-widget-id="stat_pending">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
+                <div class="sm-stat-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="sm-stat-label">Pending Supplier</div>
+                            <div class="sm-stat-number warning">${stats.pending_supplier ?? 0}</div>
+                            ${stats.pending_supplier_this_week ? `<div class="sm-stat-trend up"><i class="bi bi-graph-up-arrow"></i> +${stats.pending_supplier_this_week} this week</div>` : `<div class="sm-stat-trend muted">No new ones this week</div>`}
+                        </div>
+                        <div class="sm-stat-icon"><i class="bi bi-hourglass-split text-warning"></i></div>
                     </div>
-                    <div class="sm-stat-icon"><i class="bi bi-hourglass-split text-warning"></i></div>
                 </div>
             </div>
-            <div class="sm-stat-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="sm-stat-label">Awaiting Finance</div>
-                        <div class="sm-stat-number" style="color:#9a3412;">${stats.awaiting_finance ?? 0}</div>
-                        ${stats.awaiting_finance_this_week ? `<div class="sm-stat-trend up"><i class="bi bi-graph-up-arrow"></i> +${stats.awaiting_finance_this_week} this week</div>` : `<div class="sm-stat-trend muted">No new ones this week</div>`}
+            <div class="dash-widget" data-widget-id="stat_finance">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
+                <div class="sm-stat-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="sm-stat-label">Awaiting Finance</div>
+                            <div class="sm-stat-number" style="color:#9a3412;">${stats.awaiting_finance ?? 0}</div>
+                            ${stats.awaiting_finance_this_week ? `<div class="sm-stat-trend up"><i class="bi bi-graph-up-arrow"></i> +${stats.awaiting_finance_this_week} this week</div>` : `<div class="sm-stat-trend muted">No new ones this week</div>`}
+                        </div>
+                        <div class="sm-stat-icon"><i class="bi bi-cash-coin" style="color:#9a3412;"></i></div>
                     </div>
-                    <div class="sm-stat-icon"><i class="bi bi-cash-coin" style="color:#9a3412;"></i></div>
                 </div>
             </div>
-            <div class="sm-stat-card">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="sm-stat-label">Low Stock Items</div>
-                        <div class="sm-stat-number ${stats.low_stock_count > 0 ? 'danger' : 'success'}">${stats.low_stock_count ?? 0}</div>
-                        <div class="sm-stat-trend ${stats.low_stock_count > 0 ? 'warn' : 'muted'}"><i class="bi bi-box-seam"></i> of ${stats.active_product_count ?? 0} products</div>
+            <div class="dash-widget" data-widget-id="stat_lowstock">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
+                <div class="sm-stat-card">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="sm-stat-label">Low Stock Items</div>
+                            <div class="sm-stat-number ${stats.low_stock_count > 0 ? 'danger' : 'success'}">${stats.low_stock_count ?? 0}</div>
+                            <div class="sm-stat-trend ${stats.low_stock_count > 0 ? 'warn' : 'muted'}"><i class="bi bi-box-seam"></i> of ${stats.active_product_count ?? 0} products</div>
+                        </div>
+                        <div class="sm-stat-icon"><i class="bi bi-exclamation-triangle text-danger"></i></div>
                     </div>
-                    <div class="sm-stat-icon"><i class="bi bi-exclamation-triangle text-danger"></i></div>
                 </div>
             </div>
         </div>
 
-        <!-- Quick Actions -->
-        <div class="modern-card p-3 mb-4">
-            <h6 class="fw-bold mb-3"><i class="bi bi-lightning-fill text-yellow me-2"></i>Quick Actions</h6>
-            <div class="d-flex flex-wrap gap-2">
-                <a href="?page=store_manager_requisitions&tab=create" class="btn btn-yellow-primary btn-sm">
-                    <i class="bi bi-plus-circle me-1"></i> New Requisition
-                </a>
-            </div>
-        </div>
-
-        <!-- Live preview tables (always visible, no click/hover needed) -->
-        <div class="row g-3 mb-4">
-            <div class="col-lg-6">
+        <!-- Live preview tables + charts (always visible, no click/hover needed) -->
+        <div class="row g-3 mb-4 dash-canvas-row" id="smDashCanvasContent" data-widget-group="content">
+            <div class="col-lg-6 dash-widget" data-widget-id="table_mine">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
                 <div class="modern-card p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0"><i class="bi bi-list text-yellow me-2"></i>Your Requisitions</h6>
@@ -108,7 +116,8 @@ function renderDashboard(data) {
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 dash-widget" data-widget-id="table_lowstock">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
                 <div class="modern-card p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0"><i class="bi bi-box-seam text-yellow me-2"></i>Low Stock Items</h6>
@@ -124,7 +133,8 @@ function renderDashboard(data) {
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 dash-widget" data-widget-id="table_finance">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
                 <div class="modern-card p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0"><i class="bi bi-send text-yellow me-2"></i>Awaiting Finance</h6>
@@ -140,7 +150,8 @@ function renderDashboard(data) {
                     </div>
                 </div>
             </div>
-            <div class="col-lg-6">
+            <div class="col-lg-6 dash-widget" data-widget-id="table_history">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
                 <div class="modern-card p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-yellow me-2"></i>Recently Completed</h6>
@@ -156,40 +167,38 @@ function renderDashboard(data) {
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Trend + Status charts -->
-        <div class="row g-3 mb-4">
-            <div class="col-lg-7">
-                <div class="modern-card p-3 h-100">
+            <div class="col-lg-6 d-flex dash-widget" data-widget-id="chart_trend">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
+                <div class="modern-card p-3 h-100 w-100">
                     <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-yellow me-2"></i>Requisition Trend (Last 14 Days)</h6>
                     <div class="sm-chart-wrap">
                         <canvas id="smTrendChart"></canvas>
                     </div>
                 </div>
             </div>
-            <div class="col-lg-5">
-                <div class="modern-card p-3 h-100">
+            <div class="col-lg-6 d-flex dash-widget" data-widget-id="chart_status">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
+                <div class="modern-card p-3 h-100 w-100">
                     <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-yellow me-2"></i>Requisitions by Status</h6>
                     <div class="sm-chart-wrap sm-chart-wrap-donut">
                         <canvas id="smStatusChart"></canvas>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Recent Requisitions + Business Insights -->
-        <div class="row g-3">
-            <div class="col-lg-7">
+            <div class="col-lg-6 dash-widget" data-widget-id="list_recent">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
                 <div class="modern-card p-3 h-100">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h6 class="fw-bold mb-0"><i class="bi bi-clock-history text-yellow me-2"></i>Recent Requisitions</h6>
-                        <a href="?page=store_manager_requisitions&tab=mine" class="small text-decoration-none">View All</a>
+                        <a href="?page=store_manager_requisitions&tab=mine" class="btn btn-yellow-outline btn-sm">View All</a>
                     </div>
-                    ${recent.length > 0 ? recent.map((r, i) => renderRecentRow(r, i + 1)).join('') : smEmptyState('No requisitions yet', 'bi-inbox')}
+                    <div class="sm-mini-table-scroll">
+                        ${recent.length > 0 ? recent.map((r, i) => renderRecentRow(r, i + 1)).join('') : smEmptyState('No requisitions yet', 'bi-inbox')}
+                    </div>
                 </div>
             </div>
-            <div class="col-lg-5">
+            <div class="col-lg-6 dash-widget" data-widget-id="panel_insights">
+                <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
                 <div class="modern-card p-3 h-100">
                     <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb-fill text-yellow me-2"></i>Business Insights</h6>
                     ${renderInsights(insights)}
@@ -208,6 +217,11 @@ function renderDashboard(data) {
 
     renderTrendChart(data.daily_trend || []);
     renderStatusChart(data.status_breakdown || {});
+
+    // The canvas rows above only exist in the DOM from this point on --
+    // dashboard-layout.js waits for this event before wiring up drag
+    // listeners and restoring any saved widget order.
+    document.dispatchEvent(new CustomEvent('sm-dashboard-rendered'));
 }
 
 function bindMiniRowClicks(tbodyId) {

@@ -39,15 +39,17 @@ $content = <<<'EOT'
 
 <div class="active-filter-chips" id="activeFilterChips"></div>
 
-<div id="fn-cards-container" class="fn-card-grid">
-    <div class="text-center py-4" style="grid-column:1/-1;">
-        <div class="spinner-border text-primary" role="status"></div>
-        <p class="mt-2 text-muted">Loading payment requests...</p>
+<div class="modern-card p-3 sm-fill-card">
+    <div id="fn-cards-container" class="fn-card-grid">
+        <div class="text-center py-4" style="grid-column:1/-1;">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading payment requests...</p>
+        </div>
     </div>
-</div>
-<div class="d-flex justify-content-between align-items-center mt-3">
-    <span class="text-muted small" id="tableInfo">Loading...</span>
-    <nav><ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul></nav>
+    <div class="d-flex justify-content-between align-items-center mt-3">
+        <span class="text-muted small" id="tableInfo">Loading...</span>
+        <nav><ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul></nav>
+    </div>
 </div>
 
 <!-- Requisition / Payment Request Detail Modal -->

@@ -121,6 +121,11 @@
     color: var(--text-main);
     font-weight: 600;
 }
+.sm-req-card .sm-req-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
 .sm-req-card .sm-req-total {
     font-size: 1.15rem;
     font-weight: 700;
@@ -133,6 +138,83 @@
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--border-color);
+}
+
+/* ---------- Grid/Rows view toggle (Modrinth-style icon button) ---------- */
+.sm-view-toggle-btn {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+.sm-view-toggle-btn:hover {
+    border-color: var(--brand-yellow);
+    color: var(--brand-yellow-hover);
+}
+.sm-view-toggle-btn.active {
+    background: var(--brand-dark);
+    border-color: var(--brand-dark);
+    color: var(--on-dark);
+}
+
+/* Row view: same cards, reflowed into a single-column list with the
+   header/meta/total/actions laid out horizontally instead of stacked --
+   no markup changes needed, this just re-flexes the existing children. */
+.sm-requisition-grid.sm-view-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sm-requisition-grid.sm-view-rows .sm-req-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 10px 16px;
+}
+.sm-requisition-grid.sm-view-rows .sm-req-card:hover {
+    box-shadow: none;
+}
+.sm-requisition-grid.sm-view-rows .sm-req-header {
+    flex: 1 1 220px;
+    min-width: 0;
+    margin-bottom: 0;
+}
+.sm-requisition-grid.sm-view-rows .sm-req-meta {
+    flex: 2 1 320px;
+    grid-template-columns: repeat(2, minmax(120px, 1fr));
+    margin: 0;
+}
+.sm-requisition-grid.sm-view-rows .sm-req-total-row {
+    flex: 0 0 auto;
+}
+.sm-requisition-grid.sm-view-rows .sm-req-actions {
+    flex: 0 0 auto;
+    margin-top: 0;
+    padding-top: 0;
+    padding-left: 16px;
+    border-top: none;
+    border-left: 1px solid var(--border-color);
+}
+@media (max-width: 767.98px) {
+    .sm-requisition-grid.sm-view-rows .sm-req-card {
+        flex-wrap: wrap;
+    }
+    .sm-requisition-grid.sm-view-rows .sm-req-actions {
+        border-left: none;
+        padding-left: 0;
+        border-top: 1px solid var(--border-color);
+        padding-top: 10px;
+        width: 100%;
+    }
 }
 
 /* ---------- Product grid (Inventory + Create Requisition) ---------- */
@@ -210,6 +292,73 @@
     font-size: 0.7rem;
     font-weight: 600;
 }
+/* Row view: same cards, reflowed into a single-column list -- same
+   mechanic as .sm-requisition-grid.sm-view-rows above (no markup swap,
+   just re-flexing the existing children). */
+.sm-product-grid.sm-view-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sm-product-grid.sm-view-rows .sm-product-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.sm-product-grid.sm-view-rows .sm-product-card:hover {
+    transform: none;
+}
+.sm-product-grid.sm-view-rows .sm-product-image {
+    width: 56px;
+    height: 56px;
+    flex-shrink: 0;
+    font-size: 1.3rem;
+    border-radius: 8px;
+}
+.sm-product-grid.sm-view-rows .sm-product-body {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex: 1;
+    min-width: 0;
+    padding: 10px 14px 10px 0;
+}
+.sm-product-grid.sm-view-rows .sm-product-category {
+    order: 2;
+    flex: 0 0 130px;
+    margin-bottom: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sm-product-grid.sm-view-rows .sm-product-name {
+    order: 1;
+    flex: 2 1 180px;
+}
+.sm-product-grid.sm-view-rows .sm-product-price {
+    order: 3;
+    flex: 0 0 90px;
+}
+.sm-product-grid.sm-view-rows .sm-product-stock-row {
+    order: 4;
+    flex: 0 0 190px;
+    margin-top: 0;
+}
+.sm-product-grid.sm-view-rows .sm-product-badge-wrap {
+    order: 5;
+    flex: 0 0 auto;
+    margin-top: 0 !important;
+}
+@media (max-width: 767.98px) {
+    .sm-product-grid.sm-view-rows .sm-product-card {
+        flex-wrap: wrap;
+    }
+    .sm-product-grid.sm-view-rows .sm-product-body {
+        flex-wrap: wrap;
+        gap: 4px 18px;
+    }
+}
+
 .sm-stock-badge.out { background: #fecaca; color: #991b1b; }
 .sm-stock-badge.low { background: #fef3c7; color: #92400e; }
 .sm-stock-badge.in { background: #d1fae5; color: #065f46; }
@@ -327,19 +476,6 @@
     color: var(--text-muted);
 }
 
-/* ---------- Dashboard header (greeting + date + action) ---------- */
-.sm-dash-header h4 {
-    font-family: 'Space Grotesk', sans-serif;
-}
-.sm-date-pill {
-    padding: 6px 14px;
-    border-radius: 20px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    font-size: 0.82rem;
-    color: var(--text-muted);
-}
-
 /* ---------- Stat card trend sublabel ---------- */
 .sm-stat-trend {
     font-size: 0.72rem;
@@ -380,6 +516,16 @@
 }
 .sm-chart-wrap-donut {
     height: 240px;
+}
+
+/* Dashboard Edit Mode (drag-to-reorder): the mini-tables and charts share
+   one drag-reorderable row (#smDashCanvasContent) so users can freely mix
+   them. Bootstrap's row-wrap only stretches cards to match height within
+   their own wrapped line, which would let a 4-card line and a 2-card
+   line end up different heights -- pinning an explicit height here keeps
+   every card in the row uniform regardless of how they're rearranged. */
+#smDashCanvasContent .dash-widget .modern-card {
+    height: 360px !important;
 }
 
 /* ---------- Recent Requisitions (list rows) ---------- */
@@ -461,12 +607,561 @@
     align-items: center;
 }
 
+/* ---------- Create Requisition: stretch both panels to fill the page ---------- */
+.sm-create-row {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.sm-create-row > [class*="col-"] {
+    flex-direction: column;
+    min-height: 0;
+}
+
+/* ---------- Create Requisition: product picker ---------- */
+.sm-restock-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+}
+.sm-restock-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.sm-restock-card:not(.unavailable):hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.sm-restock-card.in-cart {
+    border-color: var(--brand-yellow);
+    box-shadow: 0 0 0 1px var(--brand-yellow);
+}
+.sm-restock-card.unavailable {
+    opacity: 0.55;
+}
+.sm-restock-image {
+    width: 100%;
+    height: 100px;
+    background: var(--bg-card-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 1.8rem;
+    overflow: hidden;
+}
+.sm-restock-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.sm-restock-body {
+    padding: 10px;
+}
+.sm-restock-name {
+    font-weight: 600;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sm-restock-price {
+    font-weight: 700;
+    color: var(--brand-yellow-hover);
+    font-size: 0.92rem;
+    margin-top: 2px;
+}
+.sm-restock-stock {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+.sm-restock-unavailable-note {
+    font-size: 0.7rem;
+    color: var(--danger, #dc2626);
+    margin-top: 4px;
+    line-height: 1.3;
+}
+.sm-restock-qty {
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    margin-top: 8px;
+}
+.sm-restock-qty button {
+    flex: 0 0 26px;
+    height: 26px;
+    padding: 0;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+    font-size: 0.85rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.sm-restock-qty button:hover:not(:disabled) {
+    background: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+}
+.sm-restock-qty button:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+.sm-restock-qty input {
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 26px;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--bg-card);
+    color: var(--text-main);
+    font-size: 0.82rem;
+    font-weight: 600;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+.sm-restock-qty input::-webkit-outer-spin-button,
+.sm-restock-qty input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+/* Row view: same cards, reflowed into a single-column list -- same
+   mechanic as .sm-requisition-grid.sm-view-rows / .sm-product-grid.sm-view-rows. */
+.sm-restock-grid.sm-view-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-image {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    font-size: 1.2rem;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-body {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex: 1;
+    min-width: 0;
+    padding: 8px 12px 8px 0;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-name {
+    flex: 2 1 160px;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-price {
+    flex: 0 0 80px;
+    margin-top: 0;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-stock {
+    flex: 0 0 170px;
+    margin-top: 0;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-unavailable-note {
+    flex: 0 0 200px;
+    margin-top: 0;
+}
+.sm-restock-grid.sm-view-rows .sm-restock-qty {
+    flex: 0 0 100px;
+    margin-top: 0;
+}
+@media (max-width: 767.98px) {
+    .sm-restock-grid.sm-view-rows .sm-restock-body {
+        flex-wrap: wrap;
+        gap: 4px 16px;
+    }
+}
+
+/* ---------- Create Requisition: cart panel ---------- */
+.sm-cart-card {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+    width: 100%;
+}
+.sm-cart-header {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+.sm-cart-body {
+    flex: 1 1 auto;
+    min-height: 160px;
+    overflow-y: auto;
+}
+.sm-cart-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: var(--text-muted);
+    padding: 40px 20px;
+}
+.sm-cart-empty i {
+    font-size: 1.8rem;
+    margin-bottom: 8px;
+    opacity: 0.6;
+}
+.sm-cart-empty p {
+    margin: 0 0 2px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+.sm-cart-empty span {
+    font-size: 0.78rem;
+}
+.sm-cart-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+.sm-cart-item:last-child {
+    border-bottom: none;
+}
+.sm-cart-item .sm-cart-item-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.sm-cart-item .sm-cart-item-name {
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sm-cart-item .sm-cart-item-price {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+}
+.sm-cart-item .sm-restock-qty {
+    flex: 0 0 auto;
+    width: 96px;
+    margin-top: 0;
+}
+.sm-cart-item .sm-cart-item-subtotal {
+    flex: 0 0 auto;
+    min-width: 56px;
+    text-align: right;
+    font-weight: 700;
+    font-size: 0.85rem;
+}
+.sm-cart-item .sm-cart-remove {
+    flex: 0 0 auto;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font-size: 1rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    transition: color 0.15s ease;
+}
+.sm-cart-item .sm-cart-remove:hover {
+    color: #dc2626;
+}
+.sm-cart-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 14px 16px;
+    background: var(--bg-card-subtle);
+}
+.sm-cart-total-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 12px;
+}
+.sm-cart-total-row .sm-cart-total-label {
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+.sm-cart-total-row .sm-cart-total-amount {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--brand-yellow-hover);
+}
+.sm-cart-fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.sm-cart-fields .sm-field-full {
+    grid-column: 1 / -1;
+}
+.sm-cart-fields label {
+    display: block;
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 3px;
+}
+.sm-cart-fields label .text-muted {
+    font-weight: 400;
+}
+.sm-cart-fields input[readonly] {
+    background: var(--bg-card-subtle);
+    color: var(--text-muted);
+    cursor: not-allowed;
+}
+
 /* ---------- Responsive breakpoints per spec ---------- */
 @media (max-width: 767.98px) {
     .sm-stats-grid { grid-template-columns: repeat(2, 1fr); }
     .sm-requisition-grid { grid-template-columns: 1fr; }
     .sm-req-card .sm-req-meta { grid-template-columns: 1fr; }
+    .sm-cart-fields { grid-template-columns: 1fr; }
 }
 @media (min-width: 768px) and (max-width: 1199.98px) {
     .sm-requisition-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* ==========================================================================
+   DASHBOARD ONBOARDING TOUR (experimental -- Store Manager Dashboard only)
+   A dim full-screen overlay with a "spotlight" cutout around the current
+   step's target element, plus a small card describing that feature.
+   ========================================================================== */
+.sm-tour-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: transparent;
+    pointer-events: auto;
+}
+/* The spotlight itself: a transparent box whose enormous box-shadow spread
+   IS the dim overlay everywhere except this box -- a single element, no
+   SVG mask needed. Transitions smoothly between steps as it moves/resizes. */
+.sm-tour-spotlight {
+    position: fixed;
+    border-radius: 12px;
+    box-shadow: 0 0 0 9999px rgba(15, 15, 15, 0.72);
+    transition: top 0.35s ease, left 0.35s ease, width 0.35s ease, height 0.35s ease;
+    pointer-events: none;
+}
+.sm-tour-card {
+    position: fixed;
+    z-index: 2001;
+    width: 320px;
+    max-width: calc(100vw - 32px);
+    background: var(--bg-card);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3);
+    padding: 18px;
+    transition: top 0.35s ease, left 0.35s ease;
+}
+.sm-tour-step-count {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--brand-yellow-hover);
+    margin-bottom: 6px;
+}
+.sm-tour-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sm-tour-desc {
+    font-size: 0.86rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    margin-bottom: 14px;
+}
+.sm-tour-dots {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 14px;
+}
+.sm-tour-dots span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--border-color);
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+.sm-tour-dots span.active {
+    background: var(--brand-yellow);
+    transform: scale(1.3);
+}
+.sm-tour-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.sm-tour-skip {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 6px 2px;
+}
+.sm-tour-skip:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+.sm-tour-next {
+    background: var(--brand-yellow);
+    color: #1a1a1a;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background-color 0.15s ease;
+}
+.sm-tour-next:hover {
+    background: var(--brand-yellow-hover);
+}
+.sm-tour-dont-show {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    cursor: pointer;
+    user-select: none;
+}
+.sm-tour-dont-show input {
+    accent-color: var(--brand-yellow);
+    cursor: pointer;
+}
+
+/* ---------- Profile page: dashboard tour toggle ---------- */
+.sm-tour-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 12px;
+    margin-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+.sm-tour-toggle-row .form-check-input {
+    width: 2.5em;
+    height: 1.4em;
+    cursor: pointer;
+}
+
+/* ---------- Profile page: list-view preference cards (Modrinth-style) ---------- */
+.sm-viewpref-group {
+    padding-top: 14px;
+    margin-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+.sm-viewpref-group:first-of-type {
+    padding-top: 0;
+    margin-top: 0;
+    border-top: none;
+}
+.sm-viewpref-label {
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 10px;
+}
+.sm-viewpref-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+.sm-viewpref-card {
+    display: block;
+    border: 2px solid var(--border-color);
+    border-radius: 12px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: border-color 0.15s ease;
+}
+.sm-viewpref-card input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+.sm-viewpref-card:hover {
+    border-color: var(--brand-yellow-hover);
+}
+.sm-viewpref-card.active {
+    border-color: var(--brand-yellow);
+}
+.sm-viewpref-preview {
+    background: var(--bg-card-subtle);
+    padding: 18px 16px;
+    min-height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+.sm-viewpref-grid-item {
+    width: 22px;
+    height: 22px;
+    border-radius: 5px;
+    background: var(--border-color);
+}
+.sm-viewpref-card.active .sm-viewpref-grid-item {
+    background: var(--brand-yellow);
+}
+.sm-viewpref-preview:has(.sm-viewpref-row-item) {
+    flex-direction: column;
+    gap: 5px;
+    padding: 18px 20px;
+}
+.sm-viewpref-row-item {
+    width: 100%;
+    height: 8px;
+    border-radius: 999px;
+    background: var(--border-color);
+}
+.sm-viewpref-card.active .sm-viewpref-row-item {
+    background: var(--brand-yellow);
+}
+.sm-viewpref-choice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border-color);
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+.sm-viewpref-choice i {
+    font-size: 1rem;
+    color: var(--text-muted);
+}
+.sm-viewpref-choice i.bi-check-circle-fill {
+    display: none;
+    color: var(--brand-yellow);
+}
+.sm-viewpref-card.active .sm-viewpref-choice i.bi-circle {
+    display: none;
+}
+.sm-viewpref-card.active .sm-viewpref-choice i.bi-check-circle-fill {
+    display: inline-block;
+}
+@media (max-width: 480px) {
+    .sm-viewpref-options {
+        grid-template-columns: 1fr;
+    }
 }

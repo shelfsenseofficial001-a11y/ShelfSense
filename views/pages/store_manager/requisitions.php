@@ -2,24 +2,7 @@
 $title = 'Requisitions - Store Manager';
 $pageTitle = 'Requisitions';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260831061347"></script>';
-$additional_css = '
-<style>
-    .product-card.clickable-card:hover { border-color: var(--brand-yellow); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-    .cart-item { padding: 8px 12px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; gap: 8px; }
-    .cart-item .item-info { flex: 1; }
-    .cart-item .item-name { font-size: 0.85rem; font-weight: 500; }
-    .cart-item .item-price { font-size: 0.8rem; color: var(--text-muted); }
-    .cart-item .qty-control { display: flex; align-items: center; gap: 4px; }
-    .cart-item .qty-control button { width: 24px; height: 24px; padding: 0; font-size: 0.7rem; border-radius: 50%; border: 1px solid var(--border-color); background: var(--bg-card-subtle); color: var(--text-main); cursor: pointer; }
-    .cart-item .qty-control button:hover { background: var(--brand-yellow); }
-    .cart-item .qty-control input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
-    .cart-item .qty-control input[type="number"]::-webkit-outer-spin-button,
-    .cart-item .qty-control input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-    .cart-item .qty-control span { min-width: 20px; text-align: center; font-weight: 600; }
-    .cart-total-row { padding: 12px 16px; border-top: 2px solid var(--brand-yellow); background: var(--light-yellow-subtle); border-radius: 0 0 8px 8px; }
-</style>
-';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260902232209"></script>';
 
 $content = <<<'EOT'
 <!-- Requisition Tabs -->
@@ -58,14 +41,11 @@ $content = <<<'EOT'
     <div class="tab-pane fade show active" id="mineTab" role="tabpanel" data-tab-panel="mine">
         <div class="sm-stats-grid" data-stats-container></div>
         <div class="row g-2 mb-3">
-            <div class="col-md-4">
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" data-filter="search" placeholder="Search by requisition #...">
-                </div>
+            <div class="col-md-3">
+                <input type="text" id="mineSearchInput" class="form-control" data-filter="search" placeholder="Search by requisition #...">
             </div>
             <div class="col-md-3">
-                <select class="form-select searchable-select" data-filter="status" data-placeholder="Filter by status...">
+                <select id="mineStatusFilter" class="form-select searchable-select" data-filter="status" data-placeholder="Filter by status...">
                     <option value="">All Status</option>
                     <option value="draft">Draft</option>
                     <option value="pending_supplier">Pending Supplier</option>
@@ -80,23 +60,29 @@ $content = <<<'EOT'
                 </select>
             </div>
             <div class="col-md-3">
-                <select class="form-select searchable-select" data-filter="sort_by" data-placeholder="Sort by...">
+                <select id="mineSortBy" class="form-select searchable-select" data-filter="sort_by" data-placeholder="Sort by...">
                     <option value="created_at">Sort: Newest First</option>
                     <option value="order_date">Sort: Order Date</option>
                     <option value="total">Sort: Total Amount</option>
                     <option value="requisition_number">Sort: Requisition #</option>
                 </select>
             </div>
-            <div class="col-md-2 text-end">
-                <button class="btn btn-yellow-outline btn-sm w-100" data-action="refresh">
+            <div class="col-md-3 d-flex gap-2">
+                <button type="button" class="sm-view-toggle-btn" data-view-toggle title="Switch to row view">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
+                <button class="btn btn-yellow-outline btn-sm" data-action="refresh">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
             </div>
         </div>
-        <div class="sm-requisition-grid" data-cards-container></div>
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <span class="text-muted small" data-info></span>
-            <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        <div class="active-filter-chips" id="mineFilterChips"></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sm-requisition-grid" data-cards-container></div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <span class="text-muted small" data-info></span>
+                <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+            </div>
         </div>
     </div>
 
@@ -104,85 +90,84 @@ $content = <<<'EOT'
     <!-- TAB 2: CREATE REQUISITION (Cart Style) -->
     <!-- ============================================ -->
     <div class="tab-pane fade" id="createTab" role="tabpanel">
-        <div class="row g-3">
+        <div class="row g-3 sm-create-row">
             <!-- Left: Product Grid -->
-            <div class="col-lg-8">
-                <div class="modern-card p-3">
-                    <h6 class="fw-bold mb-3"><i class="bi bi-box-seam text-yellow me-2"></i>Select Products to Restock</h6>
-                    <div class="row g-2 mb-2">
-                        <div class="col-md-5">
-                            <select id="createSupplierSelect" class="form-select form-select-sm searchable-select" data-placeholder="Select supplier...">
-                                <option value="">Loading suppliers...</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text"><i class="bi bi-search"></i></span>
-                                <input type="text" id="productSearchInput" class="form-control" placeholder="Search products...">
-                            </div>
-                        </div>
-                        <div class="col-md-3 text-end">
+            <div class="col-lg-8 d-flex">
+                <div class="modern-card p-3 sm-fill-card">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0"><i class="bi bi-box-seam text-yellow me-2"></i>Select Products to Restock</h6>
+                        <div class="d-flex gap-2">
+                            <button type="button" class="sm-view-toggle-btn" id="restockViewToggle" title="Switch to row view">
+                                <i class="bi bi-grid-3x3-gap-fill"></i>
+                            </button>
                             <button class="btn btn-yellow-outline btn-sm" id="refreshProductsBtn">
                                 <i class="bi bi-arrow-clockwise"></i> Refresh
                             </button>
                         </div>
                     </div>
-                    <div id="productGrid" class="row g-2" style="max-height:420px;overflow-y:auto;">
-                        <div class="text-center py-4">
+                    <div class="row g-2 mb-3">
+                        <div class="col-md-6">
+                            <select id="createSupplierSelect" class="form-select searchable-select" data-placeholder="Select supplier...">
+                                <option value="">Loading suppliers...</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <input type="text" id="productSearchInput" class="form-control" placeholder="Search products...">
+                        </div>
+                    </div>
+                    <div id="productGrid" class="sm-restock-grid">
+                        <div class="text-center py-4" style="grid-column:1/-1;">
                             <div class="spinner-border text-primary" role="status"></div>
                             <p class="mt-2 text-muted">Loading products...</p>
                         </div>
                     </div>
-                    <div class="mt-2 text-muted small" id="productInfo">Loading...</div>
+                    <div class="text-muted small mt-3" id="productInfo">Loading...</div>
                 </div>
             </div>
 
             <!-- Right: Cart Panel -->
-            <div class="col-lg-4">
-                <div class="modern-card p-0">
-                    <div class="card-header bg-transparent border-bottom">
+            <div class="col-lg-4 d-flex">
+                <div class="modern-card p-0 sm-cart-card">
+                    <div class="sm-cart-header">
                         <h6 class="fw-bold mb-0">
                             <i class="bi bi-cart-fill text-yellow me-2"></i>
                             Requisition Cart <span class="badge bg-primary" id="cartCount">0</span>
                         </h6>
                     </div>
-                    <div id="cartPanel" style="max-height:300px;overflow-y:auto;">
-                        <div class="text-center text-muted py-4" id="emptyCartMessage">
-                            <i class="bi bi-cart3 fs-3 d-block mb-2"></i>
-                            No products added
+                    <div id="cartPanel" class="sm-cart-body">
+                        <div class="sm-cart-empty" id="emptyCartMessage">
+                            <i class="bi bi-cart3"></i>
+                            <p>No products added</p>
+                            <span>Click a product on the left to add it here</span>
                         </div>
                         <div id="cartItems" style="display:none;"></div>
                     </div>
-                    <div class="cart-total-row">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="fw-bold">Total:</span>
-                            <span class="fs-4 fw-bold text-yellow" id="cartTotal">₱0.00</span>
+                    <div class="sm-cart-footer">
+                        <div class="sm-cart-total-row">
+                            <span class="sm-cart-total-label">Total</span>
+                            <span class="sm-cart-total-amount" id="cartTotal">₱0.00</span>
                         </div>
-                        <div class="d-flex gap-2 mt-2">
-                            <button class="btn btn-outline-danger btn-sm flex-grow-1" id="clearCartBtn">
+                        <div class="sm-cart-fields">
+                            <div>
+                                <label for="orderDate">Order Date</label>
+                                <input type="date" id="orderDate" class="form-control form-control-sm" readonly>
+                            </div>
+                            <div>
+                                <label for="expectedDelivery">Expected Delivery</label>
+                                <input type="date" id="expectedDelivery" class="form-control form-control-sm">
+                            </div>
+                            <div class="sm-field-full">
+                                <label for="requisitionNotes">Notes <span class="text-muted">(optional)</span></label>
+                                <textarea id="requisitionNotes" class="form-control form-control-sm" rows="2" placeholder="Add any notes for this requisition..."></textarea>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-danger" id="clearCartBtn">
                                 <i class="bi bi-trash"></i> Clear
                             </button>
                             <button class="btn btn-yellow-primary flex-grow-1" id="sendRequisitionBtn" disabled>
                                 <i class="bi bi-send"></i> Create Requisition
                             </button>
-                        </div>
-                    </div>
-                    <div class="p-2 small">
-                        <div class="row g-1">
-                            <div class="col-6">
-                                <label class="form-label">Order Date</label>
-                                <input type="date" id="orderDate" class="form-control form-control-sm" value="<?= date('Y-m-d') ?>" readonly>
-                            </div>
-                            <div class="col-6">
-                                <label class="form-label">Expected Delivery</label>
-                                <input type="date" id="expectedDelivery" class="form-control form-control-sm"
-                                       min="<?= date('Y-m-d') ?>"
-                                       max="<?= date('Y-m-d', strtotime('+1 year')) ?>">
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label">Notes</label>
-                                <textarea id="requisitionNotes" class="form-control form-control-sm" rows="1" placeholder="Optional notes..."></textarea>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -195,22 +180,25 @@ $content = <<<'EOT'
     <!-- ============================================ -->
     <div class="tab-pane fade" id="pendingSupplierTab" role="tabpanel" data-tab-panel="pending-supplier">
         <div class="row g-2 mb-3">
-            <div class="col-md-8">
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" data-filter="search" placeholder="Search by requisition # or supplier...">
-                </div>
+            <div class="col-md-7">
+                <input type="text" id="pendingSupplierSearchInput" class="form-control" data-filter="search" placeholder="Search by requisition # or supplier...">
             </div>
-            <div class="col-md-4 text-end">
+            <div class="col-md-5 d-flex gap-2">
+                <button type="button" class="sm-view-toggle-btn" data-view-toggle title="Switch to row view">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
             </div>
         </div>
-        <div class="sm-requisition-grid" data-cards-container></div>
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <span class="text-muted small" data-info></span>
-            <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        <div class="active-filter-chips" id="pendingSupplierFilterChips"></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sm-requisition-grid" data-cards-container></div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <span class="text-muted small" data-info></span>
+                <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+            </div>
         </div>
     </div>
 
@@ -219,22 +207,25 @@ $content = <<<'EOT'
     <!-- ============================================ -->
     <div class="tab-pane fade" id="awaitingFinanceTab" role="tabpanel" data-tab-panel="awaiting-finance">
         <div class="row g-2 mb-3">
-            <div class="col-md-8">
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" data-filter="search" placeholder="Search by requisition # or supplier...">
-                </div>
+            <div class="col-md-7">
+                <input type="text" id="awaitingFinanceSearchInput" class="form-control" data-filter="search" placeholder="Search by requisition # or supplier...">
             </div>
-            <div class="col-md-4 text-end">
+            <div class="col-md-5 d-flex gap-2">
+                <button type="button" class="sm-view-toggle-btn" data-view-toggle title="Switch to row view">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
             </div>
         </div>
-        <div class="sm-requisition-grid" data-cards-container></div>
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <span class="text-muted small" data-info></span>
-            <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        <div class="active-filter-chips" id="awaitingFinanceFilterChips"></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sm-requisition-grid" data-cards-container></div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <span class="text-muted small" data-info></span>
+                <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+            </div>
         </div>
     </div>
 
@@ -245,13 +236,10 @@ $content = <<<'EOT'
         <div class="sm-stats-grid" data-history-stats></div>
         <div class="row g-2 mb-3">
             <div class="col-md-3">
-                <div class="input-group">
-                    <span class="input-group-text"><i class="bi bi-search"></i></span>
-                    <input type="text" class="form-control" data-filter="search" placeholder="Search...">
-                </div>
+                <input type="text" id="historySearchInput" class="form-control" data-filter="search" placeholder="Search...">
             </div>
             <div class="col-md-2">
-                <select class="form-select searchable-select" data-filter="status" data-placeholder="Filter by status...">
+                <select id="historyStatusFilter" class="form-select searchable-select" data-filter="status" data-placeholder="Filter by status...">
                     <option value="">All History Status</option>
                     <option value="paid">Paid</option>
                     <option value="shipped">Shipped</option>
@@ -261,21 +249,27 @@ $content = <<<'EOT'
                 </select>
             </div>
             <div class="col-md-2">
-                <input type="date" class="form-control" data-filter="date_from" title="From date">
+                <input type="date" id="historyDateFrom" class="form-control" data-filter="date_from" title="From date">
             </div>
             <div class="col-md-2">
-                <input type="date" class="form-control" data-filter="date_to" title="To date">
+                <input type="date" id="historyDateTo" class="form-control" data-filter="date_to" title="To date">
             </div>
-            <div class="col-md-3 text-end">
+            <div class="col-md-3 d-flex gap-2">
+                <button type="button" class="sm-view-toggle-btn" data-view-toggle title="Switch to row view">
+                    <i class="bi bi-grid-3x3-gap-fill"></i>
+                </button>
                 <button class="btn btn-yellow-outline btn-sm" data-action="refresh">
                     <i class="bi bi-arrow-clockwise"></i> Refresh
                 </button>
             </div>
         </div>
-        <div class="sm-requisition-grid" data-cards-container></div>
-        <div class="d-flex justify-content-between align-items-center mt-3">
-            <span class="text-muted small" data-info></span>
-            <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+        <div class="active-filter-chips" id="historyFilterChips"></div>
+        <div class="modern-card p-3 sm-fill-card">
+            <div class="sm-requisition-grid" data-cards-container></div>
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <span class="text-muted small" data-info></span>
+                <nav><ul class="pagination pagination-sm mb-0" data-pagination></ul></nav>
+            </div>
         </div>
     </div>
 </div>

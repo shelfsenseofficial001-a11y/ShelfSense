@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadInventory();
     loadCategories();
     setupEventListeners();
+    setupInventoryViewToggle();
 
     if (window.ShelfSenseFilterChips) {
         window.ShelfSenseFilterChips.init('activeFilterChips', [
@@ -21,6 +22,38 @@ document.addEventListener('DOMContentLoaded', function () {
         ]);
     }
 });
+
+// ============================================
+// GRID / ROWS VIEW TOGGLE (Modrinth-style, same mechanic as the
+// Requisitions page -- see store_manager/requisitions.js)
+// ============================================
+
+const SM_INVENTORY_VIEW_KEY = 'sm_inventory_view';
+
+function setupInventoryViewToggle() {
+    const btn = document.getElementById('inventoryViewToggle');
+    if (!btn) return;
+
+    applyInventoryView(localStorage.getItem(SM_INVENTORY_VIEW_KEY) === 'rows' ? 'rows' : 'grid');
+
+    btn.addEventListener('click', () => {
+        const isRows = document.getElementById('sm-product-grid').classList.contains('sm-view-rows');
+        applyInventoryView(isRows ? 'grid' : 'rows');
+    });
+}
+
+function applyInventoryView(mode) {
+    const isRows = mode === 'rows';
+    const grid = document.getElementById('sm-product-grid');
+    const btn = document.getElementById('inventoryViewToggle');
+    if (grid) grid.classList.toggle('sm-view-rows', isRows);
+    if (btn) {
+        btn.classList.toggle('active', isRows);
+        btn.innerHTML = `<i class="bi ${isRows ? 'bi-list-ul' : 'bi-grid-3x3-gap-fill'}"></i>`;
+        btn.title = isRows ? 'Switch to grid view' : 'Switch to row view';
+    }
+    localStorage.setItem(SM_INVENTORY_VIEW_KEY, mode);
+}
 
 function setupEventListeners() {
     document.getElementById('searchInput')?.addEventListener('input', debounce(() => {
@@ -49,35 +82,32 @@ function setupEventListeners() {
         loadInventory();
     });
 
-    document.querySelectorAll('.sm-sort-toggle').forEach(el => {
-        el.addEventListener('click', function () {
-            const field = this.dataset.sort;
-            if (sortBy === field) {
-                sortDir = sortDir === 'asc' ? 'desc' : 'asc';
-            } else {
-                sortBy = field;
-                sortDir = 'asc';
-            }
-            updateSortIndicators();
-            currentPage = 1;
-            loadInventory();
-        });
+    document.getElementById('sortByField')?.addEventListener('change', function () {
+        sortBy = this.value;
+        currentPage = 1;
+        loadInventory();
+    });
+
+    document.getElementById('sortByDir')?.addEventListener('change', function () {
+        sortDir = this.value;
+        currentPage = 1;
+        loadInventory();
     });
 
     updateSortIndicators();
 }
 
 function updateSortIndicators() {
-    document.querySelectorAll('.sm-sort-toggle').forEach(el => {
-        const icon = el.querySelector('i');
-        if (el.dataset.sort === sortBy) {
-            el.classList.add('active');
-            icon.className = sortDir === 'asc' ? 'bi bi-arrow-up' : 'bi bi-arrow-down';
-        } else {
-            el.classList.remove('active');
-            icon.className = 'bi bi-arrow-down-up';
-        }
-    });
+    const fieldSelect = document.getElementById('sortByField');
+    const dirSelect = document.getElementById('sortByDir');
+    if (fieldSelect) {
+        fieldSelect.value = sortBy;
+        if (window.refreshSearchableSelect) window.refreshSearchableSelect(fieldSelect);
+    }
+    if (dirSelect) {
+        dirSelect.value = sortDir;
+        if (window.refreshSearchableSelect) window.refreshSearchableSelect(dirSelect);
+    }
 }
 
 function debounce(fn, wait) {
@@ -171,7 +201,7 @@ function renderProducts(products) {
                     <div class="sm-product-stock-row">
                         <span>Stock: <strong>${stock}</strong> (Reorder: ${reorder})</span>
                     </div>
-                    <div class="mt-1">${smStockBadge(stock, reorder)}</div>
+                    <div class="mt-1 sm-product-badge-wrap">${smStockBadge(stock, reorder)}</div>
                 </div>
             </div>
         `;

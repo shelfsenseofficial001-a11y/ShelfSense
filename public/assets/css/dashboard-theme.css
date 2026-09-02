@@ -90,7 +90,14 @@ body.dashboard-theme .dashboard-page {
 body.dashboard-theme .dashboard-shell {
     background: var(--bg-card);
     border-radius: 0;
-    overflow: hidden;
+    /* No overflow clipping here (not even overflow-x alone) -- per spec,
+       setting either axis to non-"visible" forces the OTHER axis's used
+       value to "auto" too, even if that axis is explicitly "visible" in
+       the stylesheet. Any non-visible axis therefore makes this element a
+       scroll-container boundary, which breaks position:sticky on every
+       portal's topbar below it (this element itself never scrolls --
+       min-height, not height, so it just grows to fit content instead).
+       border-radius is 0 here regardless, so there's nothing to clip. */
     min-height: 100vh;
 }
 
@@ -276,6 +283,26 @@ body.dashboard-theme .pos-page-content .modern-card:has(> .card-body.p-0) > .car
 body.dashboard-theme .supplier-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0,
 body.dashboard-theme .trainee-page-content .modern-card:has(> .card-body.p-0) > .card-body.p-0 {
     flex: 1 1 auto;
+}
+
+/* Same "stretch to fill" idea as above, for cards that don't use the
+   card-body.p-0 convention -- e.g. Store Manager's Requisitions/Inventory
+   grid cards, which have their own padding (p-3) directly on .modern-card
+   with no separate card-body wrapper. Opt in with .sm-fill-card. */
+body.dashboard-theme .sm-fill-card {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+/* Pins the footer row (item count + pagination -- always the last direct
+   child) to the bottom of the now-taller card, instead of it drifting up
+   directly under a short grid with a big gap beneath it. !important because
+   the footer row itself carries Bootstrap's .mt-3 utility class, and
+   Bootstrap's spacing utilities ship as !important -- normal specificity
+   can't beat that. */
+body.dashboard-theme .sm-fill-card > *:last-child {
+    margin-top: auto !important;
 }
 
 /* ==========================================================================
@@ -530,7 +557,7 @@ body.dashboard-theme .sidebar-nav .nav-item:hover {
 
 body.dashboard-theme .sidebar-brand {
     display: flex;
-    align-items: center;
+    align-items: stretch;
 }
 
 /* Sidebar group separators — thin and light, but still perceivable
@@ -649,8 +676,14 @@ body.dashboard-theme .sidebar-collapse-btn .nav-icon-wrap {
     align-items: center;
     justify-content: center;
     width: 24px;
+    height: 24px;
     flex-shrink: 0;
     font-size: 1rem;
+    line-height: 1;
+}
+
+body.dashboard-theme .sidebar-collapse-btn .nav-icon-wrap i {
+    line-height: 1;
 }
 
 body.dashboard-theme .nav-item {
@@ -768,7 +801,24 @@ body.dashboard-theme .pos-sidebar.collapsed .sidebar-brand,
 body.dashboard-theme .supplier-sidebar.collapsed .sidebar-brand,
 body.dashboard-theme .trainee-sidebar.collapsed .sidebar-brand {
     justify-content: center;
-    padding: 0 8px 8px;
+    padding: 0 8px;
+    /* Match the expanded row's height (0 20px 14px padding + content) so
+       collapsing doesn't shrink this row -- otherwise everything below it,
+       including the Collapse/Expand button, jumps up and the user has to
+       chase it with the mouse every time they toggle. */
+    min-height: 44px;
+}
+
+/* .brand-logo carries a margin-right (app.css) to space it from the
+   wordmark next to it -- with the wordmark hidden in the collapsed state,
+   that margin would otherwise shift the centered logo left. */
+body.dashboard-theme .hr-sidebar.collapsed .sidebar-brand .brand-logo,
+body.dashboard-theme .store-manager-sidebar.collapsed .sidebar-brand .brand-logo,
+body.dashboard-theme .finance-sidebar.collapsed .sidebar-brand .brand-logo,
+body.dashboard-theme .pos-sidebar.collapsed .sidebar-brand .brand-logo,
+body.dashboard-theme .supplier-sidebar.collapsed .sidebar-brand .brand-logo,
+body.dashboard-theme .trainee-sidebar.collapsed .sidebar-brand .brand-logo {
+    margin-right: 0;
 }
 
 /* Collapsed sidebar: tighten vertical rhythm everywhere so the full
@@ -846,6 +896,9 @@ body.dashboard-theme .supplier-sidebar.collapsed .sidebar-user,
 body.dashboard-theme .trainee-sidebar.collapsed .sidebar-user {
     justify-content: center;
     padding: 6px;
+    /* Same rationale as .sidebar-brand above -- pin to the expanded row's
+       height so the Collapse/Expand button below doesn't shift position. */
+    min-height: 81px;
 }
 
 body.dashboard-theme .hr-sidebar.collapsed .sidebar-user .user-profile-link,
@@ -1121,4 +1174,282 @@ body.dashboard-theme .detail-drawer {
 }
 body.dashboard-theme .offcanvas-backdrop {
     transition: opacity 0.3s ease-in !important;
+}
+
+/* ==========================================================================
+   15. DASHBOARD EDIT MODE (drag-to-reorder widgets) -- shared across every
+   portal dashboard that opts in (see dashboard-layout.js variants).
+   ========================================================================== */
+
+body.dashboard-theme .dash-edit-btn {
+    background: var(--light-yellow-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--brand-yellow-hover);
+    height: 38px;
+    padding: 0 14px 0 0;
+    border-radius: 19px;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, color 0.2s ease;
+}
+[data-bs-theme="dark"] body.dashboard-theme .dash-edit-btn {
+    color: var(--brand-yellow);
+}
+body.dashboard-theme .dash-edit-btn i {
+    font-size: 1.1rem;
+    width: 38px;
+    flex-shrink: 0;
+    text-align: center;
+}
+body.dashboard-theme .dash-edit-btn:hover {
+    transform: rotate(-15deg) scale(1.05);
+    border-color: var(--brand-yellow);
+}
+body.dashboard-theme .dash-edit-btn.active {
+    background: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+    color: #1a1a1a;
+}
+body.dashboard-theme .dash-edit-btn.active:hover {
+    transform: scale(1.05);
+}
+body.dashboard-theme .dash-edit-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+/* The "Edit UI" / "Editing UI..." label beside the pen icon -- always
+   visible, its text just swaps with the button's state (see
+   dashboard-layout.js). */
+body.dashboard-theme .dash-edit-label {
+    display: inline-block;
+    margin-left: -4px;
+    white-space: nowrap;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* "Saved!" toast, shown top-left when the user exits edit mode. Always a
+   dark snackbar regardless of site theme -- deliberately NOT using
+   var(--brand-dark), since that token flips to near-white in dark mode
+   (it's meant for things that invert, like the active sidebar pill) and
+   would make this unreadable. */
+/* Same fixed spot the Keep/Revert prompt uses (bottom-center) -- the
+   toast appears there right after that prompt resolves, so it reads as
+   one continuous piece of feedback instead of jumping across the page. */
+.dash-saved-toast-container {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translateX(-50%);
+    z-index: 1090;
+}
+body.dashboard-theme .dash-saved-toast {
+    background: #20201d;
+    color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+body.dashboard-theme .dash-saved-toast .toast-body {
+    font-weight: 600;
+}
+body.dashboard-theme .dash-saved-toast i {
+    color: var(--success);
+}
+/* Pop-in animation (no .fade class on the toast, so Bootstrap applies no
+   transition of its own here -- this owns the whole show animation). Re-
+   plays every time because Bootstrap's Toast.hide() fully removes .show
+   before the next .show() call re-adds it, so there's no stale animation
+   state to reset like the widget jiggle needs. */
+@keyframes dash-toast-pop {
+    0% { transform: scale(0.55) translateY(18px); opacity: 0; }
+    65% { transform: scale(1.06) translateY(-3px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+body.dashboard-theme .dash-saved-toast.show {
+    animation: dash-toast-pop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+body.dashboard-theme .dash-widget {
+    position: relative;
+    transition: transform 0.15s ease;
+}
+
+/* The handle exists in the DOM always (so its layout space never shifts
+   content on toggle) but only becomes visible/interactive in edit mode */
+body.dashboard-theme .dash-widget-handle {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 6;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: var(--brand-dark);
+    color: var(--on-dark);
+    font-size: 0.8rem;
+    cursor: grab;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body.dashboard-theme .dash-widget-handle:active {
+    cursor: grabbing;
+}
+
+/* Edit mode: every widget in every reorderable row jiggles like an iOS
+   home-screen icon, signalling it can be picked up and moved. The jiggle
+   (rotate) animation lives on the INNER card, not on .dash-widget itself
+   -- .dash-widget is the element the drag-reorder logic slides around
+   with a transform transition, and a CSS animation + a CSS transition
+   fighting over the same element's transform is a losing battle for the
+   transition every time the animation's next frame ticks. Splitting them
+   across two elements means both can own `transform` freely. Each widget
+   gets a slightly different animation delay so they do not all sway in
+   perfect unison. */
+body.dashboard-theme.dash-edit-mode .dash-widget {
+    outline: 2px dashed var(--border-color);
+    outline-offset: 4px;
+    border-radius: var(--radius-card);
+}
+body.dashboard-theme.dash-edit-mode .dash-widget > .modern-card,
+body.dashboard-theme.dash-edit-mode .dash-widget > .sm-stat-card {
+    animation: dash-shake 0.28s ease-in-out infinite;
+}
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .modern-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .sm-stat-card {
+    animation-delay: -0.09s;
+}
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .modern-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .sm-stat-card {
+    animation-delay: -0.16s;
+}
+body.dashboard-theme.dash-edit-mode .dash-widget-handle {
+    display: flex;
+}
+
+@keyframes dash-shake {
+    0% { transform: rotate(-1deg); }
+    50% { transform: rotate(1deg); }
+    100% { transform: rotate(-1deg); }
+}
+
+/* Dragging state: the item being moved pauses the shake and fades; the
+   drop target under the cursor gets a highlighted outline */
+body.dashboard-theme .dash-widget.dash-dragging > .modern-card,
+body.dashboard-theme .dash-widget.dash-dragging > .sm-stat-card {
+    animation: none !important;
+}
+body.dashboard-theme .dash-widget.dash-dragging {
+    opacity: 0.45;
+}
+body.dashboard-theme .dash-widget.dash-drag-over {
+    outline: 2px solid var(--brand-yellow) !important;
+}
+
+/* "Keep changes?" confirmation, shown bottom-center when exiting edit
+   mode -- same dark-snackbar language as .dash-saved-toast. Hidden via
+   opacity/transform (not display:none) so the slide-up transition has
+   something to animate from; pointer-events off while hidden so it can't
+   eat clicks underneath it. */
+body.dashboard-theme .dash-revert-confirm {
+    position: fixed;
+    left: 50%;
+    bottom: 28px;
+    transform: translate(-50%, 12px);
+    z-index: 1090;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #20201d;
+    color: #fff;
+    border-radius: 12px;
+    padding: 12px 14px 12px 18px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+body.dashboard-theme .dash-revert-confirm.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translate(-50%, 0);
+}
+body.dashboard-theme .dash-revert-text {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    white-space: nowrap;
+}
+body.dashboard-theme .dash-revert-text i {
+    color: var(--brand-yellow);
+    font-size: 1.05rem;
+}
+body.dashboard-theme .dash-revert-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+body.dashboard-theme .dash-revert-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 7px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+}
+body.dashboard-theme .dash-revert-btn:hover {
+    transform: translateY(-1px);
+}
+body.dashboard-theme .dash-revert-undo {
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
+}
+body.dashboard-theme .dash-revert-undo:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+body.dashboard-theme .dash-revert-keep {
+    background: var(--brand-yellow);
+    color: #1a1a1a;
+}
+body.dashboard-theme .dash-revert-keep:hover {
+    background: var(--brand-yellow-hover);
+}
+body.dashboard-theme .dash-revert-countdown {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    margin-left: 4px;
+    padding: 0 4px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.18);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+}
+@media (max-width: 576px) {
+    body.dashboard-theme .dash-revert-confirm {
+        left: 12px;
+        right: 12px;
+        bottom: 16px;
+        transform: translateY(12px);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 10px;
+    }
+    body.dashboard-theme .dash-revert-confirm.show {
+        transform: translateY(0);
+    }
+    body.dashboard-theme .dash-revert-actions {
+        justify-content: flex-end;
+    }
 }

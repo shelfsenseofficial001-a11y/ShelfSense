@@ -24,9 +24,9 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260830123737">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260902212026">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260902225847">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260902212803">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -36,14 +36,12 @@ use App\Core\Auth;
         <!-- Sidebar -->
         <div class="hr-sidebar" id="hrSidebar">
             <div class="sidebar-brand">
-                <span>
-                    <span class="brand-logo">
-                        <img src="/ShelfSense/public/assets/images/logo-black.png" class="logo-light" alt="ShelfSense" width="22" height="22">
-                        <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
-                    </span>
-                    <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
-                    <span class="badge bg-primary ms-2">HR</span>
+                <span class="brand-logo">
+                    <img src="/ShelfSense/public/assets/images/logo-black.png" class="logo-light" alt="ShelfSense" width="22" height="22">
+                    <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
                 </span>
+                <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
+                <span class="badge bg-primary ms-2">HR</span>
             </div>
 
             <!-- Profile block pinned to the top of the sidebar -->
@@ -182,13 +180,30 @@ use App\Core\Auth;
     </div>
     </div>
 
-    <!-- Dashboard "Saved!" toast, shown top-left when edit mode is turned off -->
-    <div class="toast-container position-fixed top-0 start-0 p-3" style="z-index: 1080;">
+    <!-- Dashboard "Saved!" toast, shown bottom-center (same spot as the
+         Keep/Revert prompt above) when edit mode is turned off -->
+    <div class="dash-saved-toast-container">
         <div id="dashSavedToast" class="toast align-items-center border-0 dash-saved-toast" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="1800">
             <div class="d-flex">
                 <div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>Saved!</div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
+        </div>
+    </div>
+
+    <!-- Dashboard "Keep changes?" confirmation, shown when exiting edit
+         mode -- like Windows' "Keep these display settings?" prompt.
+         5-second countdown; if unanswered, the change is KEPT. -->
+    <div class="dash-revert-confirm" id="dashRevertConfirm" role="alertdialog" aria-live="assertive">
+        <div class="dash-revert-text">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+            <span>Keep the new dashboard layout?</span>
+        </div>
+        <div class="dash-revert-actions">
+            <button type="button" class="dash-revert-btn dash-revert-undo">Revert</button>
+            <button type="button" class="dash-revert-btn dash-revert-keep">
+                Keep Changes <span class="dash-revert-countdown">5</span>
+            </button>
         </div>
     </div>
 
@@ -199,7 +214,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260831460000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260902204001"></script>
     <?php echo $additional_js ?? ''; ?>
 
     <!-- Searchable Select Component -->

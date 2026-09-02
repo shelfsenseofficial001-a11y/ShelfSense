@@ -16,9 +16,9 @@ use App\Core\Auth;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260831450000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260831061347">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/store_manager.css?v=20260831430000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260902212026">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260902225847">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/store_manager.css?v=20260902234130">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -92,9 +92,22 @@ use App\Core\Auth;
         <div class="store-manager-content flex-grow-1">
             <div class="store-manager-topbar d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="mb-0"><?= $pageTitle ?? 'Store Manager Dashboard' ?></h5>
+                    <div class="topbar-greeting">Hello, <span class="text-yellow"><?= htmlspecialchars($_SESSION['first_name'] ?? 'there') ?></span>!</div>
+                    <div class="topbar-subtitle">
+                        <span class="topbar-page-label"><?= $pageTitle ?? 'Store Manager Dashboard' ?></span>
+                        <span class="topbar-dot">•</span>
+                        <span id="topbarDateTime"></span>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
+                    <?php if ($activePage === 'dashboard'): ?>
+                    <!-- Dashboard Edit Mode -->
+                    <button class="dash-edit-btn" id="dashEditModeBtn" aria-label="Rearrange dashboard widgets" type="button">
+                        <i class="bi bi-pencil-fill"></i>
+                        <span class="dash-edit-label">Edit UI</span>
+                    </button>
+                    <?php endif; ?>
+
                     <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
@@ -109,9 +122,45 @@ use App\Core\Auth;
     </div>
     </div>
 
+    <!-- Dashboard "Saved!" toast, shown bottom-center (same spot as the
+         Keep/Revert prompt above) when edit mode is turned off -->
+    <div class="dash-saved-toast-container">
+        <div id="dashSavedToast" class="toast align-items-center border-0 dash-saved-toast" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="1800">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>Saved!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard "Keep changes?" confirmation, shown when exiting edit
+         mode -- like Windows' "Keep these display settings?" prompt.
+         5-second countdown; if unanswered, the change is KEPT. -->
+    <div class="dash-revert-confirm" id="dashRevertConfirm" role="alertdialog" aria-live="assertive">
+        <div class="dash-revert-text">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+            <span>Keep the new dashboard layout?</span>
+        </div>
+        <div class="dash-revert-actions">
+            <button type="button" class="dash-revert-btn dash-revert-undo">Revert</button>
+            <button type="button" class="dash-revert-btn dash-revert-keep">
+                Keep Changes <span class="dash-revert-countdown">5</span>
+            </button>
+        </div>
+    </div>
+
+    <?php if ($activePage === 'dashboard'): ?>
+    <!-- New Requisition FAB: lives outside .dashboard-shell (which has
+         overflow:hidden) so position:fixed isn't clipped by it. -->
+    <a href="?page=store_manager_requisitions&tab=create" class="sm-fab" title="New Requisition">
+        <span class="sm-fab-icon"><i class="bi bi-plus-lg"></i></span>
+        <span class="sm-fab-label">New Requisition</span>
+    </a>
+    <?php endif; ?>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260831460000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260902204001"></script>
     <script src="/ShelfSense/public/assets/js/store_manager/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
@@ -206,9 +255,41 @@ use App\Core\Auth;
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 600;
         }
+        .store-manager-topbar .topbar-greeting {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+        .store-manager-topbar .topbar-greeting .text-yellow {
+            background: linear-gradient(135deg, var(--brand-yellow), var(--brand-yellow-hover));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .store-manager-topbar .topbar-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .store-manager-topbar .topbar-subtitle .topbar-page-label {
+            font-weight: 600;
+            color: var(--brand-yellow);
+        }
+        .store-manager-topbar .topbar-subtitle .topbar-dot {
+            opacity: 0.5;
+        }
         .store-manager-page-content {
             padding: 24px;
         }
+        /* Collapsed-state row-height pinning, brand-logo centering, and
+           collapse-button icon alignment now live app-wide in
+           dashboard-theme.css (shared across every portal). */
         @media (max-width: 768px) {
             .store-manager-sidebar {
                 position: fixed;
@@ -232,6 +313,64 @@ use App\Core\Auth;
                 padding: 16px;
             }
         }
+
+        /* New Requisition FAB (dashboard only): a fixed circle in the
+           bottom-right that never moves on scroll, and grows into a pill
+           revealing its label on hover instead of relying on a title
+           tooltip alone. */
+        .sm-fab {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            z-index: 1030;
+            height: 60px;
+            width: 60px;
+            border-radius: 30px;
+            background: var(--brand-yellow);
+            color: #fff;
+            border: none;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+            text-decoration: none;
+            cursor: pointer;
+            transition: width 0.3s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .sm-fab:hover,
+        .sm-fab:focus-visible {
+            width: 210px;
+            background: var(--brand-yellow-hover);
+            color: #fff;
+            box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+        }
+        .sm-fab-icon {
+            width: 60px;
+            height: 60px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+        .sm-fab-label {
+            white-space: nowrap;
+            font-weight: 600;
+            font-size: 0.95rem;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+            padding-right: 20px;
+        }
+        .sm-fab:hover .sm-fab-label,
+        .sm-fab:focus-visible .sm-fab-label {
+            opacity: 1;
+        }
+        @media (max-width: 768px) {
+            .sm-fab {
+                bottom: 20px;
+                right: 20px;
+            }
+        }
     </style>
 
     <script>
@@ -247,6 +386,20 @@ use App\Core\Auth;
                 topbar.prepend(toggleBtn);
             }
         });
+
+        // Live date/time in the topbar greeting
+        (function() {
+            const el = document.getElementById('topbarDateTime');
+            if (!el) return;
+            function tick() {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+                el.textContent = dateStr + ' — ' + timeStr;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
     </script>
 </body>
 </html>
