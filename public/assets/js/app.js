@@ -540,7 +540,15 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function initClearableSearchInputs() {
-        document.querySelectorAll('input[type="text"][placeholder^="Search" i]').forEach(attachClearButton);
+        document.querySelectorAll('input[type="text"][placeholder^="Search" i]').forEach(function (input) {
+            // SearchableSelect (searchable-select.js) already manages its own
+            // clear button for its generated text input -- without this guard,
+            // any of those whose placeholder happens to start with "Search"
+            // (e.g. "Search for a position...") got a second, redundant one
+            // stacked on top of it.
+            if (input.closest('.searchable-select-wrapper')) return;
+            attachClearButton(input);
+        });
     }
 
     document.addEventListener('DOMContentLoaded', initClearableSearchInputs);

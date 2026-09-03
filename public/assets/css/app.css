@@ -723,8 +723,11 @@ input.has-clear-btn {
 }
 
 .searchable-select-wrapper .form-control {
-    padding-right: 30px;
+    padding-right: 54px;
     cursor: pointer;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .searchable-select-wrapper .dropdown-arrow {

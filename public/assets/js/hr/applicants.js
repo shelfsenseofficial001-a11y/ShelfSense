@@ -245,8 +245,18 @@ document.addEventListener('DOMContentLoaded', function() {
         applicantDetailModalEl.addEventListener('hidden.bs.offcanvas', function() {
             currentDrawerApplicantId = null;
         });
+        applicantDetailModalEl.addEventListener('shown.bs.offcanvas', function () {
+            updateApplicantScrollHint();
+            loadResumePreviewFrame();
+        });
     }
-    
+
+    const applicantDetailBodyEl = document.getElementById('applicantDetailBody');
+    if (applicantDetailBodyEl) {
+        applicantDetailBodyEl.addEventListener('scroll', updateApplicantScrollHint);
+    }
+    window.addEventListener('resize', updateApplicantScrollHint);
+
     // ============================================
     // Trainer Selection Modal (if exists)
     // ============================================
@@ -757,6 +767,19 @@ const NEXT_STAGE_BY_STATUS = {
     'contract_offered': { label: 'Onboarding', sub: 'Awaiting acceptance' },
 };
 
+// Toggles the "more content below" chevron/fade on the applicant drawer --
+// shown only while the body actually has more to scroll to, so it never
+// lingers once the user reaches the bottom (or never appears at all if
+// everything already fits on screen).
+function updateApplicantScrollHint() {
+    const bodyEl = document.getElementById('applicantDetailBody');
+    const hintEl = document.getElementById('applicantScrollHint');
+    if (!bodyEl || !hintEl) return;
+
+    const hasMoreBelow = bodyEl.scrollHeight - (bodyEl.scrollTop + bodyEl.clientHeight) > 24;
+    hintEl.classList.toggle('show', hasMoreBelow);
+}
+
 function renderApplicantDetail(applicant) {
     const body = document.getElementById('applicantDetailBody');
 
@@ -816,6 +839,10 @@ function renderApplicantDetail(applicant) {
         `;
     }
 
+    const skillsAssessmentHtml = renderSkillsAssessmentSection(applicant);
+    const resumePreviewHtml = renderResumePreview(applicant);
+    const skillsStatsHtml = renderSkillsStatsSection(applicant);
+
     const fullName = `${applicant.first_name} ${applicant.last_name}`;
     const initials = ((applicant.first_name || '')[0] || '') + ((applicant.last_name || '')[0] || '');
     const statusColor = APPLICANT_STATUS_COLORS[applicant.status] || 'secondary';
@@ -868,69 +895,331 @@ function renderApplicantDetail(applicant) {
             </div>
         </div>
 
-        <div class="applicant-section-title">Contact</div>
-        <div class="applicant-info-row">
-            <div class="icon-box-sm"><i class="bi bi-envelope"></i></div>
-            <div>
-                <div class="info-label">Email</div>
-                <div class="info-value">${escapeHtml(applicant.email)}</div>
+        <div class="applicant-drawer-layout">
+            <div class="applicant-drawer-side">
+                ${resumePreviewHtml}
+                ${skillsStatsHtml}
             </div>
-        </div>
-        <div class="applicant-info-row">
-            <div class="icon-box-sm"><i class="bi bi-telephone"></i></div>
-            <div>
-                <div class="info-label">Phone</div>
-                <div class="info-value">${escapeHtml(applicant.phone || 'N/A')}</div>
-            </div>
-        </div>
-        <div class="applicant-info-row">
-            <div class="icon-box-sm"><i class="bi bi-cake2"></i></div>
-            <div>
-                <div class="info-label">Birthdate</div>
-                <div class="info-value">${applicant.birthdate ? new Date(applicant.birthdate).toLocaleDateString() : 'N/A'}</div>
-            </div>
-        </div>
 
-        <div class="applicant-section-title">Home Address</div>
-        <div class="applicant-info-row">
-            <div class="icon-box-sm"><i class="bi bi-geo-alt"></i></div>
-            <div>
-                <div class="info-label">Address</div>
-                <div class="info-value">${formatApplicantAddress(applicant)}</div>
-            </div>
-        </div>
+            <div class="applicant-drawer-main">
+                <div class="applicant-section-title">Contact</div>
+                <div class="applicant-info-row">
+                    <div class="icon-box-sm"><i class="bi bi-envelope"></i></div>
+                    <div>
+                        <div class="info-label">Email</div>
+                        <div class="info-value">${escapeHtml(applicant.email)}</div>
+                    </div>
+                </div>
+                <div class="applicant-info-row">
+                    <div class="icon-box-sm"><i class="bi bi-telephone"></i></div>
+                    <div>
+                        <div class="info-label">Phone</div>
+                        <div class="info-value">${escapeHtml(applicant.phone || 'N/A')}</div>
+                    </div>
+                </div>
+                <div class="applicant-info-row">
+                    <div class="icon-box-sm"><i class="bi bi-cake2"></i></div>
+                    <div>
+                        <div class="info-label">Birthdate</div>
+                        <div class="info-value">${applicant.birthdate ? new Date(applicant.birthdate).toLocaleDateString() : 'N/A'}</div>
+                    </div>
+                </div>
 
-        <div class="applicant-section-title">Application</div>
-        <div class="applicant-info-row">
-            <div class="icon-box-sm"><i class="bi bi-calendar-event"></i></div>
-            <div>
-                <div class="info-label">Applied</div>
-                <div class="info-value">${new Date(applicant.applied_date).toLocaleDateString()}</div>
+                <div class="applicant-section-title">Home Address</div>
+                <div class="applicant-info-row">
+                    <div class="icon-box-sm"><i class="bi bi-geo-alt"></i></div>
+                    <div>
+                        <div class="info-label">Address</div>
+                        <div class="info-value">${formatApplicantAddress(applicant)}</div>
+                    </div>
+                </div>
+
+                <div class="applicant-section-title">Application</div>
+                <div class="applicant-info-row">
+                    <div class="icon-box-sm"><i class="bi bi-calendar-event"></i></div>
+                    <div>
+                        <div class="info-label">Applied</div>
+                        <div class="info-value">${new Date(applicant.applied_date).toLocaleDateString()}</div>
+                    </div>
+                </div>
+                <div class="applicant-info-row">
+                    <div class="icon-box-sm"><i class="bi bi-file-earmark-pdf"></i></div>
+                    <div>
+                        <div class="info-label">Resume</div>
+                        <div class="info-value"><a href="${applicant.resume_url}" target="_blank" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-file-earmark-pdf"></i> View Resume</a></div>
+                    </div>
+                </div>
+                ${skillsAssessmentHtml}
+                ${inlineScheduleHtml}
+                ${rejectButtonHtml}
+                ${applicant.rejection_reason ? `
+                    <div class="applicant-rejection-box">
+                        <i class="bi bi-x-circle-fill me-1"></i>
+                        <strong>Rejection reason:</strong> ${escapeHtml(applicant.rejection_reason.reason || 'No reason provided')}
+                    </div>
+                ` : ''}
+                ${interviewsHtml}
             </div>
         </div>
-        <div class="applicant-info-row">
-            <div class="icon-box-sm"><i class="bi bi-file-earmark-pdf"></i></div>
-            <div>
-                <div class="info-label">Resume</div>
-                <div class="info-value"><a href="${applicant.resume_url}" target="_blank" class="btn btn-sm btn-outline-primary mt-1"><i class="bi bi-file-earmark-pdf"></i> View Resume</a></div>
-            </div>
-        </div>
-        ${inlineScheduleHtml}
-        ${rejectButtonHtml}
-        ${applicant.rejection_reason ? `
-            <div class="applicant-rejection-box">
-                <i class="bi bi-x-circle-fill me-1"></i>
-                <strong>Rejection reason:</strong> ${escapeHtml(applicant.rejection_reason.reason || 'No reason provided')}
-            </div>
-        ` : ''}
-        ${interviewsHtml}
     `;
+
+    drawApplicantSkillsStatsChart(applicant);
+    updateApplicantScrollHint();
+    loadResumePreviewFrame();
 
     if (pendingScrollToScheduleForm && String(pendingScrollToScheduleForm) === String(applicant.id)) {
         pendingScrollToScheduleForm = null;
         const section = document.getElementById('inlineScheduleSection');
         if (section) section.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
+
+}
+
+// ============================================
+// SKILLS SELF-ASSESSMENT (plain question/rating list)
+// applicant.skill_assessment is an ordered [{key, label, rating}] array from
+// get_applicant.php, already resolved to the questionnaire the applicant was
+// shown on the Apply page -- empty when their position has no questionnaire
+// (e.g. Supplier) so the whole section is omitted rather than shown blank.
+// ============================================
+
+function renderSkillsAssessmentSection(applicant) {
+    const assessment = applicant.skill_assessment || [];
+    if (!assessment.length) return '';
+
+    const listHtml = assessment.map(skill => {
+        const hasRating = skill.rating !== null && skill.rating !== undefined;
+        const ratingClass = hasRating ? `rating-${skill.rating}` : 'rating-none';
+        const ratingLabel = hasRating ? `${skill.rating}/5` : 'N/A';
+        return `
+            <div class="applicant-skills-list-item">
+                <span class="skill-name">${escapeHtml(skill.label)}</span>
+                <span class="applicant-skills-rating ${ratingClass}">${ratingLabel}</span>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div class="applicant-section-title">Skills Self-Assessment</div>
+        <div class="applicant-skills-list">${listHtml}</div>
+    `;
+}
+
+// ============================================
+// RESUME PREVIEW (side panel)
+// PDFs are rendered client-side onto <canvas> elements via PDF.js instead
+// of an <iframe> -- mobile browsers (and some desktop ones) have no
+// reliable built-in inline PDF viewer for iframes, so that approach showed
+// a blank box on many devices. Canvas rendering is consistent everywhere
+// and never sends the file to a third-party viewer service. Non-PDF resumes
+// (.doc/.docx) fall back to a plain "open the file" card -- there's no
+// document-conversion service wired up here to preview those.
+// ============================================
+
+function renderResumePreview(applicant) {
+    const url = applicant.resume_url || '';
+    const isPdf = /\.pdf(\?|$)/i.test(url);
+
+    const previewBody = isPdf
+        ? `<div class="applicant-resume-preview-loading"><span class="spinner-border spinner-border-sm"></span> Loading preview...</div>`
+        : `
+            <div class="applicant-resume-preview-fallback">
+                <i class="bi bi-file-earmark-text"></i>
+                Preview isn't available for this file type.
+            </div>
+        `;
+
+    return `
+        <div class="applicant-section-title">Resume</div>
+        <div class="applicant-resume-preview" ${isPdf ? `data-resume-src="${escapeHtml(url)}"` : ''}>${previewBody}</div>
+        <div class="applicant-resume-open-link">
+            <a href="${escapeHtml(url)}" target="_blank" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-box-arrow-up-right"></i> Open in new tab
+            </a>
+        </div>
+    `;
+}
+
+// Lazily loads the PDF.js library (once per page load). Self-hosted under
+// public/assets/vendor/pdfjs/ rather than pulled from a third-party CDN --
+// a CDN script can be silently blocked by an ad blocker, privacy extension,
+// or restrictive network, which showed up as this preview quietly failing
+// for some users even though the resume file itself was completely fine.
+let pdfJsLoadPromise = null;
+function ensurePdfJsLoaded() {
+    if (window.pdfjsLib) return Promise.resolve();
+    if (pdfJsLoadPromise) return pdfJsLoadPromise;
+    pdfJsLoadPromise = new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.src = '/ShelfSense/public/assets/vendor/pdfjs/pdf.min.js';
+        script.onload = () => {
+            window.pdfjsLib.GlobalWorkerOptions.workerSrc = '/ShelfSense/public/assets/vendor/pdfjs/pdf.worker.min.js';
+            resolve();
+        };
+        script.onerror = () => reject(new Error('Failed to load PDF.js'));
+        document.head.appendChild(script);
+    });
+    return pdfJsLoadPromise;
+}
+
+// Renders every page of the applicant's resume into the preview container
+// as stacked <canvas> elements, scaled to the container's own width.
+async function loadResumePreviewFrame() {
+    const container = document.querySelector('#applicantDetailBody .applicant-resume-preview[data-resume-src]');
+    if (!container || container.dataset.rendered === 'true') return;
+    container.dataset.rendered = 'true';
+
+    const src = container.dataset.resumeSrc;
+
+    try {
+        await ensurePdfJsLoaded();
+        const pdf = await window.pdfjsLib.getDocument(src).promise;
+        container.innerHTML = '';
+
+        for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+            const page = await pdf.getPage(pageNum);
+            const unscaledViewport = page.getViewport({ scale: 1 });
+            const scale = (container.clientWidth - 16) / unscaledViewport.width; // minus the container's own padding
+            const viewport = page.getViewport({ scale: scale > 0 ? scale : 1 });
+
+            const canvas = document.createElement('canvas');
+            canvas.className = 'applicant-resume-page';
+            canvas.width = viewport.width;
+            canvas.height = viewport.height;
+            container.appendChild(canvas);
+
+            await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+        }
+    } catch (err) {
+        console.error('Resume preview failed to render:', err);
+        container.innerHTML = `
+            <div class="applicant-resume-preview-fallback">
+                <i class="bi bi-exclamation-triangle"></i>
+                Couldn't render a preview. Use "Open in new tab" instead.
+            </div>
+        `;
+    }
+}
+
+// ============================================
+// SKILLS ASSESSMENT STATISTICS (side panel)
+// Summary pills (average/highest/lowest) plus a horizontal bar chart --
+// distinct from renderSkillsAssessmentSection() above, which is the plain
+// per-question list kept in the main column.
+// ============================================
+
+function renderSkillsStatsSection(applicant) {
+    const assessment = (applicant.skill_assessment || []).filter(s => s.rating !== null && s.rating !== undefined);
+    if (!assessment.length) {
+        return `
+            <div class="applicant-section-title">Skills Statistics</div>
+            <div class="applicant-skills-no-data">No skills assessment on file for this applicant.</div>
+        `;
+    }
+
+    const ratings = assessment.map(s => s.rating);
+    const avg = (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1);
+    const best = assessment.reduce((a, b) => (b.rating > a.rating ? b : a));
+    const worst = assessment.reduce((a, b) => (b.rating < a.rating ? b : a));
+
+    return `
+        <div class="applicant-section-title">Skills Statistics</div>
+        <div class="applicant-skills-stats-summary">
+            <div class="applicant-skills-stat-pill">
+                <div class="stat-value">${avg}</div>
+                <div class="stat-label">Average / 5</div>
+            </div>
+            <div class="applicant-skills-stat-pill">
+                <div class="stat-value">${best.rating}/5</div>
+                <div class="stat-label">Strongest</div>
+            </div>
+            <div class="applicant-skills-stat-pill">
+                <div class="stat-value">${worst.rating}/5</div>
+                <div class="stat-label">Weakest</div>
+            </div>
+        </div>
+        <div class="applicant-skills-chart-wrap">
+            <canvas id="applicantSkillsStatsChart" height="${Math.max(140, assessment.length * 48)}"></canvas>
+        </div>
+    `;
+}
+
+let applicantSkillsStatsChartInstance = null;
+
+// Splits a long skill label into short lines (Chart.js renders an array tick
+// label as multiple lines) so the narrow side-panel chart doesn't clip text
+// against its own axis instead of just wrapping it.
+function wrapChartLabel(text, maxLineLen) {
+    const words = String(text).split(' ');
+    const lines = [];
+    let current = '';
+    words.forEach(word => {
+        const candidate = current ? `${current} ${word}` : word;
+        if (candidate.length > maxLineLen && current) {
+            lines.push(current);
+            current = word;
+        } else {
+            current = candidate;
+        }
+    });
+    if (current) lines.push(current);
+    return lines;
+}
+
+function drawApplicantSkillsStatsChart(applicant) {
+    if (applicantSkillsStatsChartInstance) {
+        applicantSkillsStatsChartInstance.destroy();
+        applicantSkillsStatsChartInstance = null;
+    }
+
+    const canvas = document.getElementById('applicantSkillsStatsChart');
+    const assessment = (applicant.skill_assessment || []).filter(s => s.rating !== null && s.rating !== undefined);
+    if (!canvas || !assessment.length) return;
+
+    // Reads the drawer's own resolved text color so the chart's axis/labels
+    // stay legible in both light and dark mode without hardcoding either.
+    const textColor = getComputedStyle(canvas.closest('.offcanvas-body') || document.body).color || '#333';
+    const gridColor = 'rgba(128, 128, 128, 0.25)';
+
+    applicantSkillsStatsChartInstance = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: assessment.map(s => wrapChartLabel(s.label, 22)),
+            datasets: [{
+                label: 'Self-rated proficiency',
+                data: assessment.map(s => s.rating),
+                backgroundColor: 'rgba(242, 99, 43, 0.65)',
+                borderColor: '#f2632b',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    min: 0,
+                    max: 5,
+                    ticks: { stepSize: 1, color: textColor },
+                    grid: { color: gridColor }
+                },
+                y: {
+                    ticks: { color: textColor, font: { size: 10 } },
+                    grid: { display: false }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: (ctx) => `Rated ${ctx.raw}/5`
+                    }
+                }
+            }
+        }
+    });
 }
 
 // ============================================

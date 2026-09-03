@@ -66,7 +66,17 @@ class Applicant
 
     public function getById($id)
     {
-        $stmt = $this->db->prepare("SELECT * FROM applicants WHERE id = ?");
+        // job_department/job_role come along so the caller can resolve which
+        // skills questionnaire (if any) applies via jobPostingToQuestionnaireKey()
+        // -- the same mapping used at application time, never re-guessed from
+        // the applicant's own target_role (that value is a display label, not
+        // a controlled key).
+        $stmt = $this->db->prepare("
+            SELECT a.*, jp.department AS job_department, jp.role AS job_role
+            FROM applicants a
+            LEFT JOIN job_postings jp ON jp.id = a.job_posting_id
+            WHERE a.id = ?
+        ");
         $stmt->execute([$id]);
         $applicant = $stmt->fetch();
 
@@ -75,6 +85,15 @@ class Applicant
             $stmt = $this->db->prepare("SELECT * FROM interviews WHERE applicant_id = ? ORDER BY scheduled_date DESC");
             $stmt->execute([$id]);
             $applicant['interviews'] = $stmt->fetchAll();
+
+            // Skills self-assessment answers, keyed by skill_key -> 1-5 rating.
+            $stmt = $this->db->prepare("SELECT skill_key, rating FROM applicant_skill_ratings WHERE applicant_id = ?");
+            $stmt->execute([$id]);
+            $ratings = [];
+            foreach ($stmt->fetchAll() as $row) {
+                $ratings[$row['skill_key']] = (int)$row['rating'];
+            }
+            $applicant['skill_ratings'] = $ratings;
         }
 
         return $applicant;

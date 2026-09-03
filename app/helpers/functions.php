@@ -26,6 +26,46 @@ define('JOB_POSTING_GROUP_POSITIONS', [
 // don't need a schema change.
 define('JOB_POSTING_EMPLOYMENT_TYPES', ['Full-Time', 'Part-Time', 'Contract', 'Internship']);
 
+// Self-rated (1-5 Likert) skills questionnaire shown to an applicant on the
+// public Apply page, right after they pick a position -- one set per
+// position type, so HR can compare candidates for the same role on the same
+// dimensions (see jobPostingToQuestionnaireKey() below for how a posting
+// maps to one of these keys). Keys are stable identifiers stored in
+// applicant_skill_ratings.skill_key; labels are display-only and can be
+// edited here without touching any stored data.
+define('SKILL_QUESTIONNAIRES', [
+    'hr_staff' => [
+        ['key' => 'ats_systems', 'label' => 'Applicant Tracking Systems (ATS) (e.g., Workday, BambooHR, Lever)'],
+        ['key' => 'full_cycle_recruitment', 'label' => 'Full-Cycle Recruitment & Sourcing Strategies'],
+        ['key' => 'labor_law_compliance', 'label' => 'Labor Law Compliance & HR Policy Execution'],
+        ['key' => 'onboarding_offboarding', 'label' => 'Employee Onboarding & Offboarding Workflows'],
+        ['key' => 'confidential_grievances', 'label' => 'Handling Confidential Employee Grievances'],
+    ],
+    'finance_staff' => [
+        ['key' => 'advanced_excel', 'label' => 'Advanced Excel (Lookup functions, Pivot Tables, Macros)'],
+        ['key' => 'erp_systems', 'label' => 'Accounting & ERP Systems (SAP, QuickBooks, NetSuite)'],
+        ['key' => 'account_reconciliation', 'label' => 'Month-End Account Reconciliations & Audit Prep'],
+        ['key' => 'ap_ar_management', 'label' => 'Managing Accounts Payable (AP) & Receivable (AR)'],
+        ['key' => 'cash_flow_forecasting', 'label' => 'Cash Flow Forecasting & Budget Variance Analysis'],
+    ],
+    // No "POS Terminal Operation (Square/Clover/...)" question -- cashiers
+    // here only ever use ShelfSense's own POS, never third-party terminals.
+    'cashier' => [
+        ['key' => 'cash_handling', 'label' => 'Cash Handling & Accurate Change Calculation'],
+        ['key' => 'card_digital_payments', 'label' => 'Processing Card Terminals & Digital / Mobile Wallets'],
+        ['key' => 'drawer_reconciliation', 'label' => 'End-of-Shift Cash Drawer Balancing & Reconciliation'],
+        ['key' => 'register_speed_accuracy', 'label' => 'Maintaining Register Speed & Accuracy During Peak Hours'],
+        ['key' => 'deescalating_customers', 'label' => 'De-escalating Difficult or Impatient Customers'],
+    ],
+    'store_manager' => [
+        ['key' => 'sales_target_achievement', 'label' => 'Sales Target Achievement & Revenue Growth Driving'],
+        ['key' => 'staff_coaching', 'label' => 'Recruiting, Onboarding & Staff Performance Coaching'],
+        ['key' => 'labor_cost_scheduling', 'label' => 'Labor Cost Optimization & Shift Scheduling'],
+        ['key' => 'inventory_shrinkage', 'label' => 'Inventory Management & Shrinkage / Loss Prevention'],
+        ['key' => 'visual_merchandising', 'label' => 'Visual Merchandising & Planogram Execution'],
+    ],
+]);
+
 // ============================================
 // STRING HELPERS
 // ============================================
@@ -225,6 +265,30 @@ function jobPostingDepartmentToTargetRole($department)
         'Finance Staff' => 'Finance Staff',
     ];
     return $map[$department] ?? $department;
+}
+
+/**
+ * Maps a job posting to a SKILL_QUESTIONNAIRES key, deciding which set of
+ * skill questions an applicant sees on the Apply page. Controlled
+ * departments map directly; a Store Manager posting has no controlled
+ * department value (see JOB_POSTING_DEPARTMENTS), so it's identified by
+ * job_postings.role instead. Anything else (e.g. a Supplier posting)
+ * returns null -- no questionnaire is shown or required for it.
+ */
+function jobPostingToQuestionnaireKey($department, $role = null)
+{
+    $map = [
+        'Cashier' => 'cashier',
+        'HR Staff' => 'hr_staff',
+        'Finance Staff' => 'finance_staff',
+    ];
+    if (isset($map[$department])) {
+        return $map[$department];
+    }
+    if (strtolower(trim((string)$role)) === 'store_manager') {
+        return 'store_manager';
+    }
+    return null;
 }
 
 /**

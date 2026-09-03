@@ -1176,6 +1176,54 @@ body.dashboard-theme .offcanvas-backdrop {
     transition: opacity 0.3s ease-in !important;
 }
 
+/* "More content below" affordance for a scrollable .offcanvas-body -- a
+   fading gradient plus a bouncing chevron pinned to the drawer's bottom
+   edge, shown only while there's actually more to scroll to (see the
+   scroll listener that toggles .show, e.g. in hr/applicants.js). Generic/
+   reusable: any detail-drawer just needs the markup (a
+   .drawer-scroll-hint sibling of .offcanvas-body) and JS wiring. */
+.drawer-scroll-hint {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 56px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8px;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+    background: linear-gradient(to bottom, transparent, var(--bg-card) 70%);
+    z-index: 3;
+}
+.drawer-scroll-hint.show {
+    opacity: 1;
+}
+.drawer-scroll-hint span {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-yellow-hover);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    animation: drawerScrollHintBounce 1.4s ease-in-out infinite;
+}
+@keyframes drawerScrollHintBounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(4px); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .drawer-scroll-hint span {
+        animation: none;
+    }
+}
+
 /* ==========================================================================
    15. DASHBOARD EDIT MODE (drag-to-reorder widgets) -- shared across every
    portal dashboard that opts in (see dashboard-layout.js variants).

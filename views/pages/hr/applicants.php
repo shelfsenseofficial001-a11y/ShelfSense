@@ -148,6 +148,9 @@ $content = '
             <div class="skeleton-line" style="width:100%;height:100px;margin-top:20px;"></div>
         </div>
     </div>
+    <div class="drawer-scroll-hint" id="applicantScrollHint" aria-hidden="true">
+        <span><i class="bi bi-chevron-down"></i></span>
+    </div>
 </div>
 
 <!-- Trainer Selection Modal -->
@@ -457,6 +460,188 @@ input[type="datetime-local"].error {
     word-break: break-word;
 }
 
+/* Skills self-assessment (plain question/rating list) */
+.applicant-skills-list {
+    display: flex;
+    flex-direction: column;
+}
+
+.applicant-skills-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 0.78rem;
+    padding: 7px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.applicant-skills-list-item:last-child {
+    border-bottom: none;
+}
+
+.applicant-skills-list-item .skill-name {
+    color: var(--text-main);
+}
+
+.applicant-skills-rating {
+    flex-shrink: 0;
+    min-width: 28px;
+    text-align: center;
+    padding: 2px 9px;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.72rem;
+    background: var(--bg-card-subtle);
+    color: var(--text-muted);
+}
+
+.applicant-skills-rating.rating-1 { background: rgba(220, 53, 69, 0.15); color: #dc3545; }
+.applicant-skills-rating.rating-2 { background: rgba(253, 126, 20, 0.15); color: #fd7e14; }
+.applicant-skills-rating.rating-3 { background: rgba(255, 193, 7, 0.2); color: #b8860b; }
+.applicant-skills-rating.rating-4 { background: rgba(25, 135, 84, 0.15); color: #198754; }
+.applicant-skills-rating.rating-5 { background: rgba(13, 110, 253, 0.15); color: #0d6efd; }
+.applicant-skills-rating.rating-none { font-style: italic; }
+
+/* Wider drawer for this page only, to fit a side panel (resume preview +
+   skills statistics) alongside the existing profile fields -- every other
+   page\'s "View Details" drawer keeps the shared, narrower default width. */
+body.dashboard-theme .detail-drawer.applicant-drawer {
+    --bs-offcanvas-width: min(1040px, 94vw);
+}
+
+.applicant-drawer-layout {
+    display: flex;
+    gap: 26px;
+    align-items: flex-start;
+}
+
+.applicant-drawer-side {
+    flex: 0 0 340px;
+    min-width: 0;
+}
+
+.applicant-drawer-main {
+    flex: 1;
+    min-width: 0;
+}
+
+@media (max-width: 900px) {
+    .applicant-drawer-layout {
+        flex-direction: column;
+    }
+    .applicant-drawer-side {
+        flex: 1 1 auto;
+        width: 100%;
+    }
+}
+
+/* Resume preview (side panel) -- pages are rendered client-side onto
+   <canvas> elements via PDF.js rather than embedded through an <iframe>,
+   since mobile browsers (and even some desktop ones) have no reliable
+   built-in inline PDF viewer for iframes; canvas rendering works the same
+   everywhere and never leaves the browser (no third-party viewer service). */
+.applicant-resume-preview {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow-y: auto;
+    max-height: 420px;
+    background: var(--bg-card-subtle);
+    margin-bottom: 8px;
+    padding: 8px;
+}
+
+.applicant-resume-preview canvas.applicant-resume-page {
+    display: block;
+    width: 100%;
+    height: auto;
+    margin-bottom: 8px;
+    border-radius: 4px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+
+.applicant-resume-preview canvas.applicant-resume-page:last-child {
+    margin-bottom: 0;
+}
+
+.applicant-resume-preview-loading {
+    padding: 30px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.applicant-resume-preview-fallback {
+    padding: 30px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+.applicant-resume-preview-fallback i {
+    font-size: 1.8rem;
+    display: block;
+    margin-bottom: 8px;
+    color: var(--brand-yellow-hover);
+}
+
+.applicant-resume-open-link {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px;
+}
+
+/* Skills assessment statistics (side panel) */
+.applicant-skills-stats-summary {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+}
+
+.applicant-skills-stat-pill {
+    flex: 1;
+    min-width: 90px;
+    background: var(--bg-card-subtle);
+    border-radius: 10px;
+    padding: 10px 12px;
+    text-align: center;
+}
+
+.applicant-skills-stat-pill .stat-value {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-main);
+    line-height: 1.2;
+}
+
+.applicant-skills-stat-pill .stat-label {
+    font-size: 0.64rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.applicant-skills-chart-wrap {
+    background: var(--bg-card-subtle);
+    border-radius: 10px;
+    padding: 12px 12px 4px;
+}
+
+.applicant-skills-no-data {
+    padding: 20px 14px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+}
+
 .applicant-rejection-box {
     margin-top: 16px;
     padding: 12px 14px;
@@ -518,7 +703,7 @@ input[type="datetime-local"].error {
 }
 </style>
 
-<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260831061347"></script>
+<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260903241500"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

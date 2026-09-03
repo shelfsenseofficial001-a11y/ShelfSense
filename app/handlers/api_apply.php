@@ -37,6 +37,14 @@ $street = trim(strip_tags($_POST['street'] ?? ''));
 $subdivision = trim(strip_tags($_POST['subdivision'] ?? ''));
 $postalCode = trim($_POST['postal_code'] ?? '');
 
+// Raw client-submitted ratings, e.g. {"pos_operation":"4","cash_handling":"5"}.
+// Never trusted as-is -- validated below against the questionnaire the
+// server itself derives for this job posting, not whatever keys the client sent.
+$skillRatingsRaw = json_decode($_POST['skill_ratings'] ?? '', true);
+if (!is_array($skillRatingsRaw)) {
+    $skillRatingsRaw = [];
+}
+
 // ============================================
 // VALIDATION
 // ============================================
@@ -120,6 +128,27 @@ if (!$job) {
 // never taken from the browser, so it always matches a real role the rest
 // of the system (trainer lookup, trainee creation, contract activation) knows.
 $targetRole = jobPostingDepartmentToTargetRole($job['department']);
+
+// ============================================
+// SKILLS QUESTIONNAIRE VALIDATION
+// ============================================
+// The questionnaire (if any) is derived from the job posting itself, never
+// from a client-supplied key -- so a tampered request can't attach answers
+// from a different questionnaire, and a posting with no matching set (e.g.
+// Supplier) simply requires none.
+
+$questionnaireKey = jobPostingToQuestionnaireKey($job['department'], $job['role'] ?? null);
+$questionnaireSkills = $questionnaireKey ? (SKILL_QUESTIONNAIRES[$questionnaireKey] ?? []) : [];
+
+$skillRatings = []; // skill_key => validated 1-5 int, only for this posting's questionnaire
+foreach ($questionnaireSkills as $skill) {
+    $value = $skillRatingsRaw[$skill['key']] ?? null;
+    if (!is_numeric($value) || (int)$value < 1 || (int)$value > 5) {
+        echo json_encode(['success' => false, 'message' => 'Please rate every skill in the assessment before submitting.']);
+        exit;
+    }
+    $skillRatings[$skill['key']] = (int)$value;
+}
 
 // ============================================
 // DUPLICATE-EMAIL CHECK
@@ -237,6 +266,18 @@ try {
     }
 
     $applicantId = $db->lastInsertId();
+
+    // ============================================
+    // SAVE SKILLS QUESTIONNAIRE ANSWERS
+    // ============================================
+    if (!empty($skillRatings)) {
+        $ratingStmt = $db->prepare(
+            "INSERT INTO applicant_skill_ratings (applicant_id, skill_key, rating) VALUES (?, ?, ?)"
+        );
+        foreach ($skillRatings as $skillKey => $rating) {
+            $ratingStmt->execute([$applicantId, $skillKey, $rating]);
+        }
+    }
 
     // ============================================
     // SEND CONFIRMATION EMAIL
