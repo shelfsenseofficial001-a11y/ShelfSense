@@ -99,4 +99,6 @@ function renderDashboard(data) {
             ` : fnEmptyState('No recent activity yet.', 'bi-inbox')}
         </div>
     `;
+
+    document.dispatchEvent(new CustomEvent('fn-staff-dashboard-rendered'));
 }

@@ -3,6 +3,33 @@ $title = 'Owner Dashboard - ShelfSense';
 $pageTitle = 'Owner Dashboard';
 $activePage = 'dashboard';
 $additional_js = '<script src="/ShelfSense/public/assets/js/owner/dashboard.js"></script>';
+$additional_js .= '
+<script>
+window.dashboardTourSteps = [
+    {
+        target: ".sidebar-nav",
+        title: "Your navigation",
+        desc: "Everything you need lives here -- Dashboard, HR, recruitment, and training modules."
+    },
+    {
+        target: "#ownerStatsRow",
+        title: "Quick stats",
+        desc: "A snapshot of the business: total applicants, active trainees, employees hired, and postings awaiting your approval."
+    },
+    {
+        target: "#ownerInterviewsCard",
+        title: "Final interviews",
+        desc: "Interviews that need your presence show up here, with a direct link to join."
+    },
+    {
+        target: ".user-edit-btn",
+        fallbackTarget: ".user-profile-link",
+        title: "You’re all set!",
+        desc: "You can turn this tour back on or off anytime -- click here to open your Profile, then look for \"Preferences\". Enjoy exploring the dashboard!"
+    }
+];
+</script>
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 
 $content = '
 <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
@@ -10,7 +37,7 @@ $content = '
     <span><strong>Prototype:</strong> this Owner dashboard is an early, minimal overview for testing the Owner role end-to-end. Use the sidebar to access the full HR, recruitment, and training modules.</span>
 </div>
 
-<div class="row g-3 mb-4">
+<div class="row g-3 mb-4" id="ownerStatsRow">
     <div class="col-6 col-lg-3">
         <div class="modern-card p-3">
             <small class="text-muted">Total Applicants</small>
@@ -37,7 +64,7 @@ $content = '
     </div>
 </div>
 
-<div class="modern-card">
+<div class="modern-card" id="ownerInterviewsCard">
     <div class="card-header">
         <strong><i class="bi bi-calendar-check"></i> Final Interviews Requiring Your Presence</strong>
     </div>

@@ -128,6 +128,8 @@ function renderDashboard(data) {
             window.location.href = `?page=supplier_requisitions&tab=pending&view=${this.dataset.id}`;
         });
     });
+
+    document.dispatchEvent(new CustomEvent('sp-dashboard-rendered'));
 }
 
 function renderPendingCard(r) {

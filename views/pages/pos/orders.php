@@ -3,6 +3,33 @@ $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
 $additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260831250000"></script>';
+$additional_js .= '
+<script>
+window.dashboardTourSteps = [
+    {
+        target: ".sidebar-nav",
+        title: "Your navigation",
+        desc: "Everything you need lives here -- Order History, Checkout, and your personal Leaves and Payslip pages."
+    },
+    {
+        target: "#posOrdersStatsRow",
+        title: "Quick stats",
+        desc: "A snapshot of your orders: totals, completed, voided, and total sales."
+    },
+    {
+        target: "#ordersTableBody",
+        title: "Order history",
+        desc: "Every order you\'ve processed, with search and filters above -- click any row for full details, a reprint, or to void it."
+    },
+    {
+        target: ".user-edit-btn",
+        fallbackTarget: ".user-profile-link",
+        title: "You’re all set!",
+        desc: "You can turn this tour back on or off anytime -- click here to open your Profile, then look for \"Preferences\". Enjoy exploring the dashboard!"
+    }
+];
+</script>
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 $additional_css = '
 <style>
     .order-row:hover {
@@ -48,7 +75,7 @@ $content = <<<'EOT'
 <div class="active-filter-chips" id="activeFilterChips"></div>
 
 <!-- Stats -->
-<div class="row g-2 mb-3">
+<div class="row g-2 mb-3" id="posOrdersStatsRow">
     <div class="col">
         <div class="modern-card p-2 text-center">
             <small class="text-muted">Total Orders</small>

@@ -1,54 +1,31 @@
 // ============================================
-// STORE MANAGER DASHBOARD - ONBOARDING TOUR (experimental)
+// DASHBOARD ONBOARDING TOUR (shared engine)
 // A Mobile-Legends-style spotlight walkthrough: dims the screen, cuts a
 // hole around the current feature, and describes it in a small card with
-// Skip / Don't show again / Next controls. Runs only on the Store Manager
-// Dashboard page, and only for users who haven't turned it off.
+// Skip / Don't show again / Next controls.
+//
+// Portal-agnostic -- each dashboard page defines its own steps and (for
+// pages whose widgets are injected async via fetch) a "ready" event name
+// before including this file:
+//
+//   <script>
+//     window.dashboardTourSteps = [ { target: '...', title: '...', desc: '...' }, ... ];
+//     window.dashboardTourReadyEvent = 'fn-head-dashboard-rendered'; // optional
+//   </script>
+//   <script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js"></script>
+//
+// If dashboardTourReadyEvent isn't set, the tour starts on DOMContentLoaded
+// (for pages whose widget containers are static markup already in the DOM).
 // ============================================
 
 (function () {
-    var STEPS = [
-        {
-            target: '.sidebar-nav',
-            title: 'Your navigation',
-            desc: 'Everything you need lives here -- Dashboard, Requisitions, Inventory, Budget, plus your personal Leaves and Payslip pages.'
-        },
-        {
-            target: '#smDashCanvasStats',
-            title: 'Quick stats',
-            desc: 'A snapshot of your store: total requisitions, what’s pending with the supplier, what’s awaiting finance, and any low-stock items.'
-        },
-        {
-            target: '#smDashCanvasContent',
-            title: 'Requisitions & charts',
-            desc: 'Live tables and charts covering your requisitions, low stock, and trends over time -- all in one place, no need to click into another page.'
-        },
-        {
-            target: '#dashEditModeBtn',
-            title: 'Make it yours',
-            desc: 'Click "Edit UI" to drag and reorder every card above into whatever layout works best for you. Your arrangement is saved automatically.'
-        },
-        {
-            target: '.sm-fab',
-            title: 'New Requisition',
-            desc: 'This button is always here in the corner -- click it anytime to jump straight into creating a new requisition.'
-        },
-        {
-            target: '.user-edit-btn',
-            title: 'You’re all set!',
-            desc: 'You can turn this tour back on or off anytime -- click the pencil icon highlighted here to open your Profile, then look for "Preferences". Enjoy exploring the dashboard!'
-        }
-    ];
+    var STEPS = window.dashboardTourSteps || [];
+    var READY_EVENT = window.dashboardTourReadyEvent || null;
+
+    if (!STEPS.length) return;
 
     var overlayEl, spotlightEl, cardEl;
     var currentStep = 0;
-
-    function isOnDashboard() {
-        // This script is only ever included on the dashboard page itself
-        // (see views/pages/store_manager/dashboard.php), so the presence
-        // of the stats canvas is enough confirmation it actually rendered.
-        return !!document.getElementById('smDashCanvasStats');
-    }
 
     function fetchPreference() {
         return fetch('?page=api_get_tour_preference')
@@ -71,14 +48,14 @@
 
     function buildOverlay() {
         overlayEl = document.createElement('div');
-        overlayEl.className = 'sm-tour-overlay';
+        overlayEl.className = 'dash-tour-overlay';
 
         spotlightEl = document.createElement('div');
-        spotlightEl.className = 'sm-tour-spotlight';
+        spotlightEl.className = 'dash-tour-spotlight';
         overlayEl.appendChild(spotlightEl);
 
         cardEl = document.createElement('div');
-        cardEl.className = 'sm-tour-card';
+        cardEl.className = 'dash-tour-card';
         overlayEl.appendChild(cardEl);
 
         document.body.appendChild(overlayEl);
@@ -119,14 +96,34 @@
         cardEl.style.left = left + 'px';
     }
 
+    // offsetParent is null both for display:none elements AND for
+    // position:fixed ones (e.g. a FAB) -- a bare `!!el.offsetParent` check
+    // would wrongly treat a perfectly visible fixed-position target as
+    // hidden, so disambiguate with computed style.
+    function isVisible(el) {
+        if (!el) return false;
+        if (el.offsetParent) return true;
+        var style = getComputedStyle(el);
+        if (style.display === 'none' || style.visibility === 'hidden') return false;
+        return style.position === 'fixed' || style.position === 'sticky';
+    }
+
     function renderStep() {
         var step = STEPS[currentStep];
         var target = document.querySelector(step.target);
 
-        // A step's target isn't guaranteed to exist (e.g. widgets a user
-        // already dragged out, or a slow-loading fetch) -- skip it rather
-        // than spotlighting nothing.
-        if (!target) {
+        // A hidden target still "exists" for querySelector -- e.g. the
+        // Edit Profile pencil, which the collapsed sidebar hides in favor
+        // of just the avatar -- but spotlighting it renders a zero-size
+        // hole at (0,0), so fall back to an alternate target instead.
+        if (target && !isVisible(target) && step.fallbackTarget) {
+            target = document.querySelector(step.fallbackTarget);
+        }
+
+        // A step's target isn't guaranteed to exist on every portal (e.g.
+        // an Edit UI button, a FAB, or a profile link some layouts omit)
+        // -- skip it rather than spotlighting nothing.
+        if (!isVisible(target)) {
             advance(1);
             return;
         }
@@ -139,23 +136,23 @@
         }).join('');
 
         cardEl.innerHTML =
-            '<div class="sm-tour-step-count">Step ' + (currentStep + 1) + ' of ' + STEPS.length + '</div>' +
-            '<div class="sm-tour-title">' + step.title + '</div>' +
-            '<div class="sm-tour-desc">' + step.desc + '</div>' +
-            '<div class="sm-tour-dots">' + dotsHtml + '</div>' +
-            (isLast ? '<label class="sm-tour-dont-show"><input type="checkbox" id="smTourDontShow"> Don’t show this tour again</label>' : '') +
-            '<div class="sm-tour-footer">' +
-            '<button type="button" class="sm-tour-skip" id="smTourSkip">Skip tour</button>' +
-            '<button type="button" class="sm-tour-next" id="smTourNext">' + (isLast ? 'Finish' : 'Next') + '</button>' +
+            '<div class="dash-tour-step-count">Step ' + (currentStep + 1) + ' of ' + STEPS.length + '</div>' +
+            '<div class="dash-tour-title">' + step.title + '</div>' +
+            '<div class="dash-tour-desc">' + step.desc + '</div>' +
+            '<div class="dash-tour-dots">' + dotsHtml + '</div>' +
+            (isLast ? '<label class="dash-tour-dont-show"><input type="checkbox" id="dashTourDontShow"> Don’t show this tour again</label>' : '') +
+            '<div class="dash-tour-footer">' +
+            '<button type="button" class="dash-tour-skip" id="dashTourSkip">Skip tour</button>' +
+            '<button type="button" class="dash-tour-next" id="dashTourNext">' + (isLast ? 'Finish' : 'Next') + '</button>' +
             '</div>';
 
         // Wait a frame so the card has real dimensions before positioning.
         requestAnimationFrame(function () { positionForTarget(target); });
 
-        document.getElementById('smTourSkip').addEventListener('click', function () { endTour(false); });
-        document.getElementById('smTourNext').addEventListener('click', function () {
+        document.getElementById('dashTourSkip').addEventListener('click', function () { endTour(false); });
+        document.getElementById('dashTourNext').addEventListener('click', function () {
             if (isLast) {
-                var checkbox = document.getElementById('smTourDontShow');
+                var checkbox = document.getElementById('dashTourDontShow');
                 endTour(!!(checkbox && checkbox.checked));
             } else {
                 advance(1);
@@ -192,10 +189,17 @@
         window.addEventListener('resize', handleResize);
     }
 
-    document.addEventListener('sm-dashboard-rendered', function () {
-        if (!isOnDashboard()) return;
+    function maybeStart() {
         fetchPreference().then(function (enabled) {
             if (enabled) startTour();
         });
-    }, { once: true });
+    }
+
+    if (READY_EVENT) {
+        document.addEventListener(READY_EVENT, maybeStart, { once: true });
+    } else if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', maybeStart, { once: true });
+    } else {
+        maybeStart();
+    }
 })();

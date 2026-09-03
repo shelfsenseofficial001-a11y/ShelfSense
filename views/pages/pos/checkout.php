@@ -3,6 +3,32 @@ $title = 'Checkout - ShelfSense POS';
 $pageTitle = 'Checkout';
 $activePage = 'checkout';
 $additional_js = '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260831390000"></script>';
+$additional_js .= '
+<script>
+window.dashboardTourSteps = [
+    {
+        target: ".sidebar-nav",
+        title: "Your navigation",
+        desc: "Everything you need for this register lives here -- Checkout, Order History, and Budget."
+    },
+    {
+        target: "#posInfoBar",
+        title: "Shift snapshot",
+        desc: "Your current shift, today\'s sales, and today\'s transaction count -- always visible while you work."
+    },
+    {
+        target: "#recentOrdersRow",
+        title: "Recent orders",
+        desc: "The latest orders from this register show up here for a quick reprint or lookup."
+    },
+    {
+        target: ".theme-toggle-btn",
+        title: "You’re all set!",
+        desc: "You can turn this tour back on or off anytime from your Profile\'s \"Preferences\" tab. Enjoy the register!"
+    }
+];
+</script>
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 
 $content = <<<'EOT'
 <div class="row g-3 flex-grow-1">

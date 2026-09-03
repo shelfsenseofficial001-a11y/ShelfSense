@@ -39,7 +39,7 @@ function renderDashboard(data) {
 
     container.innerHTML = `
         <!-- Stats -->
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-4" id="fnHeadStatsRow">
             <div class="col-md-3">
                 <div class="stat-card">
                     <div class="d-flex justify-content-between align-items-center">
@@ -116,7 +116,7 @@ function renderDashboard(data) {
         ` : ''}
 
         <!-- Budget Overview -->
-        <div class="modern-card p-3 mb-4">
+        <div class="modern-card p-3 mb-4" id="fnHeadBudgetCard">
             <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart text-yellow me-2"></i>Budget Overview (${fnEscapeHtml(fnCutoffLabel(stats.month_year))})</h6>
             ${departments.length > 0 ? departments.map(d => fnDeptBudgetRow(d)).join('') : fnEmptyState('No department budgets found for this period.')}
         </div>
@@ -137,6 +137,8 @@ function renderDashboard(data) {
             badge.style.display = 'none';
         }
     }
+
+    document.dispatchEvent(new CustomEvent('fn-head-dashboard-rendered'));
 }
 
 function fnDeptBudgetRow(d) {

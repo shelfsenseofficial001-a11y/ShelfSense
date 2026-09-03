@@ -3,6 +3,29 @@ $title = 'Supplier Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
 $additional_js = '<script src="/ShelfSense/public/assets/js/supplier/dashboard.js"></script>';
+$additional_js .= '
+<script>
+window.dashboardTourReadyEvent = "sp-dashboard-rendered";
+window.dashboardTourSteps = [
+    {
+        target: ".sidebar-nav",
+        title: "Your navigation",
+        desc: "Everything you need lives here -- Dashboard, Requisitions, Invoices, and Products."
+    },
+    {
+        target: ".sp-stats-grid",
+        title: "Quick stats",
+        desc: "A snapshot of your business: pending requisitions, invoiced orders, orders ready to ship, and this month\'s revenue."
+    },
+    {
+        target: ".user-edit-btn",
+        fallbackTarget: ".user-profile-link",
+        title: "You’re all set!",
+        desc: "You can turn this tour back on or off anytime -- click here to open your Profile, then look for \"Preferences\". Enjoy exploring the dashboard!"
+    }
+];
+</script>
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 
 $content = <<<'EOT'
 <div id="dashboardContent">

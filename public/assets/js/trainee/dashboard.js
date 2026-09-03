@@ -83,7 +83,7 @@ function renderDashboard(data) {
         ${data.pending_contract && data.pending_contract.status === 'pending' ? renderContractCard(data.pending_contract) : ''}
 
         <!-- Stats Row -->
-        <div class="row g-3 mb-4">
+        <div class="row g-3 mb-4" id="traineeStatsRow">
             <div class="col-md-3 col-6">
                 <div class="trainee-stat-card">
                     <div class="d-flex justify-content-between align-items-center">
@@ -135,7 +135,7 @@ function renderDashboard(data) {
         </div>
         
         <!-- Training Module Section -->
-        <div class="modern-card p-3 mb-4 module-card">
+        <div class="modern-card p-3 mb-4 module-card" id="traineeModuleCard">
             <h6 class="fw-bold mb-3"><i class="bi ${module.icon} text-yellow me-2"></i>Your Training Module</h6>
             <div class="row align-items-center">
                 <div class="col-md-8">
@@ -230,6 +230,8 @@ function renderDashboard(data) {
     if (data.pending_contract && data.pending_contract.status === 'pending') {
         wireContractButtons(data.pending_contract.id);
     }
+
+    document.dispatchEvent(new CustomEvent('trainee-dashboard-rendered'));
 }
 
 function traineeEscapeHtml(text) {

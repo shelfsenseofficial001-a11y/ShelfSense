@@ -165,6 +165,37 @@ $content = '
 
 <script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260830122553"></script>
 <script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260902220726"></script>
+<script>
+window.dashboardTourSteps = [
+    {
+        target: ".sidebar-nav",
+        title: "Your navigation",
+        desc: "Everything you need lives here -- Dashboard, Applicants, Job Postings, Trainees, and more."
+    },
+    {
+        target: "#dashCanvasStats",
+        title: "Quick stats",
+        desc: "A snapshot of recruitment: total applicants, interviews scheduled, offers made, and active trainees."
+    },
+    {
+        target: "#dashCanvasTables",
+        title: "Pipeline & activity",
+        desc: "Live tables and a chart covering your recruitment pipeline -- all in one place, no need to click into another page."
+    },
+    {
+        target: "#dashEditModeBtn",
+        title: "Make it yours",
+        desc: "Click \"Edit UI\" to drag and reorder every card above into whatever layout works best for you. Your arrangement is saved automatically."
+    },
+    {
+        target: ".user-edit-btn",
+        fallbackTarget: ".user-profile-link",
+        title: "You’re all set!",
+        desc: "You can turn this tour back on or off anytime -- click here to open your Profile, then look for \"Preferences\". Enjoy exploring the dashboard!"
+    }
+];
+</script>
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

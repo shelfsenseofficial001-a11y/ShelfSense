@@ -3,6 +3,34 @@ $title = 'Trainee Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
 $additional_js = '<script src="/ShelfSense/public/assets/js/trainee/dashboard.js"></script>';
+$additional_js .= '
+<script>
+window.dashboardTourReadyEvent = "trainee-dashboard-rendered";
+window.dashboardTourSteps = [
+    {
+        target: ".sidebar-nav",
+        title: "Your navigation",
+        desc: "Everything you need lives here -- Dashboard, your training module, Leaves, and Payslip."
+    },
+    {
+        target: "#traineeStatsRow",
+        title: "Your progress",
+        desc: "Days remaining in training, report progress, your trainer, and your schedule -- all at a glance."
+    },
+    {
+        target: "#traineeModuleCard",
+        title: "Your training module",
+        desc: "Jump straight into your current training module from here."
+    },
+    {
+        target: ".user-edit-btn",
+        fallbackTarget: ".user-profile-link",
+        title: "You’re all set!",
+        desc: "You can turn this tour back on or off anytime -- click here to open your Profile, then look for \"Preferences\". Enjoy exploring the dashboard!"
+    }
+];
+</script>
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 $additional_css = '
 <style>
     .trainee-stat-card {

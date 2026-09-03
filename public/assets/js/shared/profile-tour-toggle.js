@@ -1,5 +1,5 @@
 // ============================================
-// PROFILE PAGE - DASHBOARD TOUR TOGGLE (Store Manager only)
+// PROFILE PAGE - DASHBOARD TOUR TOGGLE (shared across every portal)
 // Loads/saves the same preference the onboarding tour itself reads via
 // api_get_tour_preference / api_save_tour_preference.
 // ============================================

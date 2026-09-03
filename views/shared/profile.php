@@ -21,40 +21,41 @@ if (in_array($role, ['hr_head', 'hr_staff', 'owner'])) {
 
 $additional_js = '<script src="/ShelfSense/public/assets/js/shared/profile.js?v=20260829200500"></script>';
 $additional_js .= '<script src="/ShelfSense/public/assets/js/shared/profile-settings-nav.js?v=20260903000000"></script>';
+$additional_js .= '<script src="/ShelfSense/public/assets/js/shared/profile-tour-toggle.js?v=20260903100000"></script>';
 
-// Experimental, Store Manager Dashboard only -- see public/assets/js/store_manager/dashboard-tour.js
-$prefsNavItems = '';
-$prefsPanels = '';
-if ($role === 'store_manager') {
-    $additional_js .= '<script src="/ShelfSense/public/assets/js/store_manager/profile-tour-toggle.js?v=20260902233500"></script>';
-    $additional_js .= '<script src="/ShelfSense/public/assets/js/store_manager/profile-view-prefs.js?v=20260902235500"></script>';
-
-    $prefsNavItems = '
+// Dashboard walkthrough toggle -- every portal's dashboard has the tour now.
+$prefsNavItems = '
         <div class="profile-settings-group-label">Preferences</div>
         <button type="button" class="profile-settings-nav-item" data-panel="panel-dashboard">
             <i class="bi bi-speedometer2"></i> Dashboard
-        </button>
-        <button type="button" class="profile-settings-nav-item" data-panel="panel-listview">
-            <i class="bi bi-grid-3x3-gap"></i> List view
         </button>';
 
-    $prefsPanels = '
+$prefsPanels = '
 <div class="profile-settings-panel" id="panel-dashboard">
     <div class="modern-card p-4">
         <div class="profile-section-title">Dashboard</div>
         <div class="profile-section-sub">Personalize how the dashboard behaves for you.</div>
-        <div class="sm-tour-toggle-row">
+        <div class="dash-tour-toggle-row">
             <div>
                 <div class="fw-semibold">Dashboard walkthrough</div>
-                <div class="text-muted small">Show the spotlight tour when you open the Store Manager Dashboard.</div>
+                <div class="text-muted small">Show the spotlight tour when you open your Dashboard.</div>
             </div>
             <div class="form-check form-switch mb-0">
                 <input class="form-check-input" type="checkbox" role="switch" id="dashboardTourToggle">
             </div>
         </div>
     </div>
-</div>
+</div>';
 
+if ($role === 'store_manager') {
+    $additional_js .= '<script src="/ShelfSense/public/assets/js/store_manager/profile-view-prefs.js?v=20260902235500"></script>';
+
+    $prefsNavItems .= '
+        <button type="button" class="profile-settings-nav-item" data-panel="panel-listview">
+            <i class="bi bi-grid-3x3-gap"></i> List view
+        </button>';
+
+    $prefsPanels .= '
 <div class="profile-settings-panel" id="panel-listview">
     <div class="modern-card p-4">
         <div class="profile-section-title">List view</div>
