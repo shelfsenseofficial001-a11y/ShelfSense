@@ -10,3 +10,7 @@ public/uploads/*
 # Local DB dumps taken as safety snapshots during development -- not project
 # code, and may contain real data.
 database/local_backups/
+
+# Cached PSGC (Philippine province/city/barangay) lookups -- refetched
+# automatically by app/core/PsgcClient.php, not project code.
+storage/cache/

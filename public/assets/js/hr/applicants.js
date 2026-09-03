@@ -883,6 +883,22 @@ function renderApplicantDetail(applicant) {
                 <div class="info-value">${escapeHtml(applicant.phone || 'N/A')}</div>
             </div>
         </div>
+        <div class="applicant-info-row">
+            <div class="icon-box-sm"><i class="bi bi-cake2"></i></div>
+            <div>
+                <div class="info-label">Birthdate</div>
+                <div class="info-value">${applicant.birthdate ? new Date(applicant.birthdate).toLocaleDateString() : 'N/A'}</div>
+            </div>
+        </div>
+
+        <div class="applicant-section-title">Home Address</div>
+        <div class="applicant-info-row">
+            <div class="icon-box-sm"><i class="bi bi-geo-alt"></i></div>
+            <div>
+                <div class="info-label">Address</div>
+                <div class="info-value">${formatApplicantAddress(applicant)}</div>
+            </div>
+        </div>
 
         <div class="applicant-section-title">Application</div>
         <div class="applicant-info-row">
@@ -1116,6 +1132,22 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// Assembles the applicant's Philippine address for display. Any missing
+// part (older applicants who applied before this field existed) is simply
+// skipped rather than showing an empty/placeholder line.
+function formatApplicantAddress(applicant) {
+    const lines = [applicant.house_block_lot, applicant.street, applicant.subdivision]
+        .filter(Boolean)
+        .join(', ');
+    const locality = [applicant.barangay, applicant.city_municipality, applicant.province]
+        .filter(Boolean)
+        .join(', ');
+    const parts = [lines, locality].filter(Boolean);
+    if (applicant.postal_code) parts.push(applicant.postal_code);
+    if (!parts.length) return 'N/A';
+    return escapeHtml(parts.join(', ')) + '<br><span class="text-muted small">' + escapeHtml(applicant.country || 'Philippines') + '</span>';
 }
 
 function formatDate(dateStr) {

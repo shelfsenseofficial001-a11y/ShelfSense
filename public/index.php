@@ -137,6 +137,11 @@ if ($page === 'api_apply') {
     exit;
 }
 
+if ($page === 'api_ph_locations') {
+    require_once __DIR__ . '/../app/handlers/api_ph_locations.php';
+    exit;
+}
+
 // ============================================
 // HR API ROUTES
 // ============================================

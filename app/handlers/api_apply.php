@@ -4,10 +4,12 @@
 require_once __DIR__ . '/../helpers/functions.php';
 require_once __DIR__ . '/../core/Database.php';
 require_once __DIR__ . '/../core/Mailer.php';
+require_once __DIR__ . '/../core/PsgcClient.php';
 require_once __DIR__ . '/../models/JobPosting.php';
 
 use App\Core\Database;
 use App\Core\Mailer;
+use App\Core\PsgcClient;
 use App\Models\JobPosting;
 
 header('Content-Type: application/json');
@@ -23,12 +25,28 @@ $email = trim($_POST['email'] ?? '');
 $phone = trim($_POST['phone'] ?? '');
 $jobPostingId = isset($_POST['job_posting_id']) ? intval($_POST['job_posting_id']) : 0;
 
+$birthdate = trim($_POST['birthdate'] ?? '');
+$provinceCode = trim($_POST['province_code'] ?? '');
+$cityCode = trim($_POST['city_municipality_code'] ?? '');
+$barangayCode = trim($_POST['barangay_code'] ?? '');
+// Free-text lines of the address. strip_tags() first since these are never
+// meant to carry markup; htmlspecialchars() happens at render time
+// (consistent with escape() elsewhere in this app), not at save time.
+$houseBlockLot = trim(strip_tags($_POST['house_block_lot'] ?? ''));
+$street = trim(strip_tags($_POST['street'] ?? ''));
+$subdivision = trim(strip_tags($_POST['subdivision'] ?? ''));
+$postalCode = trim($_POST['postal_code'] ?? '');
+
 // ============================================
 // VALIDATION
 // ============================================
 
-if (empty($firstName) || empty($lastName) || empty($email) || empty($phone) || $jobPostingId <= 0) {
-    echo json_encode(['success' => false, 'message' => 'All required fields must be filled, including a position.']);
+if (
+    empty($firstName) || empty($lastName) || empty($email) || empty($phone) || $jobPostingId <= 0
+    || empty($birthdate) || empty($provinceCode) || empty($cityCode) || empty($barangayCode)
+    || empty($houseBlockLot) || empty($street) || empty($postalCode)
+) {
+    echo json_encode(['success' => false, 'message' => 'All required fields must be filled, including a position and complete address.']);
     exit;
 }
 
@@ -39,6 +57,46 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 
 if (!preg_match('/^[0-9]{10,12}$/', $phone)) {
     echo json_encode(['success' => false, 'message' => 'Invalid phone number. Must be 10-12 digits.']);
+    exit;
+}
+
+if (!validateDate($birthdate)) {
+    echo json_encode(['success' => false, 'message' => 'Invalid birthdate.']);
+    exit;
+}
+
+$birthdateObj = \DateTime::createFromFormat('Y-m-d', $birthdate);
+$birthdateObj->setTime(0, 0, 0);
+if ($birthdateObj > new \DateTime('today')) {
+    echo json_encode(['success' => false, 'message' => 'Birthdate cannot be in the future.']);
+    exit;
+}
+
+if (!preg_match('/^[0-9]{4}$/', $postalCode)) {
+    echo json_encode(['success' => false, 'message' => 'Postal code must be exactly 4 digits.']);
+    exit;
+}
+
+// Re-derive the address's display names from the live/cached PSGC hierarchy
+// using only the submitted codes -- never trust client-supplied names, and
+// reject the whole submission if the codes don't form a real PSGC chain
+// (guards against a tampered request or a stale dropdown from a cache that
+// has since been refreshed).
+try {
+    $provinces = PsgcClient::getProvinces();
+    $province = PsgcClient::findName($provinces, $provinceCode);
+    $cities = $province ? PsgcClient::getCitiesByProvince($provinceCode) : [];
+    $cityMunicipality = PsgcClient::findName($cities, $cityCode);
+    $barangays = $cityMunicipality ? PsgcClient::getBarangaysByCity($cityCode) : [];
+    $barangay = PsgcClient::findName($barangays, $barangayCode);
+} catch (Exception $e) {
+    error_log('api_apply.php: PSGC lookup failed: ' . $e->getMessage());
+    echo json_encode(['success' => false, 'message' => 'Philippine location data is temporarily unavailable. Please try again shortly.']);
+    exit;
+}
+
+if (!$province || !$cityMunicipality || !$barangay) {
+    echo json_encode(['success' => false, 'message' => 'Please re-select your Province, City/Municipality, and Barangay -- the previous selection is no longer valid.']);
     exit;
 }
 
@@ -142,8 +200,13 @@ try {
     }
 
     $stmt = $db->prepare("
-        INSERT INTO applicants (first_name, last_name, middle_name, email, phone, target_role, job_posting_id, resume_path)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO applicants (
+            first_name, last_name, middle_name, email, phone, birthdate,
+            province, province_code, city_municipality, city_municipality_code,
+            barangay, barangay_code, house_block_lot, street, subdivision, postal_code, country,
+            target_role, job_posting_id, resume_path
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Philippines', ?, ?, ?)
     ");
 
     $result = $stmt->execute([
@@ -152,6 +215,17 @@ try {
         $middleName,
         $email,
         $phone,
+        $birthdate,
+        $province,
+        $provinceCode,
+        $cityMunicipality,
+        $cityCode,
+        $barangay,
+        $barangayCode,
+        $houseBlockLot,
+        $street,
+        $subdivision !== '' ? $subdivision : null,
+        $postalCode,
         $targetRole,
         $jobPostingId,
         $resumeRelativePath

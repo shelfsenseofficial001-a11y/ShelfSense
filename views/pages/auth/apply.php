@@ -604,7 +604,56 @@ $content = '
                     <label class="form-label fw-semibold" for="applyPhone">Phone Number *</label>
                     <input type="text" id="applyPhone" name="phone" class="form-control" placeholder="09123456789" required maxlength="12" pattern="[0-9]{10,12}">
                 </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="applyBirthdate">Birthdate *</label>
+                    <input type="date" id="applyBirthdate" name="birthdate" class="form-control" required max="' . date('Y-m-d') . '">
+                    <div class="invalid-feedback" id="applyBirthdateError"></div>
+                </div>
+
+                <div class="col-12 mt-3 mb-1">
+                    <h6 class="fw-semibold mb-0" style="color: var(--text-main);"><i class="bi bi-geo-alt me-1"></i> Home Address</h6>
+                    <small class="text-muted">Addresses in the Philippines only.</small>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="applyProvince">Province *</label>
+                    <select id="applyProvince" class="form-select searchable-select" data-placeholder="Select province..." required>
+                        <option value=""></option>
+                    </select>
+                    <input type="hidden" id="applyProvinceCode" name="province_code">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="applyCity">City / Municipality *</label>
+                    <select id="applyCity" class="form-select searchable-select" data-placeholder="Select province first..." required disabled>
+                        <option value=""></option>
+                    </select>
+                    <input type="hidden" id="applyCityCode" name="city_municipality_code">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="applyBarangay">Barangay *</label>
+                    <select id="applyBarangay" class="form-select searchable-select" data-placeholder="Select city/municipality first..." required disabled>
+                        <option value=""></option>
+                    </select>
+                    <input type="hidden" id="applyBarangayCode" name="barangay_code">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="applyPostalCode">Postal Code *</label>
+                    <input type="text" id="applyPostalCode" name="postal_code" class="form-control" placeholder="e.g. 2900" required maxlength="4" pattern="[0-9]{4}" inputmode="numeric">
+                    <div class="form-text">4-digit ZIP code for your barangay.</div>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="applyHouseBlockLot">House / Block / Lot No. *</label>
+                    <input type="text" id="applyHouseBlockLot" name="house_block_lot" class="form-control" required maxlength="255" placeholder="e.g. Blk 4 Lot 12">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="applyStreet">Street *</label>
+                    <input type="text" id="applyStreet" name="street" class="form-control" required maxlength="255">
+                </div>
                 <div class="col-md-12">
+                    <label class="form-label fw-semibold" for="applySubdivision">Subdivision <span class="text-muted fw-normal">(optional)</span></label>
+                    <input type="text" id="applySubdivision" name="subdivision" class="form-control" maxlength="255">
+                </div>
+
+                <div class="col-md-12 mt-3">
                     <label class="form-label fw-semibold" for="positionSelect">Position Applying For *</label>
                     <select id="positionSelect" class="form-select searchable-select" data-placeholder="Search for a position..." required>
                         <option value=""></option>
@@ -803,8 +852,122 @@ $content = '
         stopAutoSwipe();
     }
 
+    // ------------------------------------------------------------------
+    // Philippine address cascade: Province -> City/Municipality -> Barangay
+    // Backed by app/handlers/api_ph_locations.php (live PSGC data, cached
+    // server-side). Each <select> is a searchable-select whose visible
+    // value is the PSGC code; a paired hidden input carries that same code
+    // to the backend, which re-validates the whole chain on submit.
+    // ------------------------------------------------------------------
+    function setSelectPlaceholder(select, placeholder) {
+        select.setAttribute("data-placeholder", placeholder);
+        var instance = select.searchableSelectInstance;
+        if (instance && instance.input && !instance.currentValue) {
+            instance.input.placeholder = placeholder;
+        }
+    }
+
+    function populateOptions(select, items, placeholder) {
+        select.innerHTML = \'<option value="">\' + escapeHtml(placeholder) + "</option>";
+        items.forEach(function (item) {
+            var opt = document.createElement("option");
+            opt.value = item.code;
+            opt.textContent = item.name;
+            select.appendChild(opt);
+        });
+        setSelectPlaceholder(select, placeholder);
+    }
+
+    function resetDependentSelect(select, hiddenInput, placeholder) {
+        select.innerHTML = \'<option value=""></option>\';
+        select.disabled = true;
+        hiddenInput.value = "";
+        if (window.refreshSearchableSelect) window.refreshSearchableSelect(select);
+        setSelectPlaceholder(select, placeholder);
+    }
+
+    function setupAddressCascade() {
+        var provinceSelect = document.getElementById("applyProvince");
+        var provinceCode = document.getElementById("applyProvinceCode");
+        var citySelect = document.getElementById("applyCity");
+        var cityCode = document.getElementById("applyCityCode");
+        var barangaySelect = document.getElementById("applyBarangay");
+        var barangayCode = document.getElementById("applyBarangayCode");
+        var postalCode = document.getElementById("applyPostalCode");
+
+        if (!provinceSelect) return; // Form not rendered (no open jobs).
+
+        fetch("?page=api_ph_locations&type=provinces")
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.success) {
+                    populateOptions(provinceSelect, res.data, "Select province...");
+                    if (window.refreshSearchableSelect) window.refreshSearchableSelect(provinceSelect);
+                }
+            })
+            .catch(function () {
+                Swal.fire({ icon: "error", title: "Could not load provinces", text: "Please refresh the page to try again." });
+            });
+
+        provinceSelect.addEventListener("change", function () {
+            provinceCode.value = this.value;
+            resetDependentSelect(barangaySelect, barangayCode, "Select city/municipality first...");
+            postalCode.value = "";
+
+            if (!this.value) {
+                resetDependentSelect(citySelect, cityCode, "Select province first...");
+                return;
+            }
+
+            citySelect.disabled = true;
+            setSelectPlaceholder(citySelect, "Loading...");
+            fetch("?page=api_ph_locations&type=cities&province_code=" + encodeURIComponent(this.value))
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.success) {
+                        populateOptions(citySelect, res.data, "Select city/municipality...");
+                        citySelect.disabled = false;
+                        if (window.refreshSearchableSelect) window.refreshSearchableSelect(citySelect);
+                    }
+                })
+                .catch(function () {
+                    Swal.fire({ icon: "error", title: "Could not load cities/municipalities", text: "Please try selecting the province again." });
+                });
+        });
+
+        citySelect.addEventListener("change", function () {
+            cityCode.value = this.value;
+            postalCode.value = "";
+
+            if (!this.value) {
+                resetDependentSelect(barangaySelect, barangayCode, "Select city/municipality first...");
+                return;
+            }
+
+            barangaySelect.disabled = true;
+            setSelectPlaceholder(barangaySelect, "Loading...");
+            fetch("?page=api_ph_locations&type=barangays&city_code=" + encodeURIComponent(this.value))
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (res.success) {
+                        populateOptions(barangaySelect, res.data, "Select barangay...");
+                        barangaySelect.disabled = false;
+                        if (window.refreshSearchableSelect) window.refreshSearchableSelect(barangaySelect);
+                    }
+                })
+                .catch(function () {
+                    Swal.fire({ icon: "error", title: "Could not load barangays", text: "Please try selecting the city/municipality again." });
+                });
+        });
+
+        barangaySelect.addEventListener("change", function () {
+            barangayCode.value = this.value;
+        });
+    }
+
     document.addEventListener("DOMContentLoaded", function () {
         renderDots(null);
+        setupAddressCascade();
 
         var select = document.getElementById("positionSelect");
         select.addEventListener("change", function () {
@@ -847,6 +1010,13 @@ $content = '
         var jobId = document.getElementById("jobPostingIdInput").value;
         if (!jobId) {
             Swal.fire({ icon: "warning", title: "Select a position", text: "Please choose a position to apply for." });
+            return;
+        }
+
+        if (!document.getElementById("applyProvinceCode").value
+            || !document.getElementById("applyCityCode").value
+            || !document.getElementById("applyBarangayCode").value) {
+            Swal.fire({ icon: "warning", title: "Complete your address", text: "Please select your Province, City/Municipality, and Barangay." });
             return;
         }
 
