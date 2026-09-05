@@ -538,6 +538,10 @@ body.hr-theme .hr-sidebar .sidebar-nav .nav-item.text-danger:hover {
     background: #fef2f2;
     color: #991b1b !important;
 }
+html[data-bs-theme="dark"] body.hr-theme .hr-sidebar .sidebar-nav .nav-item.text-danger:hover {
+    background: #3f1616;
+    color: #fca5a5 !important;
+}
 
 /* Collapsed sidebar chrome (width, spacing, hiding labels) now lives in
    dashboard-theme.css, shared across all 6 portals. */

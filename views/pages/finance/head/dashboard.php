@@ -2,7 +2,7 @@
 $title = 'Finance Head Dashboard';
 $pageTitle = 'Head Dashboard';
 $activePage = 'head_dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/dashboard.js?v=20260901010000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/dashboard.js?v=20260905300000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourReadyEvent = "fn-head-dashboard-rendered";

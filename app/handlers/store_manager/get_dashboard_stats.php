@@ -22,24 +22,26 @@ if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
 try {
     $db = Database::getInstance()->getConnection();
 
-    // Requisition counts grouped the same way the Requisitions tabs group them.
-    // "This week" sub-metrics per card use the closest honest timestamp signal
-    // available for that bucket: created_at for counts anchored to creation,
-    // updated_at (the app's existing approximation for status transitions,
-    // per the note below) for counts anchored to reaching a later stage.
+    // "Pending supplier" = a PO that's still waiting on the supplier's side
+    // (dispatched but not yet confirmed, or under counter-negotiation).
+    $stmt = $db->query("
+        SELECT
+            SUM(CASE WHEN status IN ('pending_dispatch','pending_confirmation','supplier_counter_proposed') THEN 1 ELSE 0 END) as pending_supplier,
+            SUM(CASE WHEN status IN ('pending_dispatch','pending_confirmation','supplier_counter_proposed') AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as pending_supplier_this_week
+        FROM purchase_orders
+    ");
+    $poStats = $stmt->fetch();
+
     $stmt = $db->query("
         SELECT
             COUNT(*) as total_requisitions,
-            SUM(CASE WHEN status IN ('draft','pending_supplier','sent_to_supplier') THEN 1 ELSE 0 END) as pending_supplier,
-            SUM(CASE WHEN status IN ('draft','pending_supplier','sent_to_supplier') AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as pending_supplier_this_week,
-            SUM(CASE WHEN status IN ('supplier_processed','awaiting_finance_staff','awaiting_finance','finance_approved') THEN 1 ELSE 0 END) as awaiting_finance,
-            SUM(CASE WHEN status IN ('supplier_processed','awaiting_finance_staff','awaiting_finance','finance_approved') AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as awaiting_finance_this_week,
+            SUM(CASE WHEN status IN ('pending_budget_check','pending_finance_head') THEN 1 ELSE 0 END) as awaiting_finance,
+            SUM(CASE WHEN status IN ('pending_budget_check','pending_finance_head') AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as awaiting_finance_this_week,
             SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as created_this_week
-        FROM store_requisitions
+        FROM requisitions
     ");
-    $stats = $stmt->fetch();
+    $reqStats = $stmt->fetch();
 
-    // Low stock products (strictly: above 0, at or below reorder level — matches the inventory badge rules)
     $stmt = $db->query("
         SELECT
             SUM(CASE WHEN stock_quantity > 0 AND stock_quantity <= reorder_level THEN 1 ELSE 0 END) as low_stock_count,
@@ -49,54 +51,48 @@ try {
     ");
     $lowStock = $stmt->fetch();
 
-    // Requisition activity in the last 30 days.
-    // "created" uses created_at (exact). "sent" and "completed" use updated_at as the closest
-    // real timestamp available, since the schema has no dedicated per-transition timestamps
-    // (see final report for the proposed audit-log schema that would make this exact).
-    $stmt = $db->query("
-        SELECT
-            SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as created_30d,
-            SUM(CASE WHEN status NOT IN ('draft','pending_supplier') AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as sent_30d,
-            SUM(CASE WHEN status = 'completed' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as completed_30d
-        FROM store_requisitions
-    ");
-    $activity = $stmt->fetch();
+    $stmt = $db->query("SELECT COUNT(*) as c FROM requisitions WHERE created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $created30d = (int)$stmt->fetch()['c'];
 
-    // Recent requisitions (last 5) with item count and, if available, the actual receipt date
+    $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE dispatched_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $sent30d = (int)$stmt->fetch()['c'];
+
+    $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'closed' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $completed30d = (int)$stmt->fetch()['c'];
+
     $stmt = $db->query("
         SELECT
-            r.id, r.requisition_number, r.status, r.order_date, r.expected_delivery, r.total, r.created_at,
+            r.id, r.requisition_number, r.status, r.order_date, r.needed_by_date as expected_delivery, r.subtotal as total, r.created_at,
             s.company_name,
-            (SELECT COUNT(*) FROM store_requisition_items ri WHERE ri.requisition_id = r.id) as item_count,
-            (SELECT MAX(gr.receipt_date) FROM goods_receipts gr WHERE gr.requisition_id = r.id) as actual_delivery_date
-        FROM store_requisitions r
-        JOIN suppliers s ON r.supplier_id = s.id
+            (SELECT COUNT(*) FROM requisition_items ri WHERE ri.requisition_id = r.id) as item_count,
+            (SELECT MAX(gr.receipt_date) FROM purchase_orders po2 JOIN goods_receipts gr ON gr.po_id = po2.id WHERE po2.requisition_id = r.id) as actual_delivery_date
+        FROM requisitions r
+        JOIN suppliers s ON r.preferred_supplier_id = s.id
         ORDER BY r.created_at DESC
         LIMIT 5
     ");
     $recentRequisitions = $stmt->fetchAll();
 
-    // Status breakdown for the "Requisitions by Status" donut -- the raw enum
-    // has 8+ granular workflow states, grouped here into 4 slices a donut can
-    // actually read: still with the supplier, in finance review, completed,
-    // or rejected. Every raw status lands in exactly one bucket (no overlap,
-    // no gaps), so the 4 numbers always sum to the total.
     $stmt = $db->query("
         SELECT
-            SUM(CASE WHEN status IN ('draft','pending_supplier','sent_to_supplier') THEN 1 ELSE 0 END) as pending_supplier,
-            SUM(CASE WHEN status IN ('supplier_processed','awaiting_finance_staff','awaiting_finance','finance_approved','paid','shipped','partial_received') THEN 1 ELSE 0 END) as in_finance_review,
-            SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
-            SUM(CASE WHEN status = 'finance_rejected' THEN 1 ELSE 0 END) as rejected
-        FROM store_requisitions
+            SUM(CASE WHEN status IN ('pending_budget_check','pending_finance_head') THEN 1 ELSE 0 END) as in_finance_review,
+            SUM(CASE WHEN status IN ('budget_rejected','rejected','cancelled') THEN 1 ELSE 0 END) as rejected
+        FROM requisitions
     ");
-    $statusBreakdown = $stmt->fetch();
+    $reqBreakdown = $stmt->fetch();
 
-    // Daily trend for the last 14 days -- requisitions created per day, and
-    // requisitions that reached 'completed' per day (via updated_at, the
-    // same closest-available-timestamp approach used above).
+    $stmt = $db->query("
+        SELECT
+            SUM(CASE WHEN status IN ('pending_dispatch','pending_confirmation','supplier_counter_proposed') THEN 1 ELSE 0 END) as pending_supplier,
+            SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as rejected
+        FROM purchase_orders
+    ");
+    $poBreakdown = $stmt->fetch();
+
     $stmt = $db->prepare("
         SELECT DATE(created_at) as d, COUNT(*) as c
-        FROM store_requisitions
+        FROM requisitions
         WHERE created_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
         GROUP BY DATE(created_at)
     ");
@@ -108,8 +104,8 @@ try {
 
     $stmt = $db->prepare("
         SELECT DATE(updated_at) as d, COUNT(*) as c
-        FROM store_requisitions
-        WHERE status = 'completed' AND updated_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+        FROM purchase_orders
+        WHERE status = 'closed' AND updated_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
         GROUP BY DATE(updated_at)
     ");
     $stmt->execute();
@@ -128,13 +124,11 @@ try {
         ];
     }
 
-    // Business Insights -- only facts that are honestly computable from the
-    // data actually stored (no invented revenue/customer figures).
-    $stmt = $db->query("SELECT COUNT(*) as c FROM store_requisitions WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')");
+    $stmt = $db->query("SELECT COUNT(*) as c FROM requisitions WHERE created_at >= DATE_FORMAT(NOW(), '%Y-%m-01')");
     $thisMonthCount = (int)$stmt->fetch()['c'];
 
     $stmt = $db->query("
-        SELECT COUNT(*) as c FROM store_requisitions
+        SELECT COUNT(*) as c FROM requisitions
         WHERE created_at >= DATE_SUB(DATE_FORMAT(NOW(), '%Y-%m-01'), INTERVAL 1 MONTH)
           AND created_at < DATE_FORMAT(NOW(), '%Y-%m-01')
     ");
@@ -146,10 +140,10 @@ try {
 
     $stmt = $db->query("
         SELECT s.company_name, COUNT(*) as req_count
-        FROM store_requisitions r
-        JOIN suppliers s ON r.supplier_id = s.id
+        FROM requisitions r
+        JOIN suppliers s ON r.preferred_supplier_id = s.id
         WHERE r.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-        GROUP BY r.supplier_id
+        GROUP BY r.preferred_supplier_id
         ORDER BY req_count DESC
         LIMIT 1
     ");
@@ -166,25 +160,25 @@ try {
 
     Response::success([
         'stats' => [
-            'total_requisitions' => (int)($stats['total_requisitions'] ?? 0),
-            'pending_supplier' => (int)($stats['pending_supplier'] ?? 0),
-            'pending_supplier_this_week' => (int)($stats['pending_supplier_this_week'] ?? 0),
-            'awaiting_finance' => (int)($stats['awaiting_finance'] ?? 0),
-            'awaiting_finance_this_week' => (int)($stats['awaiting_finance_this_week'] ?? 0),
+            'total_requisitions' => (int)($reqStats['total_requisitions'] ?? 0),
+            'pending_supplier' => (int)($poStats['pending_supplier'] ?? 0),
+            'pending_supplier_this_week' => (int)($poStats['pending_supplier_this_week'] ?? 0),
+            'awaiting_finance' => (int)($reqStats['awaiting_finance'] ?? 0),
+            'awaiting_finance_this_week' => (int)($reqStats['awaiting_finance_this_week'] ?? 0),
             'low_stock_count' => (int)($lowStock['low_stock_count'] ?? 0),
             'active_product_count' => (int)($lowStock['active_product_count'] ?? 0),
-            'created_this_week' => (int)($stats['created_this_week'] ?? 0)
+            'created_this_week' => (int)($reqStats['created_this_week'] ?? 0)
         ],
         'activity_30d' => [
-            'created' => (int)($activity['created_30d'] ?? 0),
-            'sent' => (int)($activity['sent_30d'] ?? 0),
-            'completed' => (int)($activity['completed_30d'] ?? 0)
+            'created' => $created30d,
+            'sent' => $sent30d,
+            'completed' => $completed30d
         ],
         'status_breakdown' => [
-            'pending_supplier' => (int)($statusBreakdown['pending_supplier'] ?? 0),
-            'in_finance_review' => (int)($statusBreakdown['in_finance_review'] ?? 0),
-            'completed' => (int)($statusBreakdown['completed'] ?? 0),
-            'rejected' => (int)($statusBreakdown['rejected'] ?? 0)
+            'pending_supplier' => (int)($poBreakdown['pending_supplier'] ?? 0),
+            'in_finance_review' => (int)($reqBreakdown['in_finance_review'] ?? 0),
+            'completed' => (int)($poBreakdown['completed'] ?? 0),
+            'rejected' => (int)($reqBreakdown['rejected'] ?? 0) + (int)($poBreakdown['rejected'] ?? 0)
         ],
         'daily_trend' => $dailyTrend,
         'recent_requisitions' => $recentRequisitions,

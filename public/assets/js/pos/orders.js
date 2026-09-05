@@ -101,10 +101,11 @@ function renderOrders(orders) {
     const tbody = document.getElementById("ordersTableBody");
     if (!orders || orders.length === 0) {
         tbody.innerHTML = `
-            <tr>
-                <td colspan="7" class="text-center text-muted py-4">
-                    <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                    No orders found
+            <tr class="table-empty-row">
+                <td colspan="7" class="text-center text-muted">
+                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                    <div class="fw-semibold">No orders found</div>
+                    <div class="small">Try adjusting your filters, or check back once a sale is made.</div>
                 </td>
             </tr>
         `;
@@ -286,77 +287,106 @@ function viewOrder(orderId) {
 function renderOrderDetail(order) {
     const body = document.getElementById("orderDetailBody");
     const date = new Date(order.created_at).toLocaleString();
-    const statusBadge = order.status === "completed"
-        ? '<span class="badge bg-success">Completed</span>'
-        : '<span class="badge bg-danger">Voided</span>';
-    
+    const isVoided = order.status !== "completed";
+    const statusBadge = isVoided
+        ? '<span class="badge bg-danger">Voided</span>'
+        : '<span class="badge bg-success">Completed</span>';
+    const paymentLabel = (order.payment_method || "").replace(/\b\w/g, c => c.toUpperCase());
+
     let itemsHtml = "";
     if (order.items && order.items.length > 0) {
         order.items.forEach(item => {
             itemsHtml += `
                 <tr>
-                    <td>${item.name}</td>
+                    <td class="item-name">${escapeOrderHtml(item.name)}</td>
                     <td>${item.quantity}</td>
                     <td>₱${parseFloat(item.price).toFixed(2)}</td>
-                    <td class="fw-bold">₱${parseFloat(item.subtotal).toFixed(2)}</td>
+                    <td class="item-subtotal">₱${parseFloat(item.subtotal).toFixed(2)}</td>
                 </tr>
             `;
         });
     }
-    
+
     body.innerHTML = `
-        <div class="row">
-            <div class="col-md-6">
-                <p><strong>Order #:</strong> ${order.order_number}</p>
-                <p><strong>Date:</strong> ${date}</p>
-                <p><strong>Cashier:</strong> ${order.first_name} ${order.last_name}</p>
+        <div class="order-detail">
+            <div class="order-detail-hero">
+                <div class="order-detail-hero-icon"><i class="bi bi-receipt"></i></div>
+                <div class="order-detail-hero-text">
+                    <div class="order-detail-number">${escapeOrderHtml(order.order_number)}</div>
+                    <div class="order-detail-date">${date}</div>
+                </div>
+                ${statusBadge}
             </div>
-            <div class="col-md-6">
-                <p><strong>Payment Method:</strong> <span class="badge bg-info">${order.payment_method}</span></p>
-                <p><strong>Status:</strong> ${statusBadge}</p>
-                ${order.payment_reference ? `<p><strong>Reference:</strong> ${order.payment_reference}</p>` : ""}
-                ${order.void_reason ? `<p><strong>Void Reason:</strong> ${order.void_reason}</p>` : ""}
+
+            <div class="order-detail-meta">
+                <div class="order-detail-meta-item">
+                    <i class="bi bi-person-badge"></i>
+                    <div><span class="meta-label">Cashier</span><span class="meta-value">${escapeOrderHtml(order.first_name)} ${escapeOrderHtml(order.last_name)}</span></div>
+                </div>
+                <div class="order-detail-meta-item">
+                    <i class="bi bi-credit-card"></i>
+                    <div><span class="meta-label">Payment Method</span><span class="meta-value">${escapeOrderHtml(paymentLabel)}</span></div>
+                </div>
+                ${order.payment_reference ? `
+                    <div class="order-detail-meta-item span-2">
+                        <i class="bi bi-upc-scan"></i>
+                        <div><span class="meta-label">Reference</span><span class="meta-value">${escapeOrderHtml(order.payment_reference)}</span></div>
+                    </div>
+                ` : ""}
             </div>
+
+            <div class="order-detail-section-title">Items</div>
+            <div class="order-detail-items">
+                <div class="table-responsive">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Qty</th>
+                                <th>Price</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${itemsHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="payment-summary">
+                <div class="payment-summary-title">Order Summary</div>
+                <div class="summary-row">
+                    <span>Subtotal</span>
+                    <span>₱${parseFloat(order.subtotal).toFixed(2)}</span>
+                </div>
+                ${order.amount_paid > 0 ? `
+                    <div class="summary-row">
+                        <span>Amount Paid</span>
+                        <span>₱${parseFloat(order.amount_paid).toFixed(2)}</span>
+                    </div>
+                    <div class="summary-row">
+                        <span>Change</span>
+                        <span>₱${parseFloat(order.change_amount).toFixed(2)}</span>
+                    </div>
+                ` : ""}
+                <div class="summary-total-row">
+                    <span class="label">Total</span>
+                    <span class="label">₱${parseFloat(order.total).toFixed(2)}</span>
+                </div>
+            </div>
+
+            ${order.notes ? `<div class="order-detail-note"><strong>Notes:</strong> ${escapeOrderHtml(order.notes)}</div>` : ""}
+            ${order.void_reason ? `<div class="order-detail-note void-reason"><strong>Void Reason:</strong> ${escapeOrderHtml(order.void_reason)}</div>` : ""}
         </div>
-        
-        <h6 class="mt-3">Items</h6>
-        <div class="table-responsive">
-            <table class="table table-sm">
-                <thead>
-                    <tr>
-                        <th>Product</th>
-                        <th>Qty</th>
-                        <th>Price</th>
-                        <th>Subtotal</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${itemsHtml}
-                </tbody>
-                <tfoot>
-                    <tr>
-                        <td colspan="3" class="text-end fw-bold">Subtotal:</td>
-                        <td>₱${parseFloat(order.subtotal).toFixed(2)}</td>
-                    </tr>
-                    <tr>
-                        <td colspan="3" class="text-end fw-bold">Total:</td>
-                        <td class="fw-bold text-success">₱${parseFloat(order.total).toFixed(2)}</td>
-                    </tr>
-                    ${order.amount_paid > 0 ? `
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">Amount Paid:</td>
-                            <td>₱${parseFloat(order.amount_paid).toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td colspan="3" class="text-end fw-bold">Change:</td>
-                            <td class="text-danger">₱${parseFloat(order.change_amount).toFixed(2)}</td>
-                        </tr>
-                    ` : ""}
-                </tfoot>
-            </table>
-        </div>
-        ${order.notes ? `<p><strong>Notes:</strong> ${order.notes}</p>` : ""}
     `;
+}
+
+function escapeOrderHtml(text) {
+    if (text === null || text === undefined) return "";
+    const div = document.createElement("div");
+    div.textContent = String(text);
+    return div.innerHTML;
 }
 
 function voidOrder(orderId) {

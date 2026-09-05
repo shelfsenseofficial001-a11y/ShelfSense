@@ -15,9 +15,10 @@ class Mailer
     private $config;
     private $enabled;
 
-    public function __construct()
+    public function __construct($profile = 'default')
     {
-        $this->config = require __DIR__ . '/../config/mail.php';
+        $profiles = require __DIR__ . '/../config/mail.php';
+        $this->config = $profiles[$profile] ?? $profiles['default'];
         $this->enabled = !empty($this->config['username']) && !empty($this->config['password']);
         
         if ($this->enabled) {

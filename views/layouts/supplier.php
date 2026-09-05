@@ -16,9 +16,9 @@ use App\Core\Auth;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260904000000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260903233000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/supplier.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260905300000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260905220000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/supplier.css?v=20260905370000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -66,7 +66,7 @@ use App\Core\Auth;
                     <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">Dashboard</span>
                 </a>
                 <a href="?page=supplier_requisitions" class="nav-item <?= $activePage === 'requisitions' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-clipboard-check"></i></span> <span class="nav-label">Requisitions</span>
+                    <span class="nav-icon-wrap"><i class="bi bi-clipboard-check"></i></span> <span class="nav-label">Purchase Orders</span>
                 </a>
                 <a href="?page=supplier_invoices" class="nav-item <?= $activePage === 'invoices' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-receipt"></i></span> <span class="nav-label">Invoices</span>
@@ -85,9 +85,22 @@ use App\Core\Auth;
         <div class="supplier-content flex-grow-1">
             <div class="supplier-topbar d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="mb-0"><?= $pageTitle ?? 'Supplier Dashboard' ?></h5>
+                    <div class="topbar-greeting">Hello, <span class="text-yellow"><?= htmlspecialchars($_SESSION['first_name'] ?? 'there') ?></span>!</div>
+                    <div class="topbar-subtitle">
+                        <span class="topbar-page-label"><?= $pageTitle ?? 'Supplier Dashboard' ?></span>
+                        <span class="topbar-dot">•</span>
+                        <span id="topbarDateTime"></span>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
+                    <?php if ($activePage === 'dashboard'): ?>
+                    <!-- Dashboard Edit Mode -->
+                    <button class="dash-edit-btn" id="dashEditModeBtn" aria-label="Rearrange dashboard widgets" type="button">
+                        <i class="bi bi-pencil-fill"></i>
+                        <span class="dash-edit-label">Edit UI</span>
+                    </button>
+                    <?php endif; ?>
+
                     <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
@@ -102,9 +115,36 @@ use App\Core\Auth;
     </div>
     </div>
 
+    <!-- Dashboard "Saved!" toast, shown bottom-center (same spot as the
+         Keep/Revert prompt above) when edit mode is turned off -->
+    <div class="dash-saved-toast-container">
+        <div id="dashSavedToast" class="toast align-items-center border-0 dash-saved-toast" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="1800">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>Saved!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard "Keep changes?" confirmation, shown when exiting edit
+         mode -- like Windows' "Keep these display settings?" prompt.
+         5-second countdown; if unanswered, the change is KEPT. -->
+    <div class="dash-revert-confirm" id="dashRevertConfirm" role="alertdialog" aria-live="assertive">
+        <div class="dash-revert-text">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+            <span>Keep the new dashboard layout?</span>
+        </div>
+        <div class="dash-revert-actions">
+            <button type="button" class="dash-revert-btn dash-revert-undo">Revert</button>
+            <button type="button" class="dash-revert-btn dash-revert-keep">
+                Keep Changes <span class="dash-revert-countdown">5</span>
+            </button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260904010000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260905160000"></script>
     <script src="/ShelfSense/public/assets/js/supplier/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
@@ -186,6 +226,8 @@ use App\Core\Auth;
             padding: 0;
             min-height: 100%;
             background: var(--bg-body);
+            display: flex;
+            flex-direction: column;
         }
         .supplier-topbar {
             padding: 16px 24px;
@@ -199,8 +241,49 @@ use App\Core\Auth;
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 600;
         }
+        .supplier-topbar .topbar-greeting {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+        .supplier-topbar .topbar-greeting .text-yellow {
+            background: linear-gradient(135deg, var(--brand-yellow), var(--brand-yellow-hover));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .supplier-topbar .topbar-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .supplier-topbar .topbar-subtitle .topbar-page-label {
+            font-weight: 600;
+            color: var(--brand-yellow);
+        }
+        .supplier-topbar .topbar-subtitle .topbar-dot {
+            opacity: 0.5;
+        }
         .supplier-page-content {
             padding: 24px;
+            flex: 1 1 auto;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+        }
+        /* Lets the dashboard's own content (#dashboardContent) stretch to
+           fill this column instead of stopping at its own content height --
+           see the bento-card rules in supplier.css. Other pages just get an
+           extra flex context here, which is a no-op for their normal
+           block-flow content. */
+        .supplier-page-content > * {
+            min-height: 0;
         }
         @media (max-width: 768px) {
             .supplier-sidebar {
@@ -240,6 +323,20 @@ use App\Core\Auth;
                 topbar.prepend(toggleBtn);
             }
         });
+
+        // Live date/time in the topbar greeting
+        (function() {
+            const el = document.getElementById('topbarDateTime');
+            if (!el) return;
+            function tick() {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+                el.textContent = dateStr + ' — ' + timeStr;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
     </script>
 </body>
 </html>

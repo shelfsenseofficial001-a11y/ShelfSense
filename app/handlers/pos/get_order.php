@@ -14,13 +14,18 @@ use App\Models\OrderItem;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+// See get_orders.php -- a cashier can reach this either via a real staff
+// login or via the register's POS PIN unlock (no user_id session of its own).
+$isPosSession = Auth::posCheck();
+
+if (!$isPosSession && !(Auth::check() && (Auth::isEmployee() || Auth::isSuperAdmin() || Auth::isStoreManager()))) {
     Response::unauthorized('Please login to access this resource');
 }
-
-if (!Auth::isEmployee() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
-    Response::forbidden('Access denied. Employee role required.');
+if ($isPosSession && !Auth::posCashierId()) {
+    Response::forbidden('Select which cashier is ringing up sales first.');
 }
+
+$cashierId = $isPosSession ? Auth::posCashierId() : Auth::userId();
 
 $orderId = isset($_GET['id']) ? intval($_GET['id']) : 0;
 $orderNumber = isset($_GET['order_number']) ? trim($_GET['order_number']) : '';
@@ -44,7 +49,7 @@ try {
     }
 
     // Check if this employee owns the order
-    if ($order['cashier_id'] != Auth::userId() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
+    if ($order['cashier_id'] != $cashierId && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
         Response::forbidden('You can only view your own orders');
     }
 

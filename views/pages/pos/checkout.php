@@ -2,7 +2,7 @@
 $title = 'Checkout - ShelfSense POS';
 $pageTitle = 'Checkout';
 $activePage = 'checkout';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260831390000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260905200000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [
@@ -10,16 +10,6 @@ window.dashboardTourSteps = [
         target: ".sidebar-nav",
         title: "Your navigation",
         desc: "Everything you need for this register lives here -- Checkout, Order History, and Budget."
-    },
-    {
-        target: "#posInfoBar",
-        title: "Shift snapshot",
-        desc: "Your current shift, today\'s sales, and today\'s transaction count -- always visible while you work."
-    },
-    {
-        target: "#recentOrdersRow",
-        title: "Recent orders",
-        desc: "The latest orders from this register show up here for a quick reprint or lookup."
     },
     {
         target: ".theme-toggle-btn",
@@ -31,47 +21,9 @@ window.dashboardTourSteps = [
 <script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 
 $content = <<<'EOT'
-<div class="row g-3 flex-grow-1">
-    <!-- Left: Shift/Stats + Recent Orders + Categories + Product Grid -->
-    <div class="col-lg-8 d-flex flex-column">
-        <!-- Shift / Stats Bar -->
-        <div class="row g-3 mb-3 flex-shrink-0" id="posInfoBar">
-            <div class="col-4">
-                <div class="modern-card p-3 pos-info-item">
-                    <i class="bi bi-clock-history"></i>
-                    <div>
-                        <small class="text-muted d-block">My Shift Today</small>
-                        <strong id="myShiftLabel">Loading...</strong>
-                    </div>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="modern-card p-3 pos-info-item">
-                    <i class="bi bi-cash-stack"></i>
-                    <div>
-                        <small class="text-muted d-block">Today's Sales</small>
-                        <strong id="todaySalesLabel">₱0.00</strong>
-                    </div>
-                </div>
-            </div>
-            <div class="col-4">
-                <div class="modern-card p-3 pos-info-item">
-                    <i class="bi bi-receipt"></i>
-                    <div>
-                        <small class="text-muted d-block">Transactions Today</small>
-                        <strong id="todayTransactionsLabel">0</strong>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Recent Orders -->
-        <div class="mb-3 flex-shrink-0">
-            <h6 class="fw-bold mb-2"><i class="bi bi-list-ul text-yellow me-2"></i>Recent Orders</h6>
-            <div class="recent-orders-row" id="recentOrdersRow">
-                <div class="text-muted small py-2">Loading recent orders...</div>
-            </div>
-        </div>
+<div class="row g-3 flex-grow-1 pos-checkout-row">
+    <!-- Left: Categories + Product Grid -->
+    <div class="col-lg-8 d-flex flex-column pos-checkout-left-col">
 
         <div class="modern-card p-3 flex-grow-1 d-flex flex-column">
             <!-- Search & Barcode -->
@@ -128,7 +80,7 @@ $content = <<<'EOT'
 
     <!-- Right: Order / Checkout Panel -->
     <div class="col-lg-4">
-        <div class="modern-card p-0 d-flex flex-column h-100">
+        <div class="modern-card p-0 d-flex flex-column h-100 pos-order-summary-sticky">
             <div class="card-header bg-transparent border-bottom flex-shrink-0 order-summary-header">
                 <h6 class="fw-bold mb-0">
                     <i class="bi bi-receipt-cutoff text-yellow me-2"></i>
@@ -267,14 +219,14 @@ $content = <<<'EOT'
                     </div>
                 </div>
             </div>
-            <div class="modal-footer justify-content-center gap-2">
-                <button type="button" class="btn btn-primary btn-sm" id="printReceiptBtn">
+            <div class="modal-footer receipt-modal-footer d-flex gap-2">
+                <button type="button" class="btn btn-yellow-outline flex-fill" id="printReceiptBtn">
                     <i class="bi bi-printer"></i> Print
                 </button>
-                <button type="button" class="btn btn-yellow-primary btn-sm" id="newSaleBtn">
+                <button type="button" class="btn btn-yellow-primary flex-fill" id="newSaleBtn">
                     <i class="bi bi-cart-plus"></i> New Sale
                 </button>
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-ghost-muted flex-fill" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>

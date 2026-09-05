@@ -673,7 +673,7 @@ $content = '
     .btn-yellow-primary {
         background-color: var(--brand-accent) !important;
         border-color: var(--brand-accent) !important;
-        color: #000000 !important;
+        color: #ffffff !important;
         font-weight: 600;
         padding: 10px;
         border-radius: 10px;

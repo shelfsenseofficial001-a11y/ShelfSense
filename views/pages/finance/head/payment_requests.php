@@ -1,119 +1,77 @@
 <?php
-$title = 'Payment Requests - Finance Head';
-$pageTitle = 'Approve Payments';
+$title = 'Requisitions & Payments - Finance Head';
+$pageTitle = 'Requisitions & Payments';
 $activePage = 'head_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260905"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260905"></script>';
 
 $content = <<<'EOT'
-<ul class="nav nav-tabs fn-tabs mb-3" id="reqTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-tab-key="pending" type="button">⏳ Pending <span class="badge bg-secondary ms-1" id="countPending">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-tab-key="approved" type="button">✅ Approved <span class="badge bg-secondary ms-1" id="countApproved">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-tab-key="rejected" type="button">❌ Rejected <span class="badge bg-secondary ms-1" id="countRejected">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-tab-key="all" type="button">📋 All <span class="badge bg-secondary ms-1" id="countAll">0</span></button></li>
+<ul class="nav nav-tabs mb-3" id="fhTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#reqTab" type="button">Pending Requisitions</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#poPaymentTab" type="button">Pending PO Payments</button></li>
 </ul>
 
-<div class="row g-2 mb-3">
-    <div class="col-md-4">
-        <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="Search requisition #, supplier, invoice #...">
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="reqTab">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>Requisition #</th><th>Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th></th></tr></thead>
+                <tbody id="fhReqTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
         </div>
     </div>
-    <div class="col-md-2">
-        <select id="budgetStatusFilter" class="form-select searchable-select" data-placeholder="Budget status...">
-            <option value="">All Budget Statuses</option>
-            <option value="within_budget">Within Budget</option>
-            <option value="exceeded">Budget Exceeded</option>
-        </select>
-    </div>
-    <div class="col-md-2">
-        <input type="date" id="dateFrom" class="form-control" title="Requested from">
-    </div>
-    <div class="col-md-2">
-        <input type="date" id="dateTo" class="form-control" title="Requested to">
-    </div>
-    <div class="col-md-2 text-end">
-        <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-    </div>
-</div>
 
-<div class="active-filter-chips" id="activeFilterChips"></div>
-
-<div class="modern-card p-3 sm-fill-card">
-    <div id="fn-cards-container" class="fn-card-grid">
-        <div class="text-center py-4" style="grid-column:1/-1;">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Loading payment requests...</p>
+    <div class="tab-pane fade" id="poPaymentTab">
+        <p class="text-muted">The supplier is only cleared to ship once a payment request here is approved.</p>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>PO #</th><th>Supplier</th><th>Amount</th><th>Requested By</th><th></th></tr></thead>
+                <tbody id="fhPoPaymentTableBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
         </div>
     </div>
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <span class="text-muted small" id="tableInfo">Loading...</span>
-        <nav><ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul></nav>
-    </div>
 </div>
 
-<!-- Requisition / Payment Request Detail Modal -->
-<div class="offcanvas offcanvas-end detail-drawer" id="requestDetailModal" tabindex="-1">
-    <div class="offcanvas-header">
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body" id="requestDetailBody">
-        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-    </div>
-    <div class="p-3 border-top d-flex gap-2 justify-content-end" id="requestDetailFooter"></div>
-</div>
-
-<!-- Approve Modal -->
-<div class="modal fade" id="approveModal" tabindex="-1">
+<div class="modal fade" id="approveReqModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="approveModalTitle">✅ Approve Payment Request</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
+            <div class="modal-header"><h5 class="modal-title">Approve Requisition</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
-                <div id="approveModalSummary"></div>
-                <div class="mb-2 mt-3" id="approveNotesGroup">
-                    <label class="form-label fw-semibold" id="approveNotesLabel">Approval Notes (Optional)</label>
-                    <textarea id="approveNotes" class="form-control" rows="3" placeholder="Approved. All documents verified."></textarea>
-                    <div class="invalid-feedback" id="approveNotesError">A justification is required to approve an over-budget request.</div>
-                </div>
-                <div class="fn-doc-box small mt-2">
-                    <div class="fn-doc-title">This action will:</div>
-                    <div id="approveConsequences"></div>
+                <p id="approveReqSummary"></p>
+                <div id="approveReqJustificationWrap" class="d-none">
+                    <label class="form-label">Justification (required — over budget)</label>
+                    <textarea id="approveReqJustification" class="form-control" rows="2"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success btn-sm" id="confirmApproveBtn">Confirm Approval</button>
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-success btn-sm" id="confirmApproveReqBtn">Approve</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Reject Modal -->
-<div class="modal fade" id="rejectModal" tabindex="-1">
+<div class="modal fade" id="rejectReqModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">❌ Reject Payment Request</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div id="rejectModalSummary"></div>
-                <div class="mb-2 mt-3">
-                    <label class="form-label fw-semibold">Reason for Rejection (Required)</label>
-                    <textarea id="rejectReason" class="form-control" rows="3" placeholder="Invoice amounts do not match PO. Please correct and resubmit."></textarea>
-                    <div class="invalid-feedback" id="rejectReasonError">A rejection reason is required.</div>
-                </div>
-                <div class="fn-doc-box small mt-2">
-                    <div class="fn-doc-title">This action will:</div>
-                    <div>❌ Reject the payment request<br>📨 Notify Finance Staff with the reason<br>🔄 Return the requisition to "Awaiting Finance Staff"<br>🔧 Finance Staff can correct and resubmit</div>
-                </div>
-            </div>
+            <div class="modal-header"><h5 class="modal-title">Reject Requisition</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><textarea id="rejectReqReason" class="form-control" rows="3" placeholder="Reason..."></textarea></div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-danger btn-sm" id="confirmRejectBtn">Confirm Rejection</button>
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger btn-sm" id="confirmRejectReqBtn">Reject</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectPoPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Reject Payment Request</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body"><textarea id="rejectPoPaymentReason" class="form-control" rows="3" placeholder="Reason..."></textarea></div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger btn-sm" id="confirmRejectPoPaymentBtn">Reject</button>
             </div>
         </div>
     </div>

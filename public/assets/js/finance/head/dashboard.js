@@ -122,7 +122,7 @@ function renderDashboard(data) {
         </div>
 
         <!-- Recent Activity -->
-        <div class="modern-card p-3">
+        <div class="modern-card p-3 dash-card-accent">
             <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-yellow me-2"></i>Recent Activity</h6>
             ${activity.length > 0 ? activity.map(item => fnActivityRow(item)).join('') : fnEmptyState('No recent activity')}
         </div>

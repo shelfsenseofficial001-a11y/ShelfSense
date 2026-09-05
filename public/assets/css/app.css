@@ -294,6 +294,29 @@ h1, h2, h3, h4, h5, .font-heading {
     transform: translateY(-1px);
 }
 
+.btn-ghost-muted {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    font-weight: 500;
+    transition: all 0.2s ease;
+}
+.btn-ghost-muted:hover {
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+}
+
+.receipt-modal-footer {
+    border-top: 1px solid var(--border-color);
+    padding: 16px 20px;
+    gap: 10px;
+}
+.receipt-modal-footer .btn {
+    padding: 10px 14px;
+    font-size: 0.88rem;
+    white-space: nowrap;
+}
+
 /* ==========================================================================
    9. CARDS
    ========================================================================== */
@@ -310,6 +333,14 @@ h1, h2, h3, h4, h5, .font-heading {
     border-color: var(--brand-yellow);
     box-shadow: 0 12px 30px rgba(244, 91, 53, 0.15);
     transform: translateY(-4px);
+}
+
+/* Subtle orange-tinted variant for a dashboard's "at a glance" summary
+   card (Recent Activity / Insights / etc.) so it stands out from the plain
+   data tables/charts around it. Shared across every portal's dashboard. */
+.dash-card-accent {
+    background: var(--light-yellow-subtle) !important;
+    border-color: var(--brand-yellow) !important;
 }
 
 /* ==========================================================================
@@ -869,6 +900,20 @@ body.swal2-shown > .modal-backdrop {
     padding-right: 4px;
 }
 
+/* Bootstrap's .row is a row-direction flex container, so .col-lg-8 (a flex
+   item along that main axis) defaults to min-width:auto -- its own
+   min-content size, which a flex item is never allowed to shrink below.
+   Deep inside it, #recentOrdersRow's horizontally-scrolling cards have a
+   wide natural content width; without this override, that width propagates
+   all the way up through the flex-item chain and forces the whole page to
+   grow and scroll sideways instead of the card row scrolling on its own
+   (invisible with few orders, since their combined width fit anyway --
+   surfaces the moment there are enough orders to actually overflow). */
+.pos-checkout-row,
+.pos-checkout-left-col {
+    min-width: 0;
+}
+
 /* Order Summary Card Header */
 .order-summary-header {
     padding: 16px 18px;
@@ -890,7 +935,7 @@ body.swal2-shown > .modal-backdrop {
 /* Cart Panel */
 .cart-panel {
     flex: 1 1 auto;
-    min-height: 120px;
+    min-height: 60px;
     max-height: 62vh;
     overflow-y: auto;
     display: flex;
@@ -1039,58 +1084,6 @@ body.swal2-shown > .modal-backdrop {
     color: var(--text-muted);
     font-size: 2rem;
     border-radius: 8px 8px 0 0;
-}
-
-/* POS Info Bar (shift hours + today's stats) */
-.pos-info-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    height: 100%;
-}
-.pos-info-item i {
-    font-size: 1.4rem;
-    color: var(--brand-yellow-hover);
-}
-.pos-info-item strong {
-    font-size: 1rem;
-}
-
-/* Recent Orders */
-.recent-orders-row {
-    display: flex;
-    gap: 10px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-}
-.recent-order-card {
-    flex: 0 0 auto;
-    width: 190px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 10px;
-    padding: 10px 12px;
-    overflow: hidden;
-}
-.recent-order-card .recent-order-number {
-    min-width: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 0.85rem;
-}
-.recent-order-card .badge {
-    flex-shrink: 0;
-}
-.recent-order-view-more {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: var(--brand-yellow-hover);
-    text-decoration: none;
-    white-space: nowrap;
-}
-.recent-order-view-more:hover {
-    text-decoration: underline;
 }
 
 /* Category Chips */
@@ -1304,6 +1297,11 @@ body.swal2-shown > .modal-backdrop {
     color: var(--text-main);
     margin-top: 2px;
 }
+.pos-product-tile-stock {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
 .pos-product-tile-qty {
     display: flex;
     align-items: center;
@@ -1421,8 +1419,77 @@ body.swal2-shown > .modal-backdrop {
     opacity: 0.45;
 }
 
-/* Print Styles - Receipt Only */
+/* ============================================
+   PRINT ANIMATION (shown briefly before the browser's print dialog opens,
+   so "Print" feels like it's actually feeding a receipt out of a printer)
+   ============================================ */
+.print-animation-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+.print-animation-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+}
+.print-animation-printer {
+    position: relative;
+    width: 92px;
+    height: 58px;
+    background: #2b2b2b;
+    border-radius: 8px 8px 5px 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-yellow, #eeab1a);
+    font-size: 26px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+}
+.print-animation-slot {
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 62px;
+    height: 4px;
+    background: #000;
+    border-radius: 2px;
+}
+.print-animation-paper {
+    width: 58px;
+    height: 0;
+    margin-top: -2px;
+    background:
+        repeating-linear-gradient(to bottom, #ddd 0, #ddd 1px, transparent 1px, transparent 7px),
+        #ffffff;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.25);
+    overflow: hidden;
+    animation: printAnimationFeed 1.3s ease-in-out forwards;
+}
+@keyframes printAnimationFeed {
+    0% { height: 0; }
+    100% { height: 130px; }
+}
+.print-animation-label {
+    color: #fff;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+/* Print Styles - Receipt Only, sized like an actual 80mm thermal receipt
+   roll instead of a full Letter/A4 sheet. */
 @media print {
+    @page {
+        size: 80mm auto;
+        margin: 0;
+    }
     body * {
         visibility: hidden !important;
     }
@@ -1430,9 +1497,10 @@ body.swal2-shown > .modal-backdrop {
         visibility: visible !important;
     }
     #receiptModal .modal-dialog {
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 20px !important;
+        max-width: 80mm !important;
+        width: 80mm !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
     }
     #receiptModal .modal-content {
         border: none !important;
@@ -1444,6 +1512,20 @@ body.swal2-shown > .modal-backdrop {
     }
     #receiptModal .modal-body {
         padding: 0 !important;
+    }
+    #receiptContent {
+        width: 80mm !important;
+        padding: 4mm 3mm !important;
+        font-family: 'Courier New', Courier, monospace !important;
+        font-size: 11px !important;
+        line-height: 1.35 !important;
+        color: #000 !important;
+    }
+    #receiptContent h5 {
+        font-size: 14px !important;
+    }
+    #receiptContent small {
+        font-size: 10px !important;
     }
     #receiptModal {
         position: fixed !important;
@@ -1547,6 +1629,74 @@ body.swal2-shown > .modal-backdrop {
 }
 
 /* ==========================================================================
+   SWEETALERT2 - BRAND THEME
+   Reskins Swal's default look (sharp corners, generic blue button, system
+   font) to match the site's cards/buttons/typography. Applies to every
+   Swal.fire() call app-wide with no per-call changes needed -- see the
+   Swal.mixin() default-color override in app.js.
+   ========================================================================== */
+.swal2-popup {
+    border-radius: 20px !important;
+    font-family: 'Inter', sans-serif !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.14);
+    padding-bottom: 1.75em;
+}
+.swal2-title {
+    font-family: 'Space Grotesk', sans-serif !important;
+    font-size: 1.4rem;
+    letter-spacing: -0.5px;
+}
+.swal2-html-container {
+    color: var(--text-muted);
+}
+.swal2-actions {
+    gap: 10px;
+    margin-top: 1.4em;
+}
+.swal2-styled.swal2-confirm,
+.swal2-styled.swal2-cancel,
+.swal2-styled.swal2-deny {
+    border-radius: 10px !important;
+    font-weight: 600;
+    padding: 0.65em 1.7em;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.swal2-styled.swal2-confirm {
+    box-shadow: 0 4px 14px rgba(244, 91, 53, 0.35) !important;
+}
+.swal2-styled.swal2-confirm:hover {
+    transform: translateY(-1px);
+}
+.swal2-styled.swal2-confirm:focus {
+    box-shadow: 0 0 0 3px rgba(244, 91, 53, 0.3) !important;
+}
+.swal2-styled.swal2-cancel {
+    background: var(--bg-card-subtle) !important;
+    color: var(--text-main) !important;
+    box-shadow: none !important;
+}
+.swal2-styled.swal2-cancel:hover {
+    background: var(--border-color) !important;
+}
+.swal2-timer-progress-bar {
+    background: var(--brand-yellow) !important;
+}
+.swal2-icon.swal2-question {
+    border-color: var(--brand-yellow) !important;
+    color: var(--brand-yellow) !important;
+}
+/* Toasts (the small top-corner notifications used across the app) get the
+   same rounded/soft-shadow treatment instead of Swal's flat default box. */
+.swal2-popup.swal2-toast {
+    border-radius: 14px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16) !important;
+    padding: 0.85em 1.1em;
+}
+.swal2-popup.swal2-toast .swal2-title {
+    font-size: 0.95rem;
+}
+
+/* ==========================================================================
    SWEETALERT2 - DARK MODE
    Swal ships its own light-mode-only popup styling; without this override,
    dark mode renders dark text on a dark background (or vice versa).
@@ -1572,14 +1722,6 @@ body.swal2-shown > .modal-backdrop {
 [data-bs-theme="dark"] .swal2-textarea::placeholder {
     color: var(--text-muted) !important;
 }
-[data-bs-theme="dark"] .swal2-actions .swal2-cancel {
-    background: #3f3922 !important;
-    color: var(--text-main) !important;
-}
-[data-bs-theme="dark"] .swal2-timer-progress-bar {
-    background: var(--brand-yellow) !important;
-}
-
 /* Outline-dark buttons (e.g. "Mark Not Hiring") are unreadable against a
    dark-mode card/modal background — flip them to a visible outline. */
 [data-bs-theme="dark"] .btn-outline-dark {

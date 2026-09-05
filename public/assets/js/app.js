@@ -5,6 +5,23 @@
 console.log('✅ ShelfSense app.js loaded');
 
 // ============================================
+// SWEETALERT2 - BRAND DEFAULTS
+// Every Swal.fire() call in the app goes through the global `Swal`, so
+// rebinding it to a mixin with our brand color as the default confirm
+// button gives every existing/future call the themed look for free. A
+// call that already passes its own confirmButtonColor (e.g. red for a
+// destructive "Delete" confirm) still wins -- mixin defaults only fill in
+// what a call doesn't specify. Popup shape/typography is handled in
+// app.css (.swal2-popup etc.) since that applies regardless of JS options.
+// ============================================
+if (window.Swal) {
+    window.Swal = Swal.mixin({
+        confirmButtonColor: '#f45b35',
+        cancelButtonColor: '#8a8a85',
+    });
+}
+
+// ============================================
 // DARK MODE - PERSISTENT & GLOBAL
 // ============================================
 

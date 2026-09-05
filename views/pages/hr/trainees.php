@@ -24,9 +24,9 @@ $content = '
     .trainee-week-day-name { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
     .trainee-week-day-num { font-size: 0.9rem; font-weight: 600; color: var(--text-main); }
     .trainee-week-day-tag { font-size: 0.6rem; font-weight: 600; color: #4b5563; }
+    [data-bs-theme="dark"] .trainee-week-day-tag { color: #9ca3af; }
     .trainee-week-day.is-rest-day { background: #e5e7eb; }
     [data-bs-theme="dark"] .trainee-week-day.is-rest-day { background: #374151; }
-    [data-bs-theme="dark"] .trainee-week-day.is-rest-day .trainee-week-day-tag { color: #9ca3af; }
 </style>
 <!-- Filters -->
 <div class="row g-2 mb-3">

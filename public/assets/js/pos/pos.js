@@ -17,94 +17,10 @@ let selectedIndex = -1;
 let searchTimeout = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadTopBarData();
     loadCategories();
     loadProducts();
     setupEventListeners();
 });
-
-// ============================================
-// TOP BAR: SHIFT, STATS, RECENT ORDERS
-// ============================================
-
-function loadTopBarData() {
-    fetch('?page=api_get_my_shift')
-        .then(response => response.json())
-        .then(data => {
-            const label = document.getElementById('myShiftLabel');
-            if (!label) return;
-            if (data.success) {
-                const s = data.data;
-                if (s.is_rest_day || !s.time_in) {
-                    label.textContent = 'Rest Day';
-                } else {
-                    label.textContent = `${formatTime(s.time_in)} – ${formatTime(s.time_out)}`;
-                }
-            } else {
-                label.textContent = '—';
-            }
-        })
-        .catch(() => {
-            const label = document.getElementById('myShiftLabel');
-            if (label) label.textContent = '—';
-        });
-
-    fetch('?page=api_get_daily_sales')
-        .then(response => response.json())
-        .then(data => {
-            if (!data.success) return;
-            const d = data.data;
-            const salesLabel = document.getElementById('todaySalesLabel');
-            const txLabel = document.getElementById('todayTransactionsLabel');
-            if (salesLabel) salesLabel.textContent = '₱' + d.today.total_sales.toFixed(2);
-            if (txLabel) txLabel.textContent = d.today.transaction_count;
-            renderRecentOrders(d.recent_transactions);
-        })
-        .catch(() => {
-            const row = document.getElementById('recentOrdersRow');
-            if (row) row.innerHTML = '<div class="text-danger small py-2">Failed to load recent orders.</div>';
-        });
-}
-
-function formatTime(time24) {
-    if (!time24) return '—';
-    const [h, m] = time24.split(':').map(Number);
-    const d = new Date(2000, 0, 1, h, m);
-    return d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-}
-
-function renderRecentOrders(orders) {
-    const row = document.getElementById('recentOrdersRow');
-    if (!row) return;
-    if (!orders || orders.length === 0) {
-        row.innerHTML = '<div class="text-muted small py-2">No orders yet today.</div>';
-        return;
-    }
-
-    // Let the cashier reprint their last receipt even after a page refresh.
-    if (!currentOrderId) {
-        currentOrderId = orders[0].id;
-        const printLastBtn = document.getElementById('printLastReceiptBtn');
-        if (printLastBtn) printLastBtn.disabled = false;
-    }
-
-    row.innerHTML = orders.slice(0, 8).map(order => {
-        const time = new Date(order.created_at).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        return `
-            <div class="recent-order-card">
-                <div class="d-flex justify-content-between align-items-center gap-2 mb-1">
-                    <strong class="recent-order-number" title="#${escapeHtml(order.order_number)}">#${escapeHtml(order.order_number)}</strong>
-                    <span class="badge bg-success">Paid</span>
-                </div>
-                <div class="text-muted small">${order.item_count || 0} items · ${time}</div>
-                <div class="d-flex justify-content-between align-items-center mt-1">
-                    <span class="fw-bold text-yellow">₱${parseFloat(order.total).toFixed(2)}</span>
-                    <a href="?page=pos_orders&view=${order.id}" class="recent-order-view-more">View More</a>
-                </div>
-            </div>
-        `;
-    }).join('');
-}
 
 // ============================================
 // CATEGORIES
@@ -289,6 +205,11 @@ function setupEventListeners() {
         }).then(result => {
             if (result.isConfirmed) {
                 bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                window.PosNotify?.push({
+                    title: 'Order voided',
+                    message: `Cart with ${cart.length} item${cart.length === 1 ? '' : 's'} was voided before payment.`,
+                    icon: 'bi-x-circle-fill'
+                });
                 clearCart();
                 showToast('Transaction voided', 'info');
             }
@@ -302,9 +223,11 @@ function setupEventListeners() {
         document.getElementById('barcodeInput')?.focus();
     });
     
-    // Print receipt - only print the receipt content
+    // Print receipt - only print the receipt content. Plays a brief
+    // "feeding out of a printer" animation first so it feels like an
+    // actual receipt printer rather than the browser dialog just popping up.
     document.getElementById('printReceiptBtn')?.addEventListener('click', function() {
-        window.print();
+        playPrintAnimation(() => window.print());
     });
 
     // Re-open the receipt for the last order placed this session
@@ -494,6 +417,25 @@ function renderProducts(products) {
 
     info.textContent = `${products.length} products loaded`;
     grid.innerHTML = productViewMode === 'list' ? renderProductsAsList(products) : renderProductsAsGrid(products);
+    notifyLowStock(products);
+}
+
+// Flags products running low (but not yet out of stock) so the cashier
+// can tell the Store Manager before they actually sell out mid-shift.
+// Deduped per product so re-rendering the same page doesn't spam the bell.
+const LOW_STOCK_THRESHOLD = 5;
+function notifyLowStock(products) {
+    if (!window.PosNotify || !products) return;
+    products.forEach(product => {
+        if (product.stock_quantity > 0 && product.stock_quantity <= LOW_STOCK_THRESHOLD) {
+            window.PosNotify.push({
+                title: 'Low stock',
+                message: `${product.name} — only ${product.stock_quantity} left`,
+                icon: 'bi-exclamation-triangle-fill',
+                dedupeKey: `low_stock_${product.id}`
+            });
+        }
+    });
 }
 
 function renderProductsAsGrid(products) {
@@ -513,6 +455,7 @@ function renderProductsAsGrid(products) {
                     <div class="pos-product-tile-name" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</div>
                     ${product.category_name ? `<span class="pos-product-category-chip pos-tile-category-chip">${escapeHtml(product.category_name)}</span>` : ''}
                     <div class="pos-product-tile-price">₱${parseFloat(product.price).toFixed(2)}</div>
+                    ${isOutOfStock ? '' : `<div class="pos-product-tile-stock">${product.stock_quantity} in stock</div>`}
                 </div>
                 ${isOutOfStock ? `
                     <div class="pos-product-tile-oos">Out of Stock</div>
@@ -912,14 +855,14 @@ function completePayment() {
 
             bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
             showReceipt(order);
+            playPrintAnimation(() => window.print());
+            notifyLargeSale(order);
             cart = [];
             updateCart();
             
-            // Refresh product grid to update stock counts, and the top bar
-            // (Today's Sales / Recent Orders) to reflect the new order.
+            // Refresh product grid to reflect updated stock counts.
             const search = document.getElementById('searchInput').value.trim();
             loadProducts(search, currentPage);
-            loadTopBarData();
 
         } else {
             Swal.fire({
@@ -939,6 +882,21 @@ function completePayment() {
             text: error.message || 'Something went wrong. Please try again.'
         });
     });
+}
+
+// Flags unusually large sales for the cashier's own awareness (e.g. to
+// double-check the order before the customer walks away).
+const LARGE_SALE_THRESHOLD = 2000;
+function notifyLargeSale(order) {
+    if (!window.PosNotify || !order) return;
+    const total = parseFloat(order.total) || 0;
+    if (total >= LARGE_SALE_THRESHOLD) {
+        window.PosNotify.push({
+            title: 'Large sale',
+            message: `Order #${order.order_number} — ₱${total.toFixed(2)}`,
+            icon: 'bi-cash-coin'
+        });
+    }
 }
 
 // ============================================
@@ -993,6 +951,31 @@ function showReceipt(order) {
     `;
     
     new bootstrap.Modal(document.getElementById('receiptModal')).show();
+}
+
+// ============================================
+// PRINT ANIMATION
+// ============================================
+
+function playPrintAnimation(onDone) {
+    const overlay = document.createElement('div');
+    overlay.className = 'print-animation-overlay';
+    overlay.innerHTML = `
+        <div class="print-animation-box">
+            <div class="print-animation-printer">
+                <i class="bi bi-printer-fill"></i>
+                <div class="print-animation-slot"></div>
+            </div>
+            <div class="print-animation-paper"></div>
+            <div class="print-animation-label">Printing receipt...</div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+
+    setTimeout(() => {
+        overlay.remove();
+        onDone();
+    }, 1300);
 }
 
 // ============================================

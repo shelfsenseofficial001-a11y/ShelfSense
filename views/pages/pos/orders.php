@@ -2,7 +2,7 @@
 $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260831250000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260905090000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [
@@ -162,4 +162,14 @@ $content = <<<'EOT'
 </div>
 EOT;
 
-require_once __DIR__ . '/../../layouts/cashier.php';
+// A register's POS PIN session (Auth::posCheck()) has no user_id of its own --
+// none of the Cashier self-service portal's other features (Edit Profile, My
+// Leaves, My Payslip, and its "Logout" link, which clears the whole session
+// including the POS register state) apply to it, so it must stay inside the
+// POS Terminal shell instead of dropping into that portal. A real staff login
+// (an Employee/Owner account) still gets the full Cashier portal as before.
+if (\App\Core\Auth::posCheck()) {
+    require_once __DIR__ . '/../../layouts/pos_terminal.php';
+} else {
+    require_once __DIR__ . '/../../layouts/cashier.php';
+}

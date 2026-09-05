@@ -21,8 +21,8 @@ $role = Auth::role();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260904000000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260903233000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260905300000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260905220000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/finance.css">
     <?= $additional_css ?? '' ?>
 </head>
@@ -75,7 +75,7 @@ $role = Auth::role();
                     <span class="nav-icon-wrap"><i class="bi bi-clipboard-check"></i><span class="badge bg-danger nav-badge" id="pendingBadge">0</span></span> <span class="nav-label">Pending Requisitions</span>
                 </a>
                 <a href="?page=finance_staff_payment_requests" class="nav-item <?= $activePage === 'staff_payment_requests' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-cash"></i></span> <span class="nav-label">My Payment Requests</span>
+                    <span class="nav-icon-wrap"><i class="bi bi-cash"></i></span> <span class="nav-label">Purchase Orders</span>
                 </a>
                 <a href="?page=finance_staff_budget" class="nav-item <?= $activePage === 'staff_budget' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-pie-chart"></i></span> <span class="nav-label">Budget View</span>
@@ -88,7 +88,7 @@ $role = Auth::role();
                     <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">Head Dashboard</span>
                 </a>
                 <a href="?page=finance_head_payment_requests" class="nav-item <?= $activePage === 'head_payment_requests' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-check-circle"></i><span class="badge bg-danger nav-badge" id="headPendingBadge">0</span></span> <span class="nav-label">Approve Payments</span>
+                    <span class="nav-icon-wrap"><i class="bi bi-check-circle"></i><span class="badge bg-danger nav-badge" id="headPendingBadge">0</span></span> <span class="nav-label">Requisitions & Payments</span>
                 </a>
                 <a href="?page=finance_head_budget" class="nav-item <?= $activePage === 'head_budget' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-pie-chart"></i></span> <span class="nav-label">Budget</span>
@@ -135,7 +135,7 @@ $role = Auth::role();
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260904010000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260905160000"></script>
     <script src="/ShelfSense/public/assets/js/finance/staff/shared.js?v=20260901010000"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>

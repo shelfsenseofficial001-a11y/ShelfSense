@@ -4,7 +4,6 @@
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
-require_once __DIR__ . '/../../../models/PaymentRequest.php';
 require_once __DIR__ . '/../../../models/Budget.php';
 require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
@@ -12,7 +11,6 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 use App\Core\CutoffPeriod;
-use App\Models\PaymentRequest;
 use App\Models\Budget;
 
 header('Content-Type: application/json');
@@ -27,54 +25,47 @@ if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
 
 try {
     $db = Database::getInstance()->getConnection();
-    $paymentRequestModel = new PaymentRequest();
     $budgetModel = new Budget();
-    // "This month" KPIs below are a plain calendar-month count (independent of
-    // the budget cutoff period), while budget status is looked up for the
-    // CURRENT cutoff half specifically -- these are two different period
-    // concepts and must not share one variable.
     $calendarMonth = date('Y-m');
     $cutoffKey = CutoffPeriod::getCurrentKey();
 
-    $pending = (int)$paymentRequestModel->getCountByStatus('pending');
+    $stmt = $db->query("SELECT COUNT(*) as c FROM requisitions WHERE status = 'pending_finance_head'");
+    $pendingRequisitions = (int)$stmt->fetch()['c'];
 
-    $stmt = $db->prepare("SELECT COUNT(*) as c FROM payment_requests WHERE status = 'approved' AND DATE_FORMAT(approved_at, '%Y-%m') = ?");
+    $stmt = $db->query("SELECT COUNT(*) as c FROM payment_batches WHERE status = 'pending_approval'");
+    $pendingBatches = (int)$stmt->fetch()['c'];
+
+    $pending = $pendingRequisitions + $pendingBatches;
+
+    $stmt = $db->prepare("SELECT COUNT(*) as c FROM requisitions WHERE status = 'converted_to_po' AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
     $stmt->execute([$calendarMonth]);
     $approvedThisMonth = (int)$stmt->fetch()['c'];
 
-    // No dedicated rejected_at column — updated_at reflects the moment status was
-    // last changed, which for a rejected request is truthfully the rejection time.
-    $stmt = $db->prepare("SELECT COUNT(*) as c FROM payment_requests WHERE status = 'rejected' AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
+    $stmt = $db->prepare("SELECT COUNT(*) as c FROM requisitions WHERE status = 'rejected' AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
     $stmt->execute([$calendarMonth]);
     $rejectedThisMonth = (int)$stmt->fetch()['c'];
 
-    // Real per-department budget status (same definitions as Finance Staff's budget model).
     $departments = $budgetModel->getAllDepartmentsStatus($cutoffKey);
     $nearLimit = $budgetModel->getDepartmentsNearLimit($cutoffKey, 80.0);
 
     $allocatedSum = 0.0;
-    $committedSum = 0.0; // used + reserved, across departments that have an allocation
+    $committedSum = 0.0;
     foreach ($departments as $d) {
-        if ($d['has_allocation']) {
+        if ($d['allocated'] > 0) {
             $allocatedSum += $d['allocated'];
             $committedSum += $d['used'] + $d['reserved'];
         }
     }
     $overallUsedPercentage = $allocatedSum > 0 ? round(($committedSum / $allocatedSum) * 100, 1) : null;
 
-    // Recent activity: the most recently touched payment requests, regardless of
-    // status — a truthful mix of pending/approved/rejected, exactly reflecting
-    // real updated_at timestamps (no fabricated timeline).
     $stmt = $db->prepare("
-        SELECT pr.id, pr.status, pr.approved_at, pr.rejection_reason, pr.updated_at, pr.requested_at,
-               r.requisition_number, r.total as requisition_total,
-               s.company_name,
-               u2.first_name as approved_first, u2.last_name as approved_last
-        FROM payment_requests pr
-        JOIN store_requisitions r ON pr.requisition_id = r.id
-        JOIN suppliers s ON r.supplier_id = s.id
-        LEFT JOIN users u2 ON pr.approved_by = u2.user_id
-        ORDER BY pr.updated_at DESC
+        SELECT r.id, r.status, r.updated_at, r.rejected_reason,
+               r.requisition_number, r.subtotal as requisition_total,
+               s.company_name
+        FROM requisitions r
+        JOIN suppliers s ON r.preferred_supplier_id = s.id
+        WHERE r.status IN ('converted_to_po', 'rejected')
+        ORDER BY r.updated_at DESC
         LIMIT 5
     ");
     $stmt->execute();

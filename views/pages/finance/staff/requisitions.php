@@ -1,82 +1,36 @@
 <?php
-$title = 'Pending Requisitions - Finance Staff';
-$pageTitle = 'Pending Requisitions';
+$title = 'Requisitions - Finance Staff';
+$pageTitle = 'Requisitions — Budget Check';
 $activePage = 'staff_requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260904"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20260904"></script>';
 
 $content = <<<'EOT'
-<ul class="nav nav-tabs fn-tabs mb-3" id="reqTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-tab-key="to_review" type="button">To Review <span class="badge bg-secondary ms-1" id="countToReview">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-tab-key="budget_exceeded" type="button">Budget Exceeded <span class="badge bg-secondary ms-1" id="countExceeded">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-tab-key="awaiting_approval" type="button">Awaiting Approval <span class="badge bg-secondary ms-1" id="countAwaiting">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-tab-key="my_history" type="button">My History <span class="badge bg-secondary ms-1" id="countHistory">0</span></button></li>
-</ul>
-
-<div class="row g-2 mb-3">
-    <div class="col-md-8">
-        <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="Search by requisition # or supplier...">
-        </div>
-    </div>
-    <div class="col-md-4 text-end">
-        <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-    </div>
+<p class="text-muted">Requisitions submitted by Store Managers, awaiting a budget availability check before they go to Finance Head for approval.</p>
+<div class="table-responsive">
+    <table class="table table-hover align-middle">
+        <thead><tr>
+            <th>Requisition #</th><th>Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th>Status</th><th></th>
+        </tr></thead>
+        <tbody id="pendingTableBody"><tr><td colspan="7" class="text-center py-4">Loading...</td></tr></tbody>
+    </table>
+</div>
+<div class="d-flex justify-content-between align-items-center">
+    <small id="pendingPageInfo" class="text-muted"></small>
+    <ul class="pagination pagination-sm mb-0" id="pendingPagination"></ul>
 </div>
 
-<div class="active-filter-chips" id="activeFilterChips"></div>
-
-<div class="modern-card p-3 sm-fill-card">
-    <div id="fn-cards-container" class="fn-card-grid">
-        <div class="text-center py-4" style="grid-column:1/-1;">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Loading...</p>
-        </div>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <span class="text-muted small" id="tableInfo">Loading...</span>
-        <nav><ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul></nav>
-    </div>
-</div>
-
-<!-- Requisition Detail Modal -->
-<div class="offcanvas offcanvas-end detail-drawer" id="requisitionDetailModal" tabindex="-1">
-    <div class="offcanvas-header">
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body" id="requisitionDetailBody">
-        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-    </div>
-    <div class="p-3 border-top d-flex gap-2 justify-content-end" id="requisitionDetailFooter"></div>
-</div>
-
-<!-- Create Payment Request Modal -->
-<div class="modal fade" id="paymentRequestModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered modal-lg">
+<div class="modal fade" id="rejectModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Create Payment Request</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            <div class="modal-header"><h5 class="modal-title">Reject for Budget Reasons</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <textarea id="rejectReason" class="form-control" rows="3" placeholder="Reason..."></textarea>
             </div>
-            <form id="paymentRequestForm">
-                <input type="hidden" id="paymentRequisitionId" value="">
-                <div class="modal-body">
-                    <div id="paymentRequestSummary"></div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Notes <small class="text-muted">(optional)</small></label>
-                        <textarea id="paymentRequestNotes" class="form-control" rows="2" maxlength="500"></textarea>
-                    </div>
-                    <div class="mb-3" id="justificationGroup" style="display:none;">
-                        <label class="form-label fw-semibold">Over-Budget Justification <span class="text-danger">*</span></label>
-                        <textarea id="paymentRequestJustification" class="form-control" rows="2" maxlength="500" placeholder="Explain why this payment should proceed despite exceeding the available budget."></textarea>
-                        <div class="invalid-feedback">A justification is required for budget-exceeded requests.</div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-yellow-primary btn-sm"><i class="bi bi-send"></i> Submit for Approval</button>
-                </div>
-            </form>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger btn-sm" id="confirmRejectBtn">Reject</button>
+            </div>
         </div>
     </div>
 </div>

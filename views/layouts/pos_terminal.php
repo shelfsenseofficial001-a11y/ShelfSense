@@ -17,8 +17,8 @@ use App\Core\Auth;
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260904000000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260903233000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260905300000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260905220000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -59,6 +59,9 @@ use App\Core\Auth;
                 <a href="?page=pos_budget" class="nav-item <?= $activePage === 'budget' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-cash-stack"></i></span> <span class="nav-label">Budget</span>
                 </a>
+                <a href="?page=pos_orders" class="nav-item <?= $activePage === 'orders' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Recent Transactions</span>
+                </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Session</span></div>
                 <a href="?page=pos_select_cashier" class="nav-item" id="posSwitchCashierLink">
                     <span class="nav-icon-wrap"><i class="bi bi-person-badge"></i></span> <span class="nav-label">Switch Cashier</span>
@@ -82,6 +85,21 @@ use App\Core\Auth;
                     </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
+                    <div class="position-relative" id="posNotifContainer">
+                        <button class="pos-notif-bell-btn position-relative" id="posNotifBell" aria-label="Notifications">
+                            <i class="bi bi-bell-fill"></i>
+                            <span class="pos-notif-badge" id="posNotifBadge" style="display:none;">0</span>
+                        </button>
+                        <div class="notification-dropdown" id="posNotifDropdown" style="display:none;">
+                            <div class="notification-header d-flex justify-content-between align-items-center">
+                                <span>Notifications</span>
+                                <button type="button" class="btn btn-link btn-sm p-0 text-decoration-none" id="posNotifClearBtn">Clear all</button>
+                            </div>
+                            <div id="posNotifList">
+                                <div class="text-center text-muted small py-3">No notifications</div>
+                            </div>
+                        </div>
+                    </div>
                     <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
@@ -107,8 +125,9 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260904010000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260905160000"></script>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
+    <script src="/ShelfSense/public/assets/js/pos/pos-notifications.js?v=20260905070000"></script>
 
     <?= $additional_js ?? '' ?>
 
@@ -159,7 +178,13 @@ use App\Core\Auth;
         .pos-sidebar .sidebar-nav .nav-item.active { background: var(--light-yellow-subtle); color: var(--brand-yellow-hover); font-weight: 600; }
         .pos-sidebar .sidebar-nav .nav-item i { font-size: 1.1rem; width: 24px; text-align: center; }
         .pos-sidebar .sidebar-nav hr { margin: 12px 0; border-color: var(--border-color); }
-        .pos-content { padding: 0; min-height: 100%; background: var(--bg-body); display: flex; flex-direction: column; }
+        /* min-width: 0 -- .pos-sidebar is position:fixed (out of flow), so
+           .pos-content ends up the sole flex item of its row-direction
+           parent; without this it defaults to min-width:auto and sizes
+           itself to its widest descendant's content instead of the
+           viewport, dragging the whole page into horizontal scroll (see
+           the matching .pos-checkout-left-col fix in app.css). */
+        .pos-content { padding: 0; min-height: 100%; min-width: 0; background: var(--bg-body); display: flex; flex-direction: column; }
         .pos-topbar {
             padding: 12px 24px;
             background: var(--bg-card);
@@ -180,7 +205,26 @@ use App\Core\Auth;
         .pos-topbar .topbar-subtitle { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text-muted); margin-top: 2px; }
         .pos-topbar .topbar-subtitle .topbar-page-label { font-weight: 600; color: var(--brand-yellow); }
         .pos-topbar .topbar-subtitle .topbar-dot { opacity: 0.5; }
-        .pos-page-content { padding: 20px 24px; flex: 1 1 auto; display: flex; flex-direction: column; }
+        .pos-page-content { padding: 20px 24px; flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; }
+        /* Order Summary panel (Checkout page) stays in view while the product
+           grid scrolls -- offset by the sticky topbar's own height (~72px)
+           plus the page's top padding (20px) so it docks just under it
+           instead of being covered by it (topbar has the higher z-index). */
+        /* overflow-y: auto (not hidden) matters here -- on a short viewport
+           the cart list + full Payment Summary can exceed max-height. Without
+           this, that overflow used to spill silently past the card's rounded
+           border with no clipping and no scrollbar, so the buttons looked
+           like they were floating, unstyled, jammed against the screen edge.
+           Scrolling the panel itself keeps them reachable and inside the card. */
+        .pos-order-summary-sticky {
+            position: sticky;
+            top: calc(72px + 20px);
+            max-height: calc(100vh - 72px - 40px);
+            overflow-y: auto;
+        }
+        @media (max-width: 991px) {
+            .pos-order-summary-sticky { position: static; max-height: none; overflow: visible; }
+        }
         .flash-message { padding: 12px 16px; border-radius: 8px; margin-bottom: 20px; font-size: 0.9rem; }
         .flash-message.success { background: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; }
         .flash-message.error { background: #f8d7da; color: #842029; border: 1px solid #f5c6cb; }

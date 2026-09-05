@@ -2,7 +2,7 @@
 $title = 'Trainee Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/trainee/dashboard.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/trainee/dashboard.js?v=20260905300000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourReadyEvent = "trainee-dashboard-rendered";

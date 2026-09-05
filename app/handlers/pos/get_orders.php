@@ -13,13 +13,21 @@ use App\Models\Order;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+// A cashier reaches this page either via a real staff login (isEmployee) or
+// via the register's POS PIN unlock (no user_id session of its own -- see
+// create_order.php, which already handles both) -- Order History has to
+// accept the same two paths or a POS-session cashier gets bounced to the
+// login screen just from clicking "View More".
+$isPosSession = Auth::posCheck();
+
+if (!$isPosSession && !(Auth::check() && (Auth::isEmployee() || Auth::isSuperAdmin() || Auth::isStoreManager()))) {
     Response::unauthorized('Please login to access this resource');
 }
-
-if (!Auth::isEmployee() && !Auth::isSuperAdmin() && !Auth::isStoreManager()) {
-    Response::forbidden('Access denied. Employee role required.');
+if ($isPosSession && !Auth::posCashierId()) {
+    Response::forbidden('Select which cashier is ringing up sales first.');
 }
+
+$cashierId = $isPosSession ? Auth::posCashierId() : Auth::userId();
 
 try {
     $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
@@ -44,7 +52,7 @@ try {
     if (!empty($date)) $filters['date'] = $date;
 
     $orderModel = new Order();
-    $result = $orderModel->getForCashier(Auth::userId(), $page, $limit, $filters);
+    $result = $orderModel->getForCashier($cashierId, $page, $limit, $filters);
 
     $db = Database::getInstance()->getConnection();
     foreach ($result['orders'] as &$order) {

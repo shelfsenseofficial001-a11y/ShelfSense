@@ -717,12 +717,18 @@ if ($page === 'pos_checkout') {
 }
 
 if ($page === 'pos_orders') {
-    if (!Auth::check()) {
+    // Accept either a real staff login (Employee/Owner) or the register's
+    // POS PIN session -- the "View More" link off the Checkout page's
+    // Recent Orders cards is a POS-session-only path, and used to bounce
+    // straight to login (looking like a logout) because this guard only
+    // ever checked Auth::check().
+    $isPosSession = Auth::posCheck();
+    if (!$isPosSession && !(Auth::check() && (Auth::isEmployee() || Auth::isOwner()))) {
         Response::redirect('?page=login');
         exit;
     }
-    if (!Auth::isEmployee() && !Auth::isOwner()) {
-        Response::redirect('?page=dashboard');
+    if ($isPosSession && !Auth::posCashierId()) {
+        Response::redirect('?page=pos_select_cashier');
         exit;
     }
     require_once __DIR__ . '/../views/pages/pos/orders.php';
@@ -867,33 +873,53 @@ if ($page === 'api_save_tour_preference') {
     exit;
 }
 
+if ($page === 'api_sm_list_requisitions') {
+    require_once __DIR__ . '/../app/handlers/store_manager/requisitions/list.php';
+    exit;
+}
+
 if ($page === 'api_get_requisitions') {
     require_once __DIR__ . '/../app/handlers/store_manager/get_requisitions.php';
     exit;
 }
 
-if ($page === 'api_create_requisition') {
-    require_once __DIR__ . '/../app/handlers/store_manager/create_requisition.php';
+if ($page === 'api_sm_create_requisition') {
+    require_once __DIR__ . '/../app/handlers/store_manager/requisitions/create.php';
     exit;
 }
 
 if ($page === 'api_get_requisition') {
-    require_once __DIR__ . '/../app/handlers/store_manager/get_requisition.php';
+    require_once __DIR__ . '/../app/handlers/shared/get_requisition.php';
     exit;
 }
 
-if ($page === 'api_send_requisition_to_supplier') {
-    require_once __DIR__ . '/../app/handlers/store_manager/send_requisition_to_supplier.php';
+if ($page === 'api_get_purchase_order') {
+    require_once __DIR__ . '/../app/handlers/shared/get_purchase_order.php';
     exit;
 }
 
-if ($page === 'api_receive_goods') {
-    require_once __DIR__ . '/../app/handlers/store_manager/receive_goods.php';
+if ($page === 'api_get_invoice') {
+    require_once __DIR__ . '/../app/handlers/shared/get_invoice.php';
     exit;
 }
 
-if ($page === 'api_forward_to_finance_staff') {
-    require_once __DIR__ . '/../app/handlers/store_manager/forward_to_finance_staff.php';
+if ($page === 'api_sm_list_pos') {
+    require_once __DIR__ . '/../app/handlers/store_manager/purchase_orders/list.php';
+    exit;
+}
+
+if ($page === 'api_sm_respond_to_counter') {
+    require_once __DIR__ . '/../app/handlers/store_manager/purchase_orders/respond_to_counter.php';
+    exit;
+}
+
+if ($page === 'api_sm_create_goods_receipt') {
+    require_once __DIR__ . '/../app/handlers/store_manager/goods_receipts/create.php';
+    exit;
+}
+
+if ($page === 'api_departments') {
+    require_once __DIR__ . '/../app/handlers/finance/head/budget/departments.php';
     exit;
 }
 
@@ -1012,33 +1038,33 @@ if ($page === 'api_supplier_dashboard') {
     exit;
 }
 
-if ($page === 'api_supplier_get_requisitions') {
-    require_once __DIR__ . '/../app/handlers/supplier/get_requisitions.php';
+if ($page === 'api_get_supplier_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/supplier/get_dashboard_layout.php';
     exit;
 }
 
-if ($page === 'api_supplier_get_requisition') {
-    require_once __DIR__ . '/../app/handlers/supplier/get_requisition.php';
+if ($page === 'api_save_supplier_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/supplier/save_dashboard_layout.php';
     exit;
 }
 
-if ($page === 'api_supplier_process_requisition') {
-    require_once __DIR__ . '/../app/handlers/supplier/process_requisition.php';
+if ($page === 'api_supplier_list_pos') {
+    require_once __DIR__ . '/../app/handlers/supplier/purchase_orders/list.php';
+    exit;
+}
+
+if ($page === 'api_supplier_respond_po') {
+    require_once __DIR__ . '/../app/handlers/supplier/purchase_orders/respond.php';
     exit;
 }
 
 if ($page === 'api_supplier_create_invoice') {
-    require_once __DIR__ . '/../app/handlers/supplier/create_invoice.php';
+    require_once __DIR__ . '/../app/handlers/supplier/invoices/create.php';
     exit;
 }
 
-if ($page === 'api_supplier_get_invoices') {
-    require_once __DIR__ . '/../app/handlers/supplier/get_invoices.php';
-    exit;
-}
-
-if ($page === 'api_supplier_get_invoice') {
-    require_once __DIR__ . '/../app/handlers/supplier/get_invoice.php';
+if ($page === 'api_supplier_list_invoices') {
+    require_once __DIR__ . '/../app/handlers/supplier/invoices/list.php';
     exit;
 }
 
@@ -1059,15 +1085,6 @@ if ($page === 'api_supplier_update_product') {
 
 if ($page === 'api_supplier_delete_product') {
     require_once __DIR__ . '/../app/handlers/supplier/delete_supplier_product.php';
-    exit;
-}
-
-// ============================================
-// SUPPLIER - SHIP GOODS
-// ============================================
-
-if ($page === 'api_supplier_ship_goods') {
-    require_once __DIR__ . '/../app/handlers/supplier/ship_goods.php';
     exit;
 }
 
@@ -1196,33 +1213,63 @@ if ($page === 'api_finance_staff_dashboard_stats') {
     exit;
 }
 
-if ($page === 'api_finance_get_pending_requisitions') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/get_pending_requisitions.php';
+if ($page === 'api_fs_list_pending_requisitions') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/requisitions/list_pending.php';
     exit;
 }
 
-if ($page === 'api_finance_get_requisition_detail') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/get_requisition_detail.php';
+if ($page === 'api_fs_check_budget') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/requisitions/check_budget.php';
     exit;
 }
 
-if ($page === 'api_finance_create_payment_request') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/create_payment_request.php';
+if ($page === 'api_fs_list_pos_pending_dispatch') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/purchase_orders/list_pending_dispatch.php';
     exit;
 }
 
-if ($page === 'api_finance_staff_get_payment_requests') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/get_payment_requests.php';
+if ($page === 'api_fs_dispatch_po') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/purchase_orders/dispatch.php';
     exit;
 }
 
-if ($page === 'api_finance_staff_record_payment') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/record_payment.php';
+if ($page === 'api_fs_list_invoices') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/invoices/list.php';
     exit;
 }
 
-if ($page === 'api_finance_staff_get_budget') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/get_budget_overview.php';
+if ($page === 'api_fs_resolve_variance') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/invoices/resolve_variance.php';
+    exit;
+}
+
+if ($page === 'api_fs_list_po_payment_eligible') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/po_payments/list_eligible.php';
+    exit;
+}
+
+if ($page === 'api_fs_request_po_payment') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/po_payments/create.php';
+    exit;
+}
+
+if ($page === 'api_supplier_ship_po') {
+    require_once __DIR__ . '/../app/handlers/supplier/purchase_orders/ship.php';
+    exit;
+}
+
+if ($page === 'api_get_budget_overview') {
+    require_once __DIR__ . '/../app/handlers/finance/head/budget/get.php';
+    exit;
+}
+
+if ($page === 'api_get_budget_history') {
+    require_once __DIR__ . '/../app/handlers/finance/head/budget/history.php';
+    exit;
+}
+
+if ($page === 'api_variance_tolerance') {
+    require_once __DIR__ . '/../app/handlers/finance/head/settings/variance_tolerance.php';
     exit;
 }
 
@@ -1232,28 +1279,28 @@ if ($page === 'api_finance_head_dashboard_stats') {
     exit;
 }
 
-if ($page === 'api_finance_get_payment_requests') {
-    require_once __DIR__ . '/../app/handlers/finance/head/get_pending_payment_requests.php';
+if ($page === 'api_fh_list_pending_requisitions') {
+    require_once __DIR__ . '/../app/handlers/finance/head/requisitions/list_pending.php';
     exit;
 }
 
-if ($page === 'api_finance_approve_payment_request') {
-    require_once __DIR__ . '/../app/handlers/finance/head/approve_payment_request.php';
+if ($page === 'api_fh_approve_requisition') {
+    require_once __DIR__ . '/../app/handlers/finance/head/requisitions/approve.php';
     exit;
 }
 
-if ($page === 'api_finance_get_budget') {
-    require_once __DIR__ . '/../app/handlers/finance/head/get_budget.php';
+if ($page === 'api_fh_list_pending_po_payments') {
+    require_once __DIR__ . '/../app/handlers/finance/head/po_payments/list_pending.php';
     exit;
 }
 
-if ($page === 'api_finance_set_budget') {
-    require_once __DIR__ . '/../app/handlers/finance/head/set_budget.php';
+if ($page === 'api_fh_approve_po_payment') {
+    require_once __DIR__ . '/../app/handlers/finance/head/po_payments/approve.php';
     exit;
 }
 
-if ($page === 'api_finance_get_budget_adjustments') {
-    require_once __DIR__ . '/../app/handlers/finance/head/get_budget_adjustments.php';
+if ($page === 'api_fh_set_budget') {
+    require_once __DIR__ . '/../app/handlers/finance/head/budget/set.php';
     exit;
 }
 

@@ -1,8 +1,8 @@
 -- ShelfSense SQL Dump
--- Regenerated from live schema on Sep 04, 2026
--- Sync includes: applicant_skill_ratings (position-specific skills
--- self-assessment answers collected on the public Apply page).
-
+-- Regenerated from live schema on Sep 05, 2026
+-- Reflects the procurement rebuild: normalized requisitions/purchase
+-- orders/invoices/payments schema, legacy_* tables kept for history,
+-- pay-before-delivery flow, and PO event timeline.
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -14,11 +14,6 @@
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
-
---
--- Table structure for table `applicant_skill_ratings`
---
-
 DROP TABLE IF EXISTS `applicant_skill_ratings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -34,20 +29,11 @@ CREATE TABLE `applicant_skill_ratings` (
 ) ENGINE=InnoDB AUTO_INCREMENT=50 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `applicant_skill_ratings`
---
-
 LOCK TABLES `applicant_skill_ratings` WRITE;
 /*!40000 ALTER TABLE `applicant_skill_ratings` DISABLE KEYS */;
 INSERT INTO `applicant_skill_ratings` VALUES (25,15,'cash_handling',3,'2026-09-03 14:17:36'),(26,15,'card_digital_payments',4,'2026-09-03 14:17:36'),(27,15,'drawer_reconciliation',4,'2026-09-03 14:17:36'),(28,15,'register_speed_accuracy',3,'2026-09-03 14:17:36'),(29,15,'deescalating_customers',5,'2026-09-03 14:17:37'),(35,17,'cash_handling',4,'2026-09-03 14:36:45'),(36,17,'card_digital_payments',4,'2026-09-03 14:36:45'),(37,17,'drawer_reconciliation',5,'2026-09-03 14:36:45'),(38,17,'register_speed_accuracy',5,'2026-09-03 14:36:45'),(39,17,'deescalating_customers',5,'2026-09-03 14:36:45'),(40,18,'cash_handling',5,'2026-09-03 14:47:28'),(41,18,'card_digital_payments',5,'2026-09-03 14:47:28'),(42,18,'drawer_reconciliation',5,'2026-09-03 14:47:28'),(43,18,'register_speed_accuracy',5,'2026-09-03 14:47:28'),(44,18,'deescalating_customers',5,'2026-09-03 14:47:28'),(45,19,'cash_handling',5,'2026-09-03 15:23:06'),(46,19,'card_digital_payments',4,'2026-09-03 15:23:06'),(47,19,'drawer_reconciliation',5,'2026-09-03 15:23:07'),(48,19,'register_speed_accuracy',5,'2026-09-03 15:23:07'),(49,19,'deescalating_customers',5,'2026-09-03 15:23:07');
 /*!40000 ALTER TABLE `applicant_skill_ratings` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `applicants`
---
-
 DROP TABLE IF EXISTS `applicants`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -87,20 +73,11 @@ CREATE TABLE `applicants` (
 ) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `applicants`
---
-
 LOCK TABLES `applicants` WRITE;
 /*!40000 ALTER TABLE `applicants` DISABLE KEYS */;
 INSERT INTO `applicants` VALUES (8,'Stephen','Frias','F','allen@sd.ph','09606824148',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'Philippines','HR Staff',3,'uploads/resumes/eb18599e34bda8378b2645c12f4738ee.docx','screening','2026-08-31 03:59:28','2026-08-31 07:22:53'),(9,'Test','Vale','','rumbines.allen@ncst.edu.ph','09264550078',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'Philippines','Employee',4,'uploads/resumes/621f41378d5095a2c60d0c7db0ef5521.docx','initial_scheduled','2026-09-02 07:11:51','2026-09-02 07:13:20'),(11,'Stephen','Frias','','stephenfrias04@gmail.com','09606824148','1999-07-03','Cavite','042100000','City of Imus','042109000','Bayan Luma VI','042109045','B4, LT 18','Narra Drv','Treelane 3-B Subdivision','4103','Philippines','Employee',4,'uploads/resumes/1c43842a768dbe484efe02b13f9e95f2.docx','pending','2026-09-03 03:24:39','2026-09-03 03:24:39'),(15,'gabbi','cecily','','gabbicecily@gmail.com','09840234432','1997-07-09','Abra','140100000','Bangued','140101000','Agtangao','140101001','1321321w2w4','3244314421344',NULL,'1412','Philippines','Employee',4,'uploads/resumes/1aa76d3db794d98e2df44099d4936ad4.pdf','initial_failed','2026-09-03 14:17:36','2026-09-03 15:20:32'),(17,'gab','ceci','','tristianoliquino@gmail.com','09840234432','2007-11-14','Abra','140100000','Bangued','140101000','Angad','140101002','fwfqwerrwerewrwe','rewrwerewr',NULL,'4108','Philippines','Employee',4,'uploads/resumes/0253d0fda1ebb730ec3ed489ded0c878.pdf','initial_failed','2026-09-03 14:36:45','2026-09-03 15:20:23'),(18,'gab','ceci','','tristiangabrieloliquino@gmail.com','09840234432','2007-11-14','Abra','140100000','Bangued','140101000','Agtangao','140101001','1321321w2w4','3244314421344',NULL,'1412','Philippines','Employee',4,'uploads/resumes/7098aa0bc2dfcb8d2e1cbf9e5e831bd6.pdf','initial_failed','2026-09-03 14:47:28','2026-09-03 15:20:15'),(19,'gab','ceci','','trainee@shelfsense.com','09840234432','2007-11-14','Abra','140100000','Bangued','140101000','Angad','140101002','1321321w2w4','3244314421344',NULL,'1412','Philippines','Employee',4,'uploads/resumes/448bee4c0be0375fda6191da2919199e.pdf','pending','2026-09-03 15:23:06','2026-09-03 15:23:06');
 /*!40000 ALTER TABLE `applicants` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `attendance`
---
-
 DROP TABLE IF EXISTS `attendance`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -128,19 +105,10 @@ CREATE TABLE `attendance` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `attendance`
---
-
 LOCK TABLES `attendance` WRITE;
 /*!40000 ALTER TABLE `attendance` DISABLE KEYS */;
 /*!40000 ALTER TABLE `attendance` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `attendance_monthly_summaries`
---
-
 DROP TABLE IF EXISTS `attendance_monthly_summaries`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -166,19 +134,10 @@ CREATE TABLE `attendance_monthly_summaries` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `attendance_monthly_summaries`
---
-
 LOCK TABLES `attendance_monthly_summaries` WRITE;
 /*!40000 ALTER TABLE `attendance_monthly_summaries` DISABLE KEYS */;
 /*!40000 ALTER TABLE `attendance_monthly_summaries` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `attendance_weekly_summaries`
---
-
 DROP TABLE IF EXISTS `attendance_weekly_summaries`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -216,92 +175,61 @@ CREATE TABLE `attendance_weekly_summaries` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `attendance_weekly_summaries`
---
-
 LOCK TABLES `attendance_weekly_summaries` WRITE;
 /*!40000 ALTER TABLE `attendance_weekly_summaries` DISABLE KEYS */;
 /*!40000 ALTER TABLE `attendance_weekly_summaries` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `budget_adjustments`
---
-
-DROP TABLE IF EXISTS `budget_adjustments`;
+DROP TABLE IF EXISTS `budget_transactions`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `budget_adjustments` (
+CREATE TABLE `budget_transactions` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `budget_id` int(11) NOT NULL,
-  `department` varchar(20) NOT NULL,
-  `month_year` varchar(10) NOT NULL,
-  `previous_allocated` decimal(12,2) NOT NULL,
-  `new_allocated` decimal(12,2) NOT NULL,
-  `adjustment_amount` decimal(12,2) NOT NULL,
-  `used_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `reserved_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `adjusted_by` int(11) NOT NULL,
-  `reason` text DEFAULT NULL,
+  `department_id` int(11) NOT NULL,
+  `period_key` varchar(10) NOT NULL,
+  `type` enum('allocation','reservation','release','expense','adjustment') NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `reference_type` enum('requisition','purchase_order','invoice','manual') NOT NULL,
+  `reference_id` int(11) DEFAULT NULL,
+  `created_by` int(11) NOT NULL,
+  `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_department_month` (`department`,`month_year`),
-  KEY `idx_adjusted_by` (`adjusted_by`),
-  KEY `idx_created_at` (`created_at`),
-  KEY `fk_budget_adjustments_budget` (`budget_id`),
-  CONSTRAINT `fk_budget_adjustments_budget` FOREIGN KEY (`budget_id`) REFERENCES `budgets` (`id`),
-  CONSTRAINT `fk_budget_adjustments_user` FOREIGN KEY (`adjusted_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_bt_department_period` (`department_id`,`period_key`),
+  KEY `idx_bt_type` (`type`),
+  KEY `idx_bt_reference` (`reference_type`,`reference_id`),
+  KEY `idx_bt_created_by` (`created_by`),
+  CONSTRAINT `fk_bt_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`),
+  CONSTRAINT `fk_bt_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `budget_adjustments`
---
-
-LOCK TABLES `budget_adjustments` WRITE;
-/*!40000 ALTER TABLE `budget_adjustments` DISABLE KEYS */;
-INSERT INTO `budget_adjustments` VALUES (7,2,'hr','2026-08',50000.00,50009.59,9.59,0.00,0.00,6,'Revenue split for August 16-31, 2026 (+9.59)','2026-08-31 14:07:05'),(8,4,'general','2026-08',20000.00,20005.59,5.59,0.00,0.00,6,'Revenue split for August 16-31, 2026 (+5.59)','2026-08-31 14:07:05'),(9,1,'store','2026-08',10000.00,10000.80,0.80,112.33,0.00,6,'Revenue split for August 16-31, 2026 (+0.80)','2026-08-31 14:07:05'),(10,1,'store','2026-08',10000.80,10000.00,-0.80,140.28,0.00,6,NULL,'2026-08-31 21:20:47'),(11,2,'hr','2026-08',50009.59,50009.59,0.00,0.00,0.00,6,'Revenue split for August 1-15, 2026 (+0.00)','2026-08-31 21:26:12'),(12,1,'store','2026-08',10000.00,10000.00,0.00,140.28,0.00,6,'Revenue split for August 1-15, 2026 (+0.00)','2026-08-31 21:26:12'),(13,4,'general','2026-08',20005.59,20005.59,0.00,0.00,0.00,6,'Revenue split for August 1-15, 2026 (+0.00)','2026-08-31 21:26:12'),(14,100002,'finance','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(15,100003,'hr','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(16,100004,'store','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(17,100005,'general','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(18,100006,'finance','2026-08-H2',0.00,15000.00,15000.00,0.00,0.00,6,'Prototype test allocation for cutoff migration','2026-08-31 21:58:59'),(19,100002,'finance','2026-09-H1',0.00,20000.00,20000.00,0.00,0.00,6,NULL,'2026-09-01 14:08:15'),(20,100004,'store','2026-09-H1',0.00,20000.00,20000.00,0.00,0.00,6,NULL,'2026-09-01 14:09:08');
-/*!40000 ALTER TABLE `budget_adjustments` ENABLE KEYS */;
+LOCK TABLES `budget_transactions` WRITE;
+/*!40000 ALTER TABLE `budget_transactions` DISABLE KEYS */;
+INSERT INTO `budget_transactions` VALUES (1,1,'2026-09-H1','adjustment',10000.00,'manual',NULL,6,'Re-allocated after full procurement data reset for manual testing','2026-09-04 16:42:18'),(2,1,'2026-09-H1','reservation',2196.40,'requisition',1,6,NULL,'2026-09-04 16:44:38'),(3,1,'2026-09-H1','reservation',-2167.50,'requisition',1,5,'Adjusted for accepted supplier counter-proposal','2026-09-04 17:16:45'),(4,1,'2026-09-H1','expense',28.90,'purchase_order',1,6,'PO payment request #1','2026-09-04 17:18:20'),(5,1,'2026-09-H1','release',28.90,'requisition',1,6,'Reservation closed by PO payment request #1','2026-09-04 17:18:20');
+/*!40000 ALTER TABLE `budget_transactions` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `budgets`
---
-
 DROP TABLE IF EXISTS `budgets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `budgets` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `department` varchar(20) NOT NULL,
-  `month_year` varchar(10) NOT NULL,
-  `allocated_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `used_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `notes` text DEFAULT NULL,
+  `department_id` int(11) NOT NULL,
+  `period_key` varchar(10) NOT NULL,
+  `allocated_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_department_month` (`department`,`month_year`),
-  KEY `idx_department` (`department`),
-  KEY `idx_month_year` (`month_year`)
-) ENGINE=InnoDB AUTO_INCREMENT=100007 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `unique_department_period` (`department_id`,`period_key`),
+  KEY `idx_period_key` (`period_key`),
+  CONSTRAINT `fk_budgets_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `budgets`
---
 
 LOCK TABLES `budgets` WRITE;
 /*!40000 ALTER TABLE `budgets` DISABLE KEYS */;
-INSERT INTO `budgets` VALUES (1,'store','2026-08',10000.00,140.28,NULL,'2026-08-21 16:47:43','2026-08-31 21:20:47'),(2,'hr','2026-08',50009.59,0.00,NULL,'2026-08-21 16:47:43','2026-08-31 14:07:05'),(3,'finance','2026-08',30000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-24 16:56:15'),(4,'general','2026-08',20005.59,0.00,NULL,'2026-08-21 16:47:43','2026-08-31 14:07:05'),(100002,'finance','2026-09-H1',20000.00,0.00,NULL,'2026-08-31 21:57:31','2026-09-01 14:08:15'),(100003,'hr','2026-09-H1',0.00,0.00,NULL,'2026-08-31 21:57:31','2026-08-31 21:57:31'),(100004,'store','2026-09-H1',20000.00,555.35,NULL,'2026-08-31 21:57:31','2026-09-02 07:05:39'),(100005,'general','2026-09-H1',0.00,0.00,NULL,'2026-08-31 21:57:31','2026-08-31 21:57:31'),(100006,'finance','2026-08-H2',15000.00,0.00,NULL,'2026-08-31 21:58:59','2026-08-31 21:58:59');
+INSERT INTO `budgets` VALUES (1,1,'2026-09-H1',0.00,'2026-09-04 16:42:18','2026-09-04 16:42:18');
 /*!40000 ALTER TABLE `budgets` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `cash_reconciliation`
---
-
 DROP TABLE IF EXISTS `cash_reconciliation`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -320,19 +248,10 @@ CREATE TABLE `cash_reconciliation` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `cash_reconciliation`
---
-
 LOCK TABLES `cash_reconciliation` WRITE;
 /*!40000 ALTER TABLE `cash_reconciliation` DISABLE KEYS */;
 /*!40000 ALTER TABLE `cash_reconciliation` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `categories`
---
-
 DROP TABLE IF EXISTS `categories`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -347,20 +266,11 @@ CREATE TABLE `categories` (
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `categories`
---
-
 LOCK TABLES `categories` WRITE;
 /*!40000 ALTER TABLE `categories` DISABLE KEYS */;
 INSERT INTO `categories` VALUES (1,'Books',NULL,1,'2026-08-20 17:09:05'),(2,'School Supplies',NULL,1,'2026-08-20 17:09:05');
 /*!40000 ALTER TABLE `categories` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `contracts`
---
-
 DROP TABLE IF EXISTS `contracts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -394,19 +304,29 @@ CREATE TABLE `contracts` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `contracts`
---
-
 LOCK TABLES `contracts` WRITE;
 /*!40000 ALTER TABLE `contracts` DISABLE KEYS */;
 /*!40000 ALTER TABLE `contracts` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `departments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `departments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(50) NOT NULL,
+  `code` varchar(20) DEFAULT NULL,
+  `is_active` tinyint(4) NOT NULL DEFAULT 1,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_department_name` (`name`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `email_logs`
---
-
+LOCK TABLES `departments` WRITE;
+/*!40000 ALTER TABLE `departments` DISABLE KEYS */;
+INSERT INTO `departments` VALUES (1,'store','STORE',1,'2026-09-04 14:02:11');
+/*!40000 ALTER TABLE `departments` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `email_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -418,87 +338,61 @@ CREATE TABLE `email_logs` (
   `status` enum('sent','failed') DEFAULT 'sent',
   `sent_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=40 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `email_logs`
---
 
 LOCK TABLES `email_logs` WRITE;
 /*!40000 ALTER TABLE `email_logs` DISABLE KEYS */;
-INSERT INTO `email_logs` VALUES (1,'rumbines.allen@ncst.edu.ph','Password Reset OTP - ShelfSense',NULL,'sent','2026-08-26 03:23:55'),(10,'rumbines.allen@ncst.edu.ph','ShelfSense SMTP Test',NULL,'sent','2026-08-31 03:18:58'),(11,'stephenfrias04@gmail.com','Application Received',NULL,'sent','2026-08-31 03:19:50'),(12,'stephenfrias04@gmail.com','Initial Interview Scheduled',NULL,'sent','2026-08-31 03:25:34'),(13,'stephenfrias04@gmail.com','Your Trainee Contract - ShelfSense',NULL,'sent','2026-08-31 03:34:41'),(14,'hr.staff2@shelfsense.com','New Trainee Assigned - ShelfSense',NULL,'sent','2026-08-31 03:34:45'),(15,'allen@sd.ph','Application Received',NULL,'sent','2026-08-31 03:59:33'),(16,'allen@sd.ph','Initial Interview Scheduled',NULL,'sent','2026-08-31 04:02:22'),(17,'stephenfrias04@gmail.com','Final Interview Scheduled',NULL,'sent','2026-08-31 06:16:13'),(18,'admin@shelfsense.com','Final Interview Scheduled - Stephen Frias',NULL,'sent','2026-08-31 06:16:19'),(19,'stephenfrias04@gmail.com','Your Employment Contract - ShelfSense',NULL,'sent','2026-08-31 06:35:48'),(20,'stephenfrias04@gmail.com','Congratulations! You\'re Hired!',NULL,'sent','2026-08-31 06:46:52'),(21,'stephenfrias04@gmail.com','Congratulations! You\'re Hired!',NULL,'sent','2026-08-31 06:48:58'),(22,'allen@sd.ph','Your Trainee Contract - ShelfSense',NULL,'sent','2026-08-31 07:21:57'),(23,'hr.staff2@shelfsense.com','New Trainee Assigned - ShelfSense',NULL,'sent','2026-08-31 07:22:03'),(24,'allen@sd.ph','Your Employment Contract - ShelfSense',NULL,'sent','2026-08-31 07:22:38'),(25,'rumbines.allen@ncst.edu.ph','Application Received',NULL,'sent','2026-09-02 07:11:58'),(26,'rumbines.allen@ncst.edu.ph','Initial Interview Scheduled',NULL,'sent','2026-09-02 07:13:27'),(27,'juan.delacruz.curltest3@example.com','Application Received',NULL,'sent','2026-09-03 02:59:52'),(28,'stephenfrias04@gmail.com','Application Received',NULL,'sent','2026-09-03 03:24:44'),(29,'curltester_1788443920@example.com','Application Received',NULL,'sent','2026-09-03 13:58:45'),(30,'chartverify_1788444298@example.com','Application Received',NULL,'sent','2026-09-03 14:05:03'),(31,'qonlyverify_1788444631@example.com','Application Received',NULL,'sent','2026-09-03 14:10:36'),(32,'gabbicecily@gmail.com','Application Received',NULL,'sent','2026-09-03 14:17:41'),(33,'sidepanel_1788445405@example.com','Application Received',NULL,'sent','2026-09-03 14:23:30'),(34,'tristianoliquino@gmail.com','Application Received',NULL,'sent','2026-09-03 14:36:50'),(35,'tristiangabrieloliquino@gmail.com','Application Received',NULL,'sent','2026-09-03 14:47:33'),(36,'tristiangabrieloliquino@gmail.com','Application Update',NULL,'sent','2026-09-03 15:20:19'),(37,'tristianoliquino@gmail.com','Application Update',NULL,'sent','2026-09-03 15:20:27'),(38,'gabbicecily@gmail.com','Application Update',NULL,'sent','2026-09-03 15:20:37'),(39,'trainee@shelfsense.com','Application Received',NULL,'sent','2026-09-03 15:23:11');
+INSERT INTO `email_logs` VALUES (1,'rumbines.allen@ncst.edu.ph','Password Reset OTP - ShelfSense',NULL,'sent','2026-08-26 03:23:55'),(10,'rumbines.allen@ncst.edu.ph','ShelfSense SMTP Test',NULL,'sent','2026-08-31 03:18:58'),(11,'stephenfrias04@gmail.com','Application Received',NULL,'sent','2026-08-31 03:19:50'),(12,'stephenfrias04@gmail.com','Initial Interview Scheduled',NULL,'sent','2026-08-31 03:25:34'),(13,'stephenfrias04@gmail.com','Your Trainee Contract - ShelfSense',NULL,'sent','2026-08-31 03:34:41'),(14,'hr.staff2@shelfsense.com','New Trainee Assigned - ShelfSense',NULL,'sent','2026-08-31 03:34:45'),(15,'allen@sd.ph','Application Received',NULL,'sent','2026-08-31 03:59:33'),(16,'allen@sd.ph','Initial Interview Scheduled',NULL,'sent','2026-08-31 04:02:22'),(17,'stephenfrias04@gmail.com','Final Interview Scheduled',NULL,'sent','2026-08-31 06:16:13'),(18,'admin@shelfsense.com','Final Interview Scheduled - Stephen Frias',NULL,'sent','2026-08-31 06:16:19'),(19,'stephenfrias04@gmail.com','Your Employment Contract - ShelfSense',NULL,'sent','2026-08-31 06:35:48'),(20,'stephenfrias04@gmail.com','Congratulations! You\'re Hired!',NULL,'sent','2026-08-31 06:46:52'),(21,'stephenfrias04@gmail.com','Congratulations! You\'re Hired!',NULL,'sent','2026-08-31 06:48:58'),(22,'allen@sd.ph','Your Trainee Contract - ShelfSense',NULL,'sent','2026-08-31 07:21:57'),(23,'hr.staff2@shelfsense.com','New Trainee Assigned - ShelfSense',NULL,'sent','2026-08-31 07:22:03'),(24,'allen@sd.ph','Your Employment Contract - ShelfSense',NULL,'sent','2026-08-31 07:22:38'),(25,'rumbines.allen@ncst.edu.ph','Application Received',NULL,'sent','2026-09-02 07:11:58'),(26,'rumbines.allen@ncst.edu.ph','Initial Interview Scheduled',NULL,'sent','2026-09-02 07:13:27'),(27,'juan.delacruz.curltest3@example.com','Application Received',NULL,'sent','2026-09-03 02:59:52'),(28,'stephenfrias04@gmail.com','Application Received',NULL,'sent','2026-09-03 03:24:44'),(29,'curltester_1788443920@example.com','Application Received',NULL,'sent','2026-09-03 13:58:45'),(30,'chartverify_1788444298@example.com','Application Received',NULL,'sent','2026-09-03 14:05:03'),(31,'qonlyverify_1788444631@example.com','Application Received',NULL,'sent','2026-09-03 14:10:36'),(32,'gabbicecily@gmail.com','Application Received',NULL,'sent','2026-09-03 14:17:41'),(33,'sidepanel_1788445405@example.com','Application Received',NULL,'sent','2026-09-03 14:23:30'),(34,'tristianoliquino@gmail.com','Application Received',NULL,'sent','2026-09-03 14:36:50'),(35,'tristiangabrieloliquino@gmail.com','Application Received',NULL,'sent','2026-09-03 14:47:33'),(36,'tristiangabrieloliquino@gmail.com','Application Update',NULL,'sent','2026-09-03 15:20:19'),(37,'tristianoliquino@gmail.com','Application Update',NULL,'sent','2026-09-03 15:20:27'),(38,'gabbicecily@gmail.com','Application Update',NULL,'sent','2026-09-03 15:20:37'),(39,'trainee@shelfsense.com','Application Received',NULL,'sent','2026-09-03 15:23:11'),(40,'supplier@shelfsense.com','New Purchase Order PO-2026-0001 - ShelfSense',NULL,'sent','2026-09-04 14:28:54'),(41,'supplier@shelfsense.com','Remittance Advice - Invoice INV-2026-0001',NULL,'sent','2026-09-04 14:33:16'),(42,'supplier@shelfsense.com','New Purchase Order PO-2026-0002 - ShelfSense',NULL,'sent','2026-09-04 14:36:15'),(43,'supplier@shelfsense.com','New Purchase Order PO-2026-0003 - ShelfSense',NULL,'sent','2026-09-04 14:56:10'),(44,'supplier@shelfsense.com','Remittance Advice - Invoice INV-2026-0002',NULL,'sent','2026-09-04 15:00:13'),(45,'allenrumbines06@gmail.com','Password Reset OTP - ShelfSense',NULL,'sent','2026-09-04 15:31:20'),(46,'supplier@shelfsense.com','New Purchase Order PO-2026-0004 - ShelfSense',NULL,'sent','2026-09-04 15:55:22'),(47,'supplier@shelfsense.com','New Purchase Order PO-2026-0005 - ShelfSense',NULL,'sent','2026-09-04 16:02:23'),(48,'supplier@shelfsense.com','New Purchase Order PO-2026-0006 - ShelfSense',NULL,'sent','2026-09-04 16:04:50'),(49,'sales@northline-supplies.example.com','New Purchase Order PO-2026-0008 - ShelfSense',NULL,'sent','2026-09-04 16:36:44'),(50,'sales@northline-supplies.example.com','New Purchase Order PO-2026-0001 - ShelfSense',NULL,'sent','2026-09-04 16:44:58'),(51,'sales@northline-supplies.example.com','Payment Sent - PO PO-2026-0001',NULL,'sent','2026-09-04 17:18:24');
 /*!40000 ALTER TABLE `email_logs` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `goods_receipt_items`
---
-
 DROP TABLE IF EXISTS `goods_receipt_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `goods_receipt_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `goods_receipt_id` int(11) NOT NULL,
-  `requisition_item_id` int(11) NOT NULL,
+  `po_item_id` int(11) NOT NULL,
   `quantity_received` int(11) NOT NULL,
+  `condition` enum('good','damaged','missing') NOT NULL DEFAULT 'good',
   `notes` text DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `goods_receipt_id` (`goods_receipt_id`),
-  KEY `requisition_item_id` (`requisition_item_id`),
-  CONSTRAINT `goods_receipt_items_ibfk_1` FOREIGN KEY (`goods_receipt_id`) REFERENCES `goods_receipts` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `goods_receipt_items_ibfk_2` FOREIGN KEY (`requisition_item_id`) REFERENCES `store_requisition_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_gri_receipt` (`goods_receipt_id`),
+  KEY `idx_gri_po_item` (`po_item_id`),
+  CONSTRAINT `fk_gri_po_item` FOREIGN KEY (`po_item_id`) REFERENCES `purchase_order_items` (`id`),
+  CONSTRAINT `fk_gri_receipt` FOREIGN KEY (`goods_receipt_id`) REFERENCES `goods_receipts` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `goods_receipt_items`
---
 
 LOCK TABLES `goods_receipt_items` WRITE;
 /*!40000 ALTER TABLE `goods_receipt_items` DISABLE KEYS */;
-INSERT INTO `goods_receipt_items` VALUES (1,1,2,12,NULL),(2,2,3,15,NULL),(3,3,4,20,NULL),(4,4,10,10,NULL),(5,4,11,5,NULL);
+INSERT INTO `goods_receipt_items` VALUES (1,1,1,1,'good',NULL);
 /*!40000 ALTER TABLE `goods_receipt_items` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `goods_receipts`
---
-
 DROP TABLE IF EXISTS `goods_receipts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `goods_receipts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_id` int(11) NOT NULL,
+  `po_id` int(11) NOT NULL,
   `received_by` int(11) NOT NULL,
   `receipt_date` date NOT NULL,
-  `status` enum('draft','completed') DEFAULT 'completed',
+  `status` enum('completed') NOT NULL DEFAULT 'completed',
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `requisition_id` (`requisition_id`),
-  KEY `received_by` (`received_by`),
-  CONSTRAINT `goods_receipts_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`),
-  CONSTRAINT `goods_receipts_ibfk_2` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_gr_po` (`po_id`),
+  KEY `fk_gr_received_by` (`received_by`),
+  CONSTRAINT `fk_gr_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`),
+  CONSTRAINT `fk_gr_received_by` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `goods_receipts`
---
 
 LOCK TABLES `goods_receipts` WRITE;
 /*!40000 ALTER TABLE `goods_receipts` DISABLE KEYS */;
-INSERT INTO `goods_receipts` VALUES (1,2,5,'2026-08-24','completed',NULL,'2026-08-23 19:06:30'),(2,4,5,'2026-08-26','completed',NULL,'2026-08-26 03:15:28'),(3,5,5,'2026-08-26','completed',NULL,'2026-08-26 03:18:31'),(4,9,5,'2026-09-02','completed',NULL,'2026-09-02 07:07:35');
+INSERT INTO `goods_receipts` VALUES (1,1,5,'2026-09-04','completed',NULL,'2026-09-04 17:20:57');
 /*!40000 ALTER TABLE `goods_receipts` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `interviews`
---
-
 DROP TABLE IF EXISTS `interviews`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -523,20 +417,70 @@ CREATE TABLE `interviews` (
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `interviews`
---
-
 LOCK TABLES `interviews` WRITE;
 /*!40000 ALTER TABLE `interviews` DISABLE KEYS */;
 INSERT INTO `interviews` VALUES (4,8,3,'initial','2026-09-01 02:00:00','https://meet.com','','','completed','passed','2026-08-31 04:02:18','2026-08-31 04:06:54'),(6,9,3,'initial','2026-09-03 02:00:00','https://meet.google.com/xxx-xxxx-xxx','',NULL,'scheduled','pending','2026-09-02 07:13:20','2026-09-02 07:13:20');
 /*!40000 ALTER TABLE `interviews` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `invoice_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `invoice_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `invoice_id` int(11) NOT NULL,
+  `po_item_id` int(11) NOT NULL,
+  `billed_quantity` int(11) NOT NULL,
+  `billed_unit_price` decimal(10,2) NOT NULL,
+  `billed_total` decimal(10,2) NOT NULL,
+  `quantity_variance` int(11) NOT NULL DEFAULT 0,
+  `price_variance` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `variance_flag` enum('ok','price_variance','quantity_variance') NOT NULL DEFAULT 'ok',
+  PRIMARY KEY (`id`),
+  KEY `idx_ii_invoice` (`invoice_id`),
+  KEY `idx_ii_po_item` (`po_item_id`),
+  CONSTRAINT `fk_ii_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_ii_po_item` FOREIGN KEY (`po_item_id`) REFERENCES `purchase_order_items` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `job_postings`
---
+LOCK TABLES `invoice_items` WRITE;
+/*!40000 ALTER TABLE `invoice_items` DISABLE KEYS */;
+INSERT INTO `invoice_items` VALUES (1,1,1,1,28.90,28.90,0,0.00,'ok');
+/*!40000 ALTER TABLE `invoice_items` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `invoices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `invoices` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `invoice_number` varchar(50) NOT NULL,
+  `po_id` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `invoice_date` date NOT NULL,
+  `due_date` date NOT NULL,
+  `subtotal` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `tax` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `total` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `match_status` enum('pending','matched','price_hold','quantity_hold','approved','reconciled','rejected') NOT NULL DEFAULT 'pending',
+  `file_path` varchar(255) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_invoice_number` (`invoice_number`),
+  KEY `idx_inv_po` (`po_id`),
+  KEY `idx_inv_supplier` (`supplier_id`),
+  KEY `idx_inv_match_status` (`match_status`),
+  CONSTRAINT `fk_inv_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`),
+  CONSTRAINT `fk_inv_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+LOCK TABLES `invoices` WRITE;
+/*!40000 ALTER TABLE `invoices` DISABLE KEYS */;
+INSERT INTO `invoices` VALUES (1,'INV-2026-0001',1,2,'2026-09-05','2026-10-05',28.90,0.00,28.90,'reconciled',NULL,'Reconciliation test','2026-09-04 17:21:37','2026-09-04 17:21:37');
+/*!40000 ALTER TABLE `invoices` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `job_postings`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -579,20 +523,11 @@ CREATE TABLE `job_postings` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `job_postings`
---
-
 LOCK TABLES `job_postings` WRITE;
 /*!40000 ALTER TABLE `job_postings` DISABLE KEYS */;
 INSERT INTO `job_postings` VALUES (1,'Cashier','Front Department','Cashier','Main Store, Dasmarinas','Cashier','Full-Time','Responsible for processing daily sales transactions, maintaining accurate cash handling, providing excellent customer service, and ensuring the checkout area is clean and organized.','1+ year retail or cashier experience\nStrong communication and interpersonal skills\nAvailable for shifting schedules (opening/closing)\nBasic math and computer skills\nHigh school diploma or equivalent','Process daily sales transactions accurately\nProvide excellent customer service\nMaintain a clean and organized checkout area\nHandle cash, card, and digital payments\nAssist with inventory counts as needed',9900.00,10500.00,3,'2026-09-01','approved','2026-08-26 13:34:43',3,2,'2026-08-26 13:35:19',NULL,NULL,NULL,NULL,NULL,'2026-08-26 05:34:37','2026-08-26 06:20:01'),(2,'HR Staff','Human Resources Department','HR Staff','Headquarters','hr_staff','Full-Time','Support recruitment, employee records, and day-to-day HR operations.','HR-related degree or experience\nAttention to detail\nGood communication skills',NULL,NULL,NULL,2,'2026-10-26','approved','2026-08-26 14:17:06',3,2,'2026-08-26 14:17:10',NULL,NULL,NULL,NULL,NULL,'2026-08-26 06:17:06','2026-08-31 02:42:35'),(3,'HR Staff toy','Human Resources Department','HR Staff','asdasd','Hr staff','Full-Time','asdasd','asdasd','asdasd',1233.00,3211.00,20,'2026-09-04','closed','2026-08-31 10:45:00',3,2,'2026-08-31 10:50:54',NULL,NULL,NULL,NULL,NULL,'2026-08-31 02:45:00','2026-08-31 15:20:33'),(4,'Kelangan ng cashier','Front Department','Cashier','Dasma','mema','Full-Time','AKLsjdlkasdasd\nasdasds\nasd\nasd\na','ASd\nAsd\nasd\nAsd\nasd','asd\nasd\nasd\nasd',NULL,NULL,2,'2026-09-30','approved','2026-09-01 23:41:29',3,2,'2026-09-01 23:42:36',NULL,NULL,NULL,NULL,NULL,'2026-09-01 15:41:29','2026-09-01 15:42:36');
 /*!40000 ALTER TABLE `job_postings` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `leave_balances`
---
-
 DROP TABLE IF EXISTS `leave_balances`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -611,19 +546,10 @@ CREATE TABLE `leave_balances` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `leave_balances`
---
-
 LOCK TABLES `leave_balances` WRITE;
 /*!40000 ALTER TABLE `leave_balances` DISABLE KEYS */;
 /*!40000 ALTER TABLE `leave_balances` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `leaves`
---
-
 DROP TABLE IF EXISTS `leaves`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -649,19 +575,342 @@ CREATE TABLE `leaves` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `leaves`
---
-
 LOCK TABLES `leaves` WRITE;
 /*!40000 ALTER TABLE `leaves` DISABLE KEYS */;
 /*!40000 ALTER TABLE `leaves` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_budget_adjustments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_budget_adjustments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `budget_id` int(11) NOT NULL,
+  `department` varchar(20) NOT NULL,
+  `month_year` varchar(10) NOT NULL,
+  `previous_allocated` decimal(12,2) NOT NULL,
+  `new_allocated` decimal(12,2) NOT NULL,
+  `adjustment_amount` decimal(12,2) NOT NULL,
+  `used_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `reserved_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `adjusted_by` int(11) NOT NULL,
+  `reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_department_month` (`department`,`month_year`),
+  KEY `idx_adjusted_by` (`adjusted_by`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `fk_budget_adjustments_budget` (`budget_id`),
+  CONSTRAINT `fk_budget_adjustments_budget` FOREIGN KEY (`budget_id`) REFERENCES `legacy_budgets` (`id`),
+  CONSTRAINT `fk_budget_adjustments_user` FOREIGN KEY (`adjusted_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=21 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `notifications`
---
+LOCK TABLES `legacy_budget_adjustments` WRITE;
+/*!40000 ALTER TABLE `legacy_budget_adjustments` DISABLE KEYS */;
+INSERT INTO `legacy_budget_adjustments` VALUES (7,2,'hr','2026-08',50000.00,50009.59,9.59,0.00,0.00,6,'Revenue split for August 16-31, 2026 (+9.59)','2026-08-31 14:07:05'),(8,4,'general','2026-08',20000.00,20005.59,5.59,0.00,0.00,6,'Revenue split for August 16-31, 2026 (+5.59)','2026-08-31 14:07:05'),(9,1,'store','2026-08',10000.00,10000.80,0.80,112.33,0.00,6,'Revenue split for August 16-31, 2026 (+0.80)','2026-08-31 14:07:05'),(10,1,'store','2026-08',10000.80,10000.00,-0.80,140.28,0.00,6,NULL,'2026-08-31 21:20:47'),(11,2,'hr','2026-08',50009.59,50009.59,0.00,0.00,0.00,6,'Revenue split for August 1-15, 2026 (+0.00)','2026-08-31 21:26:12'),(12,1,'store','2026-08',10000.00,10000.00,0.00,140.28,0.00,6,'Revenue split for August 1-15, 2026 (+0.00)','2026-08-31 21:26:12'),(13,4,'general','2026-08',20005.59,20005.59,0.00,0.00,0.00,6,'Revenue split for August 1-15, 2026 (+0.00)','2026-08-31 21:26:12'),(14,100002,'finance','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(15,100003,'hr','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(16,100004,'store','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(17,100005,'general','2026-09-H1',0.00,0.00,0.00,0.00,0.00,6,'Revenue split for September 1-14, 2026 (+0.00)','2026-08-31 21:57:31'),(18,100006,'finance','2026-08-H2',0.00,15000.00,15000.00,0.00,0.00,6,'Prototype test allocation for cutoff migration','2026-08-31 21:58:59'),(19,100002,'finance','2026-09-H1',0.00,20000.00,20000.00,0.00,0.00,6,NULL,'2026-09-01 14:08:15'),(20,100004,'store','2026-09-H1',0.00,20000.00,20000.00,0.00,0.00,6,NULL,'2026-09-01 14:09:08');
+/*!40000 ALTER TABLE `legacy_budget_adjustments` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_budgets`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_budgets` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `department` varchar(20) NOT NULL,
+  `month_year` varchar(10) NOT NULL,
+  `allocated_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `used_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_department_month` (`department`,`month_year`),
+  KEY `idx_department` (`department`),
+  KEY `idx_month_year` (`month_year`)
+) ENGINE=InnoDB AUTO_INCREMENT=100007 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+LOCK TABLES `legacy_budgets` WRITE;
+/*!40000 ALTER TABLE `legacy_budgets` DISABLE KEYS */;
+INSERT INTO `legacy_budgets` VALUES (1,'store','2026-08',10000.00,140.28,NULL,'2026-08-21 16:47:43','2026-08-31 21:20:47'),(2,'hr','2026-08',50009.59,0.00,NULL,'2026-08-21 16:47:43','2026-08-31 14:07:05'),(3,'finance','2026-08',30000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-24 16:56:15'),(4,'general','2026-08',20005.59,0.00,NULL,'2026-08-21 16:47:43','2026-08-31 14:07:05'),(100002,'finance','2026-09-H1',20000.00,0.00,NULL,'2026-08-31 21:57:31','2026-09-01 14:08:15'),(100003,'hr','2026-09-H1',0.00,0.00,NULL,'2026-08-31 21:57:31','2026-08-31 21:57:31'),(100004,'store','2026-09-H1',20000.00,555.35,NULL,'2026-08-31 21:57:31','2026-09-02 07:05:39'),(100005,'general','2026-09-H1',0.00,0.00,NULL,'2026-08-31 21:57:31','2026-08-31 21:57:31'),(100006,'finance','2026-08-H2',15000.00,0.00,NULL,'2026-08-31 21:58:59','2026-08-31 21:58:59');
+/*!40000 ALTER TABLE `legacy_budgets` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_goods_receipt_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_goods_receipt_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `goods_receipt_id` int(11) NOT NULL,
+  `requisition_item_id` int(11) NOT NULL,
+  `quantity_received` int(11) NOT NULL,
+  `notes` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `goods_receipt_id` (`goods_receipt_id`),
+  KEY `requisition_item_id` (`requisition_item_id`),
+  CONSTRAINT `legacy_goods_receipt_items_ibfk_1` FOREIGN KEY (`goods_receipt_id`) REFERENCES `legacy_goods_receipts` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `legacy_goods_receipt_items_ibfk_2` FOREIGN KEY (`requisition_item_id`) REFERENCES `legacy_store_requisition_items` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_goods_receipt_items` WRITE;
+/*!40000 ALTER TABLE `legacy_goods_receipt_items` DISABLE KEYS */;
+INSERT INTO `legacy_goods_receipt_items` VALUES (1,1,2,12,NULL),(2,2,3,15,NULL),(3,3,4,20,NULL),(4,4,10,10,NULL),(5,4,11,5,NULL);
+/*!40000 ALTER TABLE `legacy_goods_receipt_items` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_goods_receipts`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_goods_receipts` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_id` int(11) NOT NULL,
+  `received_by` int(11) NOT NULL,
+  `receipt_date` date NOT NULL,
+  `status` enum('draft','completed') DEFAULT 'completed',
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `requisition_id` (`requisition_id`),
+  KEY `received_by` (`received_by`),
+  CONSTRAINT `legacy_goods_receipts_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`),
+  CONSTRAINT `legacy_goods_receipts_ibfk_2` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_goods_receipts` WRITE;
+/*!40000 ALTER TABLE `legacy_goods_receipts` DISABLE KEYS */;
+INSERT INTO `legacy_goods_receipts` VALUES (1,2,5,'2026-08-24','completed',NULL,'2026-08-23 19:06:30'),(2,4,5,'2026-08-26','completed',NULL,'2026-08-26 03:15:28'),(3,5,5,'2026-08-26','completed',NULL,'2026-08-26 03:18:31'),(4,9,5,'2026-09-02','completed',NULL,'2026-09-02 07:07:35');
+/*!40000 ALTER TABLE `legacy_goods_receipts` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_payment_requests`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_payment_requests` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_id` int(11) NOT NULL,
+  `supplier_invoice_id` int(11) NOT NULL,
+  `requested_by` int(11) NOT NULL,
+  `requested_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `budget_checked` tinyint(4) DEFAULT 0,
+  `budget_exceeded` tinyint(4) DEFAULT 0,
+  `budget_exceeded_reason` text DEFAULT NULL,
+  `approval_notes` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `active_requisition_lock` int(11) GENERATED ALWAYS AS (case when `status` = 'pending' then `requisition_id` else NULL end) STORED,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_active_requisition` (`active_requisition_lock`),
+  KEY `supplier_invoice_id` (`supplier_invoice_id`),
+  KEY `requested_by` (`requested_by`),
+  KEY `approved_by` (`approved_by`),
+  KEY `idx_status` (`status`),
+  KEY `idx_requisition` (`requisition_id`),
+  KEY `idx_payment_requests_status` (`status`),
+  CONSTRAINT `legacy_payment_requests_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`),
+  CONSTRAINT `legacy_payment_requests_ibfk_2` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `legacy_supplier_invoices` (`id`),
+  CONSTRAINT `legacy_payment_requests_ibfk_3` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `legacy_payment_requests_ibfk_4` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_payment_requests` WRITE;
+/*!40000 ALTER TABLE `legacy_payment_requests` DISABLE KEYS */;
+INSERT INTO `legacy_payment_requests` VALUES (6,4,2,7,'2026-08-23 19:11:55','approved',6,'2026-08-25 01:22:47',NULL,1,0,NULL,NULL,'','2026-08-23 19:11:55','2026-08-24 17:22:47',NULL),(7,5,3,7,'2026-08-26 03:13:43','approved',6,'2026-08-26 11:14:21',NULL,1,0,NULL,NULL,'','2026-08-26 03:13:43','2026-08-26 03:14:21',NULL),(8,6,4,7,'2026-08-31 14:52:30','approved',6,'2026-08-31 22:54:29',NULL,1,0,NULL,NULL,'','2026-08-31 14:52:30','2026-08-31 14:54:29',NULL),(9,8,5,7,'2026-09-01 14:10:25','approved',6,'2026-09-01 22:11:25',NULL,1,0,NULL,NULL,'','2026-09-01 14:10:25','2026-09-01 14:11:25',NULL),(10,9,6,7,'2026-09-02 07:04:29','approved',6,'2026-09-02 15:05:39',NULL,1,0,NULL,NULL,'','2026-09-02 07:04:29','2026-09-02 07:05:39',NULL);
+/*!40000 ALTER TABLE `legacy_payment_requests` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_payments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_payments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `supplier_invoice_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `payment_method` enum('bank_transfer','check','cash','other') NOT NULL,
+  `reference_number` varchar(50) DEFAULT NULL,
+  `paid_by` int(11) NOT NULL,
+  `paid_at` datetime DEFAULT current_timestamp(),
+  `notes` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_invoice_payment` (`supplier_invoice_id`),
+  KEY `paid_by` (`paid_by`),
+  CONSTRAINT `legacy_payments_ibfk_1` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `legacy_supplier_invoices` (`id`),
+  CONSTRAINT `legacy_payments_ibfk_2` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_payments` WRITE;
+/*!40000 ALTER TABLE `legacy_payments` DISABLE KEYS */;
+INSERT INTO `legacy_payments` VALUES (4,2,35.85,'bank_transfer','AUTO-20260824192247',6,'2026-08-25 01:22:47','Auto-recorded after Finance Head approval'),(5,3,47.80,'bank_transfer','AUTO-20260826051421',6,'2026-08-26 11:14:21','Auto-recorded after Finance Head approval'),(6,4,27.95,'bank_transfer','AUTO-20260831165429',6,'2026-08-31 22:54:29','Auto-recorded after Finance Head approval'),(7,5,439.50,'bank_transfer','AUTO-20260901161125',6,'2026-09-01 22:11:25','Auto-recorded after Finance Head approval'),(8,6,115.85,'bank_transfer','AUTO-20260902090539',6,'2026-09-02 15:05:39','Auto-recorded after Finance Head approval');
+/*!40000 ALTER TABLE `legacy_payments` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_purchase_order_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_purchase_order_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `po_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `unit_price` decimal(10,2) NOT NULL,
+  `total` decimal(10,2) NOT NULL,
+  `received_quantity` int(11) DEFAULT 0,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `po_id` (`po_id`),
+  KEY `product_id` (`product_id`),
+  CONSTRAINT `legacy_purchase_order_items_ibfk_1` FOREIGN KEY (`po_id`) REFERENCES `legacy_purchase_orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `legacy_purchase_order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_purchase_order_items` WRITE;
+/*!40000 ALTER TABLE `legacy_purchase_order_items` DISABLE KEYS */;
+/*!40000 ALTER TABLE `legacy_purchase_order_items` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_purchase_orders`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_purchase_orders` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `po_number` varchar(20) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `order_date` date NOT NULL,
+  `expected_delivery` date DEFAULT NULL,
+  `status` enum('draft','pending','approved','received','cancelled') DEFAULT 'draft',
+  `subtotal` decimal(10,2) DEFAULT 0.00,
+  `tax` decimal(10,2) DEFAULT 0.00,
+  `total` decimal(10,2) DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `created_by` int(11) NOT NULL,
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `received_by` int(11) DEFAULT NULL,
+  `received_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `po_number` (`po_number`),
+  KEY `supplier_id` (`supplier_id`),
+  KEY `created_by` (`created_by`),
+  KEY `approved_by` (`approved_by`),
+  KEY `received_by` (`received_by`),
+  CONSTRAINT `legacy_purchase_orders_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
+  CONSTRAINT `legacy_purchase_orders_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `legacy_purchase_orders_ibfk_3` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `legacy_purchase_orders_ibfk_4` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_purchase_orders` WRITE;
+/*!40000 ALTER TABLE `legacy_purchase_orders` DISABLE KEYS */;
+/*!40000 ALTER TABLE `legacy_purchase_orders` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_store_requisition_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_store_requisition_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_id` int(11) NOT NULL,
+  `store_product_id` int(11) NOT NULL,
+  `supplier_product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `unit_price` decimal(10,2) NOT NULL,
+  `total` decimal(10,2) NOT NULL,
+  `received_quantity` int(11) DEFAULT 0,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `requisition_id` (`requisition_id`),
+  KEY `store_product_id` (`store_product_id`),
+  KEY `supplier_product_id` (`supplier_product_id`),
+  CONSTRAINT `legacy_store_requisition_items_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `legacy_store_requisition_items_ibfk_2` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
+  CONSTRAINT `legacy_store_requisition_items_ibfk_3` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_store_requisition_items` WRITE;
+/*!40000 ALTER TABLE `legacy_store_requisition_items` DISABLE KEYS */;
+INSERT INTO `legacy_store_requisition_items` VALUES (1,1,1,5,15,10.39,155.85,0,NULL,'2026-08-23 05:20:15'),(2,2,2,6,12,2.39,28.68,12,NULL,'2026-08-23 15:50:15'),(3,4,2,6,15,2.39,35.85,15,NULL,'2026-08-23 19:08:42'),(4,5,2,6,20,2.39,47.80,20,NULL,'2026-08-26 03:11:36'),(5,6,1,5,2,10.39,20.78,0,NULL,'2026-08-31 14:43:18'),(6,6,2,6,3,2.39,7.17,0,NULL,'2026-08-31 14:43:18'),(7,7,2,6,1,2.39,2.39,0,NULL,'2026-08-31 22:03:07'),(8,8,1,5,40,10.39,415.60,0,NULL,'2026-09-01 13:56:55'),(9,8,2,6,10,2.39,23.90,0,NULL,'2026-09-01 13:56:55'),(10,9,1,5,10,10.39,103.90,10,NULL,'2026-09-02 06:58:07'),(11,9,2,6,5,2.39,11.95,5,NULL,'2026-09-02 06:58:07');
+/*!40000 ALTER TABLE `legacy_store_requisition_items` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_store_requisitions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_store_requisitions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_number` varchar(20) NOT NULL,
+  `created_by` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `department` varchar(20) NOT NULL DEFAULT 'store',
+  `status` enum('draft','pending_supplier','sent_to_supplier','supplier_processed','awaiting_finance_staff','awaiting_finance','finance_approved','finance_rejected','paid','shipped','completed','partial_received') DEFAULT 'draft',
+  `order_date` date NOT NULL,
+  `budget_month_year` varchar(10) NOT NULL,
+  `expected_delivery` date DEFAULT NULL,
+  `subtotal` decimal(10,2) DEFAULT 0.00,
+  `tax` decimal(10,2) DEFAULT 0.00,
+  `total` decimal(10,2) DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `requisition_number` (`requisition_number`),
+  KEY `created_by` (`created_by`),
+  KEY `supplier_id` (`supplier_id`),
+  KEY `idx_requisition_status` (`status`),
+  KEY `idx_requisition_department` (`department`),
+  KEY `idx_requisition_budget_month` (`budget_month_year`),
+  CONSTRAINT `legacy_store_requisitions_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `legacy_store_requisitions_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_store_requisitions` WRITE;
+/*!40000 ALTER TABLE `legacy_store_requisitions` DISABLE KEYS */;
+INSERT INTO `legacy_store_requisitions` VALUES (1,'REQ-2026-0001',5,1,'store','pending_supplier','2026-08-23','','2026-08-25',155.85,0.00,155.85,'','2026-08-23 05:20:15','2026-08-23 05:20:15'),(2,'REQ-2026-0002',5,1,'store','completed','2026-08-23','2026-08','0000-00-00',28.68,0.00,28.68,'','2026-08-23 15:50:15','2026-08-23 19:06:30'),(4,'REQ-2026-0003',5,1,'store','completed','2026-08-24','2026-08','2026-08-25',35.85,0.00,35.85,'','2026-08-23 19:08:41','2026-08-26 03:15:28'),(5,'REQ-2026-0004',5,1,'store','completed','2026-08-26','2026-08','2026-09-23',47.80,0.00,47.80,'[SHIPPED]','2026-08-26 03:11:35','2026-08-26 03:18:31'),(6,'REQ-2026-0005',5,1,'store','paid','2026-08-31','2026-08','2026-09-07',27.95,0.00,27.95,'Budget consumption test - resupply','2026-08-31 14:43:18','2026-08-31 14:54:29'),(7,'REQ-2026-0006',5,1,'store','pending_supplier','2026-09-01','2026-09-H1','2026-09-10',2.39,0.00,2.39,'','2026-08-31 22:03:07','2026-08-31 22:03:07'),(8,'REQ-2026-0007',5,1,'store','paid','2026-09-01','2026-09-H1','2026-09-15',439.50,0.00,439.50,'Please po master','2026-09-01 13:56:55','2026-09-01 14:11:25'),(9,'REQ-2026-0008',5,1,'store','completed','2026-09-02','2026-09-H1','2026-09-07',115.85,0.00,115.85,'test\n[SHIPPED]','2026-09-02 06:58:07','2026-09-02 07:07:35');
+/*!40000 ALTER TABLE `legacy_store_requisitions` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `legacy_supplier_invoices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `legacy_supplier_invoices` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `invoice_number` varchar(50) NOT NULL,
+  `requisition_id` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `invoice_date` date NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  `tax` decimal(10,2) DEFAULT 0.00,
+  `total` decimal(10,2) NOT NULL,
+  `due_date` date NOT NULL,
+  `status` enum('pending','verified','paid','rejected') DEFAULT 'pending',
+  `po_match` tinyint(4) DEFAULT 0,
+  `gr_match` tinyint(4) DEFAULT 0,
+  `notes` text DEFAULT NULL,
+  `paid_by` int(11) DEFAULT NULL,
+  `paid_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `invoice_number` (`invoice_number`),
+  KEY `requisition_id` (`requisition_id`),
+  KEY `supplier_id` (`supplier_id`),
+  KEY `paid_by` (`paid_by`),
+  CONSTRAINT `legacy_supplier_invoices_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`),
+  CONSTRAINT `legacy_supplier_invoices_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
+  CONSTRAINT `legacy_supplier_invoices_ibfk_3` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `legacy_supplier_invoices` WRITE;
+/*!40000 ALTER TABLE `legacy_supplier_invoices` DISABLE KEYS */;
+INSERT INTO `legacy_supplier_invoices` VALUES (1,'INV-2026-0001',2,1,'2026-08-23',28.68,0.00,28.68,'2026-08-26','pending',0,0,'test',NULL,NULL,'2026-08-23 17:03:58','2026-08-23 19:04:19'),(2,'INV-2026-0002',4,1,'2026-08-23',35.85,0.00,35.85,'2026-09-01','paid',0,0,'teast',6,'2026-08-25 01:22:47','2026-08-23 19:09:51','2026-08-24 17:22:47'),(3,'INV-2026-0003',5,1,'2026-08-26',47.80,0.00,47.80,'2026-10-08','paid',0,0,'',6,'2026-08-26 11:14:21','2026-08-26 03:12:43','2026-08-26 03:14:21'),(4,'INV-2026-0004',6,1,'2026-08-31',27.95,0.00,27.95,'2026-09-07','paid',0,0,'',6,'2026-08-31 22:54:29','2026-08-31 14:45:33','2026-08-31 14:54:29'),(5,'INV-2026-0005',8,1,'2026-09-01',439.50,0.00,439.50,'2026-09-15','paid',0,0,'Okay po',6,'2026-09-01 22:11:25','2026-09-01 14:02:17','2026-09-01 14:11:25'),(6,'INV-2026-0006',9,1,'2026-09-02',115.85,0.00,115.85,'2026-09-02','paid',0,0,'ge',6,'2026-09-02 15:05:39','2026-09-02 06:59:55','2026-09-02 07:05:39');
+/*!40000 ALTER TABLE `legacy_supplier_invoices` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `notifications`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -676,23 +925,14 @@ CREATE TABLE `notifications` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=195 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=304 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `notifications`
---
 
 LOCK TABLES `notifications` WRITE;
 /*!40000 ALTER TABLE `notifications` DISABLE KEYS */;
-INSERT INTO `notifications` VALUES (1,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0002. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 17:03:58'),(2,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(3,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(4,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0002 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 17:05:18'),(5,6,'payment_request_pending','Payment request for requisition #REQ-2026-0002 is pending approval. Amount: ₱28.68','?page=finance_head_payment_requests',0,'2026-08-23 17:33:29'),(6,12,'payment_completed','Payment for requisition #REQ-2026-0002 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-23 17:34:35'),(7,7,'payment_request_approved','Payment request for requisition #REQ-2026-0002 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-23 17:34:35'),(8,5,'payment_approved','Payment for requisition #REQ-2026-0002 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-23 17:34:35'),(9,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0003. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 19:09:52'),(10,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:10'),(11,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:11'),(12,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0003 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 19:11:11'),(13,6,'payment_request_pending','Payment request for requisition #REQ-2026-0003 is pending approval. Amount: ₱35.85','?page=finance_head_payment_requests',0,'2026-08-23 19:11:55'),(14,12,'payment_completed','Payment for requisition #REQ-2026-0003 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-24 17:22:48'),(15,7,'payment_request_approved','Payment request for requisition #REQ-2026-0003 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-24 17:22:48'),(16,5,'payment_approved','Payment for requisition #REQ-2026-0003 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-24 17:22:48'),(17,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0004. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-26 03:12:43'),(18,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0004 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-26 03:13:09'),(19,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0004 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-26 03:13:09'),(20,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0004 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-26 03:13:09'),(21,6,'payment_request_pending','Payment request for requisition #REQ-2026-0004 is pending approval. Amount: ₱47.80','?page=finance_head_payment_requests',0,'2026-08-26 03:13:43'),(22,12,'payment_completed','Payment for requisition #REQ-2026-0004 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-26 03:14:21'),(23,7,'payment_request_approved','Payment request for requisition #REQ-2026-0004 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-26 03:14:21'),(24,5,'payment_approved','Payment for requisition #REQ-2026-0004 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-26 03:14:21'),(25,5,'goods_shipped','Supplier has shipped goods for requisition #REQ-2026-0004. Please receive the goods.','?page=store_manager_requisitions',0,'2026-08-26 03:14:58'),(35,2,'job_posting_submitted','Job posting \"Cashier\" is awaiting your review.','?page=hr_job_postings',0,'2026-08-26 05:34:43'),(36,3,'job_posting_approved','Your job posting \"Cashier\" was approved and is now public.','?page=hr_job_postings',0,'2026-08-26 05:35:19'),(46,2,'job_posting_submitted','A new job posting \"HR Staff\" is awaiting your review.','?page=hr_job_postings',0,'2026-08-26 06:17:06'),(47,3,'job_posting_approved','Your job posting \"HR Staff\" was approved and is now public.','?page=hr_job_postings',0,'2026-08-26 06:17:10'),(48,2,'job_posting_submitted','Job posting \"HR Staff toy\" is awaiting your review.','?page=hr_job_postings',0,'2026-08-31 02:45:00'),(49,3,'job_posting_approved','Your job posting \"HR Staff toy\" was approved and is now public.','?page=hr_job_postings',0,'2026-08-31 02:50:54'),(50,2,'new_application','New application from Stephen Frias for HR Staff position','?page=hr_applicants',0,'2026-08-31 03:19:50'),(51,3,'new_application','New application from Stephen Frias for HR Staff position','?page=hr_applicants',0,'2026-08-31 03:19:50'),(52,4,'new_application','New application from Stephen Frias for HR Staff position','?page=hr_applicants',0,'2026-08-31 03:19:50'),(53,3,'interview_scheduled','initial interview scheduled for Stephen Frias',NULL,0,'2026-08-31 03:25:29'),(54,3,'trainee_created','Trainee account created for Stephen Frias. Trainer Ana Reyes is locked.',NULL,0,'2026-08-31 03:34:37'),(55,14,'trainee_contract_ready','Your Trainee Contract is ready. Trainer: Ana Reyes. Salary: ₱4200. Hours: 10:00:00–15:00:00. Rest days: Saturday, Sunday.',NULL,0,'2026-08-31 03:34:37'),(56,4,'trainee_assigned','You have been assigned as trainer for Stephen Frias (HR Staff).',NULL,0,'2026-08-31 03:34:37'),(57,2,'new_application','New application from Stephen Frias for HR Staff toy position','?page=hr_applicants',0,'2026-08-31 03:59:33'),(58,3,'new_application','New application from Stephen Frias for HR Staff toy position','?page=hr_applicants',0,'2026-08-31 03:59:33'),(59,4,'new_application','New application from Stephen Frias for HR Staff toy position','?page=hr_applicants',0,'2026-08-31 03:59:33'),(60,3,'interview_scheduled','initial interview scheduled for Stephen Frias',NULL,0,'2026-08-31 04:02:18'),(61,3,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:04:12'),(62,4,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:04:12'),(63,3,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:17:58'),(64,4,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:17:58'),(65,3,'trainee_report_submitted','A week 2 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(66,4,'trainee_report_submitted','A week 2 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(67,3,'trainee_report_submitted','A week 3 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(68,4,'trainee_report_submitted','A week 3 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(69,3,'trainee_report_submitted','A week 4 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(70,4,'trainee_report_submitted','A week 4 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(71,3,'trainee_report_submitted','A week 5 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(72,4,'trainee_report_submitted','A week 5 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(73,3,'trainee_report_submitted','A week 6 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(74,4,'trainee_report_submitted','A week 6 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(75,3,'trainee_report_submitted','A week 7 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(76,4,'trainee_report_submitted','A week 7 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(77,3,'trainee_report_submitted','A week 8 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(78,4,'trainee_report_submitted','A week 8 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(79,3,'trainee_report_submitted','A week 9 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(80,4,'trainee_report_submitted','A week 9 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(81,3,'trainee_report_submitted','A week 10 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(82,4,'trainee_report_submitted','A week 10 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(83,3,'trainee_report_submitted','A week 11 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(84,4,'trainee_report_submitted','A week 11 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(85,3,'trainee_report_submitted','A week 12 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(86,4,'trainee_report_submitted','A week 12 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(87,2,'trainee_report_forwarded','A trainee\'s week 2 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:27:16'),(88,2,'trainee_report_forwarded','A trainee\'s week 1 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:28:09'),(89,2,'trainee_report_forwarded','A trainee\'s week 3 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(90,2,'trainee_report_forwarded','A trainee\'s week 4 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(91,2,'trainee_report_forwarded','A trainee\'s week 5 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(92,2,'trainee_report_forwarded','A trainee\'s week 6 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(93,2,'trainee_report_forwarded','A trainee\'s week 7 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(94,2,'trainee_report_forwarded','A trainee\'s week 8 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(95,2,'trainee_report_forwarded','A trainee\'s week 9 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(96,2,'trainee_report_forwarded','A trainee\'s week 10 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(97,2,'trainee_report_forwarded','A trainee\'s week 11 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(98,2,'trainee_report_forwarded','A trainee\'s week 12 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(99,1,'interview_scheduled','final interview updated for Stephen Frias',NULL,0,'2026-08-31 06:16:08'),(100,1,'final_interview_scheduled','Final Interview scheduled for Stephen Frias on September 1, 2026 02:00 AM.','?page=hr_interviews',0,'2026-08-31 06:16:13'),(101,14,'hired_contract_ready','Your Hired Contract is ready for your review. Please respond from your dashboard.','?page=dashboard',0,'2026-08-31 06:35:43'),(102,1,'hired_contract_offered','Hired Contract offered to Stephen Frias following the Final Interview.',NULL,0,'2026-08-31 06:35:48'),(103,2,'contract_accepted','Stephen Frias accepted their Hired Contract.','?page=hr_contracts',0,'2026-08-31 06:46:52'),(104,2,'contract_accepted','Stephen Frias accepted their Hired Contract.','?page=hr_contracts',0,'2026-08-31 06:48:58'),(105,1,'trainee_created','Trainee account created for Stephen Frias. Trainer Ana Reyes is locked.',NULL,0,'2026-08-31 07:21:52'),(106,15,'trainee_contract_ready','Your Trainee Contract is ready. Trainer: Ana Reyes. Salary: ₱3,900.00 – ₱4,500.00. Hours: 10:00:00–15:00:00. Rest days: Saturday, Sunday.',NULL,0,'2026-08-31 07:21:52'),(107,4,'trainee_assigned','You have been assigned as trainer for Stephen Frias (HR Staff).',NULL,0,'2026-08-31 07:21:52'),(108,15,'hired_contract_ready','Your Hired Contract is ready for your review. Please respond from your dashboard.','?page=dashboard',0,'2026-08-31 07:22:33'),(109,1,'hired_contract_offered','Hired Contract offered to Stephen Frias following the Final Interview.',NULL,0,'2026-08-31 07:22:38'),(110,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱25.98','?page=pos_orders&view=1',0,'2026-08-31 08:16:27'),(111,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=2',0,'2026-08-31 08:27:50'),(112,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱5.98','?page=pos_orders&view=3',0,'2026-08-31 08:39:16'),(113,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=4',0,'2026-08-31 08:41:31'),(114,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=5',0,'2026-08-31 08:51:02'),(115,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱25.98','?page=pos_orders&view=6',0,'2026-08-31 09:03:11'),(116,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=7',0,'2026-08-31 09:21:50'),(117,9,'order_completed','Order #POS-20260831-0002 completed. Total: ₱2.99','?page=pos_orders&view=8',0,'2026-08-31 13:34:40'),(118,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0005. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-31 14:45:33'),(119,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0005 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-31 14:48:52'),(120,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0005 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-31 14:48:52'),(121,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0005 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-31 14:48:52'),(122,6,'payment_request_pending','Payment request for requisition #REQ-2026-0005 is pending approval. Amount: ₱27.95','?page=finance_head_payment_requests',0,'2026-08-31 14:52:30'),(123,12,'payment_completed','Payment for requisition #REQ-2026-0005 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-31 14:54:29'),(124,7,'payment_request_approved','Payment request for requisition #REQ-2026-0005 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-31 14:54:29'),(125,5,'payment_approved','Payment for requisition #REQ-2026-0005 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-31 14:54:29'),(126,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0007. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-01 14:02:17'),(127,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0007 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-01 14:04:14'),(128,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0007 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-01 14:04:14'),(129,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0007 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-01 14:04:14'),(130,6,'payment_request_pending','Payment request for requisition #REQ-2026-0007 is pending approval. Amount: ₱439.50','?page=finance_head_payment_requests',0,'2026-09-01 14:10:25'),(131,12,'payment_completed','Payment for requisition #REQ-2026-0007 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-09-01 14:11:25'),(132,7,'payment_request_approved','Payment request for requisition #REQ-2026-0007 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-09-01 14:11:25'),(133,5,'payment_approved','Payment for requisition #REQ-2026-0007 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-09-01 14:11:25'),(134,2,'job_posting_submitted','Job posting \"Kelangan ng cashier\" is awaiting your review.','?page=hr_job_postings',0,'2026-09-01 15:41:29'),(135,3,'job_posting_approved','Your job posting \"Kelangan ng cashier\" was approved and is now public.','?page=hr_job_postings',0,'2026-09-01 15:42:36'),(136,9,'order_completed','Order #POS-20260902-0001 completed. Total: ₱14.95','?page=pos_orders&view=9',0,'2026-09-02 01:43:18'),(137,9,'order_completed','Order #POS-20260902-0002 completed. Total: ₱12.99','?page=pos_orders&view=10',0,'2026-09-02 06:47:39'),(138,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0008. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-02 06:59:55'),(139,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0008 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-02 07:03:06'),(140,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0008 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-02 07:03:06'),(141,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0008 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-02 07:03:06'),(142,6,'payment_request_pending','Payment request for requisition #REQ-2026-0008 is pending approval. Amount: ₱115.85','?page=finance_head_payment_requests',0,'2026-09-02 07:04:29'),(143,12,'payment_completed','Payment for requisition #REQ-2026-0008 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-09-02 07:05:39'),(144,7,'payment_request_approved','Payment request for requisition #REQ-2026-0008 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-09-02 07:05:39'),(145,5,'payment_approved','Payment for requisition #REQ-2026-0008 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-09-02 07:05:39'),(146,5,'goods_shipped','Supplier has shipped goods for requisition #REQ-2026-0008. Please receive the goods.','?page=store_manager_requisitions',0,'2026-09-02 07:06:46'),(147,2,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(148,3,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(149,4,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(150,14,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(151,3,'interview_scheduled','initial interview scheduled for Test Vale',NULL,0,'2026-09-02 07:13:20'),(152,2,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(153,3,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(154,4,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(155,14,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(156,2,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(157,3,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(158,4,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(159,14,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(160,2,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(161,3,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(162,4,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(163,14,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(164,2,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(165,3,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(166,4,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(167,14,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(168,2,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(169,3,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(170,4,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(171,14,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(172,2,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(173,3,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(174,4,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(175,14,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(176,2,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(177,3,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(178,4,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(179,14,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(180,2,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(181,3,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(182,4,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(183,14,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(184,2,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(185,3,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(186,4,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(187,14,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(188,2,'status_update','Applicant gab ceci moved to: Initial failed',NULL,0,'2026-09-03 15:20:19'),(189,2,'status_update','Applicant gab ceci moved to: Initial failed',NULL,0,'2026-09-03 15:20:27'),(190,2,'status_update','Applicant gabbi cecily moved to: Initial failed',NULL,0,'2026-09-03 15:20:37'),(191,2,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11'),(192,3,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11'),(193,4,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11'),(194,14,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11');
+INSERT INTO `notifications` VALUES (1,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0002. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 17:03:58'),(2,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(3,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(4,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0002 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 17:05:18'),(5,6,'payment_request_pending','Payment request for requisition #REQ-2026-0002 is pending approval. Amount: ₱28.68','?page=finance_head_payment_requests',0,'2026-08-23 17:33:29'),(6,12,'payment_completed','Payment for requisition #REQ-2026-0002 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-23 17:34:35'),(7,7,'payment_request_approved','Payment request for requisition #REQ-2026-0002 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-23 17:34:35'),(8,5,'payment_approved','Payment for requisition #REQ-2026-0002 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-23 17:34:35'),(9,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0003. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 19:09:52'),(10,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:10'),(11,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:11'),(12,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0003 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-23 19:11:11'),(13,6,'payment_request_pending','Payment request for requisition #REQ-2026-0003 is pending approval. Amount: ₱35.85','?page=finance_head_payment_requests',0,'2026-08-23 19:11:55'),(14,12,'payment_completed','Payment for requisition #REQ-2026-0003 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-24 17:22:48'),(15,7,'payment_request_approved','Payment request for requisition #REQ-2026-0003 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-24 17:22:48'),(16,5,'payment_approved','Payment for requisition #REQ-2026-0003 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-24 17:22:48'),(17,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0004. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-26 03:12:43'),(18,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0004 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-26 03:13:09'),(19,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0004 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-26 03:13:09'),(20,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0004 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-26 03:13:09'),(21,6,'payment_request_pending','Payment request for requisition #REQ-2026-0004 is pending approval. Amount: ₱47.80','?page=finance_head_payment_requests',0,'2026-08-26 03:13:43'),(22,12,'payment_completed','Payment for requisition #REQ-2026-0004 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-26 03:14:21'),(23,7,'payment_request_approved','Payment request for requisition #REQ-2026-0004 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-26 03:14:21'),(24,5,'payment_approved','Payment for requisition #REQ-2026-0004 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-26 03:14:21'),(25,5,'goods_shipped','Supplier has shipped goods for requisition #REQ-2026-0004. Please receive the goods.','?page=store_manager_requisitions',0,'2026-08-26 03:14:58'),(35,2,'job_posting_submitted','Job posting \"Cashier\" is awaiting your review.','?page=hr_job_postings',0,'2026-08-26 05:34:43'),(36,3,'job_posting_approved','Your job posting \"Cashier\" was approved and is now public.','?page=hr_job_postings',0,'2026-08-26 05:35:19'),(46,2,'job_posting_submitted','A new job posting \"HR Staff\" is awaiting your review.','?page=hr_job_postings',0,'2026-08-26 06:17:06'),(47,3,'job_posting_approved','Your job posting \"HR Staff\" was approved and is now public.','?page=hr_job_postings',0,'2026-08-26 06:17:10'),(48,2,'job_posting_submitted','Job posting \"HR Staff toy\" is awaiting your review.','?page=hr_job_postings',0,'2026-08-31 02:45:00'),(49,3,'job_posting_approved','Your job posting \"HR Staff toy\" was approved and is now public.','?page=hr_job_postings',0,'2026-08-31 02:50:54'),(50,2,'new_application','New application from Stephen Frias for HR Staff position','?page=hr_applicants',0,'2026-08-31 03:19:50'),(51,3,'new_application','New application from Stephen Frias for HR Staff position','?page=hr_applicants',0,'2026-08-31 03:19:50'),(52,4,'new_application','New application from Stephen Frias for HR Staff position','?page=hr_applicants',0,'2026-08-31 03:19:50'),(53,3,'interview_scheduled','initial interview scheduled for Stephen Frias',NULL,0,'2026-08-31 03:25:29'),(54,3,'trainee_created','Trainee account created for Stephen Frias. Trainer Ana Reyes is locked.',NULL,0,'2026-08-31 03:34:37'),(55,14,'trainee_contract_ready','Your Trainee Contract is ready. Trainer: Ana Reyes. Salary: ₱4200. Hours: 10:00:00–15:00:00. Rest days: Saturday, Sunday.',NULL,0,'2026-08-31 03:34:37'),(56,4,'trainee_assigned','You have been assigned as trainer for Stephen Frias (HR Staff).',NULL,0,'2026-08-31 03:34:37'),(57,2,'new_application','New application from Stephen Frias for HR Staff toy position','?page=hr_applicants',0,'2026-08-31 03:59:33'),(58,3,'new_application','New application from Stephen Frias for HR Staff toy position','?page=hr_applicants',0,'2026-08-31 03:59:33'),(59,4,'new_application','New application from Stephen Frias for HR Staff toy position','?page=hr_applicants',0,'2026-08-31 03:59:33'),(60,3,'interview_scheduled','initial interview scheduled for Stephen Frias',NULL,0,'2026-08-31 04:02:18'),(61,3,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:04:12'),(62,4,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:04:12'),(63,3,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:17:58'),(64,4,'trainee_report_submitted','A week 1 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:17:58'),(65,3,'trainee_report_submitted','A week 2 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(66,4,'trainee_report_submitted','A week 2 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(67,3,'trainee_report_submitted','A week 3 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(68,4,'trainee_report_submitted','A week 3 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(69,3,'trainee_report_submitted','A week 4 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(70,4,'trainee_report_submitted','A week 4 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(71,3,'trainee_report_submitted','A week 5 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(72,4,'trainee_report_submitted','A week 5 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(73,3,'trainee_report_submitted','A week 6 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(74,4,'trainee_report_submitted','A week 6 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(75,3,'trainee_report_submitted','A week 7 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(76,4,'trainee_report_submitted','A week 7 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(77,3,'trainee_report_submitted','A week 8 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(78,4,'trainee_report_submitted','A week 8 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(79,3,'trainee_report_submitted','A week 9 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(80,4,'trainee_report_submitted','A week 9 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(81,3,'trainee_report_submitted','A week 10 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(82,4,'trainee_report_submitted','A week 10 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(83,3,'trainee_report_submitted','A week 11 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(84,4,'trainee_report_submitted','A week 11 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(85,3,'trainee_report_submitted','A week 12 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(86,4,'trainee_report_submitted','A week 12 report was submitted for review.','?page=hr_trainees',0,'2026-08-31 05:25:37'),(87,2,'trainee_report_forwarded','A trainee\'s week 2 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:27:16'),(88,2,'trainee_report_forwarded','A trainee\'s week 1 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:28:09'),(89,2,'trainee_report_forwarded','A trainee\'s week 3 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(90,2,'trainee_report_forwarded','A trainee\'s week 4 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(91,2,'trainee_report_forwarded','A trainee\'s week 5 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(92,2,'trainee_report_forwarded','A trainee\'s week 6 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(93,2,'trainee_report_forwarded','A trainee\'s week 7 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(94,2,'trainee_report_forwarded','A trainee\'s week 8 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(95,2,'trainee_report_forwarded','A trainee\'s week 9 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(96,2,'trainee_report_forwarded','A trainee\'s week 10 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(97,2,'trainee_report_forwarded','A trainee\'s week 11 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(98,2,'trainee_report_forwarded','A trainee\'s week 12 report was forwarded for your review.','?page=hr_trainees',0,'2026-08-31 05:30:09'),(99,1,'interview_scheduled','final interview updated for Stephen Frias',NULL,0,'2026-08-31 06:16:08'),(100,1,'final_interview_scheduled','Final Interview scheduled for Stephen Frias on September 1, 2026 02:00 AM.','?page=hr_interviews',0,'2026-08-31 06:16:13'),(101,14,'hired_contract_ready','Your Hired Contract is ready for your review. Please respond from your dashboard.','?page=dashboard',0,'2026-08-31 06:35:43'),(102,1,'hired_contract_offered','Hired Contract offered to Stephen Frias following the Final Interview.',NULL,0,'2026-08-31 06:35:48'),(103,2,'contract_accepted','Stephen Frias accepted their Hired Contract.','?page=hr_contracts',0,'2026-08-31 06:46:52'),(104,2,'contract_accepted','Stephen Frias accepted their Hired Contract.','?page=hr_contracts',0,'2026-08-31 06:48:58'),(105,1,'trainee_created','Trainee account created for Stephen Frias. Trainer Ana Reyes is locked.',NULL,0,'2026-08-31 07:21:52'),(106,15,'trainee_contract_ready','Your Trainee Contract is ready. Trainer: Ana Reyes. Salary: ₱3,900.00 – ₱4,500.00. Hours: 10:00:00–15:00:00. Rest days: Saturday, Sunday.',NULL,0,'2026-08-31 07:21:52'),(107,4,'trainee_assigned','You have been assigned as trainer for Stephen Frias (HR Staff).',NULL,0,'2026-08-31 07:21:52'),(108,15,'hired_contract_ready','Your Hired Contract is ready for your review. Please respond from your dashboard.','?page=dashboard',0,'2026-08-31 07:22:33'),(109,1,'hired_contract_offered','Hired Contract offered to Stephen Frias following the Final Interview.',NULL,0,'2026-08-31 07:22:38'),(110,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱25.98','?page=pos_orders&view=1',0,'2026-08-31 08:16:27'),(111,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=2',0,'2026-08-31 08:27:50'),(112,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱5.98','?page=pos_orders&view=3',0,'2026-08-31 08:39:16'),(113,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=4',0,'2026-08-31 08:41:31'),(114,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=5',0,'2026-08-31 08:51:02'),(115,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱25.98','?page=pos_orders&view=6',0,'2026-08-31 09:03:11'),(116,9,'order_completed','Order #POS-20260831-0001 completed. Total: ₱12.99','?page=pos_orders&view=7',0,'2026-08-31 09:21:50'),(117,9,'order_completed','Order #POS-20260831-0002 completed. Total: ₱2.99','?page=pos_orders&view=8',0,'2026-08-31 13:34:40'),(118,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0005. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-31 14:45:33'),(119,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0005 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-31 14:48:52'),(120,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0005 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-31 14:48:52'),(121,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0005 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-08-31 14:48:52'),(122,6,'payment_request_pending','Payment request for requisition #REQ-2026-0005 is pending approval. Amount: ₱27.95','?page=finance_head_payment_requests',0,'2026-08-31 14:52:30'),(123,12,'payment_completed','Payment for requisition #REQ-2026-0005 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-31 14:54:29'),(124,7,'payment_request_approved','Payment request for requisition #REQ-2026-0005 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-31 14:54:29'),(125,5,'payment_approved','Payment for requisition #REQ-2026-0005 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-08-31 14:54:29'),(126,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0007. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-01 14:02:17'),(127,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0007 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-01 14:04:14'),(128,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0007 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-01 14:04:14'),(129,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0007 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-01 14:04:14'),(130,6,'payment_request_pending','Payment request for requisition #REQ-2026-0007 is pending approval. Amount: ₱439.50','?page=finance_head_payment_requests',0,'2026-09-01 14:10:25'),(131,12,'payment_completed','Payment for requisition #REQ-2026-0007 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-09-01 14:11:25'),(132,7,'payment_request_approved','Payment request for requisition #REQ-2026-0007 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-09-01 14:11:25'),(133,5,'payment_approved','Payment for requisition #REQ-2026-0007 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-09-01 14:11:25'),(134,2,'job_posting_submitted','Job posting \"Kelangan ng cashier\" is awaiting your review.','?page=hr_job_postings',0,'2026-09-01 15:41:29'),(135,3,'job_posting_approved','Your job posting \"Kelangan ng cashier\" was approved and is now public.','?page=hr_job_postings',0,'2026-09-01 15:42:36'),(136,9,'order_completed','Order #POS-20260902-0001 completed. Total: ₱14.95','?page=pos_orders&view=9',0,'2026-09-02 01:43:18'),(137,9,'order_completed','Order #POS-20260902-0002 completed. Total: ₱12.99','?page=pos_orders&view=10',0,'2026-09-02 06:47:39'),(138,5,'invoice_received','Supplier has sent invoice for requisition #REQ-2026-0008. Please review and forward to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-02 06:59:55'),(139,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0008 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-02 07:03:06'),(140,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0008 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-09-02 07:03:06'),(141,5,'invoice_forwarded_success','Invoice for requisition #REQ-2026-0008 has been forwarded to Finance Staff.','?page=store_manager_requisitions',0,'2026-09-02 07:03:06'),(142,6,'payment_request_pending','Payment request for requisition #REQ-2026-0008 is pending approval. Amount: ₱115.85','?page=finance_head_payment_requests',0,'2026-09-02 07:04:29'),(143,12,'payment_completed','Payment for requisition #REQ-2026-0008 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-09-02 07:05:39'),(144,7,'payment_request_approved','Payment request for requisition #REQ-2026-0008 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-09-02 07:05:39'),(145,5,'payment_approved','Payment for requisition #REQ-2026-0008 has been approved. The supplier will ship the goods.','?page=store_manager_requisitions',0,'2026-09-02 07:05:39'),(146,5,'goods_shipped','Supplier has shipped goods for requisition #REQ-2026-0008. Please receive the goods.','?page=store_manager_requisitions',0,'2026-09-02 07:06:46'),(147,2,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(148,3,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(149,4,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(150,14,'new_application','New application from Test Vale for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-02 07:11:58'),(151,3,'interview_scheduled','initial interview scheduled for Test Vale',NULL,0,'2026-09-02 07:13:20'),(152,2,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(153,3,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(154,4,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(155,14,'new_application','New application from Juan Dela Cruz for HR Staff position','?page=hr_applicants',0,'2026-09-03 02:59:52'),(156,2,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(157,3,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(158,4,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(159,14,'new_application','New application from Stephen Frias for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 03:24:44'),(160,2,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(161,3,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(162,4,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(163,14,'new_application','New application from Curl Tester for HR Staff position','?page=hr_applicants',0,'2026-09-03 13:58:45'),(164,2,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(165,3,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(166,4,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(167,14,'new_application','New application from Chart Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:05:03'),(168,2,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(169,3,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(170,4,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(171,14,'new_application','New application from Q Verify for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:10:36'),(172,2,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(173,3,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(174,4,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(175,14,'new_application','New application from gabbi cecily for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:17:41'),(176,2,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(177,3,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(178,4,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(179,14,'new_application','New application from Side Panel for HR Staff position','?page=hr_applicants',0,'2026-09-03 14:23:30'),(180,2,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(181,3,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(182,4,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(183,14,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:36:50'),(184,2,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(185,3,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(186,4,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(187,14,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 14:47:33'),(188,2,'status_update','Applicant gab ceci moved to: Initial failed',NULL,0,'2026-09-03 15:20:19'),(189,2,'status_update','Applicant gab ceci moved to: Initial failed',NULL,0,'2026-09-03 15:20:27'),(190,2,'status_update','Applicant gabbi cecily moved to: Initial failed',NULL,0,'2026-09-03 15:20:37'),(191,2,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11'),(192,3,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11'),(193,4,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11'),(194,14,'new_application','New application from gab ceci for Kelangan ng cashier position','?page=hr_applicants',0,'2026-09-03 15:23:11'),(195,7,'requisition_pending_budget_check','New requisition #REQ-2026-0001 (₱10.39) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 14:24:36'),(196,8,'requisition_pending_budget_check','New requisition #REQ-2026-0001 (₱10.39) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 14:24:36'),(197,6,'requisition_pending_approval','Requisition #REQ-2026-0001 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 14:27:09'),(198,7,'po_pending_dispatch','Purchase Order PO-2026-0001 (from requisition #REQ-2026-0001) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 14:28:12'),(199,8,'po_pending_dispatch','Purchase Order PO-2026-0001 (from requisition #REQ-2026-0001) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 14:28:12'),(200,5,'requisition_approved','Requisition #REQ-2026-0001 was approved. Purchase Order PO-2026-0001 has been created.','?page=store_manager_requisitions',0,'2026-09-04 14:28:12'),(201,12,'po_received','New Purchase Order PO-2026-0001 has been sent to you. Please review and confirm.','?page=supplier_purchase_orders',0,'2026-09-04 14:28:54'),(202,5,'po_confirmed','Supplier confirmed Purchase Order PO-2026-0001 for requisition #REQ-2026-0001.','?page=store_manager_requisitions',0,'2026-09-04 14:29:32'),(203,7,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_purchase_orders',0,'2026-09-04 14:30:03'),(204,8,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_purchase_orders',0,'2026-09-04 14:30:03'),(205,7,'invoice_matched','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is ready for payment.','?page=finance_staff_invoices',0,'2026-09-04 14:30:33'),(206,8,'invoice_matched','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is ready for payment.','?page=finance_staff_invoices',0,'2026-09-04 14:30:33'),(207,6,'payment_batch_pending','Payment batch PB-2026-0001 (₱15.00, 1 invoice(s)) needs your approval.','?page=finance_head_payment_batches',0,'2026-09-04 14:31:12'),(208,7,'payment_batch_approved','Payment batch PB-2026-0001 was approved. Ready to disburse.','?page=finance_staff_payment_batches',0,'2026-09-04 14:31:40'),(209,12,'payment_disbursed','Payment for invoice INV-2026-0001 (PO PO-2026-0001) has been disbursed.','?page=supplier_invoices',0,'2026-09-04 14:33:16'),(210,7,'requisition_pending_budget_check','New requisition #REQ-2026-0002 (₱11.95) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 14:34:44'),(211,8,'requisition_pending_budget_check','New requisition #REQ-2026-0002 (₱11.95) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 14:34:44'),(212,6,'requisition_pending_approval','Requisition #REQ-2026-0002 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 14:35:13'),(213,7,'po_pending_dispatch','Purchase Order PO-2026-0002 (from requisition #REQ-2026-0002) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 14:35:40'),(214,8,'po_pending_dispatch','Purchase Order PO-2026-0002 (from requisition #REQ-2026-0002) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 14:35:40'),(215,5,'requisition_approved','Requisition #REQ-2026-0002 was approved. Purchase Order PO-2026-0002 has been created.','?page=store_manager_requisitions',0,'2026-09-04 14:35:40'),(216,12,'po_received','New Purchase Order PO-2026-0002 has been sent to you. Please review and confirm.','?page=supplier_purchase_orders',0,'2026-09-04 14:36:15'),(217,5,'po_counter_proposed','Supplier proposed changes to Purchase Order PO-2026-0002 for requisition #REQ-2026-0002.','?page=store_manager_requisitions',0,'2026-09-04 14:37:40'),(218,12,'po_counter_accepted','Your counter-proposal for PO PO-2026-0002 was accepted.','?page=supplier_purchase_orders',0,'2026-09-04 14:38:15'),(219,7,'requisition_pending_budget_check','New requisition #REQ-2026-0003 (₱127.80) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 14:54:38'),(220,8,'requisition_pending_budget_check','New requisition #REQ-2026-0003 (₱127.80) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 14:54:38'),(221,6,'requisition_pending_approval','Requisition #REQ-2026-0003 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 14:55:05'),(222,7,'po_pending_dispatch','Purchase Order PO-2026-0003 (from requisition #REQ-2026-0003) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 14:55:35'),(223,8,'po_pending_dispatch','Purchase Order PO-2026-0003 (from requisition #REQ-2026-0003) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 14:55:35'),(224,5,'requisition_approved','Requisition #REQ-2026-0003 was approved. Purchase Order PO-2026-0003 has been created.','?page=store_manager_requisitions',0,'2026-09-04 14:55:35'),(225,12,'po_received','New Purchase Order PO-2026-0003 has been sent to you. Please review and confirm.','?page=supplier_purchase_orders',0,'2026-09-04 14:56:10'),(226,5,'po_confirmed','Supplier confirmed Purchase Order PO-2026-0003 for requisition #REQ-2026-0003.','?page=store_manager_requisitions',0,'2026-09-04 14:56:39'),(227,7,'goods_received','Goods partially received for PO PO-2026-0003 (requisition #REQ-2026-0003).','?page=finance_staff_purchase_orders',0,'2026-09-04 14:57:13'),(228,8,'goods_received','Goods partially received for PO PO-2026-0003 (requisition #REQ-2026-0003).','?page=finance_staff_purchase_orders',0,'2026-09-04 14:57:13'),(229,7,'invoice_hold','Invoice INV-2026-0002 for PO PO-2026-0003 needs review (quantity_hold).','?page=finance_staff_invoices',0,'2026-09-04 14:57:46'),(230,8,'invoice_hold','Invoice INV-2026-0002 for PO PO-2026-0003 needs review (quantity_hold).','?page=finance_staff_invoices',0,'2026-09-04 14:57:46'),(231,6,'payment_batch_pending','Payment batch PB-2026-0002 (₱1,023.90, 1 invoice(s)) needs your approval.','?page=finance_head_payment_batches',0,'2026-09-04 14:59:10'),(232,7,'payment_batch_approved','Payment batch PB-2026-0002 was approved. Ready to disburse.','?page=finance_staff_payment_batches',0,'2026-09-04 14:59:41'),(233,12,'payment_disbursed','Payment for invoice INV-2026-0002 (PO PO-2026-0003) has been disbursed.','?page=supplier_invoices',0,'2026-09-04 15:00:13'),(234,7,'requisition_pending_budget_check','New requisition #REQ-2026-0004 (₱41.56) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 15:50:24'),(235,8,'requisition_pending_budget_check','New requisition #REQ-2026-0004 (₱41.56) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 15:50:24'),(236,6,'requisition_pending_approval','Requisition #REQ-2026-0004 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 15:53:13'),(237,7,'po_pending_dispatch','Purchase Order PO-2026-0004 (from requisition #REQ-2026-0004) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 15:53:39'),(238,8,'po_pending_dispatch','Purchase Order PO-2026-0004 (from requisition #REQ-2026-0004) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 15:53:39'),(239,5,'requisition_approved','Requisition #REQ-2026-0004 was approved. Purchase Order PO-2026-0004 has been created.','?page=store_manager_requisitions',0,'2026-09-04 15:53:39'),(240,12,'po_received','New Purchase Order PO-2026-0004 has been sent to you. Please review and confirm.','?page=supplier_purchase_orders',0,'2026-09-04 15:55:22'),(241,7,'requisition_pending_budget_check','New requisition #REQ-2026-0005 (₱20.78) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 15:57:42'),(242,8,'requisition_pending_budget_check','New requisition #REQ-2026-0005 (₱20.78) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 15:57:42'),(243,6,'requisition_pending_approval','Requisition #REQ-2026-0005 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 15:58:11'),(244,7,'po_pending_dispatch','Purchase Order PO-2026-0005 (from requisition #REQ-2026-0005) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 15:59:04'),(245,8,'po_pending_dispatch','Purchase Order PO-2026-0005 (from requisition #REQ-2026-0005) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 15:59:04'),(246,5,'requisition_approved','Requisition #REQ-2026-0005 was approved. Purchase Order PO-2026-0005 has been created.','?page=store_manager_requisitions',0,'2026-09-04 15:59:04'),(247,7,'requisition_pending_budget_check','New requisition #REQ-2026-0006 (₱5,195.00) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:00:33'),(248,8,'requisition_pending_budget_check','New requisition #REQ-2026-0006 (₱5,195.00) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:00:33'),(249,6,'requisition_pending_approval','Requisition #REQ-2026-0006 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 16:01:03'),(250,12,'po_received','New Purchase Order PO-2026-0005 has been sent to you. Please review and confirm.','?page=supplier_purchase_orders',0,'2026-09-04 16:02:23'),(251,7,'po_pending_dispatch','Purchase Order PO-2026-0006 (from requisition #REQ-2026-0006) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:04:26'),(252,8,'po_pending_dispatch','Purchase Order PO-2026-0006 (from requisition #REQ-2026-0006) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:04:26'),(253,5,'requisition_approved','Requisition #REQ-2026-0006 was approved. Purchase Order PO-2026-0006 has been created.','?page=store_manager_requisitions',0,'2026-09-04 16:04:26'),(254,12,'po_received','New Purchase Order PO-2026-0006 has been sent to you. Please review and confirm.','?page=supplier_purchase_orders',0,'2026-09-04 16:04:50'),(255,5,'po_confirmed','Supplier confirmed Purchase Order PO-2026-0006 for requisition #REQ-2026-0006.','?page=store_manager_requisitions',0,'2026-09-04 16:05:55'),(256,7,'invoice_hold','Invoice INV-2026-0003 for PO PO-2026-0006 needs review (quantity_hold).','?page=finance_staff_invoices',0,'2026-09-04 16:06:48'),(257,8,'invoice_hold','Invoice INV-2026-0003 for PO PO-2026-0006 needs review (quantity_hold).','?page=finance_staff_invoices',0,'2026-09-04 16:06:48'),(258,7,'requisition_pending_budget_check','New requisition #REQ-2026-0007 (₱10.39) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:08:28'),(259,8,'requisition_pending_budget_check','New requisition #REQ-2026-0007 (₱10.39) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:08:28'),(260,7,'goods_received','Goods fully received for PO PO-2026-0006 (requisition #REQ-2026-0006).','?page=finance_staff_purchase_orders',0,'2026-09-04 16:08:28'),(261,8,'goods_received','Goods fully received for PO PO-2026-0006 (requisition #REQ-2026-0006).','?page=finance_staff_purchase_orders',0,'2026-09-04 16:08:28'),(262,6,'requisition_pending_approval','Requisition #REQ-2026-0007 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 16:08:59'),(263,7,'po_pending_dispatch','Purchase Order PO-2026-0007 (from requisition #REQ-2026-0007) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:09:56'),(264,8,'po_pending_dispatch','Purchase Order PO-2026-0007 (from requisition #REQ-2026-0007) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:09:56'),(265,5,'requisition_approved','Requisition #REQ-2026-0007 was approved. Purchase Order PO-2026-0007 has been created.','?page=store_manager_requisitions',0,'2026-09-04 16:09:56'),(266,7,'goods_received','Goods fully received for PO PO-2026-0002 (requisition #REQ-2026-0002).','?page=finance_staff_purchase_orders',0,'2026-09-04 16:12:15'),(267,8,'goods_received','Goods fully received for PO PO-2026-0002 (requisition #REQ-2026-0002).','?page=finance_staff_purchase_orders',0,'2026-09-04 16:12:15'),(268,7,'requisition_pending_budget_check','New requisition #REQ-2026-0008 (₱10.39) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:12:35'),(269,8,'requisition_pending_budget_check','New requisition #REQ-2026-0008 (₱10.39) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:12:35'),(270,6,'requisition_pending_approval','Requisition #REQ-2026-0008 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 16:13:10'),(271,7,'requisition_pending_budget_check','New requisition #REQ-2026-0009 (₱1,338.75) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:21:59'),(272,8,'requisition_pending_budget_check','New requisition #REQ-2026-0009 (₱1,338.75) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:21:59'),(273,6,'requisition_pending_approval','Requisition #REQ-2026-0009 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 16:33:07'),(274,7,'po_pending_dispatch','Purchase Order PO-2026-0008 (from requisition #REQ-2026-0009) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:35:26'),(275,8,'po_pending_dispatch','Purchase Order PO-2026-0008 (from requisition #REQ-2026-0009) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:35:26'),(276,5,'requisition_approved','Requisition #REQ-2026-0009 was approved. Purchase Order PO-2026-0008 has been created.','?page=store_manager_requisitions',0,'2026-09-04 16:35:26'),(277,7,'po_pending_dispatch','Purchase Order PO-2026-0009 (from requisition #REQ-2026-0008) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:38:22'),(278,8,'po_pending_dispatch','Purchase Order PO-2026-0009 (from requisition #REQ-2026-0008) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:38:22'),(279,5,'requisition_approved','Requisition #REQ-2026-0008 was approved. Purchase Order PO-2026-0009 has been created.','?page=store_manager_requisitions',0,'2026-09-04 16:38:22'),(280,7,'requisition_pending_budget_check','New requisition #REQ-2026-0001 (₱2,196.40) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:44:03'),(281,8,'requisition_pending_budget_check','New requisition #REQ-2026-0001 (₱2,196.40) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-04 16:44:03'),(282,6,'requisition_pending_approval','Requisition #REQ-2026-0001 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-04 16:44:25'),(283,7,'po_pending_dispatch','Purchase Order PO-2026-0001 (from requisition #REQ-2026-0001) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:44:38'),(284,8,'po_pending_dispatch','Purchase Order PO-2026-0001 (from requisition #REQ-2026-0001) is ready to dispatch to the supplier.','?page=finance_staff_purchase_orders',0,'2026-09-04 16:44:38'),(285,5,'requisition_approved','Requisition #REQ-2026-0001 was approved. Purchase Order PO-2026-0001 has been created.','?page=store_manager_requisitions',0,'2026-09-04 16:44:38'),(286,5,'po_counter_proposed','Supplier proposed changes to Purchase Order PO-2026-0001 for requisition #REQ-2026-0001.','?page=store_manager_requisitions',0,'2026-09-04 17:16:05'),(287,16,'po_counter_accepted','Your counter-proposal for PO PO-2026-0001 was accepted.','?page=supplier_requisitions',0,'2026-09-04 17:16:45'),(288,6,'po_payment_requested','Payment requested for PO PO-2026-0001 (₱28.90).','?page=finance_head_payment_requests',0,'2026-09-04 17:17:20'),(289,16,'po_payment_received','Payment for PO PO-2026-0001 has been sent. You may now ship the order.','?page=supplier_requisitions',0,'2026-09-04 17:18:24'),(290,7,'po_payment_approved','Payment request for PO PO-2026-0001 was approved and disbursed.','?page=finance_staff_payment_requests',0,'2026-09-04 17:18:24'),(291,5,'po_shipped','PO PO-2026-0001 has been shipped by the supplier.','?page=store_manager_requisitions',0,'2026-09-04 17:20:21'),(292,7,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_payment_requests',0,'2026-09-04 17:20:57'),(293,8,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_payment_requests',0,'2026-09-04 17:20:57'),(294,7,'invoice_reconciled','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-04 17:21:37'),(295,8,'invoice_reconciled','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-04 17:21:37'),(296,9,'order_completed','Order #POS-20260905-0001 completed. Total: ₱15.00','?page=pos_orders&view=11',0,'2026-09-05 05:07:32'),(297,9,'order_completed','Order #POS-20260905-0002 completed. Total: ₱15.00','?page=pos_orders&view=12',0,'2026-09-05 05:09:34'),(298,9,'order_completed','Order #POS-20260905-0003 completed. Total: ₱35.00','?page=pos_orders&view=13',0,'2026-09-05 05:11:48'),(299,9,'order_completed','Order #POS-20260905-0004 completed. Total: ₱15.00','?page=pos_orders&view=14',0,'2026-09-05 05:15:05'),(300,9,'order_completed','Order #POS-20260905-0005 completed. Total: ₱35.00','?page=pos_orders&view=15',0,'2026-09-05 05:15:55'),(301,9,'order_completed','Order #POS-20260905-0006 completed. Total: ₱15.00','?page=pos_orders&view=16',0,'2026-09-05 05:34:16'),(302,9,'order_completed','Order #POS-20260905-0007 completed. Total: ₱12.99','?page=pos_orders&view=17',0,'2026-09-05 05:36:26'),(303,9,'order_completed','Order #POS-20260905-0008 completed. Total: ₱15.00','?page=pos_orders&view=18',0,'2026-09-05 05:40:32');
 /*!40000 ALTER TABLE `notifications` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `order_items`
---
-
 DROP TABLE IF EXISTS `order_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -709,23 +949,14 @@ CREATE TABLE `order_items` (
   KEY `product_id` (`product_id`),
   CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
   CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `order_items`
---
 
 LOCK TABLES `order_items` WRITE;
 /*!40000 ALTER TABLE `order_items` DISABLE KEYS */;
-INSERT INTO `order_items` VALUES (7,7,1,1,12.99,12.99,'2026-08-31 09:21:50'),(8,8,2,1,2.99,2.99,'2026-08-31 13:34:40'),(9,9,2,5,2.99,14.95,'2026-09-02 01:43:18'),(10,10,1,1,12.99,12.99,'2026-09-02 06:47:39');
+INSERT INTO `order_items` VALUES (7,7,1,1,12.99,12.99,'2026-08-31 09:21:50'),(8,8,2,1,2.99,2.99,'2026-08-31 13:34:40'),(9,9,2,5,2.99,14.95,'2026-09-02 01:43:18'),(10,10,1,1,12.99,12.99,'2026-09-02 06:47:39'),(11,11,4,1,15.00,15.00,'2026-09-05 05:07:32'),(12,12,4,1,15.00,15.00,'2026-09-05 05:09:34'),(13,13,5,1,35.00,35.00,'2026-09-05 05:11:48'),(14,14,4,1,15.00,15.00,'2026-09-05 05:15:05'),(15,15,5,1,35.00,35.00,'2026-09-05 05:15:55'),(16,16,4,1,15.00,15.00,'2026-09-05 05:34:16'),(17,17,1,1,12.99,12.99,'2026-09-05 05:36:26'),(18,18,4,1,15.00,15.00,'2026-09-05 05:40:32');
 /*!40000 ALTER TABLE `order_items` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `orders`
---
-
 DROP TABLE IF EXISTS `orders`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -754,23 +985,14 @@ CREATE TABLE `orders` (
   CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`voided_by`) REFERENCES `users` (`user_id`),
   CONSTRAINT `orders_ibfk_3` FOREIGN KEY (`register_allocation_id`) REFERENCES `register_allocations` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `orders`
---
 
 LOCK TABLES `orders` WRITE;
 /*!40000 ALTER TABLE `orders` DISABLE KEYS */;
-INSERT INTO `orders` VALUES (7,'POS-20260831-0001',9,NULL,12.99,12.99,12.99,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-08-31 09:21:50'),(8,'POS-20260831-0002',9,1,2.99,2.99,2.99,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-08-31 13:34:40'),(9,'POS-20260902-0001',9,4,14.95,14.95,100.00,85.05,'cash','','','completed',NULL,NULL,NULL,'2026-09-02 01:43:18'),(10,'POS-20260902-0002',9,5,12.99,12.99,12.99,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-02 06:47:39');
+INSERT INTO `orders` VALUES (7,'POS-20260831-0001',9,NULL,12.99,12.99,12.99,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-08-31 09:21:50'),(8,'POS-20260831-0002',9,1,2.99,2.99,2.99,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-08-31 13:34:40'),(9,'POS-20260902-0001',9,4,14.95,14.95,100.00,85.05,'cash','','','completed',NULL,NULL,NULL,'2026-09-02 01:43:18'),(10,'POS-20260902-0002',9,5,12.99,12.99,12.99,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-02 06:47:39'),(11,'POS-20260905-0001',9,8,15.00,15.00,15.00,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-05 05:07:32'),(12,'POS-20260905-0002',9,8,15.00,15.00,15.00,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-05 05:09:34'),(13,'POS-20260905-0003',9,8,35.00,35.00,35.00,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-05 05:11:48'),(14,'POS-20260905-0004',9,8,15.00,15.00,15.00,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-05 05:15:05'),(15,'POS-20260905-0005',9,8,35.00,35.00,35.00,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-05 05:15:55'),(16,'POS-20260905-0006',9,8,15.00,15.00,15.00,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-05 05:34:16'),(17,'POS-20260905-0007',9,8,12.99,12.99,12.99,0.00,'cash','','','completed',NULL,NULL,NULL,'2026-09-05 05:36:26'),(18,'POS-20260905-0008',9,8,15.00,15.00,15.00,0.00,'cash','','','voided','A',9,'2026-09-05 05:43:50','2026-09-05 05:40:32');
 /*!40000 ALTER TABLE `orders` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `password_resets`
---
-
 DROP TABLE IF EXISTS `password_resets`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -786,107 +1008,96 @@ CREATE TABLE `password_resets` (
   KEY `otp` (`otp`),
   KEY `expires_at` (`expires_at`),
   CONSTRAINT `password_resets_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `password_resets`
---
 
 LOCK TABLES `password_resets` WRITE;
 /*!40000 ALTER TABLE `password_resets` DISABLE KEYS */;
-INSERT INTO `password_resets` VALUES (5,4,'858060','2026-08-21 22:59:51',0,'2026-08-21 14:44:51'),(6,10,'907358','2026-08-26 11:38:50',0,'2026-08-26 03:23:50');
+INSERT INTO `password_resets` VALUES (5,4,'858060','2026-08-21 22:59:51',0,'2026-08-21 14:44:51'),(6,10,'907358','2026-08-26 11:38:50',0,'2026-08-26 03:23:50'),(7,5,'582249','2026-09-04 23:46:15',1,'2026-09-04 15:31:15');
 /*!40000 ALTER TABLE `password_resets` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `payment_requests`
---
-
-DROP TABLE IF EXISTS `payment_requests`;
+DROP TABLE IF EXISTS `payment_batch_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `payment_requests` (
+CREATE TABLE `payment_batch_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_id` int(11) NOT NULL,
-  `supplier_invoice_id` int(11) NOT NULL,
-  `requested_by` int(11) NOT NULL,
-  `requested_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `status` enum('pending','approved','rejected') DEFAULT 'pending',
+  `batch_id` int(11) NOT NULL,
+  `invoice_id` int(11) NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_batch_invoice` (`batch_id`,`invoice_id`),
+  KEY `idx_pbi_invoice` (`invoice_id`),
+  CONSTRAINT `fk_pbi_batch` FOREIGN KEY (`batch_id`) REFERENCES `payment_batches` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pbi_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `payment_batch_items` WRITE;
+/*!40000 ALTER TABLE `payment_batch_items` DISABLE KEYS */;
+/*!40000 ALTER TABLE `payment_batch_items` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `payment_batches`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `payment_batches` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `batch_number` varchar(20) NOT NULL,
+  `created_by` int(11) NOT NULL,
+  `status` enum('pending_approval','approved','rejected','disbursed') NOT NULL DEFAULT 'pending_approval',
   `approved_by` int(11) DEFAULT NULL,
   `approved_at` datetime DEFAULT NULL,
   `rejection_reason` text DEFAULT NULL,
-  `budget_checked` tinyint(4) DEFAULT 0,
-  `budget_exceeded` tinyint(4) DEFAULT 0,
-  `budget_exceeded_reason` text DEFAULT NULL,
-  `approval_notes` text DEFAULT NULL,
-  `notes` text DEFAULT NULL,
+  `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `active_requisition_lock` int(11) GENERATED ALWAYS AS (case when `status` = 'pending' then `requisition_id` else NULL end) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_active_requisition` (`active_requisition_lock`),
-  KEY `supplier_invoice_id` (`supplier_invoice_id`),
-  KEY `requested_by` (`requested_by`),
-  KEY `approved_by` (`approved_by`),
-  KEY `idx_status` (`status`),
-  KEY `idx_requisition` (`requisition_id`),
-  KEY `idx_payment_requests_status` (`status`),
-  CONSTRAINT `payment_requests_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`),
-  CONSTRAINT `payment_requests_ibfk_2` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `supplier_invoices` (`id`),
-  CONSTRAINT `payment_requests_ibfk_3` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `payment_requests_ibfk_4` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `unique_batch_number` (`batch_number`),
+  KEY `idx_pb_status` (`status`),
+  KEY `fk_pb_created_by` (`created_by`),
+  KEY `fk_pb_approved_by` (`approved_by`),
+  CONSTRAINT `fk_pb_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_pb_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `payment_requests`
---
-
-LOCK TABLES `payment_requests` WRITE;
-/*!40000 ALTER TABLE `payment_requests` DISABLE KEYS */;
-INSERT INTO `payment_requests` VALUES (6,4,2,7,'2026-08-23 19:11:55','approved',6,'2026-08-25 01:22:47',NULL,1,0,NULL,NULL,'','2026-08-23 19:11:55','2026-08-24 17:22:47',NULL),(7,5,3,7,'2026-08-26 03:13:43','approved',6,'2026-08-26 11:14:21',NULL,1,0,NULL,NULL,'','2026-08-26 03:13:43','2026-08-26 03:14:21',NULL),(8,6,4,7,'2026-08-31 14:52:30','approved',6,'2026-08-31 22:54:29',NULL,1,0,NULL,NULL,'','2026-08-31 14:52:30','2026-08-31 14:54:29',NULL),(9,8,5,7,'2026-09-01 14:10:25','approved',6,'2026-09-01 22:11:25',NULL,1,0,NULL,NULL,'','2026-09-01 14:10:25','2026-09-01 14:11:25',NULL),(10,9,6,7,'2026-09-02 07:04:29','approved',6,'2026-09-02 15:05:39',NULL,1,0,NULL,NULL,'','2026-09-02 07:04:29','2026-09-02 07:05:39',NULL);
-/*!40000 ALTER TABLE `payment_requests` ENABLE KEYS */;
+LOCK TABLES `payment_batches` WRITE;
+/*!40000 ALTER TABLE `payment_batches` DISABLE KEYS */;
+/*!40000 ALTER TABLE `payment_batches` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `payments`
---
-
 DROP TABLE IF EXISTS `payments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `payments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `supplier_invoice_id` int(11) NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `payment_method` enum('bank_transfer','check','cash','other') NOT NULL,
+  `invoice_id` int(11) DEFAULT NULL,
+  `po_id` int(11) DEFAULT NULL,
+  `payment_request_id` int(11) DEFAULT NULL,
+  `payment_batch_id` int(11) DEFAULT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `method` enum('bank_transfer','check','cash','other') NOT NULL DEFAULT 'bank_transfer',
   `reference_number` varchar(50) DEFAULT NULL,
   `paid_by` int(11) NOT NULL,
-  `paid_at` datetime DEFAULT current_timestamp(),
+  `paid_at` datetime NOT NULL,
+  `remittance_sent` tinyint(4) NOT NULL DEFAULT 0,
   `notes` text DEFAULT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_invoice_payment` (`supplier_invoice_id`),
-  KEY `paid_by` (`paid_by`),
-  CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `supplier_invoices` (`id`),
-  CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_pay_batch` (`payment_batch_id`),
+  KEY `fk_pay_paid_by` (`paid_by`),
+  KEY `idx_pay_po` (`po_id`),
+  KEY `idx_pay_payment_request` (`payment_request_id`),
+  KEY `idx_pay_invoice` (`invoice_id`),
+  CONSTRAINT `fk_pay_batch` FOREIGN KEY (`payment_batch_id`) REFERENCES `payment_batches` (`id`),
+  CONSTRAINT `fk_pay_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
+  CONSTRAINT `fk_pay_paid_by` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_pay_payment_request` FOREIGN KEY (`payment_request_id`) REFERENCES `po_payment_requests` (`id`),
+  CONSTRAINT `fk_pay_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `payments`
---
 
 LOCK TABLES `payments` WRITE;
 /*!40000 ALTER TABLE `payments` DISABLE KEYS */;
-INSERT INTO `payments` VALUES (4,2,35.85,'bank_transfer','AUTO-20260824192247',6,'2026-08-25 01:22:47','Auto-recorded after Finance Head approval'),(5,3,47.80,'bank_transfer','AUTO-20260826051421',6,'2026-08-26 11:14:21','Auto-recorded after Finance Head approval'),(6,4,27.95,'bank_transfer','AUTO-20260831165429',6,'2026-08-31 22:54:29','Auto-recorded after Finance Head approval'),(7,5,439.50,'bank_transfer','AUTO-20260901161125',6,'2026-09-01 22:11:25','Auto-recorded after Finance Head approval'),(8,6,115.85,'bank_transfer','AUTO-20260902090539',6,'2026-09-02 15:05:39','Auto-recorded after Finance Head approval');
+INSERT INTO `payments` VALUES (1,NULL,1,1,NULL,28.90,'bank_transfer','PO-PAY-20260904191820',6,'2026-09-05 01:18:20',1,NULL);
 /*!40000 ALTER TABLE `payments` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `payroll_approval_logs`
---
-
 DROP TABLE IF EXISTS `payroll_approval_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -905,19 +1116,10 @@ CREATE TABLE `payroll_approval_logs` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `payroll_approval_logs`
---
-
 LOCK TABLES `payroll_approval_logs` WRITE;
 /*!40000 ALTER TABLE `payroll_approval_logs` DISABLE KEYS */;
 /*!40000 ALTER TABLE `payroll_approval_logs` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `payroll_cycles`
---
-
 DROP TABLE IF EXISTS `payroll_cycles`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -955,19 +1157,10 @@ CREATE TABLE `payroll_cycles` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `payroll_cycles`
---
-
 LOCK TABLES `payroll_cycles` WRITE;
 /*!40000 ALTER TABLE `payroll_cycles` DISABLE KEYS */;
 /*!40000 ALTER TABLE `payroll_cycles` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `payroll_entries`
---
-
 DROP TABLE IF EXISTS `payroll_entries`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1005,19 +1198,115 @@ CREATE TABLE `payroll_entries` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `payroll_entries`
---
-
 LOCK TABLES `payroll_entries` WRITE;
 /*!40000 ALTER TABLE `payroll_entries` DISABLE KEYS */;
 /*!40000 ALTER TABLE `payroll_entries` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `po_counter_proposal_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `po_counter_proposal_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `proposal_id` int(11) NOT NULL,
+  `po_item_id` int(11) NOT NULL,
+  `proposed_quantity` int(11) DEFAULT NULL,
+  `proposed_unit_price` decimal(10,2) DEFAULT NULL,
+  `proposed_delivery_date` date DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_pcpi_proposal` (`proposal_id`),
+  KEY `idx_pcpi_po_item` (`po_item_id`),
+  CONSTRAINT `fk_pcpi_po_item` FOREIGN KEY (`po_item_id`) REFERENCES `purchase_order_items` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pcpi_proposal` FOREIGN KEY (`proposal_id`) REFERENCES `po_counter_proposals` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `pos_override_requests`
---
+LOCK TABLES `po_counter_proposal_items` WRITE;
+/*!40000 ALTER TABLE `po_counter_proposal_items` DISABLE KEYS */;
+INSERT INTO `po_counter_proposal_items` VALUES (1,1,1,1,NULL,NULL,NULL);
+/*!40000 ALTER TABLE `po_counter_proposal_items` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `po_counter_proposals`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `po_counter_proposals` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `po_id` int(11) NOT NULL,
+  `proposed_by` int(11) NOT NULL,
+  `status` enum('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
+  `reason` text DEFAULT NULL,
+  `responded_by` int(11) DEFAULT NULL,
+  `responded_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_pcp_po` (`po_id`),
+  KEY `fk_pcp_proposed_by` (`proposed_by`),
+  KEY `fk_pcp_responded_by` (`responded_by`),
+  CONSTRAINT `fk_pcp_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_pcp_proposed_by` FOREIGN KEY (`proposed_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_pcp_responded_by` FOREIGN KEY (`responded_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+LOCK TABLES `po_counter_proposals` WRITE;
+/*!40000 ALTER TABLE `po_counter_proposals` DISABLE KEYS */;
+INSERT INTO `po_counter_proposals` VALUES (1,1,16,'accepted','trying to sneak a price change',5,'2026-09-05 01:16:45','2026-09-04 17:16:05');
+/*!40000 ALTER TABLE `po_counter_proposals` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `po_events`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `po_events` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `po_id` int(11) NOT NULL,
+  `event_type` varchar(50) NOT NULL,
+  `description` varchar(255) NOT NULL,
+  `visibility` enum('all','not_supplier','not_store_manager') NOT NULL DEFAULT 'all',
+  `actor_user_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_po_events_po` (`po_id`,`created_at`),
+  KEY `fk_po_events_actor` (`actor_user_id`),
+  CONSTRAINT `fk_po_events_actor` FOREIGN KEY (`actor_user_id`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_po_events_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `po_events` WRITE;
+/*!40000 ALTER TABLE `po_events` DISABLE KEYS */;
+INSERT INTO `po_events` VALUES (1,1,'po_counter_proposed','Supplier proposed a quantity/date change. Reason: trying to sneak a price change','all',16,'2026-09-04 17:16:05'),(2,1,'counter_accepted','Store Manager accepted the supplier\'s quantity change.','all',5,'2026-09-04 17:16:45'),(3,1,'payment_requested','Payment of ₱28.90 requested by Finance Staff.','all',7,'2026-09-04 17:17:20'),(4,1,'payment_approved','Payment of ₱28.90 approved by Finance Head. Supplier is clear to ship.','all',6,'2026-09-04 17:18:20'),(5,1,'shipped','Supplier marked the order as shipped.','all',16,'2026-09-04 17:20:21'),(6,1,'goods_received','Goods fully received by Store Manager.','not_supplier',5,'2026-09-04 17:20:57'),(7,1,'invoice_submitted','Supplier submitted invoice INV-2026-0001. Reconciliation result: reconciled.','not_store_manager',16,'2026-09-04 17:21:37');
+/*!40000 ALTER TABLE `po_events` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `po_payment_requests`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `po_payment_requests` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `po_id` int(11) NOT NULL,
+  `requested_by` int(11) NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
+  `approved_by` int(11) DEFAULT NULL,
+  `approved_at` datetime DEFAULT NULL,
+  `rejection_reason` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_ppr_po` (`po_id`),
+  KEY `idx_ppr_status` (`status`),
+  KEY `fk_ppr_requested_by` (`requested_by`),
+  KEY `fk_ppr_approved_by` (`approved_by`),
+  CONSTRAINT `fk_ppr_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_ppr_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`),
+  CONSTRAINT `fk_ppr_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `po_payment_requests` WRITE;
+/*!40000 ALTER TABLE `po_payment_requests` DISABLE KEYS */;
+INSERT INTO `po_payment_requests` VALUES (1,1,7,28.90,'approved',6,'2026-09-05 01:18:20',NULL,NULL,'2026-09-04 17:17:20');
+/*!40000 ALTER TABLE `po_payment_requests` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `pos_override_requests`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1041,19 +1330,10 @@ CREATE TABLE `pos_override_requests` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `pos_override_requests`
---
-
 LOCK TABLES `pos_override_requests` WRITE;
 /*!40000 ALTER TABLE `pos_override_requests` DISABLE KEYS */;
 /*!40000 ALTER TABLE `pos_override_requests` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `products`
---
-
 DROP TABLE IF EXISTS `products`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1075,104 +1355,79 @@ CREATE TABLE `products` (
   UNIQUE KEY `barcode` (`barcode`),
   KEY `category_id` (`category_id`),
   CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `products`
---
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,18,5,NULL,1,'2026-08-20 17:09:05','2026-09-02 07:07:35'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,64,5,NULL,1,'2026-08-20 17:09:05','2026-09-02 07:07:35');
+INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,17,5,NULL,1,'2026-08-20 17:09:05','2026-09-05 05:36:26'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,67,5,NULL,1,'2026-08-20 17:09:05','2026-09-04 16:12:15'),(3,'SKU-1001','Notebook (Spiral, 80 Leaves)','Spiral-bound notebook, 80 leaves, standard ruled',2,45.00,28.00,41,10,NULL,1,'2026-09-04 16:20:14','2026-09-04 17:20:57'),(4,'SKU-1002','Ballpen (Blue, 0.5mm)','Blue ink ballpoint pen, 0.5mm fine tip',2,15.00,8.00,96,20,NULL,1,'2026-09-04 16:20:14','2026-09-05 05:43:50'),(5,'SKU-1003','Correction Tape','Correction tape, 5mm x 6m',2,35.00,20.00,58,15,NULL,1,'2026-09-04 16:20:14','2026-09-05 05:15:55'),(6,'SKU-1004','Sticky Notes (3x3)','Sticky notes pad, 3x3 inches, 100 sheets',2,25.00,14.00,80,15,NULL,1,'2026-09-04 16:20:14','2026-09-04 16:20:14'),(7,'SKU-1005','Highlighter (Yellow)','Yellow chisel-tip highlighter marker',2,20.00,11.00,70,15,NULL,1,'2026-09-04 16:20:14','2026-09-04 16:20:14');
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `purchase_order_items`
---
-
 DROP TABLE IF EXISTS `purchase_order_items`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `purchase_order_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `po_id` int(11) NOT NULL,
-  `product_id` int(11) NOT NULL,
+  `store_product_id` int(11) NOT NULL,
+  `supplier_product_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
   `unit_price` decimal(10,2) NOT NULL,
   `total` decimal(10,2) NOT NULL,
-  `received_quantity` int(11) DEFAULT 0,
-  `notes` text DEFAULT NULL,
+  `received_quantity` int(11) NOT NULL DEFAULT 0,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `po_id` (`po_id`),
-  KEY `product_id` (`product_id`),
-  CONSTRAINT `purchase_order_items_ibfk_1` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `purchase_order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_poi_po` (`po_id`),
+  KEY `idx_poi_store_product` (`store_product_id`),
+  KEY `idx_poi_supplier_product` (`supplier_product_id`),
+  CONSTRAINT `fk_poi_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_poi_store_product` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
+  CONSTRAINT `fk_poi_supplier_product` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `purchase_order_items`
---
 
 LOCK TABLES `purchase_order_items` WRITE;
 /*!40000 ALTER TABLE `purchase_order_items` DISABLE KEYS */;
+INSERT INTO `purchase_order_items` VALUES (1,1,3,14,1,28.90,28.90,1,'2026-09-04 16:44:38');
 /*!40000 ALTER TABLE `purchase_order_items` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `purchase_orders`
---
-
 DROP TABLE IF EXISTS `purchase_orders`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `purchase_orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `po_number` varchar(20) NOT NULL,
+  `requisition_id` int(11) NOT NULL,
   `supplier_id` int(11) NOT NULL,
+  `status` enum('pending_dispatch','pending_confirmation','supplier_accepted','supplier_counter_proposed','confirmed','pending_payment','paid','shipped','partially_received','received','cancelled','closed') NOT NULL DEFAULT 'pending_dispatch',
   `order_date` date NOT NULL,
-  `expected_delivery` date DEFAULT NULL,
-  `status` enum('draft','pending','approved','received','cancelled') DEFAULT 'draft',
-  `subtotal` decimal(10,2) DEFAULT 0.00,
-  `tax` decimal(10,2) DEFAULT 0.00,
-  `total` decimal(10,2) DEFAULT 0.00,
-  `notes` text DEFAULT NULL,
+  `expected_delivery_date` date DEFAULT NULL,
+  `subtotal` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `tax` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `total` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `terms` varchar(50) DEFAULT 'Net 30',
+  `dispatched_at` datetime DEFAULT NULL,
+  `dispatched_via` enum('email','portal','both') DEFAULT NULL,
   `created_by` int(11) NOT NULL,
-  `approved_by` int(11) DEFAULT NULL,
-  `approved_at` datetime DEFAULT NULL,
-  `received_by` int(11) DEFAULT NULL,
-  `received_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `po_number` (`po_number`),
-  KEY `supplier_id` (`supplier_id`),
-  KEY `created_by` (`created_by`),
-  KEY `approved_by` (`approved_by`),
-  KEY `received_by` (`received_by`),
-  CONSTRAINT `purchase_orders_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
-  CONSTRAINT `purchase_orders_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `purchase_orders_ibfk_3` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `purchase_orders_ibfk_4` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `unique_po_number` (`po_number`),
+  KEY `idx_po_status` (`status`),
+  KEY `idx_po_supplier` (`supplier_id`),
+  KEY `fk_po_requisition` (`requisition_id`),
+  KEY `fk_po_created_by` (`created_by`),
+  CONSTRAINT `fk_po_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_po_requisition` FOREIGN KEY (`requisition_id`) REFERENCES `requisitions` (`id`),
+  CONSTRAINT `fk_po_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `purchase_orders`
---
 
 LOCK TABLES `purchase_orders` WRITE;
 /*!40000 ALTER TABLE `purchase_orders` DISABLE KEYS */;
+INSERT INTO `purchase_orders` VALUES (1,'PO-2026-0001',1,2,'received','2026-09-04',NULL,28.90,0.00,28.90,'Net 30','2026-09-05 00:44:58','email',6,'2026-09-04 16:44:38','2026-09-04 17:20:57');
 /*!40000 ALTER TABLE `purchase_orders` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `recruitment_logs`
---
-
 DROP TABLE IF EXISTS `recruitment_logs`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1195,20 +1450,11 @@ CREATE TABLE `recruitment_logs` (
 ) ENGINE=InnoDB AUTO_INCREMENT=81 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `recruitment_logs`
---
-
 LOCK TABLES `recruitment_logs` WRITE;
 /*!40000 ALTER TABLE `recruitment_logs` DISABLE KEYS */;
 INSERT INTO `recruitment_logs` VALUES (12,'job_posting',1,3,'hr_staff','created',NULL,'draft',NULL,NULL,'2026-08-26 05:34:37'),(13,'job_posting',1,3,'hr_staff','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-26 05:34:43'),(14,'job_posting',1,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-26 05:35:19'),(15,'job_posting',1,2,'hr_head','hr_head_overwrite','approved','approved',NULL,NULL,'2026-08-26 06:14:21'),(19,'job_posting',2,3,'hr_staff','created',NULL,'draft',NULL,NULL,'2026-08-26 06:17:06'),(20,'job_posting',2,3,'hr_staff','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-26 06:17:06'),(21,'job_posting',2,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-26 06:17:10'),(22,'job_posting',3,3,'hr_staff','created',NULL,'draft',NULL,NULL,'2026-08-31 02:45:00'),(23,'job_posting',3,3,'hr_staff','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-31 02:45:00'),(24,'job_posting',3,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-31 02:50:54'),(25,'applicant',7,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 2)','2026-08-31 03:19:50'),(26,'applicant',7,3,'hr_staff','initial_interview_scheduled','pending','initial_scheduled',NULL,NULL,'2026-08-31 03:25:29'),(27,'applicant',7,3,'hr_staff','trainee_contract_assigned','initial_passed','screening',NULL,'Trainer #4 assigned','2026-08-31 03:34:37'),(28,'applicant',8,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 3)','2026-08-31 03:59:33'),(29,'applicant',8,3,'hr_staff','initial_interview_scheduled','pending','initial_scheduled',NULL,NULL,'2026-08-31 04:02:18'),(30,'trainee_report',2,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 1','2026-08-31 05:04:12'),(31,'trainee_report',3,4,'hr_staff','submitted',NULL,'submitted',NULL,'trainee #2, week 1','2026-08-31 05:17:58'),(32,'trainee_report',4,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 2','2026-08-31 05:25:37'),(33,'trainee_report',5,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 3','2026-08-31 05:25:37'),(34,'trainee_report',6,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 4','2026-08-31 05:25:37'),(35,'trainee_report',7,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 5','2026-08-31 05:25:37'),(36,'trainee_report',8,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 6','2026-08-31 05:25:37'),(37,'trainee_report',9,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 7','2026-08-31 05:25:37'),(38,'trainee_report',10,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 8','2026-08-31 05:25:37'),(39,'trainee_report',11,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 9','2026-08-31 05:25:37'),(40,'trainee_report',12,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 10','2026-08-31 05:25:37'),(41,'trainee_report',13,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 11','2026-08-31 05:25:37'),(42,'trainee_report',14,1,'owner','submitted',NULL,'submitted',NULL,'trainee #2, week 12','2026-08-31 05:25:37'),(43,'trainee_report',4,4,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:27:16'),(44,'trainee_report',3,1,'owner','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:28:09'),(45,'trainee_report',5,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(46,'trainee_report',6,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(47,'trainee_report',7,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(48,'trainee_report',8,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(49,'trainee_report',9,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(50,'trainee_report',10,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(51,'trainee_report',11,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(52,'trainee_report',12,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(53,'trainee_report',13,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(54,'trainee_report',14,3,'hr_staff','forwarded_to_hr_head','submitted','forwarded',NULL,NULL,'2026-08-31 05:30:09'),(55,'trainee_report',14,2,'hr_head','hr_head_reviewed',NULL,'hr_reviewed',NULL,NULL,'2026-08-31 05:32:09'),(56,'applicant',7,1,'owner','trainee_contract_completed','screening','screening_success',NULL,NULL,'2026-08-31 06:15:16'),(57,'applicant',7,1,'owner','final_interview_scheduled','screening_success','final_scheduled',NULL,NULL,'2026-08-31 06:16:08'),(58,'applicant',7,2,'hr_head','hired_contract_offered','final_passed','contract_offered',NULL,'contract #2','2026-08-31 06:35:43'),(59,'applicant',7,14,'trainee','hired','contract_offered','hired',NULL,NULL,'2026-08-31 06:46:46'),(60,'applicant',7,14,'trainee','hired','contract_offered','hired',NULL,NULL,'2026-08-31 06:48:53'),(61,'applicant',8,1,'owner','trainee_contract_assigned','initial_passed','screening',NULL,'Trainer #4 assigned','2026-08-31 07:21:52'),(62,'applicant',8,1,'owner','hired_contract_offered','final_passed','contract_offered',NULL,'contract #4','2026-08-31 07:22:33'),(63,'job_posting',4,3,'hr_staff','created',NULL,'draft',NULL,NULL,'2026-09-01 15:41:29'),(64,'job_posting',4,3,'hr_staff','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-09-01 15:41:29'),(65,'job_posting',4,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-09-01 15:42:36'),(66,'applicant',9,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 4)','2026-09-02 07:11:58'),(67,'applicant',9,3,'hr_staff','initial_interview_scheduled','pending','initial_scheduled',NULL,NULL,'2026-09-02 07:13:20'),(68,'applicant',10,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 2)','2026-09-03 02:59:52'),(69,'applicant',11,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 4)','2026-09-03 03:24:44'),(70,'applicant',12,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 2)','2026-09-03 13:58:45'),(71,'applicant',13,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 2)','2026-09-03 14:05:03'),(72,'applicant',14,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 2)','2026-09-03 14:10:36'),(73,'applicant',15,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 4)','2026-09-03 14:17:41'),(74,'applicant',16,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 2)','2026-09-03 14:23:30'),(75,'applicant',17,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 4)','2026-09-03 14:36:50'),(76,'applicant',18,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 4)','2026-09-03 14:47:33'),(77,'applicant',18,2,'hr_head','reject_initial','pending','initial_failed',NULL,NULL,'2026-09-03 15:20:15'),(78,'applicant',17,2,'hr_head','reject_initial','pending','initial_failed',NULL,NULL,'2026-09-03 15:20:23'),(79,'applicant',15,2,'hr_head','reject_initial','pending','initial_failed',NULL,NULL,'2026-09-03 15:20:32'),(80,'applicant',19,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 4)','2026-09-03 15:23:11');
 /*!40000 ALTER TABLE `recruitment_logs` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `register_allocations`
---
-
 DROP TABLE IF EXISTS `register_allocations`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1234,23 +1480,14 @@ CREATE TABLE `register_allocations` (
   CONSTRAINT `register_allocations_ibfk_1` FOREIGN KEY (`register_id`) REFERENCES `registers` (`id`),
   CONSTRAINT `register_allocations_ibfk_2` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `register_allocations_ibfk_3` FOREIGN KEY (`allocated_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `register_allocations`
---
 
 LOCK TABLES `register_allocations` WRITE;
 /*!40000 ALTER TABLE `register_allocations` DISABLE KEYS */;
-INSERT INTO `register_allocations` VALUES (1,1,9,5,3000.00,'cashed_out',2.99,0.00,3002.99,'2026-08-31 13:33:05','2026-08-31 13:35:09','','2026-08-31 13:33:05','2026-08-31 13:35:09'),(2,1,9,5,3000.00,'cashed_out',0.00,0.00,3000.00,'2026-08-31 13:38:19','2026-08-31 15:29:01','gggg','2026-08-31 13:38:19','2026-08-31 15:29:01'),(3,1,9,5,3000.00,'cashed_out',0.00,0.00,3000.00,'2026-08-31 23:45:19','2026-08-31 23:45:54','','2026-08-31 23:45:19','2026-08-31 23:45:54'),(4,1,9,5,3000.00,'cashed_out',14.95,0.00,3014.95,'2026-09-02 01:36:47','2026-09-02 01:45:53','','2026-09-02 01:36:47','2026-09-02 01:45:53'),(5,1,9,5,3000.00,'cashed_out',12.99,0.00,3012.99,'2026-09-02 06:43:08','2026-09-02 06:48:27','','2026-09-02 06:43:08','2026-09-02 06:48:27'),(6,1,9,5,3000.00,'cashed_out',0.00,0.00,3000.00,'2026-09-02 08:48:19','2026-09-02 08:52:04','','2026-09-02 08:48:19','2026-09-02 08:52:04'),(7,2,NULL,5,2000.00,'active',NULL,NULL,NULL,'2026-09-02 08:58:20',NULL,'','2026-09-02 08:58:20','2026-09-02 08:58:20'),(8,1,NULL,5,3000.00,'active',NULL,NULL,NULL,'2026-09-03 03:46:13',NULL,'','2026-09-03 03:46:13','2026-09-03 03:46:13');
+INSERT INTO `register_allocations` VALUES (1,1,9,5,3000.00,'cashed_out',2.99,0.00,3002.99,'2026-08-31 13:33:05','2026-08-31 13:35:09','','2026-08-31 13:33:05','2026-08-31 13:35:09'),(2,1,9,5,3000.00,'cashed_out',0.00,0.00,3000.00,'2026-08-31 13:38:19','2026-08-31 15:29:01','gggg','2026-08-31 13:38:19','2026-08-31 15:29:01'),(3,1,9,5,3000.00,'cashed_out',0.00,0.00,3000.00,'2026-08-31 23:45:19','2026-08-31 23:45:54','','2026-08-31 23:45:19','2026-08-31 23:45:54'),(4,1,9,5,3000.00,'cashed_out',14.95,0.00,3014.95,'2026-09-02 01:36:47','2026-09-02 01:45:53','','2026-09-02 01:36:47','2026-09-02 01:45:53'),(5,1,9,5,3000.00,'cashed_out',12.99,0.00,3012.99,'2026-09-02 06:43:08','2026-09-02 06:48:27','','2026-09-02 06:43:08','2026-09-02 06:48:27'),(6,1,9,5,3000.00,'cashed_out',0.00,0.00,3000.00,'2026-09-02 08:48:19','2026-09-02 08:52:04','','2026-09-02 08:48:19','2026-09-02 08:52:04'),(7,2,NULL,5,2000.00,'active',NULL,NULL,NULL,'2026-09-02 08:58:20',NULL,'','2026-09-02 08:58:20','2026-09-02 08:58:20'),(8,1,9,5,3000.00,'cashed_out',142.99,0.00,3142.99,'2026-09-03 03:46:13','2026-09-05 06:00:01','','2026-09-03 03:46:13','2026-09-05 06:00:01'),(9,1,NULL,5,4000.00,'active',NULL,NULL,NULL,'2026-09-05 06:31:18',NULL,'','2026-09-05 06:31:18','2026-09-05 06:31:18');
 /*!40000 ALTER TABLE `register_allocations` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `registers`
---
-
 DROP TABLE IF EXISTS `registers`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1274,20 +1511,11 @@ CREATE TABLE `registers` (
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `registers`
---
-
 LOCK TABLES `registers` WRITE;
 /*!40000 ALTER TABLE `registers` DISABLE KEYS */;
-INSERT INTO `registers` VALUES (1,5,'Main Register','POS-219','$2y$10$6l3AZqg0g51.F4aIEea5.OR6U/D29JjYlkr.eM1KbSZgRaafxkp62',1,'2026-09-02 06:44:49','open','2026-08-31 13:32:47','2026-09-03 03:46:13'),(2,5,'Register 2','POS-364','$2y$10$5IbBevN7PitkZg3VTXSJi.RbxGfrGH1LkJvEgst2LxOfMNWyJliS2',1,'2026-09-02 08:57:34','open','2026-09-02 08:57:34','2026-09-02 08:58:20');
+INSERT INTO `registers` VALUES (1,5,'Main Register','POS-219','$2y$10$6l3AZqg0g51.F4aIEea5.OR6U/D29JjYlkr.eM1KbSZgRaafxkp62',1,'2026-09-02 06:44:49','open','2026-08-31 13:32:47','2026-09-05 06:31:18'),(2,5,'Register 2','POS-364','$2y$10$5IbBevN7PitkZg3VTXSJi.RbxGfrGH1LkJvEgst2LxOfMNWyJliS2',1,'2026-09-02 08:57:34','open','2026-09-02 08:57:34','2026-09-02 08:58:20');
 /*!40000 ALTER TABLE `registers` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `rejection_reasons`
---
-
 DROP TABLE IF EXISTS `rejection_reasons`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1306,20 +1534,74 @@ CREATE TABLE `rejection_reasons` (
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `rejection_reasons`
---
-
 LOCK TABLES `rejection_reasons` WRITE;
 /*!40000 ALTER TABLE `rejection_reasons` DISABLE KEYS */;
 INSERT INTO `rejection_reasons` VALUES (1,18,2,'initial',NULL,'2026-09-03 15:20:15'),(2,17,2,'initial',NULL,'2026-09-03 15:20:23'),(3,15,2,'initial',NULL,'2026-09-03 15:20:32');
 /*!40000 ALTER TABLE `rejection_reasons` ENABLE KEYS */;
 UNLOCK TABLES;
+DROP TABLE IF EXISTS `requisition_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `requisition_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_id` int(11) NOT NULL,
+  `store_product_id` int(11) NOT NULL,
+  `supplier_product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `estimated_unit_price` decimal(10,2) NOT NULL,
+  `estimated_total` decimal(10,2) NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `idx_ri_requisition` (`requisition_id`),
+  KEY `idx_ri_store_product` (`store_product_id`),
+  KEY `idx_ri_supplier_product` (`supplier_product_id`),
+  CONSTRAINT `fk_ri_requisition` FOREIGN KEY (`requisition_id`) REFERENCES `requisitions` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_ri_store_product` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
+  CONSTRAINT `fk_ri_supplier_product` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Table structure for table `revenue_split_rules`
---
+LOCK TABLES `requisition_items` WRITE;
+/*!40000 ALTER TABLE `requisition_items` DISABLE KEYS */;
+INSERT INTO `requisition_items` VALUES (1,1,3,14,76,28.90,2196.40,NULL,'2026-09-04 16:44:03');
+/*!40000 ALTER TABLE `requisition_items` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `requisitions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `requisitions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_number` varchar(20) NOT NULL,
+  `requested_by` int(11) NOT NULL,
+  `department_id` int(11) NOT NULL,
+  `preferred_supplier_id` int(11) NOT NULL,
+  `period_key` varchar(10) NOT NULL,
+  `status` enum('draft','pending_budget_check','budget_rejected','pending_finance_head','approved','rejected','converted_to_po','cancelled') NOT NULL DEFAULT 'pending_budget_check',
+  `order_date` date NOT NULL,
+  `needed_by_date` date DEFAULT NULL,
+  `subtotal` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `rejected_reason` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_requisition_number` (`requisition_number`),
+  KEY `idx_req_status` (`status`),
+  KEY `idx_req_department_period` (`department_id`,`period_key`),
+  KEY `fk_req_requested_by` (`requested_by`),
+  KEY `fk_req_supplier` (`preferred_supplier_id`),
+  CONSTRAINT `fk_req_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`),
+  CONSTRAINT `fk_req_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `fk_req_supplier` FOREIGN KEY (`preferred_supplier_id`) REFERENCES `suppliers` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
+LOCK TABLES `requisitions` WRITE;
+/*!40000 ALTER TABLE `requisitions` DISABLE KEYS */;
+INSERT INTO `requisitions` VALUES (1,'REQ-2026-0001',5,1,2,'2026-09-H1','converted_to_po','2026-09-04',NULL,2196.40,'',NULL,'2026-09-04 16:44:03','2026-09-04 16:44:38');
+/*!40000 ALTER TABLE `requisitions` ENABLE KEYS */;
+UNLOCK TABLES;
 DROP TABLE IF EXISTS `revenue_split_rules`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1338,20 +1620,11 @@ CREATE TABLE `revenue_split_rules` (
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `revenue_split_rules`
---
-
 LOCK TABLES `revenue_split_rules` WRITE;
 /*!40000 ALTER TABLE `revenue_split_rules` DISABLE KEYS */;
 INSERT INTO `revenue_split_rules` VALUES (1,'store',5.00,0,6,'2026-08-31 13:56:47','2026-08-31 14:09:17'),(2,'hr',60.00,0,6,'2026-08-31 13:56:47','2026-08-31 14:09:00'),(3,'general',0.00,1,6,'2026-08-31 13:56:47','2026-08-31 14:09:00'),(10,'finance',10.00,0,NULL,'2026-08-31 21:47:12','2026-08-31 21:47:12');
 /*!40000 ALTER TABLE `revenue_split_rules` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `revenue_split_shares`
---
-
 DROP TABLE IF EXISTS `revenue_split_shares`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1367,20 +1640,11 @@ CREATE TABLE `revenue_split_shares` (
 ) ENGINE=InnoDB AUTO_INCREMENT=52 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `revenue_split_shares`
---
-
 LOCK TABLES `revenue_split_shares` WRITE;
 /*!40000 ALTER TABLE `revenue_split_shares` DISABLE KEYS */;
 INSERT INTO `revenue_split_shares` VALUES (3,2,'hr',60.00,9.59),(4,2,'store',5.00,0.80),(5,2,'general',NULL,5.59),(24,3,'hr',60.00,0.00),(25,3,'store',5.00,0.00),(26,3,'general',NULL,0.00),(30,6,'hr',60.00,0.00),(31,6,'store',5.00,0.00),(32,6,'general',NULL,0.00),(42,4,'hr',60.00,9.59),(43,4,'store',5.00,0.80),(44,4,'general',NULL,5.59),(45,7,'hr',60.00,0.00),(46,7,'store',5.00,0.00),(47,7,'general',NULL,0.00),(48,5,'finance',10.00,0.00),(49,5,'hr',60.00,0.00),(50,5,'store',5.00,0.00),(51,5,'general',NULL,0.00);
 /*!40000 ALTER TABLE `revenue_split_shares` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `revenue_splits`
---
-
 DROP TABLE IF EXISTS `revenue_splits`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1405,20 +1669,11 @@ CREATE TABLE `revenue_splits` (
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `revenue_splits`
---
-
 LOCK TABLES `revenue_splits` WRITE;
 /*!40000 ALTER TABLE `revenue_splits` DISABLE KEYS */;
 INSERT INTO `revenue_splits` VALUES (2,'2026-08-16','2026-08-31','August 16-31, 2026','2026-08',15.98,'applied',6,'2026-08-31 14:06:18',6,'2026-08-31 14:07:05'),(3,'2026-08-01','2026-08-15','August 1-15, 2026','2026-08',0.00,'applied',6,'2026-08-31 21:26:01',6,'2026-08-31 21:26:12'),(4,'2026-08-16','2026-08-31','August 16-31, 2026','2026-08',15.98,'draft',6,'2026-08-31 21:34:57',NULL,NULL),(5,'2026-09-01','2026-09-14','September 1-14, 2026','2026-09-H1',0.00,'applied',6,'2026-08-31 21:57:01',6,'2026-08-31 21:57:31'),(6,'2026-09-15','2026-09-30','September 15-30, 2026','2026-09',0.00,'draft',6,'2026-08-31 21:26:25',NULL,NULL),(7,'2026-08-01','2026-08-15','August 1-15, 2026','2026-08',0.00,'draft',6,'2026-08-31 21:34:59',NULL,NULL);
 /*!40000 ALTER TABLE `revenue_splits` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `schedules`
---
-
 DROP TABLE IF EXISTS `schedules`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1437,149 +1692,11 @@ CREATE TABLE `schedules` (
 ) ENGINE=InnoDB AUTO_INCREMENT=86 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `schedules`
---
-
 LOCK TABLES `schedules` WRITE;
 /*!40000 ALTER TABLE `schedules` DISABLE KEYS */;
 INSERT INTO `schedules` VALUES (50,15,'monday','10:00:00','15:00:00',0,'2026-08-31 07:21:52','2026-08-31 07:21:52'),(51,15,'tuesday','10:00:00','15:00:00',0,'2026-08-31 07:21:52','2026-08-31 07:21:52'),(52,15,'wednesday','10:00:00','15:00:00',0,'2026-08-31 07:21:52','2026-08-31 07:21:52'),(53,15,'thursday','10:00:00','15:00:00',0,'2026-08-31 07:21:52','2026-08-31 07:21:52'),(54,15,'friday','10:00:00','15:00:00',0,'2026-08-31 07:21:52','2026-08-31 07:21:52'),(55,15,'saturday','00:00:00','00:00:00',1,'2026-08-31 07:21:52','2026-08-31 07:21:52'),(56,15,'sunday','00:00:00','00:00:00',1,'2026-08-31 07:21:52','2026-08-31 07:21:52'),(79,14,'monday','08:00:00','17:00:00',0,'2026-09-02 05:08:21','2026-09-02 05:08:21'),(80,14,'tuesday','08:00:00','17:00:00',0,'2026-09-02 05:08:21','2026-09-02 05:08:21'),(81,14,'wednesday','00:00:00','00:00:00',1,'2026-09-02 05:08:21','2026-09-02 05:08:21'),(82,14,'thursday','08:00:00','17:00:00',0,'2026-09-02 05:08:21','2026-09-02 05:08:21'),(83,14,'friday','08:00:00','17:00:00',0,'2026-09-02 05:08:21','2026-09-02 05:08:21'),(84,14,'saturday','08:00:00','17:00:00',0,'2026-09-02 05:08:21','2026-09-02 05:08:21'),(85,14,'sunday','00:00:00','00:00:00',1,'2026-09-02 05:08:21','2026-09-02 05:08:21');
 /*!40000 ALTER TABLE `schedules` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `store_requisition_items`
---
-
-DROP TABLE IF EXISTS `store_requisition_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `store_requisition_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_id` int(11) NOT NULL,
-  `store_product_id` int(11) NOT NULL,
-  `supplier_product_id` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL,
-  `unit_price` decimal(10,2) NOT NULL,
-  `total` decimal(10,2) NOT NULL,
-  `received_quantity` int(11) DEFAULT 0,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `requisition_id` (`requisition_id`),
-  KEY `store_product_id` (`store_product_id`),
-  KEY `supplier_product_id` (`supplier_product_id`),
-  CONSTRAINT `store_requisition_items_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `store_requisition_items_ibfk_2` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
-  CONSTRAINT `store_requisition_items_ibfk_3` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `store_requisition_items`
---
-
-LOCK TABLES `store_requisition_items` WRITE;
-/*!40000 ALTER TABLE `store_requisition_items` DISABLE KEYS */;
-INSERT INTO `store_requisition_items` VALUES (1,1,1,5,15,10.39,155.85,0,NULL,'2026-08-23 05:20:15'),(2,2,2,6,12,2.39,28.68,12,NULL,'2026-08-23 15:50:15'),(3,4,2,6,15,2.39,35.85,15,NULL,'2026-08-23 19:08:42'),(4,5,2,6,20,2.39,47.80,20,NULL,'2026-08-26 03:11:36'),(5,6,1,5,2,10.39,20.78,0,NULL,'2026-08-31 14:43:18'),(6,6,2,6,3,2.39,7.17,0,NULL,'2026-08-31 14:43:18'),(7,7,2,6,1,2.39,2.39,0,NULL,'2026-08-31 22:03:07'),(8,8,1,5,40,10.39,415.60,0,NULL,'2026-09-01 13:56:55'),(9,8,2,6,10,2.39,23.90,0,NULL,'2026-09-01 13:56:55'),(10,9,1,5,10,10.39,103.90,10,NULL,'2026-09-02 06:58:07'),(11,9,2,6,5,2.39,11.95,5,NULL,'2026-09-02 06:58:07');
-/*!40000 ALTER TABLE `store_requisition_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `store_requisitions`
---
-
-DROP TABLE IF EXISTS `store_requisitions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `store_requisitions` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_number` varchar(20) NOT NULL,
-  `created_by` int(11) NOT NULL,
-  `supplier_id` int(11) NOT NULL,
-  `department` varchar(20) NOT NULL DEFAULT 'store',
-  `status` enum('draft','pending_supplier','sent_to_supplier','supplier_processed','awaiting_finance_staff','awaiting_finance','finance_approved','finance_rejected','paid','shipped','completed','partial_received') DEFAULT 'draft',
-  `order_date` date NOT NULL,
-  `budget_month_year` varchar(10) NOT NULL,
-  `expected_delivery` date DEFAULT NULL,
-  `subtotal` decimal(10,2) DEFAULT 0.00,
-  `tax` decimal(10,2) DEFAULT 0.00,
-  `total` decimal(10,2) DEFAULT 0.00,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `requisition_number` (`requisition_number`),
-  KEY `created_by` (`created_by`),
-  KEY `supplier_id` (`supplier_id`),
-  KEY `idx_requisition_status` (`status`),
-  KEY `idx_requisition_department` (`department`),
-  KEY `idx_requisition_budget_month` (`budget_month_year`),
-  CONSTRAINT `store_requisitions_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `store_requisitions_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `store_requisitions`
---
-
-LOCK TABLES `store_requisitions` WRITE;
-/*!40000 ALTER TABLE `store_requisitions` DISABLE KEYS */;
-INSERT INTO `store_requisitions` VALUES (1,'REQ-2026-0001',5,1,'store','pending_supplier','2026-08-23','','2026-08-25',155.85,0.00,155.85,'','2026-08-23 05:20:15','2026-08-23 05:20:15'),(2,'REQ-2026-0002',5,1,'store','completed','2026-08-23','2026-08','0000-00-00',28.68,0.00,28.68,'','2026-08-23 15:50:15','2026-08-23 19:06:30'),(4,'REQ-2026-0003',5,1,'store','completed','2026-08-24','2026-08','2026-08-25',35.85,0.00,35.85,'','2026-08-23 19:08:41','2026-08-26 03:15:28'),(5,'REQ-2026-0004',5,1,'store','completed','2026-08-26','2026-08','2026-09-23',47.80,0.00,47.80,'[SHIPPED]','2026-08-26 03:11:35','2026-08-26 03:18:31'),(6,'REQ-2026-0005',5,1,'store','paid','2026-08-31','2026-08','2026-09-07',27.95,0.00,27.95,'Budget consumption test - resupply','2026-08-31 14:43:18','2026-08-31 14:54:29'),(7,'REQ-2026-0006',5,1,'store','pending_supplier','2026-09-01','2026-09-H1','2026-09-10',2.39,0.00,2.39,'','2026-08-31 22:03:07','2026-08-31 22:03:07'),(8,'REQ-2026-0007',5,1,'store','paid','2026-09-01','2026-09-H1','2026-09-15',439.50,0.00,439.50,'Please po master','2026-09-01 13:56:55','2026-09-01 14:11:25'),(9,'REQ-2026-0008',5,1,'store','completed','2026-09-02','2026-09-H1','2026-09-07',115.85,0.00,115.85,'test\n[SHIPPED]','2026-09-02 06:58:07','2026-09-02 07:07:35');
-/*!40000 ALTER TABLE `store_requisitions` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `supplier_invoices`
---
-
-DROP TABLE IF EXISTS `supplier_invoices`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `supplier_invoices` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `invoice_number` varchar(50) NOT NULL,
-  `requisition_id` int(11) NOT NULL,
-  `supplier_id` int(11) NOT NULL,
-  `invoice_date` date NOT NULL,
-  `subtotal` decimal(10,2) NOT NULL,
-  `tax` decimal(10,2) DEFAULT 0.00,
-  `total` decimal(10,2) NOT NULL,
-  `due_date` date NOT NULL,
-  `status` enum('pending','verified','paid','rejected') DEFAULT 'pending',
-  `po_match` tinyint(4) DEFAULT 0,
-  `gr_match` tinyint(4) DEFAULT 0,
-  `notes` text DEFAULT NULL,
-  `paid_by` int(11) DEFAULT NULL,
-  `paid_at` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `invoice_number` (`invoice_number`),
-  KEY `requisition_id` (`requisition_id`),
-  KEY `supplier_id` (`supplier_id`),
-  KEY `paid_by` (`paid_by`),
-  CONSTRAINT `supplier_invoices_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`),
-  CONSTRAINT `supplier_invoices_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
-  CONSTRAINT `supplier_invoices_ibfk_3` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `supplier_invoices`
---
-
-LOCK TABLES `supplier_invoices` WRITE;
-/*!40000 ALTER TABLE `supplier_invoices` DISABLE KEYS */;
-INSERT INTO `supplier_invoices` VALUES (1,'INV-2026-0001',2,1,'2026-08-23',28.68,0.00,28.68,'2026-08-26','pending',0,0,'test',NULL,NULL,'2026-08-23 17:03:58','2026-08-23 19:04:19'),(2,'INV-2026-0002',4,1,'2026-08-23',35.85,0.00,35.85,'2026-09-01','paid',0,0,'teast',6,'2026-08-25 01:22:47','2026-08-23 19:09:51','2026-08-24 17:22:47'),(3,'INV-2026-0003',5,1,'2026-08-26',47.80,0.00,47.80,'2026-10-08','paid',0,0,'',6,'2026-08-26 11:14:21','2026-08-26 03:12:43','2026-08-26 03:14:21'),(4,'INV-2026-0004',6,1,'2026-08-31',27.95,0.00,27.95,'2026-09-07','paid',0,0,'',6,'2026-08-31 22:54:29','2026-08-31 14:45:33','2026-08-31 14:54:29'),(5,'INV-2026-0005',8,1,'2026-09-01',439.50,0.00,439.50,'2026-09-15','paid',0,0,'Okay po',6,'2026-09-01 22:11:25','2026-09-01 14:02:17','2026-09-01 14:11:25'),(6,'INV-2026-0006',9,1,'2026-09-02',115.85,0.00,115.85,'2026-09-02','paid',0,0,'ge',6,'2026-09-02 15:05:39','2026-09-02 06:59:55','2026-09-02 07:05:39');
-/*!40000 ALTER TABLE `supplier_invoices` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `supplier_products`
---
-
 DROP TABLE IF EXISTS `supplier_products`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1595,23 +1712,14 @@ CREATE TABLE `supplier_products` (
   PRIMARY KEY (`id`),
   KEY `supplier_id` (`supplier_id`),
   CONSTRAINT `supplier_products_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `supplier_products`
---
 
 LOCK TABLES `supplier_products` WRITE;
 /*!40000 ALTER TABLE `supplier_products` DISABLE KEYS */;
-INSERT INTO `supplier_products` VALUES (5,1,'Sample Book','A sample book for testing',10.39,1,'2026-08-21 12:54:24','2026-08-21 12:54:24'),(6,1,'Sample Pen','A sample pen for testing',2.39,1,'2026-08-21 12:54:24','2026-08-21 12:54:24');
+INSERT INTO `supplier_products` VALUES (5,1,'Sample Book','A sample book for testing',10.39,1,'2026-08-21 12:54:24','2026-08-21 12:54:24'),(6,1,'Sample Pen','A sample pen for testing',2.39,1,'2026-08-21 12:54:24','2026-08-21 12:54:24'),(9,1,'Notebook (Spiral, 80 Leaves)','Spiral-bound notebook, 80 leaves, standard ruled',27.50,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(10,1,'Ballpen (Blue, 0.5mm)','Blue ink ballpoint pen, 0.5mm fine tip',7.80,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(11,1,'Correction Tape','Correction tape, 5mm x 6m',19.50,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(12,1,'Sticky Notes (3x3)','Sticky notes pad, 3x3 inches, 100 sheets',13.75,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(13,1,'Highlighter (Yellow)','Yellow chisel-tip highlighter marker',10.60,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(14,2,'Notebook (Spiral, 80 Leaves)','Spiral-bound notebook, 80 leaves, standard ruled',28.90,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(15,2,'Ballpen (Blue, 0.5mm)','Blue ink ballpoint pen, 0.5mm fine tip',7.50,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(16,2,'Correction Tape','Correction tape, 5mm x 6m',21.00,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(17,2,'Sticky Notes (3x3)','Sticky notes pad, 3x3 inches, 100 sheets',13.20,1,'2026-09-04 16:20:24','2026-09-04 16:20:24'),(18,2,'Highlighter (Yellow)','Yellow chisel-tip highlighter marker',11.25,1,'2026-09-04 16:20:24','2026-09-04 16:20:24');
 /*!40000 ALTER TABLE `supplier_products` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `suppliers`
---
-
 DROP TABLE IF EXISTS `suppliers`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1631,20 +1739,11 @@ CREATE TABLE `suppliers` (
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `suppliers`
---
-
 LOCK TABLES `suppliers` WRITE;
 /*!40000 ALTER TABLE `suppliers` DISABLE KEYS */;
-INSERT INTO `suppliers` VALUES (1,'Sample Supplier Inc.','John Supplier','supplier@shelfsense.com','09123456789',NULL,NULL,NULL,1,'2026-08-20 17:09:05','2026-08-21 12:54:24'),(2,'Sample Supplier Inc.','Supplier Contact','supplier@shelfsense.com','09123456789','123 Supplier St, City',NULL,NULL,1,'2026-08-21 03:04:10','2026-08-21 03:04:10');
+INSERT INTO `suppliers` VALUES (1,'Sample Supplier Inc.','John Supplier','supplier@shelfsense.com','09123456789',NULL,NULL,NULL,1,'2026-08-20 17:09:05','2026-08-21 12:54:24'),(2,'Northline Office Supplies','Northline Sales Team','sales@northline-supplies.example.com','09123456789','123 Supplier St, City',NULL,NULL,1,'2026-08-21 03:04:10','2026-09-04 16:20:33');
 /*!40000 ALTER TABLE `suppliers` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `trainee_reports`
---
-
 DROP TABLE IF EXISTS `trainee_reports`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1685,19 +1784,10 @@ CREATE TABLE `trainee_reports` (
 ) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `trainee_reports`
---
-
 LOCK TABLES `trainee_reports` WRITE;
 /*!40000 ALTER TABLE `trainee_reports` DISABLE KEYS */;
 /*!40000 ALTER TABLE `trainee_reports` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `trainee_weekly_reports`
---
-
 DROP TABLE IF EXISTS `trainee_weekly_reports`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1726,19 +1816,10 @@ CREATE TABLE `trainee_weekly_reports` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `trainee_weekly_reports`
---
-
 LOCK TABLES `trainee_weekly_reports` WRITE;
 /*!40000 ALTER TABLE `trainee_weekly_reports` DISABLE KEYS */;
 /*!40000 ALTER TABLE `trainee_weekly_reports` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `trainees`
---
-
 DROP TABLE IF EXISTS `trainees`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1779,20 +1860,11 @@ CREATE TABLE `trainees` (
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `trainees`
---
-
 LOCK TABLES `trainees` WRITE;
 /*!40000 ALTER TABLE `trainees` DISABLE KEYS */;
 INSERT INTO `trainees` VALUES (3,8,15,4,'HR Staff','2026-08-31','2026-12-01','10:00:00','15:00:00',NULL,'active',3900.00,4500.00,'2026-08-31 07:21:52',NULL,NULL,NULL,'pending',0,NULL,NULL,NULL,NULL,NULL,'2026-08-31 07:21:52','2026-08-31 07:21:52');
 /*!40000 ALTER TABLE `trainees` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `trainer_assignments`
---
-
 DROP TABLE IF EXISTS `trainer_assignments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1814,20 +1886,11 @@ CREATE TABLE `trainer_assignments` (
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
---
--- Dumping data for table `trainer_assignments`
---
-
 LOCK TABLES `trainer_assignments` WRITE;
 /*!40000 ALTER TABLE `trainer_assignments` DISABLE KEYS */;
 INSERT INTO `trainer_assignments` VALUES (3,3,4,1,'2026-08-31 07:21:52',NULL,NULL);
 /*!40000 ALTER TABLE `trainer_assignments` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `user_dashboard_layouts`
---
-
 DROP TABLE IF EXISTS `user_dashboard_layouts`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1840,23 +1903,14 @@ CREATE TABLE `user_dashboard_layouts` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_user_dashboard` (`user_id`,`dashboard_key`),
   CONSTRAINT `fk_user_dashboard_layouts_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=41 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=243 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `user_dashboard_layouts`
---
 
 LOCK TABLES `user_dashboard_layouts` WRITE;
 /*!40000 ALTER TABLE `user_dashboard_layouts` DISABLE KEYS */;
-INSERT INTO `user_dashboard_layouts` VALUES (1,2,'hr_dashboard','{\"stats\":[\"stat_total\",\"stat_scheduled\",\"stat_pending\",\"stat_hired\"],\"content\":[\"table_interviews\",\"chart_monthly\",\"chart_pipeline\",\"table_applicants\",\"table_trainees\"]}','2026-09-03 14:03:24'),(4,3,'hr_dashboard','{\"stats\":[\"stat_total\",\"stat_scheduled\",\"stat_pending\",\"stat_hired\"],\"content\":[\"chart_monthly\",\"chart_pipeline\",\"table_applicants\",\"table_interviews\",\"table_trainees\"]}','2026-08-31 08:40:58'),(7,1,'hr_dashboard','{\"stats\":[\"stat_hired\",\"stat_total\",\"stat_pending\",\"stat_scheduled\"],\"content\":[\"table_interviews\",\"table_trainees\",\"table_applicants\",\"chart_monthly\",\"chart_pipeline\"]}','2026-08-31 14:54:58'),(22,5,'store_manager_dashboard','{\"stats\":[\"stat_total\",\"stat_finance\",\"stat_pending\",\"stat_lowstock\"],\"content\":[\"table_finance\",\"table_history\",\"chart_trend\",\"table_lowstock\",\"chart_status\",\"table_mine\",\"list_recent\",\"panel_insights\"]}','2026-09-02 16:34:47');
+INSERT INTO `user_dashboard_layouts` VALUES (1,2,'hr_dashboard','{\"stats\":[\"stat_total\",\"stat_scheduled\",\"stat_pending\",\"stat_hired\"],\"content\":[\"table_interviews\",\"chart_monthly\",\"chart_pipeline\",\"table_applicants\",\"table_trainees\"]}','2026-09-03 14:03:24'),(4,3,'hr_dashboard','{\"stats\":[\"stat_total\",\"stat_scheduled\",\"stat_pending\",\"stat_hired\"],\"content\":[\"chart_monthly\",\"chart_pipeline\",\"table_applicants\",\"table_interviews\",\"table_trainees\"]}','2026-08-31 08:40:58'),(7,1,'hr_dashboard','{\"stats\":[\"stat_hired\",\"stat_total\",\"stat_pending\",\"stat_scheduled\"],\"content\":[\"table_interviews\",\"table_trainees\",\"table_applicants\",\"chart_monthly\",\"chart_pipeline\"]}','2026-08-31 14:54:58'),(22,5,'store_manager_dashboard','{\"stats\":[\"stat_total\",\"stat_finance\",\"stat_pending\",\"stat_lowstock\"],\"content\":[\"chart_trend\",\"chart_status\",\"panel_insights\",\"table_history\",\"table_finance\",\"table_mine\",\"table_lowstock\",\"list_recent\"]}','2026-09-05 07:57:28'),(81,12,'supplier_dashboard','{\"stats\":[\"stat_pending\",\"stat_ready\",\"stat_revenue\",\"stat_invoiced\"],\"content\":[\"table_products\",\"table_activity\",\"table_invoices\",\"table_ready\",\"table_recent\",\"table_pos\"]}','2026-09-05 08:16:11');
 /*!40000 ALTER TABLE `user_dashboard_layouts` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `users`
---
-
 DROP TABLE IF EXISTS `users`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
@@ -1889,17 +1943,34 @@ CREATE TABLE `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `employee_number` (`employee_number`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=16 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `users`
---
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'SA-001','Super','Admin',NULL,'admin@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-02 08:59:06',1),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-03 14:02:27',0),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,'uploads/avatars/user_3_pending_1788312423.png','pending',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-02 01:27:03',1),(4,'HS-002','Ana','Reyes',NULL,'hr.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-31 07:21:52',1),(5,'SM-001','Store','Manager',NULL,'store.manager@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','store_manager',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-02 08:59:06',1),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-31 21:59:43',1),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-31 22:01:07',1),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,'uploads/avatars/user_9_pending_1788168266.jpg','pending',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-02 06:51:01',1),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-26 03:23:27',1),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-21 03:04:09','2026-08-31 14:55:12',1),(14,'HS-331','Stephen','Frias','F','stephenfrias04@gmail.com','$2y$10$5T5O2tMN1/Drfh187J.TduF2nek8TjU2K0/3aPVGVMxO4c8tOVBgO','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,'2026-08-31 06:48:53',15.00,15.00,5.00,0.00,'2026-08-31 03:31:51','2026-08-31 06:48:53',1),(15,'TR-643','Stephen','Frias','F','allen@sd.ph','$2y$10$ACKPEiPCihZXZ8qI/0p7kutLXth3dTMJWxiLV8SfeFJc..YdNEjDK','trainee',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-31 07:21:52','2026-08-31 07:21:52',1);
+INSERT INTO `users` VALUES (1,'SA-001','Super','Admin',NULL,'admin@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-02 08:59:06',1),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-05 06:01:33',0),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,'uploads/avatars/user_3_pending_1788312423.png','pending',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-02 01:27:03',1),(4,'HS-002','Ana','Reyes',NULL,'hr.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-31 07:21:52',1),(5,'SM-001','Store','Manager',NULL,'allenrumbines06@gmail.com','$2y$10$yzAAYoTDBsOPeu9in9pDQO2SrzG1wyVg7j.YUwKtp6cAi.hwJDPFa','store_manager',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-05 07:51:29',0),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$yzAAYoTDBsOPeu9in9pDQO2SrzG1wyVg7j.YUwKtp6cAi.hwJDPFa','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-04 16:38:00',0),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$yzAAYoTDBsOPeu9in9pDQO2SrzG1wyVg7j.YUwKtp6cAi.hwJDPFa','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-04 14:21:50',1),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,'uploads/avatars/user_9_pending_1788168266.jpg','pending',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-09-02 06:51:01',1),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-26 03:23:27',1),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$yzAAYoTDBsOPeu9in9pDQO2SrzG1wyVg7j.YUwKtp6cAi.hwJDPFa','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-21 03:04:09','2026-09-05 06:55:51',0),(14,'HS-331','Stephen','Frias','F','stephenfrias04@gmail.com','$2y$10$5T5O2tMN1/Drfh187J.TduF2nek8TjU2K0/3aPVGVMxO4c8tOVBgO','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,'2026-08-31 06:48:53',15.00,15.00,5.00,0.00,'2026-08-31 03:31:51','2026-08-31 06:48:53',1),(15,'TR-643','Stephen','Frias','F','allen@sd.ph','$2y$10$ACKPEiPCihZXZ8qI/0p7kutLXth3dTMJWxiLV8SfeFJc..YdNEjDK','trainee',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-08-31 07:21:52','2026-08-31 07:21:52',1),(16,'SUP-002','Northline','Supplies',NULL,'sales@northline-supplies.example.com','$2y$10$10L.a42mzO9bMBBinsT.cuR54WdSC1JpYxssP4rdqsGKk1goZWkyO','supplier',1,0,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,'2026-09-04 17:15:33','2026-09-04 17:15:33',1);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
+UNLOCK TABLES;
+DROP TABLE IF EXISTS `variance_tolerance_settings`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `variance_tolerance_settings` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `price_tolerance_percent` decimal(5,2) NOT NULL DEFAULT 2.00,
+  `price_tolerance_amount` decimal(10,2) NOT NULL DEFAULT 50.00,
+  `quantity_tolerance_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
+  `updated_by` int(11) DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `fk_variance_settings_user` (`updated_by`),
+  CONSTRAINT `fk_variance_settings_user` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+LOCK TABLES `variance_tolerance_settings` WRITE;
+/*!40000 ALTER TABLE `variance_tolerance_settings` DISABLE KEYS */;
+INSERT INTO `variance_tolerance_settings` VALUES (1,2.00,50.00,0.00,NULL,'2026-09-04 14:02:11');
+/*!40000 ALTER TABLE `variance_tolerance_settings` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -1911,4 +1982,3 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-04  0:37:31

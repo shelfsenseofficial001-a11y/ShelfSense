@@ -35,6 +35,8 @@ $content = <<<HTML
     .payroll-status-badge.verified { background: #d1fae5; color: #065f46; }
     .payroll-status-badge.processed { background: #d1fae5; color: #065f46; }
     .payroll-status-badge.cancelled { background: #fecaca; color: #991b1b; }
+    /* Dark-mode colors for these are already handled by hr-theme.css
+       (html[data-bs-theme="dark"] body.hr-theme .payroll-status-badge.*). */
     .action-btn { font-size: 0.7rem; padding: 2px 6px; }
     .payroll-amount { font-weight: 600; }
     .payroll-amount.positive { color: #059669; }

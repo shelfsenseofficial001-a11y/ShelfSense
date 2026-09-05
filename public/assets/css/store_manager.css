@@ -40,6 +40,9 @@
 .sm-stat-number.danger { color: #dc2626; }
 .sm-stat-number.success { color: #059669; }
 .sm-stat-number.muted { color: var(--text-muted); }
+.sm-stat-number.orange, .sm-stat-icon.orange { color: #9a3412; }
+[data-bs-theme="dark"] .sm-stat-number.orange,
+[data-bs-theme="dark"] .sm-stat-icon.orange { color: #fdba74; }
 
 /* ---------- Status badges (centralized mapping) ---------- */
 .sm-status-badge {

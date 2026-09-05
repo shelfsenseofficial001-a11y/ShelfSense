@@ -69,6 +69,8 @@ $content = <<<HTML
     .week-status-badge.locked { background: #d1fae5; color: #065f46; }
     .week-status-badge.approved { background: #d1fae5; color: #065f46; }
     .week-status-badge.rejected { background: #fecaca; color: #991b1b; }
+    /* Dark-mode colors for these are already handled by hr-theme.css
+       (html[data-bs-theme="dark"] body.hr-theme .week-status-badge.*). */
     .half-payroll-status {
         font-size: 0.8rem;
         margin-left: 8px;

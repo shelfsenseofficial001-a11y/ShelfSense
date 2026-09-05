@@ -1,66 +1,60 @@
 <?php
 $title = 'Invoices - Supplier';
-$pageTitle = 'My Invoices';
+$pageTitle = 'Invoices';
 $activePage = 'invoices';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/invoices.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260904"></script>'
+    . '<script src="/ShelfSense/public/assets/js/supplier/invoices.js?v=20260904"></script>';
 
 $content = <<<'EOT'
-<ul class="nav nav-pills sp-tabs mb-3" id="invoiceStatusTabs">
-    <li class="nav-item">
-        <button type="button" class="nav-link active" data-status="">All <span class="badge bg-secondary ms-1" id="countAll">0</span></button>
-    </li>
-    <li class="nav-item">
-        <button type="button" class="nav-link" data-status="pending">Pending <span class="badge bg-secondary ms-1" id="countPending">0</span></button>
-    </li>
-    <li class="nav-item">
-        <button type="button" class="nav-link" data-status="verified">Verified <span class="badge bg-secondary ms-1" id="countVerified">0</span></button>
-    </li>
-    <li class="nav-item">
-        <button type="button" class="nav-link" data-status="paid">Paid <span class="badge bg-secondary ms-1" id="countPaid">0</span></button>
-    </li>
-</ul>
+<div class="modern-card p-3">
+    <ul class="nav nav-tabs sp-tabs mb-3" id="spInvTabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#createInvTab" type="button"><i class="bi bi-send me-1"></i>Create Invoice</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#myInvTab" type="button"><i class="bi bi-receipt me-1"></i>My Invoices</button></li>
+    </ul>
 
-<div class="row g-2 mb-3">
-    <div class="col-md-6">
-        <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="Search invoice # or requisition #...">
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="createInvTab">
+            <div class="row g-3">
+                <div class="col-md-5">
+                    <label class="form-label">Purchase Order</label>
+                    <select id="invPoSelect" class="form-select"></select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Invoice Date</label>
+                    <input type="date" id="invDate" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Due Date</label>
+                    <input type="date" id="invDueDate" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Attach Invoice File (optional, PDF/JPG/PNG)</label>
+                    <input type="file" id="invFile" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                </div>
+            </div>
+
+            <hr>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle" id="invItemsTable">
+                    <thead><tr><th>Product</th><th>PO Qty</th><th>PO Price</th><th style="width:120px">Billed Qty</th><th style="width:140px">Billed Price</th></tr></thead>
+                    <tbody id="invItemsBody"><tr><td colspan="5" class="text-center text-muted">Select a purchase order.</td></tr></tbody>
+                </table>
+            </div>
+
+            <label class="form-label">Notes (optional)</label>
+            <textarea id="invNotes" class="form-control" rows="2"></textarea>
+
+            <button class="btn btn-yellow-primary mt-3" id="submitInvoiceBtn"><i class="bi bi-send"></i> Submit Invoice</button>
         </div>
-    </div>
-    <div class="col-md-6 text-end">
-        <a href="?page=supplier_requisitions&tab=pending" class="btn btn-yellow-primary btn-sm">
-            <i class="bi bi-plus-circle"></i> Create Invoice
-        </a>
-        <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-    </div>
-</div>
 
-<div class="active-filter-chips" id="activeFilterChips"></div>
-
-<div class="modern-card p-3 sm-fill-card">
-    <div id="invoiceCardsContainer" class="sp-card-grid">
-        <div class="text-center py-4" style="grid-column:1/-1;">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Loading invoices...</p>
+        <div class="tab-pane fade" id="myInvTab">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead><tr><th>Invoice #</th><th>PO #</th><th>Total</th><th>Match Status</th><th>Created</th></tr></thead>
+                    <tbody id="myInvTableBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+                </table>
+            </div>
         </div>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <span class="text-muted small" id="tableInfo">Loading...</span>
-        <nav aria-label="Page navigation">
-            <ul class="pagination pagination-sm mb-0" id="paginationContainer">
-                <li class="page-item disabled"><span class="page-link">1</span></li>
-            </ul>
-        </nav>
-    </div>
-</div>
-
-<!-- Invoice Detail Modal -->
-<div class="offcanvas offcanvas-end detail-drawer" id="invoiceDetailModal" tabindex="-1">
-    <div class="offcanvas-header">
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body" id="invoiceDetailBody">
-        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
     </div>
 </div>
 EOT;

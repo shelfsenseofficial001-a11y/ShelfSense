@@ -1,74 +1,49 @@
 // ============================================
-// FINANCE STAFF - BUDGET VIEW (read-only)
+// FINANCE STAFF - BUDGET VIEW (read-only, ledger-based)
 // ============================================
 
-console.log('✅ finance/staff/budget.js loaded');
-
 document.addEventListener('DOMContentLoaded', function () {
-    // The period <select> is pre-populated server-side with real cutoff
-    // options and already has the current cutoff selected -- just read it.
     loadBudget(document.getElementById('monthFilter').value);
-
-    document.getElementById('monthFilter').addEventListener('change', function () {
-        loadBudget(this.value);
-    });
-    document.getElementById('refreshBtn').addEventListener('click', function () {
-        loadBudget(document.getElementById('monthFilter').value);
-    });
+    document.getElementById('monthFilter').addEventListener('change', function () { loadBudget(this.value); });
+    document.getElementById('refreshBtn').addEventListener('click', function () { loadBudget(document.getElementById('monthFilter').value); });
 });
 
-function loadBudget(monthYear) {
+async function loadBudget(periodKey) {
     const container = document.getElementById('fn-budget-table');
     container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-
-    fetch(`?page=api_finance_staff_get_budget&month=${encodeURIComponent(monthYear)}`)
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                renderBudgetTable(data.data.budgets, data.data.month_year);
-                document.getElementById('lastUpdated').textContent = `Last updated: ${new Date(data.data.generated_at.replace(' ', 'T')).toLocaleString()}`;
-            } else {
-                container.innerHTML = fnErrorState(data.message || 'Failed to load budget status');
-            }
-        })
-        .catch(() => { container.innerHTML = fnErrorState(); });
+    try {
+        const data = await prFetchJson(`?page=api_get_budget_overview&period_key=${encodeURIComponent(periodKey)}`);
+        renderBudgetTable(data.statuses, data.period);
+        document.getElementById('lastUpdated').textContent = `Period: ${data.period ? data.period.label : periodKey}`;
+    } catch (e) {
+        container.innerHTML = `<div class="text-danger text-center py-4"><i class="bi bi-exclamation-triangle"></i> ${prEscapeHtml(e.message)}</div>`;
+    }
 }
 
-function renderBudgetTable(budgets, monthYear) {
+function renderBudgetTable(statuses) {
     const container = document.getElementById('fn-budget-table');
-
-    if (!budgets || budgets.length === 0) {
-        container.innerHTML = fnEmptyState(`No budget allocations or requisitions found for ${fnCutoffLabel(monthYear)}.`);
+    if (!statuses || statuses.length === 0) {
+        container.innerHTML = `<div class="text-center text-muted py-4"><i class="bi bi-inbox"></i> No departments found.</div>`;
         return;
     }
-
     container.innerHTML = `
         <div class="table-responsive">
             <table class="table table-hover align-middle">
-                <thead>
-                    <tr>
-                        <th>Department</th>
-                        <th>Allocated</th>
-                        <th>Used</th>
-                        <th>Reserved</th>
-                        <th>Available</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
+                <thead><tr><th>Department</th><th>Allocated</th><th>Used</th><th>Reserved</th><th>Available</th><th>Status</th></tr></thead>
                 <tbody>
-                    ${budgets.map(b => `
+                    ${statuses.map(b => `
                         <tr>
-                            <td class="fw-semibold">${fnEscapeHtml(fnDeptLabel(b.department))}</td>
-                            <td>${b.has_allocation ? fnCurrency(b.allocated) : '<span class="text-muted">—</span>'}</td>
-                            <td>${fnCurrency(b.used)}</td>
-                            <td>${fnCurrency(b.reserved)}</td>
-                            <td class="fw-semibold">${b.has_allocation ? fnCurrency(b.available) : '<span class="text-muted">—</span>'}</td>
-                            <td>${fnBudgetStatusBadge(b.status)} ${b.has_allocation && b.used_percentage !== null ? `<span class="text-muted small">(${b.used_percentage}% committed)</span>` : ''}</td>
+                            <td class="fw-semibold">${prEscapeHtml(b.department_name)}</td>
+                            <td>${b.allocated > 0 ? prCurrency(b.allocated) : '<span class="text-muted">—</span>'}</td>
+                            <td>${prCurrency(b.used)}</td>
+                            <td>${prCurrency(b.reserved)}</td>
+                            <td class="fw-semibold">${prCurrency(b.available)}</td>
+                            <td>${prStatusBadge(b.status)} ${b.used_percentage !== null ? `<span class="text-muted small">(${b.used_percentage}% committed)</span>` : ''}</td>
                         </tr>
                     `).join('')}
                 </tbody>
             </table>
         </div>
-        <p class="text-muted small mb-0">Budget updates automatically when payment requests are created (reserved), approved (used), or rejected (released).</p>
+        <p class="text-muted small mb-0">Every allocation, reservation, and payment is a ledger entry — figures here are always live, never a stale snapshot.</p>
     `;
 }

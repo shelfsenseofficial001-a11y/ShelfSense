@@ -119,9 +119,6 @@ function renderProducts(products) {
                 </div>
                 <div class="sp-product-desc">${escapeHtmlSP(product.description || 'No description')}</div>
                 <div class="sp-product-price">${spCurrency(product.price)}</div>
-                <div class="sp-mapping-warning mt-2">
-                    <i class="bi bi-exclamation-triangle"></i> Name must match the Store product name for automatic mapping.
-                </div>
                 <div class="d-flex gap-2 mt-2">
                     <button class="btn btn-sm btn-outline-primary edit-product-btn" data-id="${product.id}"><i class="bi bi-pencil"></i> Edit</button>
                     <button class="btn btn-sm btn-outline-danger delete-product-btn" data-id="${product.id}" data-name="${escapeHtmlSP(product.name)}"><i class="bi bi-trash"></i> Delete</button>

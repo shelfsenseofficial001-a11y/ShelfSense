@@ -36,6 +36,10 @@ $content = '
         background: #d1fae5;
         color: #065f46;
     }
+    [data-bs-theme="dark"] .step-dot.completed {
+        background: #064e3b;
+        color: #6ee7b7;
+    }
     .step-dot.inactive {
         background: var(--bg-card-subtle);
         color: var(--text-muted);
@@ -49,6 +53,9 @@ $content = '
     }
     .step-line.completed {
         background: #059669;
+    }
+    [data-bs-theme="dark"] .step-line.completed {
+        background: #6ee7b7;
     }
     .otp-input {
         font-size: 1.5rem;

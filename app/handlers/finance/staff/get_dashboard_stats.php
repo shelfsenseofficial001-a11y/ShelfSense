@@ -4,8 +4,6 @@
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
-require_once __DIR__ . '/../../../models/StoreRequisition.php';
-require_once __DIR__ . '/../../../models/PaymentRequest.php';
 require_once __DIR__ . '/../../../models/Budget.php';
 require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 
@@ -13,8 +11,6 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 use App\Core\CutoffPeriod;
-use App\Models\StoreRequisition;
-use App\Models\PaymentRequest;
 use App\Models\Budget;
 
 header('Content-Type: application/json');
@@ -31,32 +27,32 @@ try {
     $db = Database::getInstance()->getConnection();
     $budgetModel = new Budget();
 
-    // Pending requisitions (awaiting finance staff), each evaluated against its own
-    // real department/period budget to find how many currently exceed it.
     $stmt = $db->query("
-        SELECT id, department, budget_month_year, total
-        FROM store_requisitions
-        WHERE status = 'awaiting_finance_staff'
+        SELECT id, department_id, period_key, subtotal
+        FROM requisitions
+        WHERE status = 'pending_budget_check'
     ");
     $pendingRows = $stmt->fetchAll();
     $pendingCount = count($pendingRows);
     $exceededCount = 0;
     foreach ($pendingRows as $row) {
-        $bs = $budgetModel->getBudgetStatus($row['department'] ?: 'store', $row['budget_month_year'] ?: CutoffPeriod::getCurrentKey(), (float)$row['total']);
+        $bs = $budgetModel->getBudgetStatus($row['department_id'], $row['period_key'], (float)$row['subtotal']);
         if ($bs['exceeded']) $exceededCount++;
     }
 
-    // Pending payment requests (awaiting finance head), across all finance staff
-    $paymentRequestModel = new PaymentRequest();
-    $pendingRequests = $paymentRequestModel->getCountByStatus('pending');
+    $stmt = $db->query("SELECT COUNT(*) as c FROM payment_batches WHERE status = 'pending_approval'");
+    $pendingBatches = (int)$stmt->fetch()['c'];
 
-    // Budget for the primary department (store) this month — the dashboard's single
-    // headline bar. Other departments are visible on the full Budget View page.
-    $department = 'store';
+    $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'pending_dispatch'");
+    $pendingDispatch = (int)$stmt->fetch()['c'];
+
+    $stmt = $db->query("SELECT COUNT(*) as c FROM invoices WHERE match_status IN ('price_hold','quantity_hold')");
+    $invoiceHolds = (int)$stmt->fetch()['c'];
+
+    $department = $budgetModel->getDepartmentByName('store');
     $monthYear = CutoffPeriod::getCurrentKey();
-    $budgetStatus = $budgetModel->getBudgetStatus($department, $monthYear);
+    $budgetStatus = $department ? $budgetModel->getBudgetStatus($department['id'], $monthYear) : null;
 
-    // Recent activity (last 5 notifications for this user)
     $stmt = $db->prepare("SELECT * FROM notifications WHERE user_id = ? ORDER BY created_at DESC LIMIT 5");
     $stmt->execute([Auth::userId()]);
     $recentActivity = $stmt->fetchAll();
@@ -65,15 +61,17 @@ try {
         'stats' => [
             'pending_requisitions' => $pendingCount,
             'budget_exceeded_count' => $exceededCount,
-            'pending_payment_requests' => (int)$pendingRequests,
-            'budget_department' => $department,
+            'pending_payment_requests' => $pendingBatches,
+            'pending_dispatch' => $pendingDispatch,
+            'invoice_holds' => $invoiceHolds,
+            'budget_department' => 'store',
             'budget_month_year' => $monthYear,
-            'budget_allocated' => $budgetStatus['allocated'],
-            'budget_used' => $budgetStatus['used'],
-            'budget_reserved' => $budgetStatus['reserved'],
-            'budget_available' => $budgetStatus['available'],
-            'budget_used_percentage' => $budgetStatus['used_percentage'],
-            'budget_has_allocation' => $budgetStatus['has_allocation']
+            'budget_allocated' => $budgetStatus['allocated'] ?? 0,
+            'budget_used' => $budgetStatus['used'] ?? 0,
+            'budget_reserved' => $budgetStatus['reserved'] ?? 0,
+            'budget_available' => $budgetStatus['available'] ?? 0,
+            'budget_used_percentage' => $budgetStatus['used_percentage'] ?? null,
+            'budget_has_allocation' => $budgetStatus ? $budgetStatus['allocated'] > 0 : false
         ],
         'recent_activity' => $recentActivity
     ], 'Dashboard stats fetched');

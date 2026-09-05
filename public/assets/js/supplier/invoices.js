@@ -1,202 +1,117 @@
 // ============================================
-// SUPPLIER - INVOICES
+// SUPPLIER — INVOICES
 // ============================================
 
-console.log('✅ supplier/invoices.js loaded');
-
-let currentPage = 1;
-let currentStatus = '';
+let spInvoiceablePos = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadInvoices();
-    setupEventListeners();
-
-    if (window.ShelfSenseFilterChips) {
-        window.ShelfSenseFilterChips.init('activeFilterChips', [
-            { key: 'search', type: 'search', elementId: 'searchInput' },
-        ]);
-    }
+    loadInvoiceablePos();
+    loadMyInvoices();
+    document.getElementById('invPoSelect').addEventListener('change', renderInvoiceItems);
+    document.getElementById('submitInvoiceBtn').addEventListener('click', submitInvoice);
+    document.getElementById('invDate').value = new Date().toISOString().split('T')[0];
+    const due = new Date();
+    due.setDate(due.getDate() + 30);
+    document.getElementById('invDueDate').value = due.toISOString().split('T')[0];
 });
 
-function setupEventListeners() {
-    document.querySelectorAll('#invoiceStatusTabs button[data-status]').forEach(btn => {
-        btn.addEventListener('click', function () {
-            document.querySelectorAll('#invoiceStatusTabs button').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            currentStatus = this.dataset.status;
-            currentPage = 1;
-            loadInvoices();
+async function loadInvoiceablePos() {
+    try {
+        const data = await prFetchJson('?page=api_supplier_list_pos&limit=100');
+        // Supplier is only paid after delivery -- a PO only becomes invoiceable
+        // once the Store Manager has logged at least a partial Goods Receipt.
+        spInvoiceablePos = (data.purchase_orders || []).filter(po => ['partially_received', 'received'].includes(po.status));
+        const sel = document.getElementById('invPoSelect');
+        sel.innerHTML = spInvoiceablePos.length
+            ? spInvoiceablePos.map(po => `<option value="${po.id}">${prEscapeHtml(po.po_number)} — ${prCurrency(po.total)}</option>`).join('')
+            : '<option value="">No purchase orders ready for invoicing</option>';
+        renderInvoiceItems();
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+async function renderInvoiceItems() {
+    const poId = document.getElementById('invPoSelect').value;
+    const tbody = document.getElementById('invItemsBody');
+    if (!poId) {
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">No purchase order selected.</td></tr>';
+        return;
+    }
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3">Loading...</td></tr>';
+    try {
+        const po = await prFetchJson(`?page=api_get_purchase_order&id=${poId}`);
+        tbody.innerHTML = po.items.map(i => `
+            <tr data-po-item-id="${i.id}">
+                <td>${prEscapeHtml(i.store_product_name)}</td>
+                <td>${i.quantity}</td>
+                <td>${prCurrency(i.unit_price)}</td>
+                <td><input type="number" class="form-control form-control-sm inv-qty" min="0" value="${i.quantity}"></td>
+                <td><input type="number" class="form-control form-control-sm inv-price" min="0" step="0.01" value="${i.unit_price}"></td>
+            </tr>
+        `).join('');
+    } catch (e) {
+        tbody.innerHTML = `<tr><td colspan="5" class="text-danger text-center">${prEscapeHtml(e.message)}</td></tr>`;
+    }
+}
+
+async function submitInvoice() {
+    const poId = document.getElementById('invPoSelect').value;
+    if (!poId) { Swal.fire('Select a PO', '', 'warning'); return; }
+
+    const items = [];
+    document.querySelectorAll('#invItemsBody tr[data-po-item-id]').forEach(tr => {
+        items.push({
+            po_item_id: parseInt(tr.dataset.poItemId),
+            billed_quantity: parseInt(tr.querySelector('.inv-qty').value) || 0,
+            billed_unit_price: parseFloat(tr.querySelector('.inv-price').value) || 0,
         });
     });
 
-    document.getElementById('searchInput')?.addEventListener('input', debounceSp(() => {
-        currentPage = 1;
-        loadInvoices();
-    }, 400));
-
-    document.getElementById('refreshBtn')?.addEventListener('click', function () {
-        document.getElementById('searchInput').value = '';
-        currentPage = 1;
-        loadInvoices();
-    });
-}
-
-function debounceSp(fn, wait) {
-    let t;
-    return function (...args) {
-        clearTimeout(t);
-        t = setTimeout(() => fn.apply(this, args), wait);
-    };
-}
-
-function loadInvoices(page = 1) {
-    currentPage = page;
-    const search = document.getElementById('searchInput').value.trim();
-
-    const params = new URLSearchParams({ p: page, limit: 12 });
-    if (search) params.append('search', search);
-    if (currentStatus) params.append('status', currentStatus);
-
-    const container = document.getElementById('invoiceCardsContainer');
-    container.innerHTML = `<div class="text-center py-4" style="grid-column:1/-1;"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Loading invoices...</p></div>`;
-
-    fetch(`?page=api_supplier_get_invoices&${params}`)
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                renderInvoices(data.data.invoices);
-                spRenderPagination(
-                    document.getElementById('paginationContainer'),
-                    document.getElementById('tableInfo'),
-                    data.data.pagination,
-                    'invoices',
-                    (p) => loadInvoices(p)
-                );
-                updateInvoiceTabCounts(data.data.tab_counts);
-            } else {
-                container.innerHTML = spErrorState(data.message || 'Failed to load invoices');
-            }
-        })
-        .catch(() => { container.innerHTML = spErrorState(); });
-}
-
-function updateInvoiceTabCounts(counts) {
-    if (!counts) return;
-    document.getElementById('countAll').textContent = counts.all ?? 0;
-    document.getElementById('countPending').textContent = counts.pending ?? 0;
-    document.getElementById('countVerified').textContent = counts.verified ?? 0;
-    document.getElementById('countPaid').textContent = counts.paid ?? 0;
-}
-
-function renderInvoices(invoices) {
-    const container = document.getElementById('invoiceCardsContainer');
-
-    if (!invoices || invoices.length === 0) {
-        container.innerHTML = spEmptyState('No invoices found.');
-        return;
+    const formData = new FormData();
+    formData.append('po_id', poId);
+    formData.append('invoice_date', document.getElementById('invDate').value);
+    formData.append('due_date', document.getElementById('invDueDate').value);
+    formData.append('notes', document.getElementById('invNotes').value);
+    formData.append('items', JSON.stringify(items));
+    const fileInput = document.getElementById('invFile');
+    if (fileInput.files[0]) {
+        formData.append('file', fileInput.files[0]);
     }
 
-    container.innerHTML = invoices.map(inv => `
-        <div class="sp-req-card" data-id="${inv.id}">
-            <div class="sp-req-header">
-                <div>
-                    <div class="sp-req-number">${escapeHtmlSP(inv.invoice_number)}</div>
-                    <div class="sp-req-store">${escapeHtmlSP(inv.requisition_number)}</div>
-                </div>
-                ${spStatusBadge(inv.status)}
-            </div>
-            <div class="sp-req-meta">
-                <div>Invoice Date: <strong>${spFormatDate(inv.invoice_date)}</strong></div>
-                <div>Due: <strong>${spFormatDate(inv.due_date)}</strong></div>
-            </div>
-            <div class="d-flex justify-content-between align-items-center">
-                <div class="sp-req-total">${spCurrency(inv.total)}</div>
-                <button class="btn btn-sm btn-outline-primary view-invoice-btn" data-id="${inv.id}"><i class="bi bi-eye"></i> View</button>
-            </div>
-        </div>
-    `).join('');
-
-    container.querySelectorAll('.view-invoice-btn').forEach(btn => {
-        btn.addEventListener('click', () => viewInvoice(btn.dataset.id));
-    });
+    const unlock = prLockButton(document.getElementById('submitInvoiceBtn'));
+    try {
+        const res = await fetch('?page=api_supplier_create_invoice', { method: 'POST', body: formData });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        Swal.fire('Submitted', data.message, 'success');
+        loadInvoiceablePos();
+        loadMyInvoices();
+        document.getElementById('invNotes').value = '';
+        fileInput.value = '';
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    } finally {
+        unlock();
+    }
 }
 
-function viewInvoice(id) {
-    const modal = document.getElementById('invoiceDetailModal');
-    const body = document.getElementById('invoiceDetailBody');
-
-    body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
-    bootstrap.Offcanvas.getOrCreateInstance(modal).show();
-
-    fetch(`?page=api_supplier_get_invoice&id=${id}`)
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                renderInvoiceDetail(data.data.invoice);
-            } else {
-                body.innerHTML = spErrorState(data.message || 'Failed to load invoice details.');
-            }
-        })
-        .catch(() => { body.innerHTML = spErrorState(); });
-}
-
-function renderInvoiceDetail(inv) {
-    const body = document.getElementById('invoiceDetailBody');
-
-    let itemsHtml = '<tr><td colspan="4" class="text-center text-muted">No items</td></tr>';
-    if (inv.items && inv.items.length > 0) {
-        itemsHtml = inv.items.map(item => `
+async function loadMyInvoices() {
+    const tbody = document.getElementById('myInvTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading...</td></tr>';
+    try {
+        const data = await prFetchJson('?page=api_supplier_list_invoices&limit=20');
+        const rows = data.invoices || [];
+        tbody.innerHTML = rows.length ? rows.map(inv => `
             <tr>
-                <td>${escapeHtmlSP(item.product_name)}</td>
-                <td>${item.quantity}</td>
-                <td>${spCurrency(item.unit_price)}</td>
-                <td>${spCurrency(item.total)}</td>
+                <td>${prEscapeHtml(inv.invoice_number)}</td>
+                <td>${prEscapeHtml(inv.po_number)}</td>
+                <td>${prCurrency(inv.total)}</td>
+                <td>${prStatusBadge(inv.match_status)}</td>
+                <td>${prFormatDate(inv.created_at)}</td>
             </tr>
-        `).join('');
+        `).join('') : prEmptyRow(5, 'No invoices submitted yet.');
+    } catch (e) {
+        tbody.innerHTML = prErrorRow(5, e.message);
     }
-
-    const events = [{ date: inv.created_at, title: 'Invoice Created', icon: 'bi-file-earmark-plus' }];
-    if (inv.payment_request && inv.payment_request.requested_at) {
-        events.push({ date: inv.payment_request.requested_at, title: 'Forwarded to Finance — Payment Requested', icon: 'bi-cash' });
-    }
-    if (inv.payment_request && inv.payment_request.status === 'approved' && inv.payment_request.approved_at) {
-        events.push({ date: inv.payment_request.approved_at, title: 'Finance Approved', icon: 'bi-check-circle' });
-    }
-    if (inv.paid_at) {
-        events.push({ date: inv.paid_at, title: 'Payment Confirmed', icon: 'bi-credit-card' });
-    }
-    events.sort((a, b) => new Date(a.date) - new Date(b.date));
-    const timelineHtml = events.map(e => `
-        <div class="sp-timeline-item">
-            <div class="sp-timeline-title"><i class="bi ${e.icon} me-1"></i>${e.title}</div>
-            <div class="sp-timeline-date">${spFormatDate(e.date)}</div>
-        </div>
-    `).join('');
-
-    body.innerHTML = `
-        <div class="row mb-3">
-            <div class="col-md-6">
-                <p class="mb-1"><strong>Supplier:</strong> ${escapeHtmlSP(inv.supplier_name)}</p>
-                <p class="mb-1"><strong>Invoice Date:</strong> ${spFormatDate(inv.invoice_date)}</p>
-                <p class="mb-0"><strong>Status:</strong> ${spStatusBadge(inv.status)}</p>
-            </div>
-            <div class="col-md-6">
-                <p class="mb-1"><strong>Store:</strong> ${escapeHtmlSP(inv.first_name)} ${escapeHtmlSP(inv.last_name)}</p>
-                <p class="mb-1"><strong>Due Date:</strong> ${spFormatDate(inv.due_date)}</p>
-                <p class="mb-0"><strong>Total:</strong> ${spCurrency(inv.total)}</p>
-            </div>
-        </div>
-        ${inv.notes ? `<p><strong>Notes:</strong><br>${escapeHtmlSP(inv.notes)}</p>` : ''}
-        <hr>
-        <h6 class="fw-bold">Items</h6>
-        <div class="table-responsive mb-3">
-            <table class="table table-sm">
-                <thead><tr><th>Item</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead>
-                <tbody>${itemsHtml}</tbody>
-            </table>
-        </div>
-        <h6 class="fw-bold">Payment Timeline</h6>
-        <div class="sp-timeline">${timelineHtml}</div>
-        <p class="text-muted small mb-0">Only events with a real recorded timestamp are shown.</p>
-    `;
 }

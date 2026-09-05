@@ -2,7 +2,8 @@
 $title = 'Supplier Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/dashboard.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/dashboard.js?v=20260905290000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/supplier/dashboard-layout.js?v=20260905310000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourReadyEvent = "sp-dashboard-rendered";

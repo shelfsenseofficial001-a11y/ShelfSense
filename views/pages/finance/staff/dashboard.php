@@ -2,7 +2,7 @@
 $title = 'Finance Staff Dashboard';
 $pageTitle = 'Finance Staff Dashboard';
 $activePage = 'staff_dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/dashboard.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/dashboard.js?v=20260905300000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourReadyEvent = "fn-staff-dashboard-rendered";

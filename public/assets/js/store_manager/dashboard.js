@@ -75,10 +75,10 @@ function renderDashboard(data) {
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
                             <div class="sm-stat-label">Awaiting Finance</div>
-                            <div class="sm-stat-number" style="color:#9a3412;">${stats.awaiting_finance ?? 0}</div>
+                            <div class="sm-stat-number orange">${stats.awaiting_finance ?? 0}</div>
                             ${stats.awaiting_finance_this_week ? `<div class="sm-stat-trend up"><i class="bi bi-graph-up-arrow"></i> +${stats.awaiting_finance_this_week} this week</div>` : `<div class="sm-stat-trend muted">No new ones this week</div>`}
                         </div>
-                        <div class="sm-stat-icon"><i class="bi bi-cash-coin" style="color:#9a3412;"></i></div>
+                        <div class="sm-stat-icon orange"><i class="bi bi-cash-coin"></i></div>
                     </div>
                 </div>
             </div>
@@ -169,7 +169,7 @@ function renderDashboard(data) {
             </div>
             <div class="col-lg-6 d-flex dash-widget" data-widget-id="chart_trend">
                 <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
-                <div class="modern-card p-3 h-100 w-100">
+                <div class="modern-card p-3 h-100 w-100 dash-card-accent">
                     <h6 class="fw-bold mb-3"><i class="bi bi-graph-up text-yellow me-2"></i>Requisition Trend (Last 14 Days)</h6>
                     <div class="sm-chart-wrap">
                         <canvas id="smTrendChart"></canvas>
@@ -178,7 +178,7 @@ function renderDashboard(data) {
             </div>
             <div class="col-lg-6 d-flex dash-widget" data-widget-id="chart_status">
                 <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
-                <div class="modern-card p-3 h-100 w-100">
+                <div class="modern-card p-3 h-100 w-100 dash-card-accent">
                     <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-yellow me-2"></i>Requisitions by Status</h6>
                     <div class="sm-chart-wrap sm-chart-wrap-donut">
                         <canvas id="smStatusChart"></canvas>
@@ -199,7 +199,7 @@ function renderDashboard(data) {
             </div>
             <div class="col-lg-6 dash-widget" data-widget-id="panel_insights">
                 <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
-                <div class="modern-card p-3 h-100">
+                <div class="modern-card p-3 h-100 dash-card-accent">
                     <h6 class="fw-bold mb-3"><i class="bi bi-lightbulb-fill text-yellow me-2"></i>Business Insights</h6>
                     ${renderInsights(insights)}
                 </div>

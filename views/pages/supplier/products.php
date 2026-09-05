@@ -2,7 +2,7 @@
 $title = 'Supplier Products - ShelfSense';
 $pageTitle = 'My Product Catalog';
 $activePage = 'products';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260829181340"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260905210000"></script>';
 
 $content = <<<'EOT'
 <div class="sp-stats-grid">
@@ -35,12 +35,16 @@ $content = <<<'EOT'
         </select>
     </div>
     <div class="col-md-5 text-end">
-        <button class="btn btn-yellow-primary btn-sm" id="addProductBtn"><i class="bi bi-plus-circle"></i> Add Product</button>
         <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
     </div>
 </div>
 
 <div class="active-filter-chips" id="activeFilterChips"></div>
+
+<div class="sp-mapping-warning mb-3">
+    <i class="bi bi-exclamation-triangle"></i>
+    Product names must exactly match the Store's product name for automatic mapping during requisition creation — there is no dedicated linking field yet.
+</div>
 
 <div class="modern-card p-3 sm-fill-card">
     <div id="sp-product-grid" class="sp-product-grid">
@@ -123,6 +127,14 @@ $content = <<<'EOT'
         </div>
     </div>
 </div>
+
+<!-- Add Product FAB: fixed bottom-right circle that grows into a pill
+     revealing its label on hover, instead of an inline button in the
+     filter row. -->
+<button type="button" class="sp-fab" id="addProductBtn" title="Add Product">
+    <span class="sp-fab-icon"><span class="sp-fab-plus"></span></span>
+    <span class="sp-fab-label">Add Product</span>
+</button>
 EOT;
 
 require_once __DIR__ . '/../../layouts/supplier.php';

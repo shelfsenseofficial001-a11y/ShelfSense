@@ -17,14 +17,18 @@ use App\Models\Product;
 
 header('Content-Type: application/json');
 
-if (!Auth::check()) {
+// See get_orders.php -- a cashier can reach this either via a real staff
+// login or via the register's POS PIN unlock (no user_id session of its own).
+$isPosSession = Auth::posCheck();
+
+if (!$isPosSession && !(Auth::check() && (Auth::isEmployee() || Auth::isStoreManager() || Auth::isSuperAdmin()))) {
     Response::unauthorized('Please login to access this resource');
 }
-
-// Only Employee, Store Manager, or SuperAdmin can void
-if (!Auth::isEmployee() && !Auth::isStoreManager() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Employee role required.');
+if ($isPosSession && !Auth::posCashierId()) {
+    Response::forbidden('Select which cashier is ringing up sales first.');
 }
+
+$cashierId = $isPosSession ? Auth::posCashierId() : Auth::userId();
 
 $input = json_decode(file_get_contents('php://input'), true);
 $orderId = isset($input['order_id']) ? intval($input['order_id']) : 0;
@@ -56,7 +60,7 @@ try {
     }
 
     // Check if this employee owns the order
-    if ($order['cashier_id'] != Auth::userId() && !Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+    if ($order['cashier_id'] != $cashierId && !Auth::isStoreManager() && !Auth::isSuperAdmin()) {
         Response::forbidden('You can only void your own orders');
     }
 
@@ -70,7 +74,7 @@ try {
         $productModel->increaseStock($item['product_id'], $item['quantity']);
     }
 
-    $orderModel->updateStatus($orderId, 'voided', $reason, Auth::userId());
+    $orderModel->updateStatus($orderId, 'voided', $reason, $cashierId);
 
     $db->commit();
 

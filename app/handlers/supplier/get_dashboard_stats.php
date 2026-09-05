@@ -28,54 +28,91 @@ try {
     $supplier = $stmt->fetch();
     $supplierId = $supplier ? $supplier['id'] : $userId;
 
-    // Requisition counts, grouped the same way the Requisitions tabs group them
     $stmt = $db->prepare("
         SELECT
             COUNT(*) as total_requisitions,
-            SUM(CASE WHEN status IN ('pending_supplier','sent_to_supplier') THEN 1 ELSE 0 END) as pending_requisitions,
-            SUM(CASE WHEN status = 'supplier_processed' THEN 1 ELSE 0 END) as invoiced_requisitions,
+            SUM(CASE WHEN status = 'pending_confirmation' THEN 1 ELSE 0 END) as pending_requisitions,
+            SUM(CASE WHEN status IN ('confirmed','partially_received','received') THEN 1 ELSE 0 END) as invoiced_requisitions,
             SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as ready_to_ship
-        FROM store_requisitions
+        FROM purchase_orders
         WHERE supplier_id = ?
     ");
     $stmt->execute([$supplierId]);
     $stats = $stmt->fetch();
 
-    // This month's revenue: real invoice totals, invoiced this calendar month
     $stmt = $db->prepare("
         SELECT COALESCE(SUM(total), 0) as revenue
-        FROM supplier_invoices
+        FROM invoices
         WHERE supplier_id = ? AND DATE_FORMAT(invoice_date, '%Y-%m') = DATE_FORMAT(NOW(), '%Y-%m')
     ");
     $stmt->execute([$supplierId]);
     $revenue = $stmt->fetch();
 
-    // Activity in the last 30 days: real counts by real timestamps
     $stmt = $db->prepare("
         SELECT
-            SUM(CASE WHEN r.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as received_30d,
-            SUM(CASE WHEN r.status <> 'pending_supplier' AND r.status <> 'sent_to_supplier' AND r.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as processed_30d,
-            SUM(CASE WHEN r.status IN ('shipped','completed','partial_received') AND r.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as shipped_30d
-        FROM store_requisitions r
-        WHERE r.supplier_id = ?
+            SUM(CASE WHEN po.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as received_30d,
+            SUM(CASE WHEN po.status <> 'pending_confirmation' AND po.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as processed_30d,
+            SUM(CASE WHEN po.status IN ('received','partially_received','closed') AND po.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as shipped_30d
+        FROM purchase_orders po
+        WHERE po.supplier_id = ?
     ");
     $stmt->execute([$supplierId]);
     $activity = $stmt->fetch();
 
-    // Recent requisitions needing action (pending), with item count
     $stmt = $db->prepare("
         SELECT
-            r.id, r.requisition_number, r.status, r.order_date, r.expected_delivery, r.total,
-            u.first_name, u.last_name,
-            (SELECT COUNT(*) FROM store_requisition_items ri WHERE ri.requisition_id = r.id) as item_count
-        FROM store_requisitions r
-        JOIN users u ON r.created_by = u.user_id
-        WHERE r.supplier_id = ? AND r.status IN ('pending_supplier', 'sent_to_supplier')
-        ORDER BY r.created_at ASC
+            po.id, po.po_number as requisition_number, po.status, po.order_date, po.expected_delivery_date as expected_delivery, po.total,
+            CONCAT(u.first_name, ' ', u.last_name) as first_name,
+            (SELECT COUNT(*) FROM purchase_order_items poi WHERE poi.po_id = po.id) as item_count
+        FROM purchase_orders po
+        JOIN users u ON po.created_by = u.user_id
+        WHERE po.supplier_id = ? AND po.status = 'pending_confirmation'
+        ORDER BY po.dispatched_at ASC
         LIMIT 5
     ");
     $stmt->execute([$supplierId]);
     $pendingRequisitions = $stmt->fetchAll();
+
+    $stmt = $db->prepare("
+        SELECT po.id, po.po_number, po.status, po.total
+        FROM purchase_orders po
+        WHERE po.supplier_id = ? AND po.status = 'paid'
+        ORDER BY po.updated_at DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$supplierId]);
+    $readyToShip = $stmt->fetchAll();
+
+    $stmt = $db->prepare("
+        SELECT inv.id, inv.invoice_number, inv.match_status, inv.total, po.po_number
+        FROM invoices inv
+        JOIN purchase_orders po ON po.id = inv.po_id
+        WHERE inv.supplier_id = ?
+        ORDER BY inv.created_at DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$supplierId]);
+    $recentInvoices = $stmt->fetchAll();
+
+    $stmt = $db->prepare("
+        SELECT id, name, price
+        FROM supplier_products
+        WHERE supplier_id = ? AND is_active = 1
+        ORDER BY updated_at DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$supplierId]);
+    $activeProducts = $stmt->fetchAll();
+
+    $stmt = $db->prepare("
+        SELECT id, po_number, status, total
+        FROM purchase_orders
+        WHERE supplier_id = ?
+        ORDER BY order_date DESC
+        LIMIT 5
+    ");
+    $stmt->execute([$supplierId]);
+    $recentPos = $stmt->fetchAll();
 
     Response::success([
         'stats' => [
@@ -90,7 +127,11 @@ try {
             'processed' => (int)($activity['processed_30d'] ?? 0),
             'shipped' => (int)($activity['shipped_30d'] ?? 0)
         ],
-        'pending_requisitions' => $pendingRequisitions
+        'pending_requisitions' => $pendingRequisitions,
+        'ready_to_ship_pos' => $readyToShip,
+        'recent_invoices' => $recentInvoices,
+        'active_products' => $activeProducts,
+        'recent_pos' => $recentPos
     ], 'Supplier dashboard stats fetched');
 
 } catch (Exception $e) {

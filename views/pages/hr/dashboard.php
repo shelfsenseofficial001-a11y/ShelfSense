@@ -143,7 +143,7 @@ $content = '
 
     <div class="col-lg-8 d-flex dash-widget" data-widget-id="chart_monthly">
         <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
-        <div class="modern-card p-3 h-100 w-100 d-flex flex-column">
+        <div class="modern-card p-3 h-100 w-100 d-flex flex-column dash-card-accent">
             <h6 class="fw-bold mb-3"><i class="bi bi-bar-chart-fill text-yellow me-2"></i>Monthly Applications</h6>
             <div class="chart-wrap">
                 <canvas id="monthlyChart"></canvas>
@@ -153,7 +153,7 @@ $content = '
 
     <div class="col-lg-4 d-flex dash-widget" data-widget-id="chart_pipeline">
         <span class="dash-widget-handle"><i class="bi bi-grip-vertical"></i></span>
-        <div class="modern-card p-3 h-100 w-100 d-flex flex-column">
+        <div class="modern-card p-3 h-100 w-100 d-flex flex-column dash-card-accent">
             <h6 class="fw-bold mb-3"><i class="bi bi-pie-chart-fill text-yellow me-2"></i>Pipeline</h6>
             <div class="chart-wrap">
                 <canvas id="pipelineChart"></canvas>
@@ -164,7 +164,7 @@ $content = '
 </div>
 
 <script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260830122553"></script>
-<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260902220726"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260905310000"></script>
 <script>
 window.dashboardTourSteps = [
     {

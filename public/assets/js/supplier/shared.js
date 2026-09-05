@@ -19,6 +19,11 @@ const SP_STATUS_LABELS = {
     pending: 'Pending',
     verified: 'Verified',
     rejected: 'Rejected',
+    matched: 'Matched',
+    approved: 'Approved',
+    reconciled: 'Reconciled',
+    price_hold: 'Price Hold',
+    quantity_hold: 'Quantity Hold',
 };
 
 function spStatusBadge(status) {

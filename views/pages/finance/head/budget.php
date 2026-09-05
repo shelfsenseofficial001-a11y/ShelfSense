@@ -6,7 +6,8 @@ use App\Core\CutoffPeriod;
 $title = 'Budget Management - Finance Head';
 $pageTitle = 'Budget Management';
 $activePage = 'head_budget';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260901010000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260904"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260904"></script>';
 
 $defaultPeriod = CutoffPeriod::getCurrentKey();
 $periodOptionsHtml = '';
@@ -16,79 +17,67 @@ foreach (CutoffPeriod::getRecentHalves(2, 1) as $half) {
 }
 
 $content = <<<EOT
-<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-    <div class="d-flex align-items-center gap-2 flex-wrap">
-        <label class="form-label fw-semibold mb-0">Period:</label>
-        <select id="monthFilter" class="form-select form-select-sm" style="max-width:220px;">{$periodOptionsHtml}</select>
-        <label class="form-label fw-semibold mb-0 ms-2">Department:</label>
-        <select id="departmentFilter" class="form-select form-select-sm searchable-select" style="min-width:160px;" data-placeholder="All departments"></select>
-    </div>
-    <div class="d-flex gap-2">
-        <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-        <button class="btn btn-yellow-outline btn-sm" id="exportBtn"><i class="bi bi-download"></i> Export CSV</button>
-        <button class="btn btn-yellow-outline btn-sm" id="printBtn"><i class="bi bi-printer"></i> Print</button>
-    </div>
-</div>
+<ul class="nav nav-tabs mb-3" id="budgetTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overviewTab" type="button">Overview</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deptTab" type="button">Departments</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#historyTab" type="button">Transaction History</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#toleranceTab" type="button">Match Tolerance</button></li>
+</ul>
 
-<div class="active-filter-chips" id="activeFilterChips"></div>
-
-<div id="fn-near-limit-box"></div>
-
-<div class="modern-card p-3 mb-3">
-    <h6 class="fw-bold mb-3"><i class="bi bi-building text-yellow me-2"></i>Budget Overview — All Departments</h6>
-    <div id="fn-overview-table">
-        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
-    </div>
-    <p class="text-muted small mb-0 mt-2" id="lastUpdated"></p>
-</div>
-
-<div class="row g-3">
-    <div class="col-lg-5">
-        <div class="modern-card p-3 mb-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-pencil-square text-yellow me-2"></i>Set / Adjust Budget</h6>
-            <form id="setBudgetForm">
-                <div class="mb-2">
-                    <label class="form-label fw-semibold">Department</label>
-                    <select id="budgetDepartment" class="form-select searchable-select" required></select>
-                </div>
-                <div class="mb-2">
-                    <label class="form-label fw-semibold">Cutoff Period</label>
-                    <select id="budgetMonth" class="form-select" required>{$periodOptionsHtml}</select>
-                </div>
-                <div id="currentBudgetInfo" class="small text-muted mb-2"></div>
-                <div class="mb-2">
-                    <label class="form-label fw-semibold">New Allocated Budget</label>
-                    <input type="number" id="budgetAmount" class="form-control" step="0.01" min="0" placeholder="0.00" required>
-                </div>
-                <div id="adjustmentPreview" class="small mb-2"></div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Reason / Notes (Optional)</label>
-                    <textarea id="budgetReason" class="form-control" rows="2" placeholder="e.g. Increased for Q3 restocking"></textarea>
-                </div>
-                <button type="submit" class="btn btn-yellow-primary btn-sm w-100" id="setBudgetBtn">
-                    <i class="bi bi-save"></i> Save Budget
-                </button>
-            </form>
-            <div id="budgetMessage" class="mt-2"></div>
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="overviewTab">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div class="d-flex align-items-center gap-2">
+                <label class="form-label fw-semibold mb-0">Period:</label>
+                <select id="monthFilter" class="form-select form-select-sm" style="max-width:220px;">{$periodOptionsHtml}</select>
+            </div>
         </div>
+        <div id="fh-budget-table" class="modern-card p-3"><div class="text-center py-4"><div class="spinner-border text-primary"></div></div></div>
+    </div>
 
-        <div class="modern-card p-3">
-            <h6 class="fw-bold mb-3"><i class="bi bi-clock-history text-yellow me-2"></i>Allocation Adjustment History</h6>
-            <div id="fn-adjustment-history">
-                <div class="text-center py-3"><div class="spinner-border spinner-border-sm text-primary"></div></div>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mt-2">
-                <span class="text-muted small" id="historyInfo"></span>
-                <nav><ul class="pagination pagination-sm mb-0" id="historyPagination"></ul></nav>
-            </div>
+    <div class="tab-pane fade" id="deptTab">
+        <div class="row g-2 mb-3">
+            <div class="col-md-4"><input type="text" id="newDeptName" class="form-control" placeholder="Department name"></div>
+            <div class="col-md-3"><input type="text" id="newDeptCode" class="form-control" placeholder="Code (optional)"></div>
+            <div class="col-md-2"><button class="btn btn-yellow-primary" id="addDeptBtn">Add</button></div>
+        </div>
+        <table class="table table-sm" id="deptTable"><thead><tr><th>Name</th><th>Code</th><th>Status</th><th></th></tr></thead><tbody id="deptTableBody"></tbody></table>
+    </div>
+
+    <div class="tab-pane fade" id="historyTab">
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead><tr><th>Date</th><th>Department</th><th>Period</th><th>Type</th><th>Amount</th><th>By</th><th>Note</th></tr></thead>
+                <tbody id="historyTableBody"><tr><td colspan="7" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
         </div>
     </div>
 
-    <div class="col-lg-7">
-        <div class="modern-card p-3" id="budgetReportSection">
-            <h6 class="fw-bold mb-3"><i class="bi bi-file-earmark-bar-graph text-yellow me-2"></i>Budget Usage by Requisition</h6>
-            <div id="fn-usage-table">
-                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+    <div class="tab-pane fade" id="toleranceTab">
+        <div class="row g-3" style="max-width:500px;">
+            <div class="col-md-6"><label class="form-label">Price Tolerance (%)</label><input type="number" id="tolPricePercent" class="form-control" step="0.01" min="0"></div>
+            <div class="col-md-6"><label class="form-label">Price Tolerance (₱ flat)</label><input type="number" id="tolPriceAmount" class="form-control" step="0.01" min="0"></div>
+            <div class="col-md-6"><label class="form-label">Quantity Tolerance (%)</label><input type="number" id="tolQtyPercent" class="form-control" step="0.01" min="0"></div>
+        </div>
+        <p class="text-muted small mt-2">An invoice line passes the price check if it's within EITHER the percent OR the flat amount (whichever is looser).</p>
+        <button class="btn btn-yellow-primary btn-sm" id="saveToleranceBtn">Save</button>
+    </div>
+</div>
+
+<div class="modal fade" id="setBudgetModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Set Allocation</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p id="setBudgetDeptLabel"></p>
+                <label class="form-label">New Allocated Amount</label>
+                <input type="number" id="setBudgetAmount" class="form-control" min="0" step="0.01">
+                <label class="form-label mt-2">Reason</label>
+                <textarea id="setBudgetReason" class="form-control" rows="2"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-yellow-primary btn-sm" id="confirmSetBudgetBtn">Save</button>
             </div>
         </div>
     </div>

@@ -38,7 +38,7 @@
 .sp-stat-number.warning { color: #d97706; }
 .sp-stat-number.danger { color: #dc2626; }
 .sp-stat-number.success { color: #059669; }
-.sp-stat-number.purple { color: #7c3aed; }
+.sp-stat-number.purple, .sp-stat-icon.purple { color: #7c3aed; }
 
 /* ---------- Status badges (same mapping used in Store Manager) ---------- */
 .sp-status-badge {
@@ -65,6 +65,11 @@
 .sp-status-badge.status-rejected { background: #fecaca; color: #991b1b; }
 .sp-status-badge.status-shipped { background: #ede9fe; color: #5b21b6; }
 .sp-status-badge.status-pending { background: #fef3c7; color: #92400e; }
+.sp-status-badge.status-matched,
+.sp-status-badge.status-approved,
+.sp-status-badge.status-reconciled { background: #d1fae5; color: #065f46; }
+.sp-status-badge.status-price_hold,
+.sp-status-badge.status-quantity_hold { background: #ffedd5; color: #9a3412; }
 
 [data-bs-theme="dark"] .sp-status-badge.status-draft { background: #374151; color: #d1d5db; }
 [data-bs-theme="dark"] .sp-status-badge.status-pending_supplier,
@@ -81,6 +86,11 @@
 [data-bs-theme="dark"] .sp-status-badge.status-rejected { background: #7f1d1d; color: #fca5a5; }
 [data-bs-theme="dark"] .sp-status-badge.status-shipped { background: #4c1d95; color: #c4b5fd; }
 [data-bs-theme="dark"] .sp-status-badge.status-pending { background: #78350f; color: #fcd34d; }
+[data-bs-theme="dark"] .sp-status-badge.status-matched,
+[data-bs-theme="dark"] .sp-status-badge.status-approved,
+[data-bs-theme="dark"] .sp-status-badge.status-reconciled { background: #064e3b; color: #6ee7b7; }
+[data-bs-theme="dark"] .sp-status-badge.status-price_hold,
+[data-bs-theme="dark"] .sp-status-badge.status-quantity_hold { background: #7c2d12; color: #fdba74; }
 
 /* ---------- Requisition / invoice cards ---------- */
 .sp-card-grid {
@@ -292,6 +302,191 @@
 .sp-timeline-item .sp-timeline-date {
     font-size: 0.72rem;
     color: var(--text-muted);
+}
+
+/* ---------- Bento-style dashboard cards ----------
+   Gives every card in the content grid the same generous minimum height
+   regardless of how much data it has, so the 3x2 grid reads as one solid
+   block instead of short cards with a lot of empty page below them. The
+   whole canvas is also stretched to the bottom of the viewport (see
+   #dashboardContent below) so the grid fills the page instead of leaving
+   dead space under it on tall screens. */
+#dashboardContent {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+#spDashCanvasStats {
+    flex-shrink: 0;
+}
+#spDashCanvasContent {
+    flex: 1 1 auto;
+    align-content: stretch;
+}
+.sp-dash-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 320px;
+}
+.sp-dash-card-body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+/* ---------- Mini preview tables (dashboard "Quick Actions" cards) ----------
+   Same treatment as HR's .mini-table-scroll (body.hr-theme-scoped, so not
+   usable here directly) -- scoped to this file instead since it only loads
+   on Supplier pages. */
+.modern-card:has(.mini-table-scroll) {
+    display: flex;
+    flex-direction: column;
+}
+.modern-card:has(.mini-table-scroll) > .d-flex {
+    flex-shrink: 0;
+}
+.mini-table-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+.mini-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card-subtle);
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    z-index: 1;
+}
+.mini-table-scroll td {
+    vertical-align: middle;
+}
+
+/* ---------- Shared procurement timeline (PO/invoice history in modals) ----------
+   procurement/shared.js's prRenderTimeline() outputs plain .pr-timeline markup
+   (bare border-bottom separators) since it's also used by Store Manager/Finance
+   pages without this file loaded -- here we give it the same dot-and-line look
+   as .sp-timeline, scoped to this stylesheet so it only affects Supplier pages. */
+.pr-timeline {
+    position: relative;
+    padding-left: 22px;
+}
+.pr-timeline li {
+    position: relative;
+    border-bottom: none !important;
+}
+.pr-timeline li::before {
+    content: '';
+    position: absolute;
+    left: -22px;
+    top: 4px;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--brand-yellow);
+    border: 2px solid var(--bg-card);
+}
+.pr-timeline li:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    left: -18px;
+    top: 14px;
+    bottom: -12px;
+    width: 2px;
+    background: var(--border-color);
+}
+
+/* ---------- Add Product FAB (Products page) ----------
+   Same pattern as Store Manager's "New Requisition" FAB: a fixed circle in
+   the bottom-right that never moves on scroll, and grows into a pill
+   revealing its label on hover instead of relying on a title tooltip alone. */
+.sp-fab {
+    position: fixed;
+    bottom: 28px;
+    right: 28px;
+    z-index: 1030;
+    height: 60px;
+    width: 60px;
+    border-radius: 30px;
+    background: var(--brand-yellow);
+    color: #fff;
+    border: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.18);
+    text-decoration: none;
+    cursor: pointer;
+    transition: width 0.3s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+.sp-fab:hover,
+.sp-fab:focus-visible {
+    width: 190px;
+    background: var(--brand-yellow-hover);
+    color: #fff;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.24);
+}
+.sp-fab-icon {
+    width: 60px;
+    height: 60px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+/* Drawn with two CSS bars instead of an icon-font glyph -- icon fonts
+   (bootstrap-icons included) don't always sit dead-center in their own em
+   box (depends on the glyph's internal metrics), which read as "off-center"
+   inside a small circle where the offset is obvious. Two absolutely
+   positioned, identically-centered bars can't have that problem. */
+.sp-fab-plus {
+    position: relative;
+    width: 20px;
+    height: 20px;
+}
+.sp-fab-plus::before,
+.sp-fab-plus::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    background: currentColor;
+    border-radius: 2px;
+    transform: translate(-50%, -50%);
+}
+.sp-fab-plus::before {
+    width: 20px;
+    height: 3px;
+}
+.sp-fab-plus::after {
+    width: 3px;
+    height: 20px;
+}
+.sp-fab-label {
+    white-space: nowrap;
+    font-weight: 600;
+    font-size: 0.95rem;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+    padding-right: 20px;
+}
+.sp-fab:hover .sp-fab-label,
+.sp-fab:focus-visible .sp-fab-label {
+    opacity: 1;
+}
+@media (max-width: 768px) {
+    .sp-fab {
+        bottom: 20px;
+        right: 20px;
+    }
 }
 
 /* ---------- Responsive ---------- */

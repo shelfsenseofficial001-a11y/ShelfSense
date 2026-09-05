@@ -305,6 +305,21 @@ body.dashboard-theme .sm-fill-card > *:last-child {
     margin-top: auto !important;
 }
 
+/* A table's "No X found" row, inside one of the fill-to-card-height
+   tables above, otherwise sits glued to the top with a big dead gap
+   below it before the footer/pagination. Vertically center it in
+   whatever space the card actually stretched to instead. */
+body.dashboard-theme .table-responsive:has(.table-empty-row) {
+    height: 100%;
+}
+body.dashboard-theme .table-responsive:has(.table-empty-row) table {
+    height: 100%;
+}
+body.dashboard-theme .table-empty-row td {
+    vertical-align: middle;
+    padding: 2rem 1rem;
+}
+
 /* ==========================================================================
    3. REMOVE GLOW / MOVEMENT ON HOVER (every portal's card classes)
    ========================================================================== */
@@ -357,6 +372,98 @@ body.dashboard-theme .theme-toggle-btn:hover {
     transform: none;
     border-color: var(--border-color);
     color: var(--text-main);
+}
+
+.pos-notif-bell-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+.pos-notif-bell-btn:hover {
+    border-color: var(--border-color);
+    color: var(--text-main);
+}
+
+.pos-notif-badge {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: #dc3545;
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    line-height: 16px;
+    text-align: center;
+}
+
+.notification-dropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.18);
+    z-index: 1050;
+}
+.notification-dropdown .notification-header {
+    padding: 12px 16px;
+    font-weight: 600;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+}
+.notification-dropdown .notification-item {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+}
+.notification-dropdown .notification-item:last-child { border-bottom: none; }
+.notification-dropdown .notification-item:hover { background: var(--bg-card-subtle); }
+.notification-dropdown .notification-item.unread { background: var(--light-yellow-subtle); }
+.notification-dropdown .notification-item .notification-icon {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-card-subtle);
+    color: var(--brand-yellow);
+    font-size: 0.85rem;
+}
+.notification-dropdown .notification-item .notification-body { flex: 1; min-width: 0; }
+.notification-dropdown .notification-item .notification-title {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 2px;
+}
+.notification-dropdown .notification-item .notification-message {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+.notification-dropdown .notification-item .notification-time {
+    font-size: 0.68rem;
+    color: var(--text-muted);
+    margin-top: 3px;
 }
 
 /* ==========================================================================
@@ -468,6 +575,23 @@ body.dashboard-theme .page-item.active .page-link {
 body.dashboard-theme .spinner-border.text-primary {
     color: var(--brand-yellow) !important;
 }
+/* Bootstrap's .card-header/.card-footer padding is driven by the
+   --bs-card-cap-padding-y/x custom properties, which Bootstrap only ever
+   defines on its own .card class. Every list/table card in this app uses
+   .modern-card instead, so those variables are never defined in the
+   ancestor chain -- var() with no fallback on an undefined property makes
+   the whole padding shorthand invalid, which computes to 0. That's why
+   the pagination/count footer under a table sits flush with no breathing
+   room above it. Set real padding directly instead of relying on the
+   Bootstrap variable. */
+body.dashboard-theme .modern-card > .card-footer {
+    padding: 14px 20px;
+    border-top: 1px solid var(--border-color);
+}
+body.dashboard-theme .modern-card > .card-header {
+    padding: 14px 20px;
+}
+
 body.dashboard-theme .table {
     color: var(--text-main);
     border-collapse: separate;
@@ -1218,6 +1342,153 @@ body.dashboard-theme .offcanvas-backdrop {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(4px); }
 }
+/* ==========================================================================
+   ORDER DETAIL (POS Order History drawer content) -- replaces the raw
+   unstyled <p> tags + bare Bootstrap table that used to render here with a
+   proper hero/meta/items/summary layout matching the rest of the app's
+   card-based design language. Reuses .payment-summary for the totals block
+   (same component already used on the Checkout page's right panel).
+   ========================================================================== */
+.order-detail-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--border-color);
+}
+.order-detail-hero-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--light-yellow-subtle);
+    color: var(--brand-yellow-hover);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+}
+.order-detail-hero-text {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.order-detail-number {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: 1.05rem;
+    color: var(--text-main);
+    word-break: break-word;
+}
+.order-detail-date {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+.order-detail-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+}
+.order-detail-meta-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+}
+.order-detail-meta-item.span-2 {
+    grid-column: 1 / -1;
+}
+.order-detail-meta-item i {
+    color: var(--brand-yellow-hover);
+    font-size: 0.95rem;
+    margin-top: 2px;
+}
+.order-detail-meta-item .meta-label {
+    display: block;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+.order-detail-meta-item .meta-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.order-detail-section-title {
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 8px;
+}
+.order-detail-items {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 18px;
+}
+.order-detail-items table {
+    margin-bottom: 0;
+}
+.order-detail-items thead th {
+    background: var(--bg-card-subtle);
+    color: var(--text-muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border-color);
+    padding: 10px 14px;
+}
+.order-detail-items tbody td {
+    padding: 10px 14px;
+    font-size: 0.85rem;
+    color: var(--text-main);
+    border-bottom: 1px solid var(--border-color);
+    vertical-align: middle;
+}
+.order-detail-items tbody tr:last-child td {
+    border-bottom: none;
+}
+.order-detail-items .item-name {
+    font-weight: 600;
+}
+.order-detail-items .item-subtotal {
+    font-weight: 700;
+    color: var(--brand-yellow-hover);
+}
+
+.order-detail-note {
+    margin-top: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    border: 1px dashed var(--border-color);
+    background: var(--bg-card-subtle);
+    font-size: 0.82rem;
+    color: var(--text-muted);
+}
+.order-detail-note strong {
+    color: var(--text-main);
+}
+.order-detail-note.void-reason {
+    border-color: rgba(220, 53, 69, 0.35);
+    background: rgba(220, 53, 69, 0.07);
+}
+.order-detail-note.void-reason strong {
+    color: #dc3545;
+}
+
 @media (prefers-reduced-motion: reduce) {
     .drawer-scroll-hint span {
         animation: none;
@@ -1365,15 +1636,18 @@ body.dashboard-theme.dash-edit-mode .dash-widget {
     border-radius: var(--radius-card);
 }
 body.dashboard-theme.dash-edit-mode .dash-widget > .modern-card,
-body.dashboard-theme.dash-edit-mode .dash-widget > .sm-stat-card {
+body.dashboard-theme.dash-edit-mode .dash-widget > .sm-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget > .sp-stat-card {
     animation: dash-shake 0.28s ease-in-out infinite;
 }
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .modern-card,
-body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .sm-stat-card {
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .sm-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .sp-stat-card {
     animation-delay: -0.09s;
 }
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .modern-card,
-body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .sm-stat-card {
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .sm-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .sp-stat-card {
     animation-delay: -0.16s;
 }
 body.dashboard-theme.dash-edit-mode .dash-widget-handle {
@@ -1389,7 +1663,8 @@ body.dashboard-theme.dash-edit-mode .dash-widget-handle {
 /* Dragging state: the item being moved pauses the shake and fades; the
    drop target under the cursor gets a highlighted outline */
 body.dashboard-theme .dash-widget.dash-dragging > .modern-card,
-body.dashboard-theme .dash-widget.dash-dragging > .sm-stat-card {
+body.dashboard-theme .dash-widget.dash-dragging > .sm-stat-card,
+body.dashboard-theme .dash-widget.dash-dragging > .sp-stat-card {
     animation: none !important;
 }
 body.dashboard-theme .dash-widget.dash-dragging {

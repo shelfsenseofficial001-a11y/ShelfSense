@@ -236,6 +236,13 @@
     }
 
     function handleDragStart(e) {
+        // Links, images etc. inside a widget are natively draggable by the
+        // browser regardless of our own draggable=true/false toggle on
+        // .dash-widget (see setEditMode) -- without this guard, dragging a
+        // "View All" link while edit mode is OFF still bubbles a dragstart
+        // up to this document-level listener and silently reorders (and
+        // auto-saves!) the dashboard.
+        if (!document.body.classList.contains(EDIT_MODE_CLASS)) return;
         var widget = e.target.closest('.dash-widget');
         if (!widget) return;
         draggedEl = widget;

@@ -1,57 +1,55 @@
 <?php
-$title = 'My Payment Requests - Finance Staff';
-$pageTitle = 'My Payment Requests';
+$title = 'Purchase Orders - Finance Staff';
+$pageTitle = 'Purchase Orders & Payments';
 $activePage = 'staff_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/payment_requests.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260905"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/staff/payment_requests.js?v=20260905"></script>';
 
 $content = <<<'EOT'
-<ul class="nav nav-tabs fn-tabs mb-3" id="prTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-status="pending" type="button">Pending <span class="badge bg-secondary ms-1" id="countPending">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-status="approved" type="button">Approved <span class="badge bg-secondary ms-1" id="countApproved">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-status="rejected" type="button">Rejected <span class="badge bg-secondary ms-1" id="countRejected">0</span></button></li>
-    <li class="nav-item"><button class="nav-link" data-status="" type="button">All <span class="badge bg-secondary ms-1" id="countAll">0</span></button></li>
+<ul class="nav nav-tabs mb-3" id="fsTabs" role="tablist">
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dispatchTab" type="button">Pending Dispatch</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#requestPaymentTab" type="button">Request Payment</button></li>
+    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#holdsTab" type="button">Reconciliation Holds</button></li>
 </ul>
 
-<div class="row g-2 mb-3">
-    <div class="col-md-4">
-        <div class="input-group">
-            <span class="input-group-text"><i class="bi bi-search"></i></span>
-            <input type="text" id="searchInput" class="form-control" placeholder="Search requisition # or invoice #...">
+<div class="tab-content">
+    <div class="tab-pane fade show active" id="dispatchTab">
+        <p class="text-muted">Purchase Orders auto-generated from Finance-Head-approved requisitions. Review and send to the supplier.</p>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th></th></tr></thead>
+                <tbody id="dispatchTableBody"><tr><td colspan="4" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
         </div>
     </div>
-    <div class="col-md-2">
-        <input type="date" id="dateFrom" class="form-control" title="From date">
+
+    <div class="tab-pane fade" id="requestPaymentTab">
+        <p class="text-muted">Purchase Orders confirmed by the supplier. Request payment here — the supplier ships only after Finance Head approves it.</p>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th></th></tr></thead>
+                <tbody id="requestPaymentTableBody"><tr><td colspan="4" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
+        </div>
     </div>
-    <div class="col-md-2">
-        <input type="date" id="dateTo" class="form-control" title="To date">
-    </div>
-    <div class="col-md-4 text-end">
-        <button class="btn btn-yellow-outline btn-sm" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+
+    <div class="tab-pane fade" id="holdsTab">
+        <p class="text-muted">Invoices that failed the post-delivery 3-way match (PO vs. Goods Receipt vs. Invoice). These are reconciliation records only — payment already happened. Override with a justification, or correct the PO's recorded price and re-match.</p>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>Invoice #</th><th>PO #</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>
+                <tbody id="holdsTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
-<div class="active-filter-chips" id="activeFilterChips"></div>
-
-<div class="modern-card p-3 sm-fill-card">
-    <div id="fn-pr-container" class="fn-card-grid">
-        <div class="text-center py-4" style="grid-column:1/-1;">
-            <div class="spinner-border text-primary" role="status"></div>
-            <p class="mt-2 text-muted">Loading payment requests...</p>
+<div class="modal fade" id="varianceModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Resolve Invoice Variance</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" id="varianceModalBody">Loading...</div>
         </div>
-    </div>
-    <div class="d-flex justify-content-between align-items-center mt-3">
-        <span class="text-muted small" id="tableInfo">Loading...</span>
-        <nav><ul class="pagination pagination-sm mb-0" id="paginationContainer"></ul></nav>
-    </div>
-</div>
-
-<!-- Request Detail Modal -->
-<div class="offcanvas offcanvas-end detail-drawer" id="requestDetailModal" tabindex="-1">
-    <div class="offcanvas-header">
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-    </div>
-    <div class="offcanvas-body" id="requestDetailBody">
-        <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
     </div>
 </div>
 EOT;

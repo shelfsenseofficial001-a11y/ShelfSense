@@ -2,8 +2,8 @@
 $title = 'Store Manager Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/dashboard.js?v=20260902215115"></script>
-<script src="/ShelfSense/public/assets/js/store_manager/dashboard-layout.js?v=20260902215937"></script>
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/dashboard.js?v=20260905320000"></script>
+<script src="/ShelfSense/public/assets/js/store_manager/dashboard-layout.js?v=20260905310000"></script>
 <script>
 window.dashboardTourReadyEvent = "sm-dashboard-rendered";
 window.dashboardTourSteps = [

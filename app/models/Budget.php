@@ -3,6 +3,13 @@ namespace App\Models;
 
 use App\Core\Database;
 
+/**
+ * Ledger-based department budget. Every allocation, reservation, release,
+ * expense, and manual adjustment is an immutable row in budget_transactions
+ * -- available balance is always computed by summing the ledger, so there is
+ * no separate "used_budget" snapshot that can drift out of sync with what's
+ * actually reserved/spent (the old table-column model had exactly that bug).
+ */
 class Budget
 {
     private $db;
@@ -12,124 +19,106 @@ class Budget
         $this->db = Database::getInstance()->getConnection();
     }
 
-    /**
-     * Get existing budget record without auto-creating.
-     * Returns null if not found.
-     */
-    public function get($department, $monthYear)
+    public function getDepartmentByName($name)
     {
-        $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department = ? AND month_year = ?");
-        $stmt->execute([$department, $monthYear]);
+        $stmt = $this->db->prepare("SELECT * FROM departments WHERE name = ?");
+        $stmt->execute([$name]);
+        return $stmt->fetch();
+    }
+
+    public function getDepartmentById($id)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM departments WHERE id = ?");
+        $stmt->execute([$id]);
+        return $stmt->fetch();
+    }
+
+    public function getAllDepartments($activeOnly = true)
+    {
+        $sql = "SELECT * FROM departments";
+        if ($activeOnly) {
+            $sql .= " WHERE is_active = 1";
+        }
+        $sql .= " ORDER BY name ASC";
+        return $this->db->query($sql)->fetchAll();
+    }
+
+    public function createDepartment($name, $code = null)
+    {
+        $stmt = $this->db->prepare("INSERT INTO departments (name, code, is_active) VALUES (?, ?, 1)");
+        $stmt->execute([trim($name), $code ? trim($code) : null]);
+        return (int)$this->db->lastInsertId();
+    }
+
+    public function setDepartmentActive($id, $active)
+    {
+        $stmt = $this->db->prepare("UPDATE departments SET is_active = ? WHERE id = ?");
+        return $stmt->execute([$active ? 1 : 0, $id]);
+    }
+
+    private function getOrCreateBudgetRow($departmentId, $periodKey)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department_id = ? AND period_key = ?");
+        $stmt->execute([$departmentId, $periodKey]);
+        $row = $stmt->fetch();
+        if ($row) {
+            return $row;
+        }
+        $stmt = $this->db->prepare("INSERT IGNORE INTO budgets (department_id, period_key, allocated_amount) VALUES (?, ?, 0)");
+        $stmt->execute([$departmentId, $periodKey]);
+        $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department_id = ? AND period_key = ?");
+        $stmt->execute([$departmentId, $periodKey]);
         return $stmt->fetch();
     }
 
     /**
-     * Get or create (only used during payment request creation, not on page load).
+     * Sum of ledger transactions for a department/period, broken down by type.
      */
-    public function getOrCreate($department, $monthYear)
+    private function getLedgerTotals($departmentId, $periodKey, $excludeReferenceType = null, $excludeReferenceId = null)
     {
-        $budget = $this->get($department, $monthYear);
-        if ($budget) {
-            return $budget;
-        }
-
-        // Create with INSERT IGNORE to prevent duplicates
-        $stmt = $this->db->prepare("
-            INSERT IGNORE INTO budgets (department, month_year, allocated_budget, used_budget) 
-            VALUES (?, ?, 0, 0)
-        ");
-        $stmt->execute([$department, $monthYear]);
-
-        // Fetch the newly created record
-        $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department = ? AND month_year = ?");
-        $stmt->execute([$department, $monthYear]);
-        return $stmt->fetch();
-    }
-
-    /**
-     * Update used_budget for a department/month based on approved requisitions.
-     */
-    public function updateUsedBudget($department, $monthYear)
-    {
-        $stmt = $this->db->prepare("
-            SELECT COALESCE(SUM(r.total), 0) as total_approved
-            FROM store_requisitions r
-            WHERE r.budget_month_year = ? 
-              AND r.department = ?
-              AND r.status IN ('finance_approved', 'paid', 'shipped', 'completed')
-        ");
-        $stmt->execute([$monthYear, $department]);
-        $total = $stmt->fetch()['total_approved'];
-
-        $stmt = $this->db->prepare("
-            UPDATE budgets SET used_budget = ? 
-            WHERE department = ? AND month_year = ?
-        ");
-        return $stmt->execute([$total, $department, $monthYear]);
-    }
-
-    /**
-     * Check if a requisition total exceeds remaining budget.
-     */
-    public function checkBudget($department, $monthYear, $amount)
-    {
-        $budget = $this->getOrCreate($department, $monthYear);
-        if (!$budget) {
-            return [
-                'budget' => null,
-                'remaining' => 0,
-                'exceeded' => true,
-                'shortfall' => $amount
-            ];
-        }
-        $remaining = $budget['allocated_budget'] - $budget['used_budget'];
-        return [
-            'budget' => $budget,
-            'remaining' => $remaining,
-            'exceeded' => $amount > $remaining,
-            'shortfall' => $amount - $remaining
-        ];
-    }
-
-    /**
-     * Full budget status for a department/period: allocated, used (real approved/paid
-     * payments), reserved (live sum of currently-pending payment requests against this
-     * department/period — not a stored counter, so it can never drift or double-count),
-     * available (allocated - used - reserved), and a status label.
-     *
-     * $excludeRequisitionId lets a caller evaluating a specific requisition's own pending
-     * request see the budget as it would be WITHOUT that one request's own reservation
-     * (since that reservation is "this same request", not a competing one).
-     */
-    public function getBudgetStatus($department, $monthYear, $requestedAmount = 0.0, $excludeRequisitionId = null)
-    {
-        $budget = $this->get($department, $monthYear);
-        $allocated = $budget ? (float)$budget['allocated_budget'] : 0.0;
-        $used = $budget ? (float)$budget['used_budget'] : 0.0;
-
         $sql = "
-            SELECT COALESCE(SUM(r.total), 0) as reserved
-            FROM payment_requests pr
-            JOIN store_requisitions r ON pr.requisition_id = r.id
-            WHERE pr.status = 'pending'
-              AND r.department = ?
-              AND r.budget_month_year = ?
+            SELECT type, COALESCE(SUM(amount), 0) as total
+            FROM budget_transactions
+            WHERE department_id = ? AND period_key = ?
         ";
-        $params = [$department, $monthYear];
-        if ($excludeRequisitionId) {
-            $sql .= " AND r.id != ?";
-            $params[] = $excludeRequisitionId;
+        $params = [$departmentId, $periodKey];
+        if ($excludeReferenceType && $excludeReferenceId) {
+            $sql .= " AND NOT (reference_type = ? AND reference_id = ?)";
+            $params[] = $excludeReferenceType;
+            $params[] = $excludeReferenceId;
         }
+        $sql .= " GROUP BY type";
         $stmt = $this->db->prepare($sql);
         $stmt->execute($params);
-        $reserved = (float)$stmt->fetch()['reserved'];
+        $totals = ['allocation' => 0.0, 'reservation' => 0.0, 'release' => 0.0, 'expense' => 0.0, 'adjustment' => 0.0];
+        foreach ($stmt->fetchAll() as $row) {
+            $totals[$row['type']] = (float)$row['total'];
+        }
+        return $totals;
+    }
 
-        $available = $allocated - $used - $reserved;
+    /**
+     * Full budget status for a department/period: allocated (allocations +
+     * adjustments), reserved (reservations - releases, i.e. still-open
+     * commitments), used (expenses, i.e. actually paid), available.
+     *
+     * $excludeReferenceType/$excludeReferenceId lets a caller evaluating a
+     * specific requisition see the budget as it would be WITHOUT that
+     * requisition's own not-yet-posted reservation.
+     */
+    public function getBudgetStatus($departmentId, $periodKey, $requestedAmount = 0.0, $excludeReferenceType = null, $excludeReferenceId = null)
+    {
+        $totals = $this->getLedgerTotals($departmentId, $periodKey, $excludeReferenceType, $excludeReferenceId);
+        $allocated = $totals['allocation'] + $totals['adjustment'];
+        $reserved = $totals['reservation'] - $totals['release'];
+        $used = $totals['expense'];
+        $available = $allocated - $reserved - $used;
+
         $requestedAmount = (float)$requestedAmount;
         $exceeded = $requestedAmount > $available;
         $shortfall = $exceeded ? round($requestedAmount - $available, 2) : 0.0;
 
-        if (!$budget) {
+        if ($allocated <= 0) {
             $status = 'no_budget';
         } elseif ($exceeded) {
             $status = 'exceeded';
@@ -140,211 +129,122 @@ class Budget
         }
 
         return [
-            'department' => $department,
-            'month_year' => $monthYear,
-            'has_allocation' => (bool)$budget,
+            'department_id' => (int)$departmentId,
+            'period_key' => $periodKey,
             'allocated' => round($allocated, 2),
-            'used' => round($used, 2),
             'reserved' => round($reserved, 2),
+            'used' => round($used, 2),
             'available' => round($available, 2),
             'requested' => round($requestedAmount, 2),
             'exceeded' => $exceeded,
             'shortfall' => $shortfall,
             'status' => $status,
-            'used_percentage' => $allocated > 0 ? round((($used + $reserved) / $allocated) * 100, 1) : null
+            'used_percentage' => $allocated > 0 ? round((($used + $reserved) / $allocated) * 100, 1) : null,
         ];
     }
 
-    /**
-     * Set allocated budget for a department/month.
-     * Uses INSERT ... ON DUPLICATE KEY UPDATE.
-     */
-    public function setAllocatedBudget($department, $monthYear, $amount)
+    public function getAllDepartmentsStatus($periodKey)
     {
-        $stmt = $this->db->prepare("
-            INSERT INTO budgets (department, month_year, allocated_budget, used_budget) 
-            VALUES (?, ?, ?, 0) 
-            ON DUPLICATE KEY UPDATE allocated_budget = ?
-        ");
-        return $stmt->execute([$department, $monthYear, $amount, $amount]);
-    }
-
-    /**
-     * Get budget summary for a department/month (total, used, remaining).
-     * Returns zeros if no budget exists.
-     */
-    public function getSummary($department, $monthYear)
-    {
-        $budget = $this->get($department, $monthYear);
-        if (!$budget) {
-            return [
-                'allocated' => 0,
-                'used' => 0,
-                'remaining' => 0,
-                'department' => $department,
-                'month_year' => $monthYear,
-                'exists' => false
-            ];
-        }
-        $remaining = $budget['allocated_budget'] - $budget['used_budget'];
-        return [
-            'allocated' => $budget['allocated_budget'],
-            'used' => $budget['used_budget'],
-            'remaining' => $remaining,
-            'department' => $department,
-            'month_year' => $monthYear,
-            'exists' => true
-        ];
-    }
-
-    /**
-     * Get all budgets for a month.
-     */
-    public function getAllForMonth($monthYear)
-    {
-        $stmt = $this->db->prepare("
-            SELECT department, allocated_budget, used_budget
-            FROM budgets
-            WHERE month_year = ?
-        ");
-        $stmt->execute([$monthYear]);
-        return $stmt->fetchAll();
-    }
-
-    /**
-     * Real department list: every department that has ever had a budget allocation
-     * or a store requisition, so Finance Head only ever sees departments that
-     * actually exist in the data (never a hard-coded/fabricated list).
-     */
-    public function getAllDepartments()
-    {
-        $stmt = $this->db->query("
-            SELECT department FROM budgets
-            UNION
-            SELECT department FROM store_requisitions
-            ORDER BY department ASC
-        ");
-        return array_column($stmt->fetchAll(), 'department');
-    }
-
-    /**
-     * Full getBudgetStatus() for every real department, for a given period.
-     * This is the single source of truth reused by the Finance Head dashboard
-     * and Budget Management page — same definitions as Finance Staff.
-     */
-    public function getAllDepartmentsStatus($monthYear)
-    {
-        $departments = $this->getAllDepartments();
         $out = [];
-        foreach ($departments as $dept) {
-            $out[] = $this->getBudgetStatus($dept, $monthYear);
+        foreach ($this->getAllDepartments() as $dept) {
+            $status = $this->getBudgetStatus($dept['id'], $periodKey);
+            $status['department_name'] = $dept['name'];
+            $out[] = $status;
         }
         return $out;
     }
 
-    /**
-     * Departments at or above a usage warning threshold (default 80%), among
-     * departments that actually have an allocation. Uses the same used_percentage
-     * ((used + reserved) / allocated) computed by getBudgetStatus().
-     */
-    public function getDepartmentsNearLimit($monthYear, $thresholdPercent = 80.0)
+    public function getDepartmentsNearLimit($periodKey, $thresholdPercent = 80.0)
     {
-        $all = $this->getAllDepartmentsStatus($monthYear);
+        $all = $this->getAllDepartmentsStatus($periodKey);
         return array_values(array_filter($all, function ($d) use ($thresholdPercent) {
-            return $d['has_allocation'] && $d['used_percentage'] !== null && $d['used_percentage'] >= $thresholdPercent;
+            return $d['allocated'] > 0 && $d['used_percentage'] !== null && $d['used_percentage'] >= $thresholdPercent;
         }));
     }
 
     /**
-     * Create or adjust a department/period's allocated budget, with a truthful
-     * history record (previous/new/adjustment amount, used+reserved at the time,
-     * who made it, and why). Transaction + row lock so concurrent adjustments to
-     * the same budget can't interleave and lose an update.
+     * The still-open reservation for one reference (e.g. a specific
+     * requisition): sum(reservation) - sum(release) posted against it so
+     * far. Used to release the FULL remaining commitment when a requisition
+     * is finally paid, regardless of whether the actual invoice total ended
+     * up higher or lower than the original estimate -- releasing the
+     * invoice amount instead (a different figure) would leave the ledger's
+     * "reserved" column permanently drifting away from zero.
      */
-    public function adjustAllocation($department, $monthYear, $newAmount, $userId, $reason = null)
+    public function getOpenReservation($referenceType, $referenceId)
     {
-        $this->db->beginTransaction();
-        try {
-            // Lock (or create) the budget row first so concurrent adjustments serialize.
-            $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department = ? AND month_year = ? FOR UPDATE");
-            $stmt->execute([$department, $monthYear]);
-            $budget = $stmt->fetch();
-
-            if (!$budget) {
-                $stmt = $this->db->prepare("
-                    INSERT INTO budgets (department, month_year, allocated_budget, used_budget)
-                    VALUES (?, ?, 0, 0)
-                ");
-                $stmt->execute([$department, $monthYear]);
-                $stmt = $this->db->prepare("SELECT * FROM budgets WHERE department = ? AND month_year = ? FOR UPDATE");
-                $stmt->execute([$department, $monthYear]);
-                $budget = $stmt->fetch();
-            }
-
-            $previousAllocated = (float)$budget['allocated_budget'];
-            $used = (float)$budget['used_budget'];
-
-            // Reserved (live, pending payment requests) at the moment of this adjustment.
-            $stmt = $this->db->prepare("
-                SELECT COALESCE(SUM(r.total), 0) as reserved
-                FROM payment_requests pr
-                JOIN store_requisitions r ON pr.requisition_id = r.id
-                WHERE pr.status = 'pending' AND r.department = ? AND r.budget_month_year = ?
-            ");
-            $stmt->execute([$department, $monthYear]);
-            $reserved = (float)$stmt->fetch()['reserved'];
-
-            $stmt = $this->db->prepare("UPDATE budgets SET allocated_budget = ? WHERE id = ?");
-            $stmt->execute([$newAmount, $budget['id']]);
-
-            $stmt = $this->db->prepare("
-                INSERT INTO budget_adjustments
-                    (budget_id, department, month_year, previous_allocated, new_allocated,
-                     adjustment_amount, used_at_adjustment, reserved_at_adjustment, adjusted_by, reason)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ");
-            $stmt->execute([
-                $budget['id'], $department, $monthYear, $previousAllocated, $newAmount,
-                round($newAmount - $previousAllocated, 2), $used, $reserved, $userId, $reason
-            ]);
-
-            $this->db->commit();
-
-            return [
-                'previous_allocated' => round($previousAllocated, 2),
-                'new_allocated' => round($newAmount, 2),
-                'adjustment_amount' => round($newAmount - $previousAllocated, 2),
-                'used' => round($used, 2),
-                'reserved' => round($reserved, 2),
-                'below_committed' => $newAmount < ($used + $reserved)
-            ];
-        } catch (\Exception $e) {
-            $this->db->rollBack();
-            throw $e;
-        }
+        $stmt = $this->db->prepare("
+            SELECT
+                COALESCE(SUM(CASE WHEN type = 'reservation' THEN amount ELSE 0 END), 0) -
+                COALESCE(SUM(CASE WHEN type = 'release' THEN amount ELSE 0 END), 0) as open_amount
+            FROM budget_transactions
+            WHERE reference_type = ? AND reference_id = ?
+        ");
+        $stmt->execute([$referenceType, $referenceId]);
+        return round((float)$stmt->fetch()['open_amount'], 2);
     }
 
     /**
-     * Adjustment history, most recent first.
+     * Posts one ledger entry. This is the only way budget_transactions is
+     * ever written -- every budget movement in the system (allocation,
+     * reservation on approval, release on cancel, expense on payment,
+     * manual adjustment) goes through this single method.
      */
-    public function getAdjustmentHistory($filters = [], $limit = 20, $offset = 0)
+    public function postTransaction($departmentId, $periodKey, $type, $amount, $referenceType, $referenceId, $userId, $notes = null)
+    {
+        $this->getOrCreateBudgetRow($departmentId, $periodKey);
+        $stmt = $this->db->prepare("
+            INSERT INTO budget_transactions (department_id, period_key, type, amount, reference_type, reference_id, created_by, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+        return $stmt->execute([$departmentId, $periodKey, $type, round((float)$amount, 2), $referenceType, $referenceId, $userId, $notes]);
+    }
+
+    /**
+     * Set/increase a department's allocation for a period via an 'adjustment'
+     * ledger entry (positive or negative delta from the current allocated
+     * total), so the full history stays in budget_transactions itself --
+     * no separate audit table needed.
+     */
+    public function adjustAllocation($departmentId, $periodKey, $newAllocatedAmount, $userId, $reason = null)
+    {
+        $current = $this->getBudgetStatus($departmentId, $periodKey);
+        $delta = round((float)$newAllocatedAmount - $current['allocated'], 2);
+        $this->postTransaction($departmentId, $periodKey, 'adjustment', $delta, 'manual', null, $userId, $reason);
+        $updated = $this->getBudgetStatus($departmentId, $periodKey);
+        return [
+            'previous_allocated' => $current['allocated'],
+            'new_allocated' => $updated['allocated'],
+            'adjustment_amount' => $delta,
+            'used' => $updated['used'],
+            'reserved' => $updated['reserved'],
+            'below_committed' => $updated['allocated'] < ($updated['used'] + $updated['reserved']),
+        ];
+    }
+
+    public function getTransactionHistory($filters = [], $limit = 20, $offset = 0)
     {
         $where = "1=1";
         $params = [];
-        if (!empty($filters['department'])) {
-            $where .= " AND ba.department = ?";
-            $params[] = $filters['department'];
+        if (!empty($filters['department_id'])) {
+            $where .= " AND bt.department_id = ?";
+            $params[] = $filters['department_id'];
         }
-        if (!empty($filters['month_year'])) {
-            $where .= " AND ba.month_year = ?";
-            $params[] = $filters['month_year'];
+        if (!empty($filters['period_key'])) {
+            $where .= " AND bt.period_key = ?";
+            $params[] = $filters['period_key'];
+        }
+        if (!empty($filters['type'])) {
+            $where .= " AND bt.type = ?";
+            $params[] = $filters['type'];
         }
         $sql = "
-            SELECT ba.*, u.first_name, u.last_name
-            FROM budget_adjustments ba
-            JOIN users u ON ba.adjusted_by = u.user_id
+            SELECT bt.*, d.name as department_name, u.first_name, u.last_name
+            FROM budget_transactions bt
+            JOIN departments d ON bt.department_id = d.id
+            JOIN users u ON bt.created_by = u.user_id
             WHERE $where
-            ORDER BY ba.created_at DESC
+            ORDER BY bt.created_at DESC
             LIMIT ? OFFSET ?
         ";
         $params[] = $limit;
@@ -354,19 +254,23 @@ class Budget
         return $stmt->fetchAll();
     }
 
-    public function getAdjustmentHistoryCount($filters = [])
+    public function getTransactionHistoryCount($filters = [])
     {
         $where = "1=1";
         $params = [];
-        if (!empty($filters['department'])) {
-            $where .= " AND department = ?";
-            $params[] = $filters['department'];
+        if (!empty($filters['department_id'])) {
+            $where .= " AND department_id = ?";
+            $params[] = $filters['department_id'];
         }
-        if (!empty($filters['month_year'])) {
-            $where .= " AND month_year = ?";
-            $params[] = $filters['month_year'];
+        if (!empty($filters['period_key'])) {
+            $where .= " AND period_key = ?";
+            $params[] = $filters['period_key'];
         }
-        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM budget_adjustments WHERE $where");
+        if (!empty($filters['type'])) {
+            $where .= " AND type = ?";
+            $params[] = $filters['type'];
+        }
+        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM budget_transactions WHERE $where");
         $stmt->execute($params);
         return (int)$stmt->fetch()['count'];
     }

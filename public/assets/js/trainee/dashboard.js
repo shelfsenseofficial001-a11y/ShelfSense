@@ -188,7 +188,7 @@ function renderDashboard(data) {
         <!-- Recent Activity -->
         <div class="row g-3">
             <div class="col-12">
-                <div class="modern-card p-3">
+                <div class="modern-card p-3 dash-card-accent">
                     <h6 class="fw-bold mb-3"><i class="bi bi-bell text-yellow me-2"></i>Recent Activity</h6>
                     <div id="recentActivity">
                         ${data.notifications && data.notifications.length > 0 ? `
