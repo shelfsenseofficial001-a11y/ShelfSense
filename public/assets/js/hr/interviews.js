@@ -239,10 +239,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Tab switch events
     document.getElementById('initial-tab').addEventListener('shown.bs.tab', function() {
+        document.getElementById('initialFilterRow')?.classList.remove('d-none');
+        document.getElementById('finalFilterRow')?.classList.add('d-none');
         loadInitialInterviews(initialPage);
     });
 
     document.getElementById('final-tab').addEventListener('shown.bs.tab', function() {
+        document.getElementById('finalFilterRow')?.classList.remove('d-none');
+        document.getElementById('initialFilterRow')?.classList.add('d-none');
         loadFinalInterviews(finalPage);
     });
 

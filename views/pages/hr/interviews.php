@@ -46,37 +46,53 @@ $content = '
     </div>
 </div>
 
-<!-- Interview Type Tabs with Badges -->
-<ul class="nav nav-pills mb-3" id="interviewTypeTabs" role="tablist">
-    <li class="nav-item" role="presentation">
-        <button class="nav-link active" id="initial-tab" data-bs-toggle="pill" data-bs-target="#initial-interviews" type="button" role="tab">
-            <i class="bi bi-chat"></i> Initial
-            <span class="badge bg-danger ms-1" id="initialTabBadge" style="display:none;">0</span>
+<!-- Interview Type Tabs + Status Filter, kept on one row: the status
+     filter shown here always matches whichever tab (Initial/Final) is
+     currently active -- see the shown.bs.tab handlers in interviews.js
+     that swap visibility of initialFilterRow/finalFilterRow. -->
+<div class="d-flex flex-wrap align-items-center gap-2 mb-3" id="interviewControlBar">
+    <ul class="nav nav-pills mb-0" id="interviewTypeTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="initial-tab" data-bs-toggle="pill" data-bs-target="#initial-interviews" type="button" role="tab">
+                <i class="bi bi-chat"></i> Initial
+                <span class="badge bg-danger ms-1" id="initialTabBadge" style="display:none;">0</span>
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="final-tab" data-bs-toggle="pill" data-bs-target="#final-interviews" type="button" role="tab">
+                <i class="bi bi-chat-dots"></i> Final
+                <span class="badge bg-danger ms-1" id="finalTabBadge" style="display:none;">0</span>
+            </button>
+        </li>
+    </ul>
+
+    <div class="d-flex gap-2 flex-wrap" id="initialFilterRow">
+        <!-- ✅ SCHEDULED is now default active, ALL button removed -->
+        <button class="btn btn-sm btn-outline-warning filter-btn-initial active" data-status="scheduled">
+            Scheduled <span class="badge bg-warning text-dark ms-1" id="initialScheduledBadge">0</span>
         </button>
-    </li>
-    <li class="nav-item" role="presentation">
-        <button class="nav-link" id="final-tab" data-bs-toggle="pill" data-bs-target="#final-interviews" type="button" role="tab">
-            <i class="bi bi-chat-dots"></i> Final
-            <span class="badge bg-danger ms-1" id="finalTabBadge" style="display:none;">0</span>
+        <button class="btn btn-sm btn-outline-success filter-btn-initial" data-status="completed">
+            Completed <span class="badge bg-success text-white ms-1" id="initialCompletedBadge">0</span>
         </button>
-    </li>
-</ul>
+        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2" id="initialCount">0</span>
+    </div>
+    <div class="d-flex gap-2 flex-wrap d-none" id="finalFilterRow">
+        <!-- ✅ SCHEDULED default active -->
+        <button class="btn btn-sm btn-outline-warning filter-btn-final active" data-status="scheduled">
+            Scheduled <span class="badge bg-warning text-dark ms-1" id="finalScheduledBadge">0</span>
+        </button>
+        <button class="btn btn-sm btn-outline-success filter-btn-final" data-status="completed">
+            Completed <span class="badge bg-success text-white ms-1" id="finalCompletedBadge">0</span>
+        </button>
+        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2" id="finalCount">0</span>
+    </div>
+</div>
 
 <div class="tab-content">
     <!-- ============================================ -->
     <!-- INITIAL INTERVIEWS TAB -->
     <!-- ============================================ -->
     <div class="tab-pane fade show active" id="initial-interviews" role="tabpanel">
-        <div class="d-flex gap-2 mb-3 flex-wrap">
-            <!-- ✅ SCHEDULED is now default active, ALL button removed -->
-            <button class="btn btn-sm btn-outline-warning filter-btn-initial active" data-status="scheduled">
-                Scheduled <span class="badge bg-warning text-dark ms-1" id="initialScheduledBadge">0</span>
-            </button>
-            <button class="btn btn-sm btn-outline-success filter-btn-initial" data-status="completed">
-                Completed <span class="badge bg-success text-white ms-1" id="initialCompletedBadge">0</span>
-            </button>
-            <div class="ms-auto"><span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2" id="initialCount">0</span></div>
-        </div>
         <div class="row g-2 mb-3">
             <div class="col-md-6">
                 <div class="autocomplete-wrapper">
@@ -110,16 +126,6 @@ $content = '
     <!-- FINAL INTERVIEWS TAB -->
     <!-- ============================================ -->
     <div class="tab-pane fade" id="final-interviews" role="tabpanel">
-        <div class="d-flex gap-2 mb-3 flex-wrap">
-            <!-- ✅ SCHEDULED default active -->
-            <button class="btn btn-sm btn-outline-warning filter-btn-final active" data-status="scheduled">
-                Scheduled <span class="badge bg-warning text-dark ms-1" id="finalScheduledBadge">0</span>
-            </button>
-            <button class="btn btn-sm btn-outline-success filter-btn-final" data-status="completed">
-                Completed <span class="badge bg-success text-white ms-1" id="finalCompletedBadge">0</span>
-            </button>
-            <div class="ms-auto"><span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2" id="finalCount">0</span></div>
-        </div>
         <div class="row g-2 mb-3">
             <div class="col-md-6">
                 <div class="autocomplete-wrapper">
@@ -370,7 +376,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260831170000"></script>
+<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260905400000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
