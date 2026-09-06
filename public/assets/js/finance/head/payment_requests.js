@@ -21,6 +21,7 @@ async function loadPendingRequisitions() {
     try {
         const data = await prFetchJson('?page=api_fh_list_pending_pos&limit=20');
         const rows = data.purchase_orders || [];
+        prSetTabBadge('tabPendingPos', rows.length);
         tbody.innerHTML = rows.length ? rows.map(r => `
             <tr>
                 <td>${prEscapeHtml(r.po_number)} <small class="text-muted">(${prEscapeHtml(r.requisition_number)})</small></td>
@@ -107,6 +108,7 @@ async function loadPendingPoPayments() {
     try {
         const data = await prFetchJson('?page=api_fh_list_pending_po_payments&status=pending&limit=20');
         const rows = data.payment_requests || [];
+        prSetTabBadge('tabPendingPoPayments', rows.length);
         tbody.innerHTML = rows.length ? rows.map(pr => `
             <tr>
                 <td>${prEscapeHtml(pr.po_number)}</td>

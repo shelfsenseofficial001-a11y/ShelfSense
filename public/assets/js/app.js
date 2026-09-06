@@ -579,3 +579,146 @@ document.addEventListener('DOMContentLoaded', function() {
         if (btn) btn.classList.toggle('show', input.value.length > 0);
     };
 })();
+
+// ============================================
+// NOTIFICATION BELL (shared across every portal layout)
+// Any layout that includes the #notificationBell/#notificationBadge/
+// #notificationDropdown/#notificationList markup gets this for free --
+// no per-page wiring needed.
+// ============================================
+(function () {
+    const NOTIF_POLL_MS = 30000;
+    const NOTIF_TYPE_ICONS = {
+        default: 'bi-bell',
+        rejected: 'bi-x-circle',
+        approved: 'bi-check-circle',
+        budget: 'bi-cash-coin',
+        payment: 'bi-cash-stack',
+        invoice: 'bi-receipt',
+        shipped: 'bi-truck',
+        received: 'bi-box-seam',
+    };
+
+    function iconFor(type) {
+        const key = Object.keys(NOTIF_TYPE_ICONS).find(k => (type || '').includes(k));
+        return NOTIF_TYPE_ICONS[key] || NOTIF_TYPE_ICONS.default;
+    }
+
+    function timeAgo(dateStr) {
+        if (!dateStr) return '';
+        const then = new Date(dateStr.replace(' ', 'T')).getTime();
+        if (isNaN(then)) return '';
+        const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+        if (diffSec < 60) return 'just now';
+        const diffMin = Math.floor(diffSec / 60);
+        if (diffMin < 60) return diffMin + 'm ago';
+        const diffHr = Math.floor(diffMin / 60);
+        if (diffHr < 24) return diffHr + 'h ago';
+        const diffDay = Math.floor(diffHr / 24);
+        if (diffDay < 7) return diffDay + 'd ago';
+        return new Date(dateStr.replace(' ', 'T')).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+
+    function escapeHtml(text) {
+        if (text === null || text === undefined) return '';
+        const div = document.createElement('div');
+        div.textContent = String(text);
+        return div.innerHTML;
+    }
+
+    async function fetchNotifications() {
+        const badge = document.getElementById('notificationBadge');
+        const list = document.getElementById('notificationList');
+        if (!list) return;
+        try {
+            const res = await fetch('?page=api_get_notifications&limit=15');
+            const data = await res.json();
+            if (!data.success) return;
+            const { notifications, unread_count } = data.data;
+
+            if (badge) {
+                if (unread_count > 0) {
+                    badge.textContent = unread_count > 99 ? '99+' : String(unread_count);
+                    badge.style.display = '';
+                } else {
+                    badge.style.display = 'none';
+                }
+            }
+
+            if (!notifications || notifications.length === 0) {
+                list.innerHTML = '<div class="text-center text-muted small py-3">No notifications</div>';
+                return;
+            }
+
+            list.innerHTML = notifications.map(n => `
+                <div class="notification-item ${n.is_read == 0 ? 'unread' : ''}" data-id="${n.id}" data-link="${escapeHtml(n.link || '')}" role="button">
+                    <div class="notification-icon"><i class="bi ${iconFor(n.type)}"></i></div>
+                    <div class="notification-body">
+                        <div class="notification-message">${escapeHtml(n.message)}</div>
+                        <div class="notification-time">${timeAgo(n.created_at)}</div>
+                    </div>
+                </div>
+            `).join('');
+        } catch (e) {
+            // Silent -- the bell just won't update this cycle; no need to alarm the user over a background poll failing.
+        }
+    }
+
+    async function markRead(id) {
+        try {
+            await fetch('?page=api_mark_notification_read', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id }),
+            });
+        } catch (e) { /* best-effort */ }
+    }
+
+    async function markAllRead() {
+        try {
+            await fetch('?page=api_mark_notification_read', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ all: true }),
+            });
+            fetchNotifications();
+        } catch (e) { /* best-effort */ }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        const bell = document.getElementById('notificationBell');
+        const dropdown = document.getElementById('notificationDropdown');
+        const list = document.getElementById('notificationList');
+        const markAllLink = document.getElementById('notificationMarkAllRead');
+        if (!bell || !dropdown || !list) return;
+
+        fetchNotifications();
+        setInterval(fetchNotifications, NOTIF_POLL_MS);
+
+        bell.addEventListener('click', function (e) {
+            e.stopPropagation();
+            const opening = dropdown.style.display !== 'block';
+            dropdown.style.display = opening ? 'block' : 'none';
+            if (opening) fetchNotifications();
+        });
+        dropdown.addEventListener('click', function (e) { e.stopPropagation(); });
+        document.addEventListener('click', function () { dropdown.style.display = 'none'; });
+
+        markAllLink?.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            markAllRead();
+        });
+
+        list.addEventListener('click', function (e) {
+            const item = e.target.closest('.notification-item');
+            if (!item) return;
+            const id = parseInt(item.dataset.id);
+            const link = item.dataset.link;
+            if (id) markRead(id);
+            if (link) {
+                window.location.href = link;
+            } else {
+                item.classList.remove('unread');
+            }
+        });
+    });
+})();

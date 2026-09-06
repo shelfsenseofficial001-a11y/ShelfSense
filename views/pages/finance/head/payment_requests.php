@@ -2,13 +2,13 @@
 $title = 'Requisitions & Payments - Finance Head';
 $pageTitle = 'Requisitions & Payments';
 $activePage = 'head_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260907"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260907"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260908"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs mb-3" id="fhTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#reqTab" type="button">Pending Purchase Orders</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#poPaymentTab" type="button">Pending PO Payments</button></li>
+    <li class="nav-item"><button class="nav-link active" id="tabPendingPos" data-bs-toggle="tab" data-bs-target="#reqTab" type="button">Pending Purchase Orders</button></li>
+    <li class="nav-item"><button class="nav-link" id="tabPendingPoPayments" data-bs-toggle="tab" data-bs-target="#poPaymentTab" type="button">Pending PO Payments</button></li>
 </ul>
 
 <div class="tab-content">

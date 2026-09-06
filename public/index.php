@@ -908,6 +908,16 @@ if ($page === 'api_get_invoice') {
     exit;
 }
 
+if ($page === 'api_get_notifications') {
+    require_once __DIR__ . '/../app/handlers/shared/notifications/list.php';
+    exit;
+}
+
+if ($page === 'api_mark_notification_read') {
+    require_once __DIR__ . '/../app/handlers/shared/notifications/mark_read.php';
+    exit;
+}
+
 if ($page === 'api_sm_list_pos') {
     require_once __DIR__ . '/../app/handlers/store_manager/purchase_orders/list.php';
     exit;

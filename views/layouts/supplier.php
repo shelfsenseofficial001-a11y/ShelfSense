@@ -104,6 +104,19 @@ use App\Core\Auth;
                     <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
+
+                    <div class="position-relative" id="notificationContainer">
+                        <button class="btn btn-link text-dark position-relative" id="notificationBell">
+                            <i class="bi bi-bell fs-5"></i>
+                            <span class="badge bg-danger rounded-pill position-absolute top-0 end-0" id="notificationBadge" style="font-size:0.5rem;display:none;">0</span>
+                        </button>
+                        <div class="notification-dropdown" id="notificationDropdown" style="display:none;">
+                            <div class="notification-header">Notifications <a href="#" id="notificationMarkAllRead" class="float-end small">Mark all read</a></div>
+                            <div id="notificationList">
+                                <div class="text-center text-muted small py-3">No notifications</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -144,7 +157,7 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260905160000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260908120000"></script>
     <script src="/ShelfSense/public/assets/js/supplier/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>

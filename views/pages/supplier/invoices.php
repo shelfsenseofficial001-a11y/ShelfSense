@@ -2,13 +2,13 @@
 $title = 'Invoices - Supplier';
 $pageTitle = 'Invoices';
 $activePage = 'invoices';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260904"></script>'
-    . '<script src="/ShelfSense/public/assets/js/supplier/invoices.js?v=20260904"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/supplier/invoices.js?v=20260908"></script>';
 
 $content = <<<'EOT'
 <div class="modern-card p-3">
     <ul class="nav nav-tabs sp-tabs mb-3" id="spInvTabs" role="tablist">
-        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#createInvTab" type="button"><i class="bi bi-send me-1"></i>Create Invoice</button></li>
+        <li class="nav-item"><button class="nav-link active" id="tabCreateInvoice" data-bs-toggle="tab" data-bs-target="#createInvTab" type="button"><i class="bi bi-send me-1"></i>Create Invoice</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#myInvTab" type="button"><i class="bi bi-receipt me-1"></i>My Invoices</button></li>
     </ul>
 

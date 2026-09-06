@@ -14,6 +14,7 @@ async function loadDispatch() {
     try {
         const data = await prFetchJson('?page=api_fs_list_pos_pending_dispatch&limit=20');
         const rows = data.purchase_orders || [];
+        prSetTabBadge('tabDispatch', rows.length);
         tbody.innerHTML = rows.length ? rows.map(po => `
             <tr>
                 <td>${prEscapeHtml(po.po_number)}</td>
@@ -51,6 +52,7 @@ async function loadRequestPayment() {
     try {
         const data = await prFetchJson('?page=api_fs_list_po_payment_eligible');
         const rows = data.purchase_orders || [];
+        prSetTabBadge('tabRequestPayment', rows.length);
         tbody.innerHTML = rows.length ? rows.map(po => `
             <tr>
                 <td>${prEscapeHtml(po.po_number)}</td>
@@ -88,6 +90,7 @@ async function loadHolds() {
     try {
         const data = await prFetchJson('?page=api_fs_list_invoices&scope=holds&limit=20');
         const rows = data.invoices || [];
+        prSetTabBadge('tabHolds', rows.length);
         tbody.innerHTML = rows.length ? rows.map(inv => `
             <tr>
                 <td>${prEscapeHtml(inv.invoice_number)}</td>

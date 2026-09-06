@@ -21,6 +21,7 @@ async function loadInvoiceablePos() {
         // Supplier is only paid after delivery -- a PO only becomes invoiceable
         // once the Store Manager has logged at least a partial Goods Receipt.
         spInvoiceablePos = (data.purchase_orders || []).filter(po => ['partially_received', 'received'].includes(po.status));
+        prSetTabBadge('tabCreateInvoice', spInvoiceablePos.length);
         const sel = document.getElementById('invPoSelect');
         sel.innerHTML = spInvoiceablePos.length
             ? spInvoiceablePos.map(po => `<option value="${po.id}">${prEscapeHtml(po.po_number)} — ${prCurrency(po.total)}</option>`).join('')

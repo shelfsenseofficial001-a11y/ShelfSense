@@ -32,8 +32,8 @@ try {
         SELECT
             COUNT(*) as total_requisitions,
             SUM(CASE WHEN status = 'pending_confirmation' THEN 1 ELSE 0 END) as pending_requisitions,
-            SUM(CASE WHEN status IN ('confirmed','partially_received','received') THEN 1 ELSE 0 END) as invoiced_requisitions,
-            SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as ready_to_ship
+            SUM(CASE WHEN status IN ('partially_received','received') THEN 1 ELSE 0 END) as invoiced_requisitions,
+            SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as ready_to_ship
         FROM purchase_orders
         WHERE supplier_id = ?
     ");
@@ -52,7 +52,7 @@ try {
         SELECT
             SUM(CASE WHEN po.created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as received_30d,
             SUM(CASE WHEN po.status <> 'pending_confirmation' AND po.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as processed_30d,
-            SUM(CASE WHEN po.status IN ('received','partially_received','closed') AND po.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as shipped_30d
+            SUM(CASE WHEN po.status IN ('shipped','partially_received','received','paid') AND po.updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) as shipped_30d
         FROM purchase_orders po
         WHERE po.supplier_id = ?
     ");
@@ -76,7 +76,7 @@ try {
     $stmt = $db->prepare("
         SELECT po.id, po.po_number, po.status, po.total
         FROM purchase_orders po
-        WHERE po.supplier_id = ? AND po.status = 'paid'
+        WHERE po.supplier_id = ? AND po.status = 'confirmed'
         ORDER BY po.updated_at DESC
         LIMIT 5
     ");

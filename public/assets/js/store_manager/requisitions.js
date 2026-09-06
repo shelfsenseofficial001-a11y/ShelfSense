@@ -197,6 +197,7 @@ async function loadPoList() {
     try {
         const data = await prFetchJson('?page=api_sm_list_pos&limit=20');
         const rows = data.purchase_orders || [];
+        prSetTabBadge('po-tab', rows.length);
         tbody.innerHTML = rows.length ? rows.map(po => `
             <tr>
                 <td>${prEscapeHtml(po.po_number)}</td>
@@ -242,17 +243,23 @@ async function openPoDetail(poId) {
         if (['shipped', 'partially_received'].includes(po.status)) {
             grHtml = `
                 <hr><h6>Log Goods Receipt</h6>
-                <table class="table table-sm" id="grItemsTable"><thead><tr><th>Product</th><th>Ordered</th><th>Received So Far</th><th style="width:110px">Receiving Now</th><th style="width:140px">Condition</th></tr></thead>
+                <p class="text-muted small">Enter how many of each remaining unit arrived in each condition. Splitting across Good/Damaged/Missing is logged in one submission.</p>
+                <table class="table table-sm" id="grItemsTable"><thead><tr><th>Product</th><th>Ordered</th><th>Received So Far</th><th style="width:90px">Good</th><th style="width:90px">Damaged</th><th style="width:90px">Missing</th><th style="width:70px">Remaining</th></tr></thead>
                 <tbody>
-                ${po.items.map(i => `
-                    <tr data-po-item-id="${i.id}">
+                ${po.items.map(i => {
+                    const remaining = i.quantity - i.received_quantity_total;
+                    return `
+                    <tr data-po-item-id="${i.id}" data-remaining="${remaining}">
                         <td>${prEscapeHtml(i.store_product_name)}</td>
                         <td>${i.quantity}</td>
                         <td>${i.received_quantity_total}</td>
-                        <td><input type="number" class="form-control form-control-sm gr-qty" min="0" max="${i.quantity - i.received_quantity_total}" value="0"></td>
-                        <td><select class="form-select form-select-sm gr-condition"><option value="good">Good</option><option value="damaged">Damaged</option><option value="missing">Missing</option></select></td>
+                        <td><input type="number" class="form-control form-control-sm gr-qty-good" min="0" max="${remaining}" value="0"></td>
+                        <td><input type="number" class="form-control form-control-sm gr-qty-damaged" min="0" max="${remaining}" value="0"></td>
+                        <td><input type="number" class="form-control form-control-sm gr-qty-missing" min="0" max="${remaining}" value="0"></td>
+                        <td class="gr-remaining-display text-muted">${remaining}</td>
                     </tr>
-                `).join('')}
+                `;
+                }).join('')}
                 </tbody></table>
                 <button class="btn btn-yellow-primary btn-sm" onclick="submitGoodsReceipt(${po.id}, this)"><i class="bi bi-box-seam"></i> Log Receipt</button>
             `;
@@ -267,9 +274,24 @@ async function openPoDetail(poId) {
             <hr><h6>History</h6>
             ${prRenderTimeline(po.events)}
         `;
+        wireGoodsReceiptRows();
     } catch (e) {
         document.getElementById('poDetailBody').innerHTML = `<div class="alert alert-danger">${prEscapeHtml(e.message)}</div>`;
     }
+}
+
+function wireGoodsReceiptRows() {
+    document.querySelectorAll('#grItemsTable tr[data-po-item-id]').forEach(tr => {
+        const inputs = tr.querySelectorAll('.gr-qty-good, .gr-qty-damaged, .gr-qty-missing');
+        const remaining = parseInt(tr.dataset.remaining) || 0;
+        const display = tr.querySelector('.gr-remaining-display');
+        const recalc = () => {
+            const used = Array.from(inputs).reduce((sum, el) => sum + (parseInt(el.value) || 0), 0);
+            display.textContent = remaining - used;
+            display.classList.toggle('text-danger', used > remaining);
+        };
+        inputs.forEach(el => el.addEventListener('input', recalc));
+    });
 }
 
 async function respondToCounter(proposalId, action, btn) {
@@ -294,18 +316,31 @@ async function respondToCounter(proposalId, action, btn) {
 
 async function submitGoodsReceipt(poId, btn) {
     const items = [];
+    let overRemaining = false;
     document.querySelectorAll('#grItemsTable tr[data-po-item-id]').forEach(tr => {
-        const qty = parseInt(tr.querySelector('.gr-qty').value) || 0;
-        if (qty > 0) {
-            items.push({
-                po_item_id: parseInt(tr.dataset.poItemId),
-                quantity_received: qty,
-                condition: tr.querySelector('.gr-condition').value,
-            });
-        }
+        const poItemId = parseInt(tr.dataset.poItemId);
+        const remaining = parseInt(tr.dataset.remaining) || 0;
+        const conditions = [
+            ['good', tr.querySelector('.gr-qty-good')],
+            ['damaged', tr.querySelector('.gr-qty-damaged')],
+            ['missing', tr.querySelector('.gr-qty-missing')],
+        ];
+        let rowTotal = 0;
+        conditions.forEach(([condition, el]) => {
+            const qty = parseInt(el.value) || 0;
+            rowTotal += qty;
+            if (qty > 0) {
+                items.push({ po_item_id: poItemId, quantity_received: qty, condition });
+            }
+        });
+        if (rowTotal > remaining) overRemaining = true;
     });
     if (items.length === 0) {
         Swal.fire('Nothing to receive', 'Enter a quantity for at least one item.', 'warning');
+        return;
+    }
+    if (overRemaining) {
+        Swal.fire('Too many', 'Good + Damaged + Missing can\'t exceed the remaining quantity for an item.', 'warning');
         return;
     }
     const unlock = prLockButton(btn);

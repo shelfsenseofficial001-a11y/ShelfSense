@@ -2,14 +2,14 @@
 $title = 'Purchase Orders - Finance Staff';
 $pageTitle = 'Purchase Orders & Payments';
 $activePage = 'staff_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260905"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/staff/payment_requests.js?v=20260905"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/staff/payment_requests.js?v=20260908"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs mb-3" id="fsTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#dispatchTab" type="button">Pending Dispatch</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#requestPaymentTab" type="button">Request Payment</button></li>
-    <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#holdsTab" type="button">Reconciliation Holds</button></li>
+    <li class="nav-item"><button class="nav-link active" id="tabDispatch" data-bs-toggle="tab" data-bs-target="#dispatchTab" type="button">Pending Dispatch</button></li>
+    <li class="nav-item"><button class="nav-link" id="tabRequestPayment" data-bs-toggle="tab" data-bs-target="#requestPaymentTab" type="button">Request Payment</button></li>
+    <li class="nav-item"><button class="nav-link" id="tabHolds" data-bs-toggle="tab" data-bs-target="#holdsTab" type="button">Reconciliation Holds</button></li>
 </ul>
 
 <div class="tab-content">

@@ -162,7 +162,7 @@ use App\Core\Auth;
                             <span class="badge bg-danger rounded-pill position-absolute top-0 end-0" id="notificationBadge" style="font-size:0.5rem;display:none;">0</span>
                         </button>
                         <div class="notification-dropdown" id="notificationDropdown" style="display:none;">
-                            <div class="notification-header">Notifications</div>
+                            <div class="notification-header">Notifications <a href="#" id="notificationMarkAllRead" class="float-end small">Mark all read</a></div>
                             <div id="notificationList">
                                 <div class="text-center text-muted small py-3">No notifications</div>
                             </div>
@@ -214,7 +214,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260905160000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260908120000"></script>
     <?php echo $additional_js ?? ''; ?>
 
     <!-- Searchable Select Component -->
@@ -483,15 +483,7 @@ use App\Core\Auth;
             setInterval(tick, 1000);
         })();
 
-        document.getElementById('notificationBell')?.addEventListener('click', function(e) {
-            e.stopPropagation();
-            const dropdown = document.getElementById('notificationDropdown');
-            dropdown.style.display = dropdown.style.display === 'block' ? 'none' : 'block';
-        });
-
-        document.addEventListener('click', function() {
-            document.getElementById('notificationDropdown').style.display = 'none';
-        });
+        // Bell open/close, fetching, and rendering is now handled globally by app.js.
 
         document.addEventListener('DOMContentLoaded', function() {
             const topbar = document.querySelector('.hr-topbar');

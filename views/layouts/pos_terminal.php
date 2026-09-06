@@ -125,7 +125,7 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260905160000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260908120000"></script>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
     <script src="/ShelfSense/public/assets/js/pos/pos-notifications.js?v=20260905070000"></script>
 

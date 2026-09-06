@@ -59,7 +59,7 @@ function renderDashboard(data) {
                 <div class="sp-stat-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="sp-stat-label">Invoiced (Processed)</div>
+                            <div class="sp-stat-label">Delivered (Awaiting Payment)</div>
                             <div class="sp-stat-number primary">${stats.invoiced_requisitions ?? 0}</div>
                         </div>
                         <div class="sp-stat-icon"><i class="bi bi-receipt text-primary"></i></div>
@@ -71,7 +71,7 @@ function renderDashboard(data) {
                 <div class="sp-stat-card">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="sp-stat-label">Ready to Ship (Paid)</div>
+                            <div class="sp-stat-label">Ready to Ship</div>
                             <div class="sp-stat-number success">${stats.ready_to_ship ?? 0}</div>
                         </div>
                         <div class="sp-stat-icon"><i class="bi bi-truck text-success"></i></div>

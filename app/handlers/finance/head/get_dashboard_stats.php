@@ -29,19 +29,19 @@ try {
     $calendarMonth = date('Y-m');
     $cutoffKey = CutoffPeriod::getCurrentKey();
 
-    $stmt = $db->query("SELECT COUNT(*) as c FROM requisitions WHERE status = 'pending_finance_head'");
+    $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'pending_fh_approval'");
     $pendingRequisitions = (int)$stmt->fetch()['c'];
 
-    $stmt = $db->query("SELECT COUNT(*) as c FROM payment_batches WHERE status = 'pending_approval'");
+    $stmt = $db->query("SELECT COUNT(*) as c FROM po_payment_requests WHERE status = 'pending'");
     $pendingBatches = (int)$stmt->fetch()['c'];
 
     $pending = $pendingRequisitions + $pendingBatches;
 
-    $stmt = $db->prepare("SELECT COUNT(*) as c FROM requisitions WHERE status = 'converted_to_po' AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
+    $stmt = $db->prepare("SELECT COUNT(*) as c FROM purchase_orders WHERE approved_by IS NOT NULL AND DATE_FORMAT(approved_at, '%Y-%m') = ?");
     $stmt->execute([$calendarMonth]);
     $approvedThisMonth = (int)$stmt->fetch()['c'];
 
-    $stmt = $db->prepare("SELECT COUNT(*) as c FROM requisitions WHERE status = 'rejected' AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
+    $stmt = $db->prepare("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'cancelled' AND rejection_reason IS NOT NULL AND DATE_FORMAT(updated_at, '%Y-%m') = ?");
     $stmt->execute([$calendarMonth]);
     $rejectedThisMonth = (int)$stmt->fetch()['c'];
 
@@ -59,13 +59,14 @@ try {
     $overallUsedPercentage = $allocatedSum > 0 ? round(($committedSum / $allocatedSum) * 100, 1) : null;
 
     $stmt = $db->prepare("
-        SELECT r.id, r.status, r.updated_at, r.rejected_reason,
-               r.requisition_number, r.subtotal as requisition_total,
+        SELECT po.id, po.status, po.updated_at, po.rejection_reason,
+               r.requisition_number, po.total as requisition_total,
                s.company_name
-        FROM requisitions r
-        JOIN suppliers s ON r.preferred_supplier_id = s.id
-        WHERE r.status IN ('converted_to_po', 'rejected')
-        ORDER BY r.updated_at DESC
+        FROM purchase_orders po
+        JOIN requisitions r ON po.requisition_id = r.id
+        JOIN suppliers s ON po.supplier_id = s.id
+        WHERE po.status NOT IN ('pending_budget_check', 'budget_rejected', 'pending_fh_approval')
+        ORDER BY po.updated_at DESC
         LIMIT 5
     ");
     $stmt->execute();

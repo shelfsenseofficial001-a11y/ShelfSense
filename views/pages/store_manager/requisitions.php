@@ -2,8 +2,8 @@
 $title = 'Requisitions - Store Manager';
 $pageTitle = 'Requisitions';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260907"></script>'
-    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260907"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260908"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs sm-tabs mb-3" id="requisitionTabs" role="tablist">

@@ -32,15 +32,26 @@ try {
     ");
     $poStats = $stmt->fetch();
 
+    $stmt = $db->query("SELECT COUNT(*) as total_requisitions FROM requisitions");
+    $totalReqRow = $stmt->fetch();
+
     $stmt = $db->query("
         SELECT
-            COUNT(*) as total_requisitions,
-            SUM(CASE WHEN status IN ('pending_budget_check','pending_finance_head') THEN 1 ELSE 0 END) as awaiting_finance,
-            SUM(CASE WHEN status IN ('pending_budget_check','pending_finance_head') AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as awaiting_finance_this_week,
-            SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as created_this_week
-        FROM requisitions
+            SUM(CASE WHEN status IN ('pending_budget_check','pending_fh_approval') THEN 1 ELSE 0 END) as awaiting_finance,
+            SUM(CASE WHEN status IN ('pending_budget_check','pending_fh_approval') AND updated_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as awaiting_finance_this_week
+        FROM purchase_orders
     ");
-    $reqStats = $stmt->fetch();
+    $poAwaiting = $stmt->fetch();
+
+    $stmt = $db->query("SELECT SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 ELSE 0 END) as created_this_week FROM requisitions");
+    $reqCreatedRow = $stmt->fetch();
+
+    $reqStats = [
+        'total_requisitions' => $totalReqRow['total_requisitions'] ?? 0,
+        'awaiting_finance' => $poAwaiting['awaiting_finance'] ?? 0,
+        'awaiting_finance_this_week' => $poAwaiting['awaiting_finance_this_week'] ?? 0,
+        'created_this_week' => $reqCreatedRow['created_this_week'] ?? 0,
+    ];
 
     $stmt = $db->query("
         SELECT
@@ -57,7 +68,7 @@ try {
     $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE dispatched_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
     $sent30d = (int)$stmt->fetch()['c'];
 
-    $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'closed' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
+    $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'paid' AND updated_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)");
     $completed30d = (int)$stmt->fetch()['c'];
 
     $stmt = $db->query("
@@ -75,16 +86,16 @@ try {
 
     $stmt = $db->query("
         SELECT
-            SUM(CASE WHEN status IN ('pending_budget_check','pending_finance_head') THEN 1 ELSE 0 END) as in_finance_review,
-            SUM(CASE WHEN status IN ('budget_rejected','rejected','cancelled') THEN 1 ELSE 0 END) as rejected
-        FROM requisitions
+            SUM(CASE WHEN status IN ('pending_budget_check','budget_rejected','pending_fh_approval') THEN 1 ELSE 0 END) as in_finance_review
+        FROM purchase_orders
     ");
     $reqBreakdown = $stmt->fetch();
+    $reqBreakdown['rejected'] = 0; // PO rejections are counted in $poBreakdown below to avoid double-counting the same cancelled row.
 
     $stmt = $db->query("
         SELECT
             SUM(CASE WHEN status IN ('pending_dispatch','pending_confirmation','supplier_counter_proposed') THEN 1 ELSE 0 END) as pending_supplier,
-            SUM(CASE WHEN status = 'closed' THEN 1 ELSE 0 END) as completed,
+            SUM(CASE WHEN status = 'paid' THEN 1 ELSE 0 END) as completed,
             SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as rejected
         FROM purchase_orders
     ");
@@ -105,7 +116,7 @@ try {
     $stmt = $db->prepare("
         SELECT DATE(updated_at) as d, COUNT(*) as c
         FROM purchase_orders
-        WHERE status = 'closed' AND updated_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
+        WHERE status = 'paid' AND updated_at >= DATE_SUB(CURDATE(), INTERVAL 13 DAY)
         GROUP BY DATE(updated_at)
     ");
     $stmt->execute();

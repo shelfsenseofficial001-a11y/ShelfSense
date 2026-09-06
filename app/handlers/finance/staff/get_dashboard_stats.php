@@ -28,9 +28,10 @@ try {
     $budgetModel = new Budget();
 
     $stmt = $db->query("
-        SELECT id, department_id, period_key, subtotal
-        FROM requisitions
-        WHERE status = 'pending_budget_check'
+        SELECT po.id, r.department_id, r.period_key, po.total as subtotal
+        FROM purchase_orders po
+        JOIN requisitions r ON po.requisition_id = r.id
+        WHERE po.status = 'pending_budget_check'
     ");
     $pendingRows = $stmt->fetchAll();
     $pendingCount = count($pendingRows);
@@ -40,7 +41,7 @@ try {
         if ($bs['exceeded']) $exceededCount++;
     }
 
-    $stmt = $db->query("SELECT COUNT(*) as c FROM payment_batches WHERE status = 'pending_approval'");
+    $stmt = $db->query("SELECT COUNT(*) as c FROM po_payment_requests WHERE status = 'pending'");
     $pendingBatches = (int)$stmt->fetch()['c'];
 
     $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'pending_dispatch'");

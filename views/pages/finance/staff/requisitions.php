@@ -2,7 +2,7 @@
 $title = 'Purchase Orders - Finance Staff';
 $pageTitle = 'Purchase Orders — Budget Check';
 $activePage = 'staff_requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260907"></script>'
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
     . '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20260907"></script>';
 
 $content = <<<'EOT'

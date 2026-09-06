@@ -124,6 +124,27 @@ function prLockButton(btn) {
     return () => { btn.disabled = false; };
 }
 
+/**
+ * Sets (or clears) the small count badge on a nav-tab button, so a screen
+ * with multiple tabs (Pending Dispatch / Request Payment / Reconciliation
+ * Holds, etc.) shows at a glance which ones actually need attention.
+ */
+function prSetTabBadge(tabButtonId, count) {
+    const btn = document.getElementById(tabButtonId);
+    if (!btn) return;
+    let badge = btn.querySelector('.pr-tab-badge');
+    if (!count) {
+        if (badge) badge.remove();
+        return;
+    }
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'badge rounded-pill bg-danger ms-1 pr-tab-badge';
+        btn.appendChild(badge);
+    }
+    badge.textContent = count > 99 ? '99+' : String(count);
+}
+
 /** Full timestamp for a history timeline entry, e.g. "Sep 5, 2026, 2:14 PM". */
 function prFormatDateTime(dateStr) {
     if (!dateStr) return '—';

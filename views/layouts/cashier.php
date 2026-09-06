@@ -130,7 +130,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260905160000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260908120000"></script>
 
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>

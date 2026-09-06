@@ -168,8 +168,8 @@ function fnDeptBudgetRow(d) {
 function fnActivityRow(item) {
     let icon = '⏳';
     let label = 'Awaiting review';
-    if (item.status === 'approved') { icon = '✅'; label = 'Approved'; }
-    else if (item.status === 'rejected') { icon = '❌'; label = 'Rejected' + (item.rejection_reason ? ' (' + item.rejection_reason + ')' : ''); }
+    if (item.status === 'cancelled') { icon = '❌'; label = 'Rejected' + (item.rejection_reason ? ' (' + item.rejection_reason + ')' : ''); }
+    else { icon = '✅'; label = 'Approved'; }
 
     return `
         <div class="activity-item d-flex justify-content-between align-items-center py-2 border-bottom">

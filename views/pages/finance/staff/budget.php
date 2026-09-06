@@ -6,7 +6,7 @@ use App\Core\CutoffPeriod;
 $title = 'Budget Status - Finance Staff';
 $pageTitle = 'Budget Status';
 $activePage = 'staff_budget';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260904"></script>'
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
     . '<script src="/ShelfSense/public/assets/js/finance/staff/budget.js?v=20260904"></script>';
 
 $defaultPeriod = CutoffPeriod::getCurrentKey();
