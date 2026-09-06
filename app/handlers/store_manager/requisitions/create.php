@@ -1,12 +1,22 @@
 <?php
 // app/handlers/store_manager/requisitions/create.php
+// Store Manager builds a resupply request by picking store products; the
+// eligible-supplier list (see purchase_orders/list_eligible_suppliers.php)
+// narrows to only suppliers who carry every selected product with enough
+// quantity on file. Once a supplier is chosen, this creates BOTH the
+// requisition (an audit record of what was asked, by whom) and the Purchase
+// Order itself immediately, priced from that supplier's on-file prices --
+// no separate Finance-driven PO-creation step exists anymore.
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 require_once __DIR__ . '/../../../models/Requisition.php';
+require_once __DIR__ . '/../../../models/PurchaseOrder.php';
+require_once __DIR__ . '/../../../models/SupplierProduct.php';
 require_once __DIR__ . '/../../../models/Budget.php';
+require_once __DIR__ . '/../../../models/PoEvent.php';
 require_once __DIR__ . '/../../../helpers/functions.php';
 
 use App\Core\Auth;
@@ -14,7 +24,10 @@ use App\Core\Database;
 use App\Core\Response;
 use App\Core\CutoffPeriod;
 use App\Models\Requisition;
+use App\Models\PurchaseOrder;
+use App\Models\SupplierProduct;
 use App\Models\Budget;
+use App\Models\PoEvent;
 
 header('Content-Type: application/json');
 
@@ -52,17 +65,17 @@ if ($neededByError) {
     Response::error($neededByError, 400, ['needed_by_date' => $neededByError]);
 }
 
+$storeProductQuantities = [];
 foreach ($items as $item) {
     $storeProductId = intval($item['store_product_id'] ?? 0);
-    $supplierProductId = intval($item['supplier_product_id'] ?? 0);
     $quantity = intval($item['quantity'] ?? 0);
-    $unitPrice = floatval($item['unit_price'] ?? 0);
-    if ($storeProductId <= 0 || $supplierProductId <= 0 || $quantity <= 0 || $unitPrice <= 0) {
-        Response::error('Invalid item: store product, supplier product, quantity, and price are required', 400);
+    if ($storeProductId <= 0 || $quantity <= 0) {
+        Response::error('Invalid item: store product and quantity are required', 400);
     }
     if ($quantity > 999) {
         Response::error('Quantity cannot exceed 999 per item', 400);
     }
+    $storeProductQuantities[$storeProductId] = ['quantity' => $quantity];
 }
 
 try {
@@ -82,6 +95,21 @@ try {
         Response::error('Invalid department', 400);
     }
 
+    // Re-validate eligibility server-side -- the client's comparison view is
+    // just a convenience; availability/quantity may have changed since.
+    $supplierProductModel = new SupplierProduct();
+    $eligible = $supplierProductModel->getEligibleSuppliers($storeProductQuantities);
+    $chosen = null;
+    foreach ($eligible as $candidate) {
+        if ($candidate['supplier_id'] === $supplierId) {
+            $chosen = $candidate;
+            break;
+        }
+    }
+    if (!$chosen) {
+        Response::error('The selected supplier can no longer supply all of these items in the requested quantities. Please re-check the supplier comparison.', 400);
+    }
+
     $db->beginTransaction();
 
     $reqModel = new Requisition();
@@ -92,34 +120,51 @@ try {
         'department_id' => $department['id'],
         'preferred_supplier_id' => $supplierId,
         'period_key' => CutoffPeriod::getCurrentKey(),
+        'status' => 'converted_to_po',
         'order_date' => $orderDate,
         'needed_by_date' => $neededByDate !== '' ? $neededByDate : null,
         'notes' => $notes,
     ]);
 
     $subtotal = 0;
-    foreach ($items as $item) {
+    foreach ($chosen['items'] as $line) {
         $total = $reqModel->addItem(
             $requisitionId,
-            intval($item['store_product_id']),
-            intval($item['supplier_product_id']),
-            intval($item['quantity']),
-            floatval($item['unit_price']),
-            isset($item['notes']) ? trim($item['notes']) : null
+            $line['store_product_id'],
+            $line['supplier_product_id'],
+            $line['quantity'],
+            $line['unit_price']
         );
         $subtotal += $total;
     }
-
     $stmt = $db->prepare("UPDATE requisitions SET subtotal = ? WHERE id = ?");
     $stmt->execute([$subtotal, $requisitionId]);
+
+    $poModel = new PurchaseOrder();
+    $poNumber = $poModel->generateNumber();
+    $poId = $poModel->create([
+        'po_number' => $poNumber,
+        'requisition_id' => $requisitionId,
+        'supplier_id' => $supplierId,
+        'status' => 'pending_budget_check',
+        'order_date' => $orderDate,
+        'expected_delivery_date' => $neededByDate !== '' ? $neededByDate : null,
+        'created_by' => Auth::userId(),
+    ]);
+    foreach ($chosen['items'] as $line) {
+        $poModel->addItem($poId, $line['store_product_id'], $line['supplier_product_id'], $line['quantity'], $line['unit_price']);
+    }
+    $poModel->recalculateTotals($poId);
+
+    (new PoEvent())->log($poId, 'po_created', "Purchase Order {$poNumber} created by Store Manager from requisition #{$requisitionNumber}, supplier: {$chosen['supplier_name']}.", 'all', Auth::userId());
 
     $db->commit();
 
     foreach (getUsersByRole('finance_staff') as $u) {
         createNotification(
             $u['user_id'],
-            'requisition_pending_budget_check',
-            "New requisition #{$requisitionNumber} (₱" . number_format($subtotal, 2) . ") needs a budget check.",
+            'po_pending_budget_check',
+            "New Purchase Order {$poNumber} (₱" . number_format($subtotal, 2) . ") needs a budget check.",
             "?page=finance_staff_requisitions"
         );
     }
@@ -127,8 +172,10 @@ try {
     Response::success([
         'requisition_id' => $requisitionId,
         'requisition_number' => $requisitionNumber,
+        'po_id' => $poId,
+        'po_number' => $poNumber,
         'total' => $subtotal
-    ], 'Requisition created and sent for budget check');
+    ], 'Purchase Order created and sent for budget check');
 
 } catch (Exception $e) {
     if ($db->inTransaction()) {

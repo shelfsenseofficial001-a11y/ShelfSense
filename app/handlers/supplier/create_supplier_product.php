@@ -24,9 +24,14 @@ $input = json_decode(file_get_contents('php://input'), true);
 $name = isset($input['name']) ? trim($input['name']) : '';
 $description = isset($input['description']) ? trim($input['description']) : '';
 $price = isset($input['price']) ? floatval($input['price']) : 0;
+$quantity = isset($input['quantity']) ? intval($input['quantity']) : 0;
+$storeProductId = isset($input['store_product_id']) && intval($input['store_product_id']) > 0 ? intval($input['store_product_id']) : null;
 
 if (empty($name) || $price <= 0) {
     Response::error('Name and price are required', 400);
+}
+if ($quantity < 0) {
+    Response::error('Quantity cannot be negative', 400);
 }
 if (strlen($name) > 100) {
     Response::error('Name cannot exceed 100 characters', 400);
@@ -48,9 +53,11 @@ try {
     $productModel = new SupplierProduct();
     $result = $productModel->create([
         'supplier_id' => $supplierId,
+        'store_product_id' => $storeProductId,
         'name' => $name,
         'description' => $description,
-        'price' => $price
+        'price' => $price,
+        'quantity' => $quantity
     ]);
 
     if (!$result) {

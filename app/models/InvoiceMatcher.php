@@ -4,12 +4,11 @@ namespace App\Models;
 use App\Core\Database;
 
 /**
- * The 3-way match: PO <-> Goods Receipt <-> Invoice. Runs as a post-payment
- * reconciliation check (payment already happened at PO-confirmation time,
- * before delivery) -- a clean match just closes the loop (`reconciled`);
- * a variance surfaces a discrepancy between what was paid for and what was
- * actually delivered/billed for Finance Staff to look into, it no longer
- * gates any money movement.
+ * The 3-way match: PO <-> Goods Receipt <-> Invoice. Runs when the supplier
+ * submits an invoice, after delivery but before any payment -- a clean
+ * match (`reconciled`) is what allows Finance Staff to request payment;
+ * a variance (`quantity_hold`/`price_hold`) blocks the payment request
+ * until Finance Staff resolves it via resolve_variance.php.
  * Quantity rule: billed <= received (else quantity_hold).
  * Price rule: billed price must be within EITHER the percent OR the flat
  * amount tolerance of the PO's contracted price (whichever is looser) --

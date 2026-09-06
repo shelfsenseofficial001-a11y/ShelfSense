@@ -26,9 +26,14 @@ $name = isset($input['name']) ? trim($input['name']) : '';
 $description = isset($input['description']) ? trim($input['description']) : '';
 $price = isset($input['price']) ? floatval($input['price']) : 0;
 $isActive = isset($input['is_active']) ? intval($input['is_active']) : 1;
+$quantity = isset($input['quantity']) ? intval($input['quantity']) : 0;
+$storeProductId = isset($input['store_product_id']) && intval($input['store_product_id']) > 0 ? intval($input['store_product_id']) : null;
 
 if ($id <= 0 || empty($name) || $price <= 0) {
     Response::error('ID, name, and price are required', 400);
+}
+if ($quantity < 0) {
+    Response::error('Quantity cannot be negative', 400);
 }
 
 try {
@@ -52,6 +57,8 @@ try {
         'name' => $name,
         'description' => $description,
         'price' => $price,
+        'quantity' => $quantity,
+        'store_product_id' => $storeProductId,
         'is_active' => $isActive
     ]);
 

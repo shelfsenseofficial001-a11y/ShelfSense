@@ -25,7 +25,7 @@ $filters = [];
 if (!empty($_GET['status'])) {
     $filters['status'] = $_GET['status'];
 } else {
-    $filters['statuses'] = ['confirmed', 'partially_received', 'received'];
+    $filters['statuses'] = ['supplier_counter_proposed', 'confirmed', 'shipped', 'partially_received', 'received'];
 }
 
 try {

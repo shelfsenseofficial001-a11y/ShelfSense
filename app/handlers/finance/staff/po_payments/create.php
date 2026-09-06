@@ -1,9 +1,10 @@
 <?php
 // app/handlers/finance/staff/po_payments/create.php
-// Finance Staff requests payment for a confirmed PO -- PO -> pending_payment.
-// No budget ledger movement here yet (the reservation was already made when
-// the requisition was approved); that only converts to a real expense once
-// Finance Head approves this request.
+// Finance Staff requests payment once the order has been delivered and the
+// 3-way match (PO vs Goods Receipt vs Invoice) has reconciled -- PO ->
+// pending_payment. No budget ledger movement here yet (the reservation was
+// already made when Finance Head approved the PO); that only converts to a
+// real expense once Finance Head approves this payment request.
 
 require_once __DIR__ . '/../../../../core/Database.php';
 require_once __DIR__ . '/../../../../core/Auth.php';
@@ -49,9 +50,16 @@ try {
         $db->rollBack();
         Response::notFound('Purchase order not found');
     }
-    if ($po['status'] !== 'confirmed') {
+    if (!in_array($po['status'], ['received', 'partially_received'], true)) {
         $db->rollBack();
-        Response::error('This purchase order is not confirmed yet. Current status: ' . $po['status'], 400);
+        Response::error('This purchase order has not been delivered yet. Current status: ' . $po['status'], 400);
+    }
+
+    $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM invoices WHERE po_id = ? AND match_status = 'reconciled'");
+    $stmt->execute([$poId]);
+    if ((int)$stmt->fetch()['cnt'] === 0) {
+        $db->rollBack();
+        Response::error('No reconciled invoice found for this purchase order yet. Resolve any variance holds first.', 400);
     }
 
     $paymentModel = new PoPaymentRequest();

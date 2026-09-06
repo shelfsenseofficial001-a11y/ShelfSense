@@ -119,6 +119,7 @@ function renderProducts(products) {
                 </div>
                 <div class="sp-product-desc">${escapeHtmlSP(product.description || 'No description')}</div>
                 <div class="sp-product-price">${spCurrency(product.price)}</div>
+                <div class="text-muted small">Available: ${parseInt(product.quantity) || 0}</div>
                 <div class="d-flex gap-2 mt-2">
                     <button class="btn btn-sm btn-outline-primary edit-product-btn" data-id="${product.id}"><i class="bi bi-pencil"></i> Edit</button>
                     <button class="btn btn-sm btn-outline-danger delete-product-btn" data-id="${product.id}" data-name="${escapeHtmlSP(product.name)}"><i class="bi bi-trash"></i> Delete</button>
@@ -153,6 +154,7 @@ function openProductModal(id = null) {
             document.getElementById('productName').value = product.name;
             document.getElementById('productDescription').value = product.description || '';
             document.getElementById('productPrice').value = product.price;
+            document.getElementById('productQuantity').value = product.quantity ?? 0;
             document.getElementById('productStatus').value = product.is_active ? '1' : '0';
         }
     }
@@ -166,11 +168,16 @@ function saveProduct() {
         name: document.getElementById('productName').value.trim(),
         description: document.getElementById('productDescription').value.trim(),
         price: parseFloat(document.getElementById('productPrice').value),
+        quantity: parseInt(document.getElementById('productQuantity').value),
         is_active: parseInt(document.getElementById('productStatus').value)
     };
 
     if (!data.name || !(data.price > 0)) {
         Swal.fire({ icon: 'warning', title: 'Required', text: 'Name and a price greater than zero are required.' });
+        return;
+    }
+    if (!(data.quantity >= 0)) {
+        Swal.fire({ icon: 'warning', title: 'Required', text: 'Available quantity is required.' });
         return;
     }
 

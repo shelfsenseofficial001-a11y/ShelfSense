@@ -2,8 +2,8 @@
 $title = 'Purchase Orders - Supplier';
 $pageTitle = 'Purchase Orders';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260904"></script>'
-    . '<script src="/ShelfSense/public/assets/js/supplier/requisitions.js?v=20260904"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260907"></script>'
+    . '<script src="/ShelfSense/public/assets/js/supplier/requisitions.js?v=20260907"></script>';
 
 $content = <<<'EOT'
 <div class="modern-card p-3">

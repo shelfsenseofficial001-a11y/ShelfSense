@@ -1,9 +1,11 @@
 <?php
 // app/handlers/finance/head/po_payments/approve.php
 // Approve: posts the real budget expense + releases the requisition's
-// reservation, records the actual payment, PO -> paid, and notifies the
-// supplier that they're now clear to ship. Reject: PO returns to confirmed,
-// no budget movement (nothing was ever expensed).
+// reservation, records the actual payment, PO -> paid (a terminal/closing
+// state now -- delivery already happened before payment). Reject: PO
+// reverts to whatever it was before the payment request (received or
+// partially_received, not confirmed -- delivery already happened), no
+// budget movement (nothing was ever expensed).
 
 require_once __DIR__ . '/../../../../core/Database.php';
 require_once __DIR__ . '/../../../../core/Auth.php';
@@ -79,7 +81,7 @@ try {
 
     if ($action === 'reject') {
         $paymentRequestModel->updateStatus($requestId, 'rejected', Auth::userId(), $reason);
-        $poModel->updateStatus($po['id'], 'confirmed');
+        $poModel->updateStatus($po['id'], $poModel->determineReceivedStatus($po['id']));
         $eventModel->log($po['id'], 'payment_rejected', "Payment request rejected by Finance Head. Reason: $reason", 'all', Auth::userId());
 
         createNotification($request['requested_by'], 'po_payment_rejected', "Payment request for PO {$po['po_number']} was rejected. Reason: $reason", "?page=finance_staff_payment_requests");
@@ -105,7 +107,7 @@ try {
     $paymentModel = new Payment();
     $paymentId = $paymentModel->createForPo($po['id'], $requestId, $amount, $method, $referenceNumber, Auth::userId());
 
-    $eventModel->log($po['id'], 'payment_approved', "Payment of ₱" . number_format($amount, 2) . " approved by Finance Head. Supplier is clear to ship.", 'all', Auth::userId());
+    $eventModel->log($po['id'], 'payment_approved', "Payment of ₱" . number_format($amount, 2) . " approved by Finance Head.", 'all', Auth::userId());
 
     $stmt = $db->prepare("SELECT company_name, email FROM suppliers WHERE id = ?");
     $stmt->execute([$po['supplier_id']]);
@@ -123,7 +125,7 @@ try {
                 <p><strong>Amount:</strong> ₱" . number_format($amount, 2) . "</p>
                 <p><strong>Method:</strong> " . strtoupper($method) . "</p>
                 <p><strong>Reference:</strong> {$referenceNumber}</p>
-                <p style='margin-top:16px;'>You may now proceed to ship the order. Please log in to the Supplier Portal to mark it as shipped.</p>
+                <p style='margin-top:16px;'>This closes out the order. Thank you for your business.</p>
             </div>
         ";
         $mailer->send($supplier['email'], "Payment Sent - PO {$po['po_number']}", $body);
@@ -134,7 +136,7 @@ try {
     $stmt->execute([$supplier['email']]);
     $supplierUser = $stmt->fetch();
     if ($supplierUser) {
-        createNotification($supplierUser['user_id'], 'po_payment_received', "Payment for PO {$po['po_number']} has been sent. You may now ship the order.", "?page=supplier_requisitions");
+        createNotification($supplierUser['user_id'], 'po_payment_received', "Payment for PO {$po['po_number']} has been sent.", "?page=supplier_requisitions");
     }
     createNotification($request['requested_by'], 'po_payment_approved', "Payment request for PO {$po['po_number']} was approved and disbursed.", "?page=finance_staff_payment_requests");
 

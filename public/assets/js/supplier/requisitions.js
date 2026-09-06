@@ -44,9 +44,8 @@ async function openPoDetail(poId) {
                 <button class="btn btn-success btn-sm" onclick="acceptPo(${po.id}, this)"><i class="bi bi-check"></i> Accept</button>
                 <button class="btn btn-warning btn-sm" onclick="openCounter(${po.id})"><i class="bi bi-pencil"></i> Propose Quantity Change</button>
             `;
-        } else if (po.status === 'paid') {
+        } else if (po.status === 'confirmed') {
             actions = `
-                <div class="alert alert-success small mb-2"><i class="bi bi-check-circle"></i> Payment received. You may now ship this order.</div>
                 <button class="btn btn-yellow-primary btn-sm" onclick="shipPo(${po.id}, this)"><i class="bi bi-truck"></i> Mark as Shipped</button>
             `;
         }

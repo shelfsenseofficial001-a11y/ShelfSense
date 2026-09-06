@@ -19,21 +19,21 @@ async function loadPendingRequisitions() {
     const tbody = document.getElementById('fhReqTableBody');
     tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading...</td></tr>';
     try {
-        const data = await prFetchJson('?page=api_fh_list_pending_requisitions&limit=20');
-        const rows = data.requisitions || [];
+        const data = await prFetchJson('?page=api_fh_list_pending_pos&limit=20');
+        const rows = data.purchase_orders || [];
         tbody.innerHTML = rows.length ? rows.map(r => `
             <tr>
-                <td>${prEscapeHtml(r.requisition_number)}</td>
+                <td>${prEscapeHtml(r.po_number)} <small class="text-muted">(${prEscapeHtml(r.requisition_number)})</small></td>
                 <td>${prEscapeHtml(r.supplier_name)}</td>
                 <td>${prEscapeHtml(r.department_name)}</td>
-                <td>${prCurrency(r.subtotal)}</td>
+                <td>${prCurrency(r.total)}</td>
                 <td>${prCurrency(r.budget_status.available)} ${r.budget_status.exceeded ? '<span class="badge bg-danger">Exceeded</span>' : ''}</td>
                 <td>
-                    <button class="btn btn-sm btn-success" onclick="openApprove(${r.id}, '${prEscapeHtml(r.requisition_number)}', ${r.budget_status.exceeded}, ${r.budget_status.shortfall})"><i class="bi bi-check"></i> Approve</button>
+                    <button class="btn btn-sm btn-success" onclick="openApprove(${r.id}, '${prEscapeHtml(r.po_number)}', ${r.budget_status.exceeded}, ${r.budget_status.shortfall})"><i class="bi bi-check"></i> Approve</button>
                     <button class="btn btn-sm btn-danger" onclick="openRejectReq(${r.id})"><i class="bi bi-x"></i> Reject</button>
                 </td>
             </tr>
-        `).join('') : prEmptyRow(6, 'No requisitions pending approval.');
+        `).join('') : prEmptyRow(6, 'No Purchase Orders pending approval.');
     } catch (e) {
         tbody.innerHTML = prErrorRow(6, e.message);
     }
@@ -43,8 +43,8 @@ function openApprove(id, number, exceeded, shortfall) {
     fhApproveTargetId = id;
     fhApproveExceeded = exceeded;
     document.getElementById('approveReqSummary').textContent = exceeded
-        ? `Requisition #${number} exceeds available budget by ${prCurrency(shortfall)}.`
-        : `Approve requisition #${number}? This will reserve the budget and create a Purchase Order.`;
+        ? `PO ${number} exceeds available budget by ${prCurrency(shortfall)}.`
+        : `Approve PO ${number}? This will reserve the budget and forward it to dispatch.`;
     document.getElementById('approveReqJustificationWrap').classList.toggle('d-none', !exceeded);
     document.getElementById('approveReqJustification').value = '';
     new bootstrap.Modal(document.getElementById('approveReqModal')).show();
@@ -58,9 +58,9 @@ async function confirmApproveReq() {
     }
     const unlock = prLockButton(document.getElementById('confirmApproveReqBtn'));
     try {
-        const res = await fetch('?page=api_fh_approve_requisition', {
+        const res = await fetch('?page=api_fh_approve_po', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requisition_id: fhApproveTargetId, action: 'approve', justification }),
+            body: JSON.stringify({ po_id: fhApproveTargetId, action: 'approve', justification }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
@@ -85,9 +85,9 @@ async function confirmRejectReq() {
     if (!reason) { Swal.fire('Reason required', '', 'warning'); return; }
     const unlock = prLockButton(document.getElementById('confirmRejectReqBtn'));
     try {
-        const res = await fetch('?page=api_fh_approve_requisition', {
+        const res = await fetch('?page=api_fh_approve_po', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requisition_id: fhRejectReqTargetId, action: 'reject', reason }),
+            body: JSON.stringify({ po_id: fhRejectReqTargetId, action: 'reject', reason }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);

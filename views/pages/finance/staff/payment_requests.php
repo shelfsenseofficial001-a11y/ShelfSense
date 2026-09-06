@@ -14,7 +14,7 @@ $content = <<<'EOT'
 
 <div class="tab-content">
     <div class="tab-pane fade show active" id="dispatchTab">
-        <p class="text-muted">Purchase Orders auto-generated from Finance-Head-approved requisitions. Review and send to the supplier.</p>
+        <p class="text-muted">Purchase Orders approved by Finance Head. Review and send to the supplier.</p>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th></th></tr></thead>
@@ -24,7 +24,7 @@ $content = <<<'EOT'
     </div>
 
     <div class="tab-pane fade" id="requestPaymentTab">
-        <p class="text-muted">Purchase Orders confirmed by the supplier. Request payment here — the supplier ships only after Finance Head approves it.</p>
+        <p class="text-muted">Purchase Orders that have been delivered and have a reconciled invoice. Request payment here for Finance Head to approve.</p>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th></th></tr></thead>
@@ -34,7 +34,7 @@ $content = <<<'EOT'
     </div>
 
     <div class="tab-pane fade" id="holdsTab">
-        <p class="text-muted">Invoices that failed the post-delivery 3-way match (PO vs. Goods Receipt vs. Invoice). These are reconciliation records only — payment already happened. Override with a justification, or correct the PO's recorded price and re-match.</p>
+        <p class="text-muted">Invoices that failed the 3-way match (PO vs. Goods Receipt vs. Invoice). A payment request can't be created until these are resolved. Override with a justification, or correct the PO's recorded price and re-match.</p>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead><tr><th>Invoice #</th><th>PO #</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>

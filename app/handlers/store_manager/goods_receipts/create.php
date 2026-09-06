@@ -53,8 +53,8 @@ try {
     if (!$po) {
         Response::notFound('Purchase order not found');
     }
-    // Goods Receipt only happens after the supplier has shipped -- which itself
-    // only happens after payment, per the pay-before-delivery flow.
+    // Goods Receipt only happens after the supplier has shipped -- shipping
+    // happens right after PO confirmation now, well before any payment step.
     if (!in_array($po['status'], ['shipped', 'partially_received'], true)) {
         Response::error('This purchase order has not been shipped yet. Current status: ' . $po['status'], 400);
     }
@@ -63,15 +63,9 @@ try {
     $grId = $grModel->create($poId, Auth::userId(), $receiptDate, $notes, $items);
 
     $poModel = new PurchaseOrder();
-    $poItems = $poModel->getItems($poId);
-    $fullyReceived = true;
-    foreach ($poItems as $item) {
-        if ((int)$item['received_quantity'] < (int)$item['quantity']) {
-            $fullyReceived = false;
-            break;
-        }
-    }
-    $poModel->updateStatus($poId, $fullyReceived ? 'received' : 'partially_received');
+    $receivedStatus = $poModel->determineReceivedStatus($poId);
+    $fullyReceived = $receivedStatus === 'received';
+    $poModel->updateStatus($poId, $receivedStatus);
 
     (new PoEvent())->log(
         $poId,

@@ -77,32 +77,112 @@ class SupplierProduct
 
     public function create($data)
     {
+        $storeProductId = $data['store_product_id'] ?? $this->resolveStoreProductId($data['name']);
         $stmt = $this->db->prepare("
-            INSERT INTO supplier_products (supplier_id, name, description, price)
-            VALUES (?, ?, ?, ?)
+            INSERT INTO supplier_products (supplier_id, store_product_id, name, description, price, quantity)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         return $stmt->execute([
             $data['supplier_id'],
+            $storeProductId,
             $data['name'],
             $data['description'] ?? null,
-            $data['price']
+            $data['price'],
+            $data['quantity'] ?? 0
         ]);
     }
 
     public function update($id, $data)
     {
+        $storeProductId = $data['store_product_id'] ?? $this->resolveStoreProductId($data['name']);
         $stmt = $this->db->prepare("
-            UPDATE supplier_products 
-            SET name = ?, description = ?, price = ?, is_active = ?
+            UPDATE supplier_products
+            SET name = ?, description = ?, price = ?, quantity = ?, store_product_id = ?, is_active = ?
             WHERE id = ?
         ");
         return $stmt->execute([
             $data['name'],
             $data['description'] ?? null,
             $data['price'],
+            $data['quantity'] ?? 0,
+            $storeProductId,
             $data['is_active'] ?? 1,
             $id
         ]);
+    }
+
+    /** Best-effort link to the internal catalog when a supplier doesn't pick one explicitly: exact name match. */
+    private function resolveStoreProductId($name)
+    {
+        $stmt = $this->db->prepare("SELECT id FROM products WHERE name = ? LIMIT 1");
+        $stmt->execute([$name]);
+        $row = $stmt->fetch();
+        return $row ? (int)$row['id'] : null;
+    }
+
+    /**
+     * Given the store products (and quantities) a Store Manager has added to
+     * a resupply request, returns only the suppliers who carry every one of
+     * them with enough quantity on file -- narrowing as items are added.
+     * Each store_product_id maps to ['quantity' => int].
+     */
+    public function getEligibleSuppliers(array $storeProductQuantities)
+    {
+        if (empty($storeProductQuantities)) {
+            return [];
+        }
+
+        $storeProductIds = array_keys($storeProductQuantities);
+        $placeholders = implode(',', array_fill(0, count($storeProductIds), '?'));
+        $stmt = $this->db->prepare("
+            SELECT sp.*, s.company_name as supplier_name
+            FROM supplier_products sp
+            JOIN suppliers s ON sp.supplier_id = s.id
+            WHERE sp.store_product_id IN ($placeholders) AND sp.is_active = 1
+        ");
+        $stmt->execute($storeProductIds);
+        $rows = $stmt->fetchAll();
+
+        $bySupplier = [];
+        foreach ($rows as $row) {
+            $bySupplier[$row['supplier_id']]['name'] = $row['supplier_name'];
+            $bySupplier[$row['supplier_id']]['items'][(int)$row['store_product_id']] = $row;
+        }
+
+        $eligible = [];
+        foreach ($bySupplier as $supplierId => $data) {
+            $covers = true;
+            $lines = [];
+            $total = 0.0;
+            foreach ($storeProductQuantities as $storeProductId => $need) {
+                $needQty = (int)($need['quantity'] ?? 0);
+                $sp = $data['items'][$storeProductId] ?? null;
+                if (!$sp || (int)$sp['quantity'] < $needQty) {
+                    $covers = false;
+                    break;
+                }
+                $lineTotal = round($needQty * (float)$sp['price'], 2);
+                $total += $lineTotal;
+                $lines[] = [
+                    'store_product_id' => (int)$storeProductId,
+                    'supplier_product_id' => (int)$sp['id'],
+                    'unit_price' => (float)$sp['price'],
+                    'available_quantity' => (int)$sp['quantity'],
+                    'quantity' => $needQty,
+                    'total' => $lineTotal,
+                ];
+            }
+            if ($covers) {
+                $eligible[] = [
+                    'supplier_id' => (int)$supplierId,
+                    'supplier_name' => $data['name'],
+                    'items' => $lines,
+                    'total' => round($total, 2),
+                ];
+            }
+        }
+
+        return $eligible;
     }
 
     public function delete($id)

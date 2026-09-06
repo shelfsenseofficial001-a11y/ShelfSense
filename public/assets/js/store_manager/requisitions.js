@@ -3,12 +3,12 @@
 // ============================================
 
 let smProducts = [];
-let smSuppliers = [];
-let smCartRows = [];
+let smEligibleSuppliers = [];
+let smSelectedSupplierId = null;
 let minePage = 1;
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadSuppliersAndProducts();
+    loadProducts();
     loadDepartments();
     loadMineList();
     loadPoList();
@@ -17,7 +17,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('mineStatusFilter').addEventListener('change', () => { minePage = 1; loadMineList(); });
     document.getElementById('addItemRowBtn').addEventListener('click', () => addItemRow());
     document.getElementById('submitRequisitionBtn').addEventListener('click', submitRequisition);
-    document.getElementById('createSupplier').addEventListener('change', onSupplierChange);
 });
 
 function setDefaultOrderDate() {
@@ -25,27 +24,10 @@ function setDefaultOrderDate() {
     if (input) input.value = new Date().toISOString().split('T')[0];
 }
 
-async function loadSuppliersAndProducts() {
+async function loadProducts() {
     try {
         const data = await prFetchJson('?page=api_get_products_for_requisition');
         smProducts = data.products || [];
-        smSuppliers = data.suppliers || [];
-        const sel = document.getElementById('createSupplier');
-        sel.innerHTML = smSuppliers.map(s => `<option value="${s.id}">${prEscapeHtml(s.company_name)}</option>`).join('');
-        if (data.supplier) sel.value = data.supplier.id;
-        addItemRow();
-    } catch (e) {
-        console.error(e);
-    }
-}
-
-async function onSupplierChange() {
-    const supplierId = document.getElementById('createSupplier').value;
-    try {
-        const data = await prFetchJson(`?page=api_get_products_for_requisition&supplier_id=${supplierId}`);
-        smProducts = data.products || [];
-        document.getElementById('createItemsBody').innerHTML = '';
-        smCartRows = [];
         addItemRow();
     } catch (e) {
         console.error(e);
@@ -65,71 +47,93 @@ async function loadDepartments() {
 function addItemRow() {
     const tbody = document.getElementById('createItemsBody');
     const rowId = 'row_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-    const options = smProducts.filter(p => p.supplier_product_id).map(p =>
-        `<option value="${p.store_product_id}" data-supplier-product="${p.supplier_product_id}" data-price="${p.supplier_price}">${prEscapeHtml(p.name)} (₱${parseFloat(p.supplier_price).toFixed(2)})</option>`
-    ).join('');
+    const options = smProducts.map(p => `<option value="${p.store_product_id}">${prEscapeHtml(p.name)}</option>`).join('');
     const tr = document.createElement('tr');
     tr.id = rowId;
     tr.innerHTML = `
         <td><select class="form-select form-select-sm item-product">${options}</select></td>
         <td><input type="number" class="form-control form-control-sm item-qty" min="1" max="999" value="1"></td>
-        <td><input type="number" class="form-control form-control-sm item-price" min="0.01" step="0.01" value="0"></td>
-        <td class="item-total">₱0.00</td>
-        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('${rowId}').remove(); updateSubtotal();"><i class="bi bi-trash"></i></button></td>
+        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('${rowId}').remove(); refreshEligibleSuppliers();"><i class="bi bi-trash"></i></button></td>
     `;
     tbody.appendChild(tr);
 
-    const productSelect = tr.querySelector('.item-product');
-    const priceInput = tr.querySelector('.item-price');
-    const syncPrice = () => {
-        const opt = productSelect.selectedOptions[0];
-        priceInput.value = opt ? opt.dataset.price : 0;
-        updateRowTotal(tr);
-    };
-    productSelect.addEventListener('change', syncPrice);
-    tr.querySelector('.item-qty').addEventListener('input', () => updateRowTotal(tr));
-    priceInput.addEventListener('input', () => updateRowTotal(tr));
-    syncPrice();
+    tr.querySelector('.item-product').addEventListener('change', refreshEligibleSuppliers);
+    tr.querySelector('.item-qty').addEventListener('input', refreshEligibleSuppliers);
+    refreshEligibleSuppliers();
 }
 
-function updateRowTotal(tr) {
-    const qty = parseFloat(tr.querySelector('.item-qty').value) || 0;
-    const price = parseFloat(tr.querySelector('.item-price').value) || 0;
-    tr.querySelector('.item-total').textContent = prCurrency(qty * price);
-    updateSubtotal();
-}
-
-function updateSubtotal() {
-    let subtotal = 0;
+function collectItems() {
+    const items = [];
     document.querySelectorAll('#createItemsBody tr').forEach(tr => {
-        const qty = parseFloat(tr.querySelector('.item-qty')?.value) || 0;
-        const price = parseFloat(tr.querySelector('.item-price')?.value) || 0;
-        subtotal += qty * price;
+        const storeProductId = parseInt(tr.querySelector('.item-product')?.value);
+        const quantity = parseInt(tr.querySelector('.item-qty')?.value) || 0;
+        if (storeProductId && quantity > 0) {
+            items.push({ store_product_id: storeProductId, quantity });
+        }
     });
-    document.getElementById('createSubtotal').textContent = prCurrency(subtotal);
+    return items;
+}
+
+let refreshSuppliersTimer = null;
+function refreshEligibleSuppliers() {
+    clearTimeout(refreshSuppliersTimer);
+    refreshSuppliersTimer = setTimeout(doRefreshEligibleSuppliers, 250);
+}
+
+async function doRefreshEligibleSuppliers() {
+    const panel = document.getElementById('eligibleSuppliersPanel');
+    const submitBtn = document.getElementById('submitRequisitionBtn');
+    smSelectedSupplierId = null;
+    submitBtn.disabled = true;
+    document.getElementById('createSubtotal').textContent = prCurrency(0);
+
+    const items = collectItems();
+    if (items.length === 0) {
+        panel.innerHTML = '<p class="text-muted small">Add at least one item to see which suppliers can fulfill this request.</p>';
+        return;
+    }
+
+    panel.innerHTML = '<p class="text-muted small">Checking suppliers...</p>';
+    try {
+        const data = await prFetchJson(`?page=api_sm_list_eligible_suppliers&items=${encodeURIComponent(JSON.stringify(items))}`);
+        smEligibleSuppliers = data.suppliers || [];
+        if (smEligibleSuppliers.length === 0) {
+            panel.innerHTML = '<div class="alert alert-warning small mb-0">No single supplier carries all of these products in the requested quantities.</div>';
+            return;
+        }
+        panel.innerHTML = smEligibleSuppliers.map(s => `
+            <div class="form-check border rounded p-2 mb-2">
+                <input class="form-check-input" type="radio" name="supplierChoice" id="supplier_${s.supplier_id}" value="${s.supplier_id}" onchange="selectSupplier(${s.supplier_id})">
+                <label class="form-check-label w-100" for="supplier_${s.supplier_id}">
+                    <strong>${prEscapeHtml(s.supplier_name)}</strong> — <span class="fw-bold">${prCurrency(s.total)}</span>
+                </label>
+            </div>
+        `).join('');
+    } catch (e) {
+        panel.innerHTML = `<div class="alert alert-danger small mb-0">${prEscapeHtml(e.message)}</div>`;
+    }
+}
+
+function selectSupplier(supplierId) {
+    smSelectedSupplierId = supplierId;
+    const supplier = smEligibleSuppliers.find(s => s.supplier_id === supplierId);
+    document.getElementById('createSubtotal').textContent = prCurrency(supplier ? supplier.total : 0);
+    document.getElementById('submitRequisitionBtn').disabled = !supplier;
 }
 
 async function submitRequisition() {
-    const items = [];
-    document.querySelectorAll('#createItemsBody tr').forEach(tr => {
-        const productSelect = tr.querySelector('.item-product');
-        const opt = productSelect.selectedOptions[0];
-        if (!opt) return;
-        items.push({
-            store_product_id: parseInt(productSelect.value),
-            supplier_product_id: parseInt(opt.dataset.supplierProduct),
-            quantity: parseInt(tr.querySelector('.item-qty').value) || 0,
-            unit_price: parseFloat(tr.querySelector('.item-price').value) || 0,
-        });
-    });
-
+    const items = collectItems();
     if (items.length === 0) {
         Swal.fire('No items', 'Add at least one item.', 'warning');
         return;
     }
+    if (!smSelectedSupplierId) {
+        Swal.fire('Choose a supplier', 'Select one of the eligible suppliers before submitting.', 'warning');
+        return;
+    }
 
     const payload = {
-        supplier_id: parseInt(document.getElementById('createSupplier').value),
+        supplier_id: smSelectedSupplierId,
         department_id: parseInt(document.getElementById('createDepartment').value) || null,
         order_date: document.getElementById('createOrderDate').value,
         needed_by_date: document.getElementById('createNeededBy').value,
@@ -149,6 +153,7 @@ async function submitRequisition() {
         Swal.fire('Submitted', data.message, 'success');
         document.getElementById('createItemsBody').innerHTML = '';
         document.getElementById('createNotes').value = '';
+        smSelectedSupplierId = null;
         addItemRow();
         minePage = 1;
         loadMineList();

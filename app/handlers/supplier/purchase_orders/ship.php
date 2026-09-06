@@ -1,7 +1,8 @@
 <?php
 // app/handlers/supplier/purchase_orders/ship.php
-// Supplier marks a paid PO as shipped -- only available once payment has
-// actually been approved and sent.
+// Supplier marks a confirmed PO as shipped -- delivery now happens before
+// payment; payment is only requested/approved after the Store Manager logs
+// a Goods Receipt and the 3-way match reconciles.
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
@@ -49,8 +50,8 @@ try {
     if (!$po) {
         Response::notFound('Purchase order not found for this supplier.');
     }
-    if ($po['status'] !== 'paid') {
-        Response::error('This purchase order is not paid yet. Current status: ' . $po['status'], 400);
+    if ($po['status'] !== 'confirmed') {
+        Response::error('This purchase order is not confirmed yet. Current status: ' . $po['status'], 400);
     }
 
     $poModel = new PurchaseOrder();

@@ -2,12 +2,12 @@
 $title = 'Requisitions & Payments - Finance Head';
 $pageTitle = 'Requisitions & Payments';
 $activePage = 'head_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260905"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260905"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260907"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260907"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs mb-3" id="fhTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#reqTab" type="button">Pending Requisitions</button></li>
+    <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#reqTab" type="button">Pending Purchase Orders</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#poPaymentTab" type="button">Pending PO Payments</button></li>
 </ul>
 
@@ -15,14 +15,14 @@ $content = <<<'EOT'
     <div class="tab-pane fade show active" id="reqTab">
         <div class="table-responsive">
             <table class="table table-hover align-middle">
-                <thead><tr><th>Requisition #</th><th>Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th></th></tr></thead>
+                <thead><tr><th>PO # (Requisition #)</th><th>Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th></th></tr></thead>
                 <tbody id="fhReqTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
             </table>
         </div>
     </div>
 
     <div class="tab-pane fade" id="poPaymentTab">
-        <p class="text-muted">The supplier is only cleared to ship once a payment request here is approved.</p>
+        <p class="text-muted">Payment is only requested once the order has been delivered and the 3-way match reconciles.</p>
         <div class="table-responsive">
             <table class="table table-hover align-middle">
                 <thead><tr><th>PO #</th><th>Supplier</th><th>Amount</th><th>Requested By</th><th></th></tr></thead>

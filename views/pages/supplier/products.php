@@ -2,7 +2,7 @@
 $title = 'Supplier Products - ShelfSense';
 $pageTitle = 'My Product Catalog';
 $activePage = 'products';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260905210000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260907"></script>';
 
 $content = <<<'EOT'
 <div class="sp-stats-grid">
@@ -43,7 +43,7 @@ $content = <<<'EOT'
 
 <div class="sp-mapping-warning mb-3">
     <i class="bi bi-exclamation-triangle"></i>
-    Product names must exactly match the Store's product name for automatic mapping during requisition creation — there is no dedicated linking field yet.
+    Product names are matched to the Store's product catalog automatically where possible; you can also fine-tune which store product this maps to when editing.
 </div>
 
 <div class="modern-card p-3 sm-fill-card">
@@ -80,7 +80,7 @@ $content = <<<'EOT'
                         <input type="text" name="name" id="productName" class="form-control" required maxlength="100">
                         <div class="sp-mapping-warning mt-1">
                             <i class="bi bi-exclamation-triangle"></i>
-                            This name must exactly match the Store product name for automatic mapping during requisition creation. The project currently matches store and supplier products by name only — there is no dedicated linking field yet.
+                            This name must exactly match a Store product name so it can be automatically linked to that product for Store Manager comparisons.
                         </div>
                     </div>
                     <div class="mb-3">
@@ -90,6 +90,11 @@ $content = <<<'EOT'
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Price *</label>
                         <input type="number" name="price" id="productPrice" class="form-control" step="0.01" min="0.01" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Available Quantity *</label>
+                        <input type="number" name="quantity" id="productQuantity" class="form-control" min="0" step="1" required>
+                        <div class="form-text">How much of this you currently have available to sell. Store Managers see this when comparing suppliers.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Status</label>

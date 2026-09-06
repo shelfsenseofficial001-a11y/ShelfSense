@@ -183,41 +183,42 @@ LOCK TABLES `attendance_weekly_summaries` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `budget_transactions`
+-- Table structure for table `budget_adjustments`
 --
 
-DROP TABLE IF EXISTS `budget_transactions`;
+DROP TABLE IF EXISTS `budget_adjustments`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `budget_transactions` (
+CREATE TABLE `budget_adjustments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `department_id` int(11) NOT NULL,
-  `period_key` varchar(10) NOT NULL,
-  `type` enum('allocation','reservation','release','expense','adjustment') NOT NULL,
-  `amount` decimal(12,2) NOT NULL,
-  `reference_type` enum('requisition','purchase_order','invoice','manual') NOT NULL,
-  `reference_id` int(11) DEFAULT NULL,
-  `created_by` int(11) NOT NULL,
-  `notes` text DEFAULT NULL,
+  `budget_id` int(11) NOT NULL,
+  `department` varchar(20) NOT NULL,
+  `month_year` varchar(7) NOT NULL,
+  `previous_allocated` decimal(12,2) NOT NULL,
+  `new_allocated` decimal(12,2) NOT NULL,
+  `adjustment_amount` decimal(12,2) NOT NULL,
+  `used_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `reserved_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `adjusted_by` int(11) NOT NULL,
+  `reason` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_bt_department_period` (`department_id`,`period_key`),
-  KEY `idx_bt_type` (`type`),
-  KEY `idx_bt_reference` (`reference_type`,`reference_id`),
-  KEY `idx_bt_created_by` (`created_by`),
-  CONSTRAINT `fk_bt_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`),
-  CONSTRAINT `fk_bt_user` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `idx_department_month` (`department`,`month_year`),
+  KEY `idx_adjusted_by` (`adjusted_by`),
+  KEY `idx_created_at` (`created_at`),
+  KEY `fk_budget_adjustments_budget` (`budget_id`),
+  CONSTRAINT `fk_budget_adjustments_budget` FOREIGN KEY (`budget_id`) REFERENCES `budgets` (`id`),
+  CONSTRAINT `fk_budget_adjustments_user` FOREIGN KEY (`adjusted_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `budget_transactions`
+-- Dumping data for table `budget_adjustments`
 --
 
-LOCK TABLES `budget_transactions` WRITE;
-/*!40000 ALTER TABLE `budget_transactions` DISABLE KEYS */;
-INSERT INTO `budget_transactions` VALUES (1,1,'2026-09-H1','reservation',12.78,'requisition',1,6,'Test approval - no budget allocated yet in dev environment','2026-09-06 11:39:39'),(2,1,'2026-09-H1','expense',12.78,'purchase_order',1,6,'PO payment request #1','2026-09-06 11:50:14'),(3,1,'2026-09-H1','release',12.78,'requisition',1,6,'Reservation closed by PO payment request #1','2026-09-06 11:50:14');
-/*!40000 ALTER TABLE `budget_transactions` ENABLE KEYS */;
+LOCK TABLES `budget_adjustments` WRITE;
+/*!40000 ALTER TABLE `budget_adjustments` DISABLE KEYS */;
+/*!40000 ALTER TABLE `budget_adjustments` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -229,16 +230,18 @@ DROP TABLE IF EXISTS `budgets`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `budgets` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `department_id` int(11) NOT NULL,
-  `period_key` varchar(10) NOT NULL,
-  `allocated_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `department` varchar(20) NOT NULL,
+  `month_year` varchar(7) NOT NULL,
+  `allocated_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `used_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_department_period` (`department_id`,`period_key`),
-  KEY `idx_period_key` (`period_key`),
-  CONSTRAINT `fk_budgets_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `unique_department_month` (`department`,`month_year`),
+  KEY `idx_department` (`department`),
+  KEY `idx_month_year` (`month_year`)
+) ENGINE=InnoDB AUTO_INCREMENT=100002 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -247,7 +250,7 @@ CREATE TABLE `budgets` (
 
 LOCK TABLES `budgets` WRITE;
 /*!40000 ALTER TABLE `budgets` DISABLE KEYS */;
-INSERT INTO `budgets` VALUES (1,1,'2026-09-H1',0.00,'2026-09-06 11:39:39','2026-09-06 11:39:39');
+INSERT INTO `budgets` VALUES (1,'store','2026-08',10000.00,64.53,NULL,'2026-08-21 16:47:43','2026-08-24 17:22:47'),(2,'hr','2026-08',50000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-21 16:47:43'),(3,'finance','2026-08',30000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-24 16:56:15'),(4,'general','2026-08',20000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-21 16:47:43');
 /*!40000 ALTER TABLE `budgets` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -358,34 +361,6 @@ LOCK TABLES `contracts` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `departments`
---
-
-DROP TABLE IF EXISTS `departments`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `departments` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(50) NOT NULL,
-  `code` varchar(20) DEFAULT NULL,
-  `is_active` tinyint(4) NOT NULL DEFAULT 1,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_department_name` (`name`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `departments`
---
-
-LOCK TABLES `departments` WRITE;
-/*!40000 ALTER TABLE `departments` DISABLE KEYS */;
-INSERT INTO `departments` VALUES (1,'store','STORE',1,'2026-09-06 11:20:01');
-/*!40000 ALTER TABLE `departments` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `email_logs`
 --
 
@@ -400,7 +375,7 @@ CREATE TABLE `email_logs` (
   `status` enum('sent','failed') DEFAULT 'sent',
   `sent_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=11 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -409,7 +384,7 @@ CREATE TABLE `email_logs` (
 
 LOCK TABLES `email_logs` WRITE;
 /*!40000 ALTER TABLE `email_logs` DISABLE KEYS */;
-INSERT INTO `email_logs` VALUES (1,'test.trainee@example.com','Final Interview Scheduled',NULL,'failed','2026-08-25 20:09:49'),(2,'test.trainee@example.com','Contract Offered',NULL,'failed','2026-08-25 20:10:08'),(3,'test.trainee@example.com','Congratulations! You\'re Hired!',NULL,'failed','2026-08-25 20:10:17'),(4,'test@gmail.com','Application Received',NULL,'sent','2026-08-30 09:55:47'),(5,'test@gmail.com','Initial Interview Scheduled',NULL,'sent','2026-08-30 10:01:04'),(8,'qa_finalpass_temp@shelfsense.test','Your Employment Contract - ShelfSense',NULL,'sent','2026-08-30 12:09:09'),(9,'qa_salary_temp@shelfsense.test','Your Trainee Contract - ShelfSense',NULL,'sent','2026-08-30 12:21:15'),(10,'employee@shelfsense.com','New Trainee Assigned - ShelfSense',NULL,'sent','2026-08-30 12:21:18'),(11,'supplier@shelfsense.com','New Purchase Order PO-2026-0001 - ShelfSense',NULL,'failed','2026-09-06 11:40:44'),(12,'supplier@shelfsense.com','Payment Sent - PO PO-2026-0001',NULL,'failed','2026-09-06 11:50:14');
+INSERT INTO `email_logs` VALUES (1,'test.trainee@example.com','Final Interview Scheduled',NULL,'failed','2026-08-25 20:09:49'),(2,'test.trainee@example.com','Contract Offered',NULL,'failed','2026-08-25 20:10:08'),(3,'test.trainee@example.com','Congratulations! You\'re Hired!',NULL,'failed','2026-08-25 20:10:17'),(4,'test@gmail.com','Application Received',NULL,'sent','2026-08-30 09:55:47'),(5,'test@gmail.com','Initial Interview Scheduled',NULL,'sent','2026-08-30 10:01:04'),(8,'qa_finalpass_temp@shelfsense.test','Your Employment Contract - ShelfSense',NULL,'sent','2026-08-30 12:09:09'),(9,'qa_salary_temp@shelfsense.test','Your Trainee Contract - ShelfSense',NULL,'sent','2026-08-30 12:21:15'),(10,'employee@shelfsense.com','New Trainee Assigned - ShelfSense',NULL,'sent','2026-08-30 12:21:18');
 /*!40000 ALTER TABLE `email_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -423,16 +398,15 @@ DROP TABLE IF EXISTS `goods_receipt_items`;
 CREATE TABLE `goods_receipt_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `goods_receipt_id` int(11) NOT NULL,
-  `po_item_id` int(11) NOT NULL,
+  `requisition_item_id` int(11) NOT NULL,
   `quantity_received` int(11) NOT NULL,
-  `condition` enum('good','damaged','missing') NOT NULL DEFAULT 'good',
   `notes` text DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_gri_receipt` (`goods_receipt_id`),
-  KEY `idx_gri_po_item` (`po_item_id`),
-  CONSTRAINT `fk_gri_po_item` FOREIGN KEY (`po_item_id`) REFERENCES `purchase_order_items` (`id`),
-  CONSTRAINT `fk_gri_receipt` FOREIGN KEY (`goods_receipt_id`) REFERENCES `goods_receipts` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `goods_receipt_id` (`goods_receipt_id`),
+  KEY `requisition_item_id` (`requisition_item_id`),
+  CONSTRAINT `goods_receipt_items_ibfk_1` FOREIGN KEY (`goods_receipt_id`) REFERENCES `goods_receipts` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `goods_receipt_items_ibfk_2` FOREIGN KEY (`requisition_item_id`) REFERENCES `store_requisition_items` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -441,7 +415,7 @@ CREATE TABLE `goods_receipt_items` (
 
 LOCK TABLES `goods_receipt_items` WRITE;
 /*!40000 ALTER TABLE `goods_receipt_items` DISABLE KEYS */;
-INSERT INTO `goods_receipt_items` VALUES (1,1,1,1,'good',NULL),(2,1,2,1,'good',NULL);
+INSERT INTO `goods_receipt_items` VALUES (1,1,2,12,NULL);
 /*!40000 ALTER TABLE `goods_receipt_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -454,17 +428,17 @@ DROP TABLE IF EXISTS `goods_receipts`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `goods_receipts` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `po_id` int(11) NOT NULL,
+  `requisition_id` int(11) NOT NULL,
   `received_by` int(11) NOT NULL,
   `receipt_date` date NOT NULL,
-  `status` enum('completed') NOT NULL DEFAULT 'completed',
+  `status` enum('draft','completed') DEFAULT 'completed',
   `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_gr_po` (`po_id`),
-  KEY `fk_gr_received_by` (`received_by`),
-  CONSTRAINT `fk_gr_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`),
-  CONSTRAINT `fk_gr_received_by` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
+  KEY `requisition_id` (`requisition_id`),
+  KEY `received_by` (`received_by`),
+  CONSTRAINT `goods_receipts_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`),
+  CONSTRAINT `goods_receipts_ibfk_2` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -474,7 +448,7 @@ CREATE TABLE `goods_receipts` (
 
 LOCK TABLES `goods_receipts` WRITE;
 /*!40000 ALTER TABLE `goods_receipts` DISABLE KEYS */;
-INSERT INTO `goods_receipts` VALUES (1,1,5,'2026-09-06','completed',NULL,'2026-09-06 11:45:29');
+INSERT INTO `goods_receipts` VALUES (1,2,5,'2026-08-24','completed',NULL,'2026-08-23 19:06:30');
 /*!40000 ALTER TABLE `goods_receipts` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -514,83 +488,6 @@ LOCK TABLES `interviews` WRITE;
 /*!40000 ALTER TABLE `interviews` DISABLE KEYS */;
 INSERT INTO `interviews` VALUES (1,1,3,'initial','2026-09-05 18:00:00','https://meet.google.com/xxx-xxx-xxx','','','completed','passed','2026-08-30 10:01:00','2026-08-30 12:16:45');
 /*!40000 ALTER TABLE `interviews` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `invoice_items`
---
-
-DROP TABLE IF EXISTS `invoice_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `invoice_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `invoice_id` int(11) NOT NULL,
-  `po_item_id` int(11) NOT NULL,
-  `billed_quantity` int(11) NOT NULL,
-  `billed_unit_price` decimal(10,2) NOT NULL,
-  `billed_total` decimal(10,2) NOT NULL,
-  `quantity_variance` int(11) NOT NULL DEFAULT 0,
-  `price_variance` decimal(10,2) NOT NULL DEFAULT 0.00,
-  `variance_flag` enum('ok','price_variance','quantity_variance') NOT NULL DEFAULT 'ok',
-  PRIMARY KEY (`id`),
-  KEY `idx_ii_invoice` (`invoice_id`),
-  KEY `idx_ii_po_item` (`po_item_id`),
-  CONSTRAINT `fk_ii_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_ii_po_item` FOREIGN KEY (`po_item_id`) REFERENCES `purchase_order_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `invoice_items`
---
-
-LOCK TABLES `invoice_items` WRITE;
-/*!40000 ALTER TABLE `invoice_items` DISABLE KEYS */;
-INSERT INTO `invoice_items` VALUES (1,1,1,1,2.39,2.39,0,0.00,'ok'),(2,1,2,1,10.39,10.39,0,0.00,'ok');
-/*!40000 ALTER TABLE `invoice_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `invoices`
---
-
-DROP TABLE IF EXISTS `invoices`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `invoices` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `invoice_number` varchar(50) NOT NULL,
-  `po_id` int(11) NOT NULL,
-  `supplier_id` int(11) NOT NULL,
-  `invoice_date` date NOT NULL,
-  `due_date` date NOT NULL,
-  `subtotal` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `tax` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `total` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `match_status` enum('pending','matched','price_hold','quantity_hold','approved','reconciled','rejected') NOT NULL DEFAULT 'pending',
-  `file_path` varchar(255) DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_invoice_number` (`invoice_number`),
-  KEY `idx_inv_po` (`po_id`),
-  KEY `idx_inv_supplier` (`supplier_id`),
-  KEY `idx_inv_match_status` (`match_status`),
-  CONSTRAINT `fk_inv_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`),
-  CONSTRAINT `fk_inv_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `invoices`
---
-
-LOCK TABLES `invoices` WRITE;
-/*!40000 ALTER TABLE `invoices` DISABLE KEYS */;
-INSERT INTO `invoices` VALUES (1,'INV-2026-0001',1,1,'2026-09-06','2026-10-06',12.78,0.00,12.78,'reconciled',NULL,'','2026-09-06 11:46:42','2026-09-06 11:46:42');
-/*!40000 ALTER TABLE `invoices` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -719,436 +616,6 @@ LOCK TABLES `leaves` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `legacy_budget_adjustments`
---
-
-DROP TABLE IF EXISTS `legacy_budget_adjustments`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_budget_adjustments` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `budget_id` int(11) NOT NULL,
-  `department` varchar(20) NOT NULL,
-  `month_year` varchar(7) NOT NULL,
-  `previous_allocated` decimal(12,2) NOT NULL,
-  `new_allocated` decimal(12,2) NOT NULL,
-  `adjustment_amount` decimal(12,2) NOT NULL,
-  `used_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `reserved_at_adjustment` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `adjusted_by` int(11) NOT NULL,
-  `reason` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_department_month` (`department`,`month_year`),
-  KEY `idx_adjusted_by` (`adjusted_by`),
-  KEY `idx_created_at` (`created_at`),
-  KEY `fk_budget_adjustments_budget` (`budget_id`),
-  CONSTRAINT `fk_budget_adjustments_budget` FOREIGN KEY (`budget_id`) REFERENCES `legacy_budgets` (`id`),
-  CONSTRAINT `fk_budget_adjustments_user` FOREIGN KEY (`adjusted_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_budget_adjustments`
---
-
-LOCK TABLES `legacy_budget_adjustments` WRITE;
-/*!40000 ALTER TABLE `legacy_budget_adjustments` DISABLE KEYS */;
-/*!40000 ALTER TABLE `legacy_budget_adjustments` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_budgets`
---
-
-DROP TABLE IF EXISTS `legacy_budgets`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_budgets` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `department` varchar(20) NOT NULL,
-  `month_year` varchar(7) NOT NULL,
-  `allocated_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `used_budget` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_department_month` (`department`,`month_year`),
-  KEY `idx_department` (`department`),
-  KEY `idx_month_year` (`month_year`)
-) ENGINE=InnoDB AUTO_INCREMENT=100002 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_budgets`
---
-
-LOCK TABLES `legacy_budgets` WRITE;
-/*!40000 ALTER TABLE `legacy_budgets` DISABLE KEYS */;
-INSERT INTO `legacy_budgets` VALUES (1,'store','2026-08',10000.00,64.53,NULL,'2026-08-21 16:47:43','2026-08-24 17:22:47'),(2,'hr','2026-08',50000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-21 16:47:43'),(3,'finance','2026-08',30000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-24 16:56:15'),(4,'general','2026-08',20000.00,0.00,NULL,'2026-08-21 16:47:43','2026-08-21 16:47:43');
-/*!40000 ALTER TABLE `legacy_budgets` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_goods_receipt_items`
---
-
-DROP TABLE IF EXISTS `legacy_goods_receipt_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_goods_receipt_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `goods_receipt_id` int(11) NOT NULL,
-  `requisition_item_id` int(11) NOT NULL,
-  `quantity_received` int(11) NOT NULL,
-  `notes` text DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `goods_receipt_id` (`goods_receipt_id`),
-  KEY `requisition_item_id` (`requisition_item_id`),
-  CONSTRAINT `legacy_goods_receipt_items_ibfk_1` FOREIGN KEY (`goods_receipt_id`) REFERENCES `legacy_goods_receipts` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `legacy_goods_receipt_items_ibfk_2` FOREIGN KEY (`requisition_item_id`) REFERENCES `legacy_store_requisition_items` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_goods_receipt_items`
---
-
-LOCK TABLES `legacy_goods_receipt_items` WRITE;
-/*!40000 ALTER TABLE `legacy_goods_receipt_items` DISABLE KEYS */;
-INSERT INTO `legacy_goods_receipt_items` VALUES (1,1,2,12,NULL);
-/*!40000 ALTER TABLE `legacy_goods_receipt_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_goods_receipts`
---
-
-DROP TABLE IF EXISTS `legacy_goods_receipts`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_goods_receipts` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_id` int(11) NOT NULL,
-  `received_by` int(11) NOT NULL,
-  `receipt_date` date NOT NULL,
-  `status` enum('draft','completed') DEFAULT 'completed',
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `requisition_id` (`requisition_id`),
-  KEY `received_by` (`received_by`),
-  CONSTRAINT `legacy_goods_receipts_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`),
-  CONSTRAINT `legacy_goods_receipts_ibfk_2` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_goods_receipts`
---
-
-LOCK TABLES `legacy_goods_receipts` WRITE;
-/*!40000 ALTER TABLE `legacy_goods_receipts` DISABLE KEYS */;
-INSERT INTO `legacy_goods_receipts` VALUES (1,2,5,'2026-08-24','completed',NULL,'2026-08-23 19:06:30');
-/*!40000 ALTER TABLE `legacy_goods_receipts` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_payment_requests`
---
-
-DROP TABLE IF EXISTS `legacy_payment_requests`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_payment_requests` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_id` int(11) NOT NULL,
-  `supplier_invoice_id` int(11) NOT NULL,
-  `requested_by` int(11) NOT NULL,
-  `requested_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `status` enum('pending','approved','rejected') DEFAULT 'pending',
-  `approved_by` int(11) DEFAULT NULL,
-  `approved_at` datetime DEFAULT NULL,
-  `rejection_reason` text DEFAULT NULL,
-  `budget_checked` tinyint(4) DEFAULT 0,
-  `budget_exceeded` tinyint(4) DEFAULT 0,
-  `budget_exceeded_reason` text DEFAULT NULL,
-  `approval_notes` text DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `active_requisition_lock` int(11) GENERATED ALWAYS AS (case when `status` = 'pending' then `requisition_id` else NULL end) STORED,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_active_requisition` (`active_requisition_lock`),
-  KEY `supplier_invoice_id` (`supplier_invoice_id`),
-  KEY `requested_by` (`requested_by`),
-  KEY `approved_by` (`approved_by`),
-  KEY `idx_status` (`status`),
-  KEY `idx_requisition` (`requisition_id`),
-  KEY `idx_payment_requests_status` (`status`),
-  CONSTRAINT `legacy_payment_requests_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`),
-  CONSTRAINT `legacy_payment_requests_ibfk_2` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `legacy_supplier_invoices` (`id`),
-  CONSTRAINT `legacy_payment_requests_ibfk_3` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `legacy_payment_requests_ibfk_4` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_payment_requests`
---
-
-LOCK TABLES `legacy_payment_requests` WRITE;
-/*!40000 ALTER TABLE `legacy_payment_requests` DISABLE KEYS */;
-INSERT INTO `legacy_payment_requests` VALUES (6,4,2,7,'2026-08-23 19:11:55','approved',6,'2026-08-25 01:22:47',NULL,1,0,NULL,NULL,'','2026-08-23 19:11:55','2026-08-24 17:22:47',NULL);
-/*!40000 ALTER TABLE `legacy_payment_requests` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_payments`
---
-
-DROP TABLE IF EXISTS `legacy_payments`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_payments` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `supplier_invoice_id` int(11) NOT NULL,
-  `amount` decimal(10,2) NOT NULL,
-  `payment_method` enum('bank_transfer','check','cash','other') NOT NULL,
-  `reference_number` varchar(50) DEFAULT NULL,
-  `paid_by` int(11) NOT NULL,
-  `paid_at` datetime DEFAULT current_timestamp(),
-  `notes` text DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_invoice_payment` (`supplier_invoice_id`),
-  KEY `paid_by` (`paid_by`),
-  CONSTRAINT `legacy_payments_ibfk_1` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `legacy_supplier_invoices` (`id`),
-  CONSTRAINT `legacy_payments_ibfk_2` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_payments`
---
-
-LOCK TABLES `legacy_payments` WRITE;
-/*!40000 ALTER TABLE `legacy_payments` DISABLE KEYS */;
-INSERT INTO `legacy_payments` VALUES (4,2,35.85,'bank_transfer','AUTO-20260824192247',6,'2026-08-25 01:22:47','Auto-recorded after Finance Head approval');
-/*!40000 ALTER TABLE `legacy_payments` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_purchase_order_items`
---
-
-DROP TABLE IF EXISTS `legacy_purchase_order_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_purchase_order_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `po_id` int(11) NOT NULL,
-  `product_id` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL,
-  `unit_price` decimal(10,2) NOT NULL,
-  `total` decimal(10,2) NOT NULL,
-  `received_quantity` int(11) DEFAULT 0,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `po_id` (`po_id`),
-  KEY `product_id` (`product_id`),
-  CONSTRAINT `legacy_purchase_order_items_ibfk_1` FOREIGN KEY (`po_id`) REFERENCES `legacy_purchase_orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `legacy_purchase_order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_purchase_order_items`
---
-
-LOCK TABLES `legacy_purchase_order_items` WRITE;
-/*!40000 ALTER TABLE `legacy_purchase_order_items` DISABLE KEYS */;
-/*!40000 ALTER TABLE `legacy_purchase_order_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_purchase_orders`
---
-
-DROP TABLE IF EXISTS `legacy_purchase_orders`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_purchase_orders` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `po_number` varchar(20) NOT NULL,
-  `supplier_id` int(11) NOT NULL,
-  `order_date` date NOT NULL,
-  `expected_delivery` date DEFAULT NULL,
-  `status` enum('pending_budget_check','budget_rejected','pending_fh_approval','pending_dispatch','pending_confirmation','supplier_accepted','supplier_counter_proposed','confirmed','pending_payment','paid','shipped','partially_received','received','cancelled','closed') NOT NULL DEFAULT 'pending_budget_check',
-  `subtotal` decimal(10,2) DEFAULT 0.00,
-  `tax` decimal(10,2) DEFAULT 0.00,
-  `total` decimal(10,2) DEFAULT 0.00,
-  `notes` text DEFAULT NULL,
-  `created_by` int(11) NOT NULL,
-  `approved_by` int(11) DEFAULT NULL,
-  `approved_at` datetime DEFAULT NULL,
-  `received_by` int(11) DEFAULT NULL,
-  `received_at` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `po_number` (`po_number`),
-  KEY `supplier_id` (`supplier_id`),
-  KEY `created_by` (`created_by`),
-  KEY `approved_by` (`approved_by`),
-  KEY `received_by` (`received_by`),
-  CONSTRAINT `legacy_purchase_orders_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
-  CONSTRAINT `legacy_purchase_orders_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `legacy_purchase_orders_ibfk_3` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `legacy_purchase_orders_ibfk_4` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_purchase_orders`
---
-
-LOCK TABLES `legacy_purchase_orders` WRITE;
-/*!40000 ALTER TABLE `legacy_purchase_orders` DISABLE KEYS */;
-/*!40000 ALTER TABLE `legacy_purchase_orders` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_store_requisition_items`
---
-
-DROP TABLE IF EXISTS `legacy_store_requisition_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_store_requisition_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_id` int(11) NOT NULL,
-  `store_product_id` int(11) NOT NULL,
-  `supplier_product_id` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL,
-  `unit_price` decimal(10,2) NOT NULL,
-  `total` decimal(10,2) NOT NULL,
-  `received_quantity` int(11) DEFAULT 0,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `requisition_id` (`requisition_id`),
-  KEY `store_product_id` (`store_product_id`),
-  KEY `supplier_product_id` (`supplier_product_id`),
-  CONSTRAINT `legacy_store_requisition_items_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `legacy_store_requisition_items_ibfk_2` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
-  CONSTRAINT `legacy_store_requisition_items_ibfk_3` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_store_requisition_items`
---
-
-LOCK TABLES `legacy_store_requisition_items` WRITE;
-/*!40000 ALTER TABLE `legacy_store_requisition_items` DISABLE KEYS */;
-INSERT INTO `legacy_store_requisition_items` VALUES (1,1,1,5,15,10.39,155.85,0,NULL,'2026-08-23 05:20:15'),(2,2,2,6,12,2.39,28.68,12,NULL,'2026-08-23 15:50:15'),(3,4,2,6,15,2.39,35.85,0,NULL,'2026-08-23 19:08:42');
-/*!40000 ALTER TABLE `legacy_store_requisition_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_store_requisitions`
---
-
-DROP TABLE IF EXISTS `legacy_store_requisitions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_store_requisitions` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_number` varchar(20) NOT NULL,
-  `created_by` int(11) NOT NULL,
-  `supplier_id` int(11) NOT NULL,
-  `department` varchar(20) NOT NULL DEFAULT 'store',
-  `status` enum('draft','pending_supplier','sent_to_supplier','supplier_processed','awaiting_finance_staff','awaiting_finance','finance_approved','finance_rejected','paid','shipped','completed','partial_received') DEFAULT 'draft',
-  `order_date` date NOT NULL,
-  `budget_month_year` varchar(7) NOT NULL,
-  `expected_delivery` date DEFAULT NULL,
-  `subtotal` decimal(10,2) DEFAULT 0.00,
-  `tax` decimal(10,2) DEFAULT 0.00,
-  `total` decimal(10,2) DEFAULT 0.00,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `requisition_number` (`requisition_number`),
-  KEY `created_by` (`created_by`),
-  KEY `supplier_id` (`supplier_id`),
-  KEY `idx_requisition_status` (`status`),
-  KEY `idx_requisition_department` (`department`),
-  KEY `idx_requisition_budget_month` (`budget_month_year`),
-  CONSTRAINT `legacy_store_requisitions_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `legacy_store_requisitions_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_store_requisitions`
---
-
-LOCK TABLES `legacy_store_requisitions` WRITE;
-/*!40000 ALTER TABLE `legacy_store_requisitions` DISABLE KEYS */;
-INSERT INTO `legacy_store_requisitions` VALUES (1,'REQ-2026-0001',5,1,'store','pending_supplier','2026-08-23','','2026-08-25',155.85,0.00,155.85,'','2026-08-23 05:20:15','2026-08-23 05:20:15'),(2,'REQ-2026-0002',5,1,'store','completed','2026-08-23','2026-08','0000-00-00',28.68,0.00,28.68,'','2026-08-23 15:50:15','2026-08-23 19:06:30'),(4,'REQ-2026-0003',5,1,'store','paid','2026-08-24','2026-08','2026-08-25',35.85,0.00,35.85,'','2026-08-23 19:08:41','2026-08-24 17:22:47');
-/*!40000 ALTER TABLE `legacy_store_requisitions` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `legacy_supplier_invoices`
---
-
-DROP TABLE IF EXISTS `legacy_supplier_invoices`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `legacy_supplier_invoices` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `invoice_number` varchar(50) NOT NULL,
-  `requisition_id` int(11) NOT NULL,
-  `supplier_id` int(11) NOT NULL,
-  `invoice_date` date NOT NULL,
-  `subtotal` decimal(10,2) NOT NULL,
-  `tax` decimal(10,2) DEFAULT 0.00,
-  `total` decimal(10,2) NOT NULL,
-  `due_date` date NOT NULL,
-  `status` enum('pending','verified','paid','rejected') DEFAULT 'pending',
-  `po_match` tinyint(4) DEFAULT 0,
-  `gr_match` tinyint(4) DEFAULT 0,
-  `notes` text DEFAULT NULL,
-  `paid_by` int(11) DEFAULT NULL,
-  `paid_at` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `invoice_number` (`invoice_number`),
-  KEY `requisition_id` (`requisition_id`),
-  KEY `supplier_id` (`supplier_id`),
-  KEY `paid_by` (`paid_by`),
-  CONSTRAINT `legacy_supplier_invoices_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `legacy_store_requisitions` (`id`),
-  CONSTRAINT `legacy_supplier_invoices_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
-  CONSTRAINT `legacy_supplier_invoices_ibfk_3` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `legacy_supplier_invoices`
---
-
-LOCK TABLES `legacy_supplier_invoices` WRITE;
-/*!40000 ALTER TABLE `legacy_supplier_invoices` DISABLE KEYS */;
-INSERT INTO `legacy_supplier_invoices` VALUES (1,'INV-2026-0001',2,1,'2026-08-23',28.68,0.00,28.68,'2026-08-26','pending',0,0,'test',NULL,NULL,'2026-08-23 17:03:58','2026-08-23 19:04:19'),(2,'INV-2026-0002',4,1,'2026-08-23',35.85,0.00,35.85,'2026-09-01','paid',0,0,'teast',6,'2026-08-25 01:22:47','2026-08-23 19:09:51','2026-08-24 17:22:47');
-/*!40000 ALTER TABLE `legacy_supplier_invoices` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `notifications`
 --
 
@@ -1166,7 +633,7 @@ CREATE TABLE `notifications` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=67 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=51 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1175,7 +642,7 @@ CREATE TABLE `notifications` (
 
 LOCK TABLES `notifications` WRITE;
 /*!40000 ALTER TABLE `notifications` DISABLE KEYS */;
-INSERT INTO `notifications` VALUES (2,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(3,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(5,6,'payment_request_pending','Payment request for requisition #REQ-2026-0002 is pending approval. Amount: ₱28.68','?page=finance_head_payment_requests',0,'2026-08-23 17:33:29'),(6,12,'payment_completed','Payment for requisition #REQ-2026-0002 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-23 17:34:35'),(7,7,'payment_request_approved','Payment request for requisition #REQ-2026-0002 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-23 17:34:35'),(10,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:10'),(11,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:11'),(13,6,'payment_request_pending','Payment request for requisition #REQ-2026-0003 is pending approval. Amount: ₱35.85','?page=finance_head_payment_requests',0,'2026-08-23 19:11:55'),(14,12,'payment_completed','Payment for requisition #REQ-2026-0003 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-24 17:22:48'),(15,7,'payment_request_approved','Payment request for requisition #REQ-2026-0003 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-24 17:22:48'),(34,3,'new_application','New application from test test for TestJob position','?page=hr_applicants',0,'2026-08-30 09:55:47'),(35,4,'new_application','New application from test test for TestJob position','?page=hr_applicants',0,'2026-08-30 09:55:47'),(36,3,'interview_scheduled','initial interview scheduled for test test',NULL,0,'2026-08-30 10:01:00'),(51,7,'po_pending_budget_check','New Purchase Order PO-2026-0001 (₱12.78) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 11:37:16'),(52,8,'po_pending_budget_check','New Purchase Order PO-2026-0001 (₱12.78) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 11:37:16'),(53,6,'po_pending_approval','Purchase Order PO-2026-0001 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-06 11:38:38'),(54,7,'po_pending_dispatch','Purchase Order PO-2026-0001 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 11:39:40'),(55,8,'po_pending_dispatch','Purchase Order PO-2026-0001 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 11:39:40'),(56,5,'po_approved','Purchase Order PO-2026-0001 (requisition #REQ-2026-0001) was approved by Finance Head.','?page=store_manager_requisitions',0,'2026-09-06 11:39:40'),(57,12,'po_received','New Purchase Order PO-2026-0001 has been sent to you. Please review and confirm.','?page=supplier_requisitions',0,'2026-09-06 11:40:44'),(58,5,'po_confirmed','Supplier confirmed Purchase Order PO-2026-0001 for requisition #REQ-2026-0001.','?page=store_manager_requisitions',0,'2026-09-06 11:41:51'),(59,5,'po_shipped','PO PO-2026-0001 has been shipped by the supplier.','?page=store_manager_requisitions',0,'2026-09-06 11:43:17'),(60,7,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_payment_requests',0,'2026-09-06 11:45:29'),(61,8,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_payment_requests',0,'2026-09-06 11:45:29'),(62,7,'invoice_reconciled','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 11:46:42'),(63,8,'invoice_reconciled','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 11:46:42'),(64,6,'po_payment_requested','Payment requested for PO PO-2026-0001 (₱12.78).','?page=finance_head_payment_requests',0,'2026-09-06 11:48:47'),(65,12,'po_payment_received','Payment for PO PO-2026-0001 has been sent.','?page=supplier_requisitions',0,'2026-09-06 11:50:14'),(66,7,'po_payment_approved','Payment request for PO PO-2026-0001 was approved and disbursed.','?page=finance_staff_payment_requests',0,'2026-09-06 11:50:14');
+INSERT INTO `notifications` VALUES (2,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(3,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(5,6,'payment_request_pending','Payment request for requisition #REQ-2026-0002 is pending approval. Amount: ₱28.68','?page=finance_head_payment_requests',0,'2026-08-23 17:33:29'),(6,12,'payment_completed','Payment for requisition #REQ-2026-0002 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-23 17:34:35'),(7,7,'payment_request_approved','Payment request for requisition #REQ-2026-0002 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-23 17:34:35'),(10,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:10'),(11,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:11'),(13,6,'payment_request_pending','Payment request for requisition #REQ-2026-0003 is pending approval. Amount: ₱35.85','?page=finance_head_payment_requests',0,'2026-08-23 19:11:55'),(14,12,'payment_completed','Payment for requisition #REQ-2026-0003 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-24 17:22:48'),(15,7,'payment_request_approved','Payment request for requisition #REQ-2026-0003 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-24 17:22:48'),(34,3,'new_application','New application from test test for TestJob position','?page=hr_applicants',0,'2026-08-30 09:55:47'),(35,4,'new_application','New application from test test for TestJob position','?page=hr_applicants',0,'2026-08-30 09:55:47'),(36,3,'interview_scheduled','initial interview scheduled for test test',NULL,0,'2026-08-30 10:01:00');
 /*!40000 ALTER TABLE `notifications` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1285,68 +752,53 @@ INSERT INTO `password_resets` VALUES (4,10,'259722','2026-08-21 22:58:59',0,'202
 UNLOCK TABLES;
 
 --
--- Table structure for table `payment_batch_items`
+-- Table structure for table `payment_requests`
 --
 
-DROP TABLE IF EXISTS `payment_batch_items`;
+DROP TABLE IF EXISTS `payment_requests`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `payment_batch_items` (
+CREATE TABLE `payment_requests` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `batch_id` int(11) NOT NULL,
-  `invoice_id` int(11) NOT NULL,
-  `amount` decimal(12,2) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_batch_invoice` (`batch_id`,`invoice_id`),
-  KEY `idx_pbi_invoice` (`invoice_id`),
-  CONSTRAINT `fk_pbi_batch` FOREIGN KEY (`batch_id`) REFERENCES `payment_batches` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_pbi_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `payment_batch_items`
---
-
-LOCK TABLES `payment_batch_items` WRITE;
-/*!40000 ALTER TABLE `payment_batch_items` DISABLE KEYS */;
-/*!40000 ALTER TABLE `payment_batch_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `payment_batches`
---
-
-DROP TABLE IF EXISTS `payment_batches`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `payment_batches` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `batch_number` varchar(20) NOT NULL,
-  `created_by` int(11) NOT NULL,
-  `status` enum('pending_approval','approved','rejected','disbursed') NOT NULL DEFAULT 'pending_approval',
+  `requisition_id` int(11) NOT NULL,
+  `supplier_invoice_id` int(11) NOT NULL,
+  `requested_by` int(11) NOT NULL,
+  `requested_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `status` enum('pending','approved','rejected') DEFAULT 'pending',
   `approved_by` int(11) DEFAULT NULL,
   `approved_at` datetime DEFAULT NULL,
   `rejection_reason` text DEFAULT NULL,
-  `total_amount` decimal(12,2) NOT NULL DEFAULT 0.00,
+  `budget_checked` tinyint(4) DEFAULT 0,
+  `budget_exceeded` tinyint(4) DEFAULT 0,
+  `budget_exceeded_reason` text DEFAULT NULL,
+  `approval_notes` text DEFAULT NULL,
+  `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  `active_requisition_lock` int(11) GENERATED ALWAYS AS (case when `status` = 'pending' then `requisition_id` else NULL end) STORED,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_batch_number` (`batch_number`),
-  KEY `idx_pb_status` (`status`),
-  KEY `fk_pb_created_by` (`created_by`),
-  KEY `fk_pb_approved_by` (`approved_by`),
-  CONSTRAINT `fk_pb_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_pb_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `uniq_active_requisition` (`active_requisition_lock`),
+  KEY `supplier_invoice_id` (`supplier_invoice_id`),
+  KEY `requested_by` (`requested_by`),
+  KEY `approved_by` (`approved_by`),
+  KEY `idx_status` (`status`),
+  KEY `idx_requisition` (`requisition_id`),
+  KEY `idx_payment_requests_status` (`status`),
+  CONSTRAINT `payment_requests_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`),
+  CONSTRAINT `payment_requests_ibfk_2` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `supplier_invoices` (`id`),
+  CONSTRAINT `payment_requests_ibfk_3` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `payment_requests_ibfk_4` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
--- Dumping data for table `payment_batches`
+-- Dumping data for table `payment_requests`
 --
 
-LOCK TABLES `payment_batches` WRITE;
-/*!40000 ALTER TABLE `payment_batches` DISABLE KEYS */;
-/*!40000 ALTER TABLE `payment_batches` ENABLE KEYS */;
+LOCK TABLES `payment_requests` WRITE;
+/*!40000 ALTER TABLE `payment_requests` DISABLE KEYS */;
+INSERT INTO `payment_requests` VALUES (6,4,2,7,'2026-08-23 19:11:55','approved',6,'2026-08-25 01:22:47',NULL,1,0,NULL,NULL,'','2026-08-23 19:11:55','2026-08-24 17:22:47',NULL);
+/*!40000 ALTER TABLE `payment_requests` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1358,29 +810,19 @@ DROP TABLE IF EXISTS `payments`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `payments` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `invoice_id` int(11) DEFAULT NULL,
-  `po_id` int(11) DEFAULT NULL,
-  `payment_request_id` int(11) DEFAULT NULL,
-  `payment_batch_id` int(11) DEFAULT NULL,
-  `amount` decimal(12,2) NOT NULL,
-  `method` enum('bank_transfer','check','cash','other') NOT NULL DEFAULT 'bank_transfer',
+  `supplier_invoice_id` int(11) NOT NULL,
+  `amount` decimal(10,2) NOT NULL,
+  `payment_method` enum('bank_transfer','check','cash','other') NOT NULL,
   `reference_number` varchar(50) DEFAULT NULL,
   `paid_by` int(11) NOT NULL,
-  `paid_at` datetime NOT NULL,
-  `remittance_sent` tinyint(4) NOT NULL DEFAULT 0,
+  `paid_at` datetime DEFAULT current_timestamp(),
   `notes` text DEFAULT NULL,
   PRIMARY KEY (`id`),
-  KEY `idx_pay_batch` (`payment_batch_id`),
-  KEY `fk_pay_paid_by` (`paid_by`),
-  KEY `idx_pay_invoice` (`invoice_id`),
-  KEY `idx_pay_po` (`po_id`),
-  KEY `idx_pay_payment_request` (`payment_request_id`),
-  CONSTRAINT `fk_pay_batch` FOREIGN KEY (`payment_batch_id`) REFERENCES `payment_batches` (`id`),
-  CONSTRAINT `fk_pay_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `invoices` (`id`),
-  CONSTRAINT `fk_pay_paid_by` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_pay_payment_request` FOREIGN KEY (`payment_request_id`) REFERENCES `po_payment_requests` (`id`),
-  CONSTRAINT `fk_pay_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `uniq_invoice_payment` (`supplier_invoice_id`),
+  KEY `paid_by` (`paid_by`),
+  CONSTRAINT `payments_ibfk_1` FOREIGN KEY (`supplier_invoice_id`) REFERENCES `supplier_invoices` (`id`),
+  CONSTRAINT `payments_ibfk_2` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1389,7 +831,7 @@ CREATE TABLE `payments` (
 
 LOCK TABLES `payments` WRITE;
 /*!40000 ALTER TABLE `payments` DISABLE KEYS */;
-INSERT INTO `payments` VALUES (1,NULL,1,1,NULL,12.78,'bank_transfer','PO-PAY-20260906135014',6,'2026-09-06 19:50:14',1,NULL);
+INSERT INTO `payments` VALUES (4,2,35.85,'bank_transfer','AUTO-20260824192247',6,'2026-08-25 01:22:47','Auto-recorded after Finance Head approval');
 /*!40000 ALTER TABLE `payments` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1525,145 +967,6 @@ LOCK TABLES `payroll_entries` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `po_counter_proposal_items`
---
-
-DROP TABLE IF EXISTS `po_counter_proposal_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `po_counter_proposal_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `proposal_id` int(11) NOT NULL,
-  `po_item_id` int(11) NOT NULL,
-  `proposed_quantity` int(11) DEFAULT NULL,
-  `proposed_unit_price` decimal(10,2) DEFAULT NULL,
-  `proposed_delivery_date` date DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `idx_pcpi_proposal` (`proposal_id`),
-  KEY `idx_pcpi_po_item` (`po_item_id`),
-  CONSTRAINT `fk_pcpi_po_item` FOREIGN KEY (`po_item_id`) REFERENCES `purchase_order_items` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_pcpi_proposal` FOREIGN KEY (`proposal_id`) REFERENCES `po_counter_proposals` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `po_counter_proposal_items`
---
-
-LOCK TABLES `po_counter_proposal_items` WRITE;
-/*!40000 ALTER TABLE `po_counter_proposal_items` DISABLE KEYS */;
-/*!40000 ALTER TABLE `po_counter_proposal_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `po_counter_proposals`
---
-
-DROP TABLE IF EXISTS `po_counter_proposals`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `po_counter_proposals` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `po_id` int(11) NOT NULL,
-  `proposed_by` int(11) NOT NULL,
-  `status` enum('pending','accepted','rejected') NOT NULL DEFAULT 'pending',
-  `reason` text DEFAULT NULL,
-  `responded_by` int(11) DEFAULT NULL,
-  `responded_at` datetime DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_pcp_po` (`po_id`),
-  KEY `fk_pcp_proposed_by` (`proposed_by`),
-  KEY `fk_pcp_responded_by` (`responded_by`),
-  CONSTRAINT `fk_pcp_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_pcp_proposed_by` FOREIGN KEY (`proposed_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_pcp_responded_by` FOREIGN KEY (`responded_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `po_counter_proposals`
---
-
-LOCK TABLES `po_counter_proposals` WRITE;
-/*!40000 ALTER TABLE `po_counter_proposals` DISABLE KEYS */;
-/*!40000 ALTER TABLE `po_counter_proposals` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `po_events`
---
-
-DROP TABLE IF EXISTS `po_events`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `po_events` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `po_id` int(11) NOT NULL,
-  `event_type` varchar(50) NOT NULL,
-  `description` varchar(255) NOT NULL,
-  `visibility` enum('all','not_supplier','not_store_manager') NOT NULL DEFAULT 'all',
-  `actor_user_id` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_po_events_po` (`po_id`,`created_at`),
-  KEY `fk_po_events_actor` (`actor_user_id`),
-  CONSTRAINT `fk_po_events_actor` FOREIGN KEY (`actor_user_id`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_po_events_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `po_events`
---
-
-LOCK TABLES `po_events` WRITE;
-/*!40000 ALTER TABLE `po_events` DISABLE KEYS */;
-INSERT INTO `po_events` VALUES (1,1,'po_created','Purchase Order PO-2026-0001 created by Store Manager from requisition #REQ-2026-0001, supplier: Sample Supplier Inc..','all',5,'2026-09-06 11:37:16'),(2,1,'po_approved','Purchase Order PO-2026-0001 approved by Finance Head. Justification: Test approval - no budget allocated yet in dev environment','all',6,'2026-09-06 11:39:39'),(3,1,'po_dispatched','Purchase Order dispatched to supplier by Finance Staff.','all',7,'2026-09-06 11:40:44'),(4,1,'po_confirmed','Supplier accepted the purchase order as-is.','all',12,'2026-09-06 11:41:51'),(5,1,'shipped','Supplier marked the order as shipped.','all',12,'2026-09-06 11:43:16'),(6,1,'goods_received','Goods fully received by Store Manager.','not_supplier',5,'2026-09-06 11:45:29'),(7,1,'invoice_submitted','Supplier submitted invoice INV-2026-0001. Reconciliation result: reconciled.','not_store_manager',12,'2026-09-06 11:46:42'),(8,1,'payment_requested','Payment of ₱12.78 requested by Finance Staff.','all',7,'2026-09-06 11:48:46'),(9,1,'payment_approved','Payment of ₱12.78 approved by Finance Head.','all',6,'2026-09-06 11:50:14');
-/*!40000 ALTER TABLE `po_events` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `po_payment_requests`
---
-
-DROP TABLE IF EXISTS `po_payment_requests`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `po_payment_requests` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `po_id` int(11) NOT NULL,
-  `requested_by` int(11) NOT NULL,
-  `amount` decimal(12,2) NOT NULL,
-  `status` enum('pending','approved','rejected') NOT NULL DEFAULT 'pending',
-  `approved_by` int(11) DEFAULT NULL,
-  `approved_at` datetime DEFAULT NULL,
-  `rejection_reason` text DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_ppr_po` (`po_id`),
-  KEY `idx_ppr_status` (`status`),
-  KEY `fk_ppr_requested_by` (`requested_by`),
-  KEY `fk_ppr_approved_by` (`approved_by`),
-  CONSTRAINT `fk_ppr_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_ppr_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`),
-  CONSTRAINT `fk_ppr_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `po_payment_requests`
---
-
-LOCK TABLES `po_payment_requests` WRITE;
-/*!40000 ALTER TABLE `po_payment_requests` DISABLE KEYS */;
-INSERT INTO `po_payment_requests` VALUES (1,1,7,12.78,'approved',6,'2026-09-06 19:50:14',NULL,NULL,'2026-09-06 11:48:46');
-/*!40000 ALTER TABLE `po_payment_requests` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `pos_override_requests`
 --
 
@@ -1733,7 +1036,7 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,11,5,NULL,1,'2026-08-20 17:09:05','2026-09-06 11:45:29'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,33,5,NULL,1,'2026-08-20 17:09:05','2026-09-06 11:45:29');
+INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,10,5,NULL,1,'2026-08-20 17:09:05','2026-08-23 02:49:37'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,32,5,NULL,1,'2026-08-20 17:09:05','2026-08-23 19:06:30');
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1747,21 +1050,19 @@ DROP TABLE IF EXISTS `purchase_order_items`;
 CREATE TABLE `purchase_order_items` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `po_id` int(11) NOT NULL,
-  `store_product_id` int(11) NOT NULL,
-  `supplier_product_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
   `unit_price` decimal(10,2) NOT NULL,
   `total` decimal(10,2) NOT NULL,
-  `received_quantity` int(11) NOT NULL DEFAULT 0,
+  `received_quantity` int(11) DEFAULT 0,
+  `notes` text DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
-  KEY `idx_poi_po` (`po_id`),
-  KEY `idx_poi_store_product` (`store_product_id`),
-  KEY `idx_poi_supplier_product` (`supplier_product_id`),
-  CONSTRAINT `fk_poi_po` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_poi_store_product` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
-  CONSTRAINT `fk_poi_supplier_product` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  KEY `po_id` (`po_id`),
+  KEY `product_id` (`product_id`),
+  CONSTRAINT `purchase_order_items_ibfk_1` FOREIGN KEY (`po_id`) REFERENCES `purchase_orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `purchase_order_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1770,7 +1071,6 @@ CREATE TABLE `purchase_order_items` (
 
 LOCK TABLES `purchase_order_items` WRITE;
 /*!40000 ALTER TABLE `purchase_order_items` DISABLE KEYS */;
-INSERT INTO `purchase_order_items` VALUES (1,1,2,6,1,2.39,2.39,1,'2026-09-06 11:37:16'),(2,1,1,5,1,10.39,10.39,1,'2026-09-06 11:37:16');
 /*!40000 ALTER TABLE `purchase_order_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1784,36 +1084,32 @@ DROP TABLE IF EXISTS `purchase_orders`;
 CREATE TABLE `purchase_orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `po_number` varchar(20) NOT NULL,
-  `requisition_id` int(11) NOT NULL,
   `supplier_id` int(11) NOT NULL,
-  `status` enum('pending_budget_check','budget_rejected','pending_fh_approval','pending_dispatch','pending_confirmation','supplier_accepted','supplier_counter_proposed','confirmed','pending_payment','paid','shipped','partially_received','received','cancelled','closed') NOT NULL DEFAULT 'pending_budget_check',
   `order_date` date NOT NULL,
-  `expected_delivery_date` date DEFAULT NULL,
-  `subtotal` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `tax` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `total` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `terms` varchar(50) DEFAULT 'Net 30',
-  `dispatched_at` datetime DEFAULT NULL,
-  `dispatched_via` enum('email','portal','both') DEFAULT NULL,
+  `expected_delivery` date DEFAULT NULL,
+  `status` enum('draft','pending','approved','received','cancelled') DEFAULT 'draft',
+  `subtotal` decimal(10,2) DEFAULT 0.00,
+  `tax` decimal(10,2) DEFAULT 0.00,
+  `total` decimal(10,2) DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
   `created_by` int(11) NOT NULL,
   `approved_by` int(11) DEFAULT NULL,
   `approved_at` datetime DEFAULT NULL,
-  `rejection_reason` text DEFAULT NULL,
-  `budget_rejected_reason` text DEFAULT NULL,
+  `received_by` int(11) DEFAULT NULL,
+  `received_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_po_number` (`po_number`),
-  KEY `idx_po_status` (`status`),
-  KEY `idx_po_supplier` (`supplier_id`),
-  KEY `fk_po_requisition` (`requisition_id`),
-  KEY `fk_po_created_by` (`created_by`),
-  KEY `fk_po_approved_by` (`approved_by`),
-  CONSTRAINT `fk_po_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_po_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_po_requisition` FOREIGN KEY (`requisition_id`) REFERENCES `requisitions` (`id`),
-  CONSTRAINT `fk_po_supplier` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+  UNIQUE KEY `po_number` (`po_number`),
+  KEY `supplier_id` (`supplier_id`),
+  KEY `created_by` (`created_by`),
+  KEY `approved_by` (`approved_by`),
+  KEY `received_by` (`received_by`),
+  CONSTRAINT `purchase_orders_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
+  CONSTRAINT `purchase_orders_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `purchase_orders_ibfk_3` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `purchase_orders_ibfk_4` FOREIGN KEY (`received_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1822,7 +1118,6 @@ CREATE TABLE `purchase_orders` (
 
 LOCK TABLES `purchase_orders` WRITE;
 /*!40000 ALTER TABLE `purchase_orders` DISABLE KEYS */;
-INSERT INTO `purchase_orders` VALUES (1,'PO-2026-0001',1,1,'paid','2026-09-06',NULL,12.78,0.00,12.78,'Net 30','2026-09-06 19:40:44','email',5,6,'2026-09-06 13:39:39',NULL,NULL,'2026-09-06 11:37:16','2026-09-06 11:50:14');
 /*!40000 ALTER TABLE `purchase_orders` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1895,87 +1190,6 @@ LOCK TABLES `rejection_reasons` WRITE;
 UNLOCK TABLES;
 
 --
--- Table structure for table `requisition_items`
---
-
-DROP TABLE IF EXISTS `requisition_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `requisition_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_id` int(11) NOT NULL,
-  `store_product_id` int(11) NOT NULL,
-  `supplier_product_id` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL,
-  `estimated_unit_price` decimal(10,2) NOT NULL,
-  `estimated_total` decimal(10,2) NOT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `idx_ri_requisition` (`requisition_id`),
-  KEY `idx_ri_store_product` (`store_product_id`),
-  KEY `idx_ri_supplier_product` (`supplier_product_id`),
-  CONSTRAINT `fk_ri_requisition` FOREIGN KEY (`requisition_id`) REFERENCES `requisitions` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_ri_store_product` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
-  CONSTRAINT `fk_ri_supplier_product` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `requisition_items`
---
-
-LOCK TABLES `requisition_items` WRITE;
-/*!40000 ALTER TABLE `requisition_items` DISABLE KEYS */;
-INSERT INTO `requisition_items` VALUES (1,1,2,6,1,2.39,2.39,NULL,'2026-09-06 11:37:16'),(2,1,1,5,1,10.39,10.39,NULL,'2026-09-06 11:37:16');
-/*!40000 ALTER TABLE `requisition_items` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `requisitions`
---
-
-DROP TABLE IF EXISTS `requisitions`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `requisitions` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `requisition_number` varchar(20) NOT NULL,
-  `requested_by` int(11) NOT NULL,
-  `department_id` int(11) NOT NULL,
-  `preferred_supplier_id` int(11) NOT NULL,
-  `period_key` varchar(10) NOT NULL,
-  `status` enum('draft','pending_budget_check','budget_rejected','pending_finance_head','approved','rejected','converted_to_po','cancelled') NOT NULL DEFAULT 'pending_budget_check',
-  `order_date` date NOT NULL,
-  `needed_by_date` date DEFAULT NULL,
-  `subtotal` decimal(12,2) NOT NULL DEFAULT 0.00,
-  `notes` text DEFAULT NULL,
-  `rejected_reason` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `unique_requisition_number` (`requisition_number`),
-  KEY `idx_req_status` (`status`),
-  KEY `idx_req_department_period` (`department_id`,`period_key`),
-  KEY `fk_req_requested_by` (`requested_by`),
-  KEY `fk_req_supplier` (`preferred_supplier_id`),
-  CONSTRAINT `fk_req_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`),
-  CONSTRAINT `fk_req_requested_by` FOREIGN KEY (`requested_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `fk_req_supplier` FOREIGN KEY (`preferred_supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `requisitions`
---
-
-LOCK TABLES `requisitions` WRITE;
-/*!40000 ALTER TABLE `requisitions` DISABLE KEYS */;
-INSERT INTO `requisitions` VALUES (1,'REQ-2026-0001',5,1,1,'2026-09-H1','converted_to_po','2026-09-06',NULL,12.78,'',NULL,'2026-09-06 11:37:16','2026-09-06 11:37:16');
-/*!40000 ALTER TABLE `requisitions` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `schedules`
 --
 
@@ -2007,6 +1221,135 @@ LOCK TABLES `schedules` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `store_requisition_items`
+--
+
+DROP TABLE IF EXISTS `store_requisition_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `store_requisition_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_id` int(11) NOT NULL,
+  `store_product_id` int(11) NOT NULL,
+  `supplier_product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `unit_price` decimal(10,2) NOT NULL,
+  `total` decimal(10,2) NOT NULL,
+  `received_quantity` int(11) DEFAULT 0,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `requisition_id` (`requisition_id`),
+  KEY `store_product_id` (`store_product_id`),
+  KEY `supplier_product_id` (`supplier_product_id`),
+  CONSTRAINT `store_requisition_items_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `store_requisition_items_ibfk_2` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
+  CONSTRAINT `store_requisition_items_ibfk_3` FOREIGN KEY (`supplier_product_id`) REFERENCES `supplier_products` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `store_requisition_items`
+--
+
+LOCK TABLES `store_requisition_items` WRITE;
+/*!40000 ALTER TABLE `store_requisition_items` DISABLE KEYS */;
+INSERT INTO `store_requisition_items` VALUES (1,1,1,5,15,10.39,155.85,0,NULL,'2026-08-23 05:20:15'),(2,2,2,6,12,2.39,28.68,12,NULL,'2026-08-23 15:50:15'),(3,4,2,6,15,2.39,35.85,0,NULL,'2026-08-23 19:08:42');
+/*!40000 ALTER TABLE `store_requisition_items` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `store_requisitions`
+--
+
+DROP TABLE IF EXISTS `store_requisitions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `store_requisitions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `requisition_number` varchar(20) NOT NULL,
+  `created_by` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `department` varchar(20) NOT NULL DEFAULT 'store',
+  `status` enum('draft','pending_supplier','sent_to_supplier','supplier_processed','awaiting_finance_staff','awaiting_finance','finance_approved','finance_rejected','paid','shipped','completed','partial_received') DEFAULT 'draft',
+  `order_date` date NOT NULL,
+  `budget_month_year` varchar(7) NOT NULL,
+  `expected_delivery` date DEFAULT NULL,
+  `subtotal` decimal(10,2) DEFAULT 0.00,
+  `tax` decimal(10,2) DEFAULT 0.00,
+  `total` decimal(10,2) DEFAULT 0.00,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `requisition_number` (`requisition_number`),
+  KEY `created_by` (`created_by`),
+  KEY `supplier_id` (`supplier_id`),
+  KEY `idx_requisition_status` (`status`),
+  KEY `idx_requisition_department` (`department`),
+  KEY `idx_requisition_budget_month` (`budget_month_year`),
+  CONSTRAINT `store_requisitions_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `store_requisitions_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `store_requisitions`
+--
+
+LOCK TABLES `store_requisitions` WRITE;
+/*!40000 ALTER TABLE `store_requisitions` DISABLE KEYS */;
+INSERT INTO `store_requisitions` VALUES (1,'REQ-2026-0001',5,1,'store','pending_supplier','2026-08-23','','2026-08-25',155.85,0.00,155.85,'','2026-08-23 05:20:15','2026-08-23 05:20:15'),(2,'REQ-2026-0002',5,1,'store','completed','2026-08-23','2026-08','0000-00-00',28.68,0.00,28.68,'','2026-08-23 15:50:15','2026-08-23 19:06:30'),(4,'REQ-2026-0003',5,1,'store','paid','2026-08-24','2026-08','2026-08-25',35.85,0.00,35.85,'','2026-08-23 19:08:41','2026-08-24 17:22:47');
+/*!40000 ALTER TABLE `store_requisitions` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `supplier_invoices`
+--
+
+DROP TABLE IF EXISTS `supplier_invoices`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `supplier_invoices` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `invoice_number` varchar(50) NOT NULL,
+  `requisition_id` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `invoice_date` date NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  `tax` decimal(10,2) DEFAULT 0.00,
+  `total` decimal(10,2) NOT NULL,
+  `due_date` date NOT NULL,
+  `status` enum('pending','verified','paid','rejected') DEFAULT 'pending',
+  `po_match` tinyint(4) DEFAULT 0,
+  `gr_match` tinyint(4) DEFAULT 0,
+  `notes` text DEFAULT NULL,
+  `paid_by` int(11) DEFAULT NULL,
+  `paid_at` datetime DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `invoice_number` (`invoice_number`),
+  KEY `requisition_id` (`requisition_id`),
+  KEY `supplier_id` (`supplier_id`),
+  KEY `paid_by` (`paid_by`),
+  CONSTRAINT `supplier_invoices_ibfk_1` FOREIGN KEY (`requisition_id`) REFERENCES `store_requisitions` (`id`),
+  CONSTRAINT `supplier_invoices_ibfk_2` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
+  CONSTRAINT `supplier_invoices_ibfk_3` FOREIGN KEY (`paid_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `supplier_invoices`
+--
+
+LOCK TABLES `supplier_invoices` WRITE;
+/*!40000 ALTER TABLE `supplier_invoices` DISABLE KEYS */;
+INSERT INTO `supplier_invoices` VALUES (1,'INV-2026-0001',2,1,'2026-08-23',28.68,0.00,28.68,'2026-08-26','pending',0,0,'test',NULL,NULL,'2026-08-23 17:03:58','2026-08-23 19:04:19'),(2,'INV-2026-0002',4,1,'2026-08-23',35.85,0.00,35.85,'2026-09-01','paid',0,0,'teast',6,'2026-08-25 01:22:47','2026-08-23 19:09:51','2026-08-24 17:22:47');
+/*!40000 ALTER TABLE `supplier_invoices` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `supplier_products`
 --
 
@@ -2016,20 +1359,16 @@ DROP TABLE IF EXISTS `supplier_products`;
 CREATE TABLE `supplier_products` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `supplier_id` int(11) NOT NULL,
-  `store_product_id` int(11) DEFAULT NULL,
   `name` varchar(100) NOT NULL,
   `description` text DEFAULT NULL,
   `price` decimal(10,2) NOT NULL,
-  `quantity` int(11) NOT NULL DEFAULT 0,
   `is_active` tinyint(4) DEFAULT 1,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
   KEY `supplier_id` (`supplier_id`),
-  KEY `idx_sp_store_product` (`store_product_id`),
-  CONSTRAINT `fk_sp_store_product` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
   CONSTRAINT `supplier_products_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2038,7 +1377,7 @@ CREATE TABLE `supplier_products` (
 
 LOCK TABLES `supplier_products` WRITE;
 /*!40000 ALTER TABLE `supplier_products` DISABLE KEYS */;
-INSERT INTO `supplier_products` VALUES (5,1,1,'Sample Book','A sample book for testing',10.39,100,1,'2026-08-21 12:54:24','2026-09-06 11:22:04'),(6,1,2,'Sample Pen','A sample pen for testing',2.39,100,1,'2026-08-21 12:54:24','2026-09-06 11:22:04'),(9,2,2,'Sample Pen','Test dup supplier pen',1.99,50,1,'2026-09-06 11:34:00','2026-09-06 11:34:00');
+INSERT INTO `supplier_products` VALUES (5,1,'Sample Book','A sample book for testing',10.39,1,'2026-08-21 12:54:24','2026-08-21 12:54:24'),(6,1,'Sample Pen','A sample pen for testing',2.39,1,'2026-08-21 12:54:24','2026-08-21 12:54:24');
 /*!40000 ALTER TABLE `supplier_products` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2332,38 +1671,8 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'SA-001','Stephen','Frias',NULL,'stephenfrias4@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 11:42:35'),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(4,'HS-002','Ana','Reyes',NULL,'stephenfrias04@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:44:43'),(5,'SM-001','Store','Manager',NULL,'store.manager@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','store_manager',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39'),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39'),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39'),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 12:21:39'),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:43:48'),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-21 03:04:09','2026-09-06 11:33:52');
+INSERT INTO `users` VALUES (1,'SA-001','Stephen','Frias',NULL,'stephenfrias4@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 11:42:35'),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(4,'HS-002','Ana','Reyes',NULL,'stephenfrias04@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:44:43'),(5,'SM-001','Store','Manager',NULL,'store.manager@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','store_manager',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 12:21:39'),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:43:48'),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-21 03:04:09','2026-08-21 03:07:17');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `variance_tolerance_settings`
---
-
-DROP TABLE IF EXISTS `variance_tolerance_settings`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `variance_tolerance_settings` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `price_tolerance_percent` decimal(5,2) NOT NULL DEFAULT 2.00,
-  `price_tolerance_amount` decimal(10,2) NOT NULL DEFAULT 50.00,
-  `quantity_tolerance_percent` decimal(5,2) NOT NULL DEFAULT 0.00,
-  `updated_by` int(11) DEFAULT NULL,
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `fk_variance_settings_user` (`updated_by`),
-  CONSTRAINT `fk_variance_settings_user` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `variance_tolerance_settings`
---
-
-LOCK TABLES `variance_tolerance_settings` WRITE;
-/*!40000 ALTER TABLE `variance_tolerance_settings` DISABLE KEYS */;
-INSERT INTO `variance_tolerance_settings` VALUES (1,2.00,50.00,0.00,NULL,'2026-09-06 11:20:01');
-/*!40000 ALTER TABLE `variance_tolerance_settings` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
@@ -2375,4 +1684,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-06 19:50:46
+-- Dump completed on 2026-09-06 19:18:57

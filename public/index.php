@@ -888,6 +888,11 @@ if ($page === 'api_sm_create_requisition') {
     exit;
 }
 
+if ($page === 'api_sm_list_eligible_suppliers') {
+    require_once __DIR__ . '/../app/handlers/store_manager/purchase_orders/list_eligible_suppliers.php';
+    exit;
+}
+
 if ($page === 'api_get_requisition') {
     require_once __DIR__ . '/../app/handlers/shared/get_requisition.php';
     exit;
@@ -1213,13 +1218,13 @@ if ($page === 'api_finance_staff_dashboard_stats') {
     exit;
 }
 
-if ($page === 'api_fs_list_pending_requisitions') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/requisitions/list_pending.php';
+if ($page === 'api_fs_list_pos_pending_budget_check') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/purchase_orders/list_pending_budget_check.php';
     exit;
 }
 
-if ($page === 'api_fs_check_budget') {
-    require_once __DIR__ . '/../app/handlers/finance/staff/requisitions/check_budget.php';
+if ($page === 'api_fs_check_po_budget') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/purchase_orders/check_budget.php';
     exit;
 }
 
@@ -1279,13 +1284,13 @@ if ($page === 'api_finance_head_dashboard_stats') {
     exit;
 }
 
-if ($page === 'api_fh_list_pending_requisitions') {
-    require_once __DIR__ . '/../app/handlers/finance/head/requisitions/list_pending.php';
+if ($page === 'api_fh_list_pending_pos') {
+    require_once __DIR__ . '/../app/handlers/finance/head/purchase_orders/list_pending.php';
     exit;
 }
 
-if ($page === 'api_fh_approve_requisition') {
-    require_once __DIR__ . '/../app/handlers/finance/head/requisitions/approve.php';
+if ($page === 'api_fh_approve_po') {
+    require_once __DIR__ . '/../app/handlers/finance/head/purchase_orders/approve.php';
     exit;
 }
 

@@ -2,8 +2,8 @@
 $title = 'Requisitions - Store Manager';
 $pageTitle = 'Requisitions';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260904"></script>'
-    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260904"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260907"></script>'
+    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20260907"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs sm-tabs mb-3" id="requisitionTabs" role="tablist">
@@ -30,10 +30,6 @@ $content = <<<'EOT'
             <div class="col-md-4">
                 <select id="mineStatusFilter" class="form-select">
                     <option value="">All Status</option>
-                    <option value="pending_budget_check">Pending Budget Check</option>
-                    <option value="budget_rejected">Budget Rejected</option>
-                    <option value="pending_finance_head">Pending Finance Head</option>
-                    <option value="rejected">Rejected</option>
                     <option value="converted_to_po">Converted to PO</option>
                     <option value="cancelled">Cancelled</option>
                 </select>
@@ -56,18 +52,14 @@ $content = <<<'EOT'
     <div class="tab-pane fade" id="createTab" role="tabpanel">
         <div class="row g-3">
             <div class="col-md-4">
-                <label class="form-label">Supplier</label>
-                <select id="createSupplier" class="form-select"></select>
-            </div>
-            <div class="col-md-3">
                 <label class="form-label">Order Date</label>
                 <input type="date" id="createOrderDate" class="form-control">
             </div>
-            <div class="col-md-3">
+            <div class="col-md-4">
                 <label class="form-label">Needed By (optional)</label>
                 <input type="date" id="createNeededBy" class="form-control">
             </div>
-            <div class="col-md-2">
+            <div class="col-md-4">
                 <label class="form-label">Department</label>
                 <select id="createDepartment" class="form-select"></select>
             </div>
@@ -78,18 +70,25 @@ $content = <<<'EOT'
         </div>
 
         <hr>
-        <h6>Items</h6>
+        <h6>Items Needed</h6>
+        <p class="text-muted small">Pick the products to resupply and how much of each. The supplier list below narrows automatically to only suppliers who carry every product you've added.</p>
         <div class="table-responsive">
             <table class="table table-sm" id="createItemsTable">
-                <thead><tr><th>Product</th><th style="width:110px">Qty</th><th style="width:130px">Unit Price</th><th style="width:120px">Total</th><th></th></tr></thead>
+                <thead><tr><th>Product</th><th style="width:110px">Qty</th><th></th></tr></thead>
                 <tbody id="createItemsBody"></tbody>
             </table>
         </div>
         <button type="button" class="btn btn-sm btn-outline-secondary" id="addItemRowBtn"><i class="bi bi-plus"></i> Add Item</button>
 
+        <hr>
+        <h6>Choose a Supplier</h6>
+        <div id="eligibleSuppliersPanel" class="mb-3">
+            <p class="text-muted small">Add at least one item to see which suppliers can fulfill this request.</p>
+        </div>
+
         <div class="d-flex justify-content-between align-items-center mt-3">
-            <div class="fw-bold">Subtotal: <span id="createSubtotal">₱0.00</span></div>
-            <button type="button" class="btn btn-yellow-primary" id="submitRequisitionBtn"><i class="bi bi-send"></i> Submit for Budget Check</button>
+            <div class="fw-bold">Total: <span id="createSubtotal">₱0.00</span></div>
+            <button type="button" class="btn btn-yellow-primary" id="submitRequisitionBtn" disabled><i class="bi bi-send"></i> Submit for Budget Check</button>
         </div>
     </div>
 

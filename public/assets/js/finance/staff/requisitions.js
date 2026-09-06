@@ -14,14 +14,14 @@ async function loadPending() {
     const tbody = document.getElementById('pendingTableBody');
     tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Loading...</td></tr>';
     try {
-        const data = await prFetchJson(`?page=api_fs_list_pending_requisitions&page_num=${fsReqPage}&limit=10`);
-        const rows = data.requisitions || [];
+        const data = await prFetchJson(`?page=api_fs_list_pos_pending_budget_check&page_num=${fsReqPage}&limit=10`);
+        const rows = data.purchase_orders || [];
         tbody.innerHTML = rows.length ? rows.map(r => `
             <tr>
-                <td>${prEscapeHtml(r.requisition_number)}</td>
+                <td>${prEscapeHtml(r.po_number)} <small class="text-muted">(${prEscapeHtml(r.requisition_number)})</small></td>
                 <td>${prEscapeHtml(r.supplier_name)}</td>
                 <td>${prEscapeHtml(r.department_name)}</td>
-                <td>${prCurrency(r.subtotal)}</td>
+                <td>${prCurrency(r.total)}</td>
                 <td>${prCurrency(r.budget_status.available)} ${r.budget_status.exceeded ? '<span class="badge bg-danger">Exceeded</span>' : ''}</td>
                 <td>${prStatusBadge(r.status)}</td>
                 <td>
@@ -29,8 +29,8 @@ async function loadPending() {
                     <button class="btn btn-sm btn-danger" onclick="openReject(${r.id})"><i class="bi bi-x"></i> Reject</button>
                 </td>
             </tr>
-        `).join('') : prEmptyRow(7, 'No requisitions pending a budget check.');
-        prRenderPagination(document.getElementById('pendingPagination'), document.getElementById('pendingPageInfo'), data.pagination, 'requisitions', (p) => { fsReqPage = p; loadPending(); });
+        `).join('') : prEmptyRow(7, 'No Purchase Orders pending a budget check.');
+        prRenderPagination(document.getElementById('pendingPagination'), document.getElementById('pendingPageInfo'), data.pagination, 'purchase orders', (p) => { fsReqPage = p; loadPending(); });
     } catch (e) {
         tbody.innerHTML = prErrorRow(7, e.message);
     }
@@ -39,9 +39,9 @@ async function loadPending() {
 async function passBudgetCheck(id, btn) {
     const unlock = prLockButton(btn);
     try {
-        const res = await fetch('?page=api_fs_check_budget', {
+        const res = await fetch('?page=api_fs_check_po_budget', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requisition_id: id, action: 'pass' }),
+            body: JSON.stringify({ po_id: id, action: 'pass' }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
@@ -68,9 +68,9 @@ async function confirmReject() {
     }
     const unlock = prLockButton(document.getElementById('confirmRejectBtn'));
     try {
-        const res = await fetch('?page=api_fs_check_budget', {
+        const res = await fetch('?page=api_fs_check_po_budget', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ requisition_id: fsRejectTargetId, action: 'reject', reason }),
+            body: JSON.stringify({ po_id: fsRejectTargetId, action: 'reject', reason }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);

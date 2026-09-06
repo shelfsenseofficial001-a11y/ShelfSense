@@ -55,9 +55,9 @@ try {
     if (!$po) {
         Response::notFound('Purchase order not found for this supplier.');
     }
-    // Payment already happened at PO-confirmation time (pay-before-delivery) --
-    // this invoice is a post-delivery reconciliation record, so there has to be
-    // a logged Goods Receipt to reconcile against before one can be submitted.
+    // This invoice's 3-way match result now gates the upcoming payment
+    // request, so there has to be a logged Goods Receipt to reconcile
+    // against before one can be submitted.
     if (!in_array($po['status'], ['partially_received', 'received'], true)) {
         Response::error('This purchase order has no logged goods receipt yet. Submit the invoice after the Store Manager receives at least part of the order. Current status: ' . $po['status'], 400);
     }

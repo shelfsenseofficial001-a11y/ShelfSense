@@ -33,7 +33,7 @@ class PurchaseOrder
             $data['po_number'],
             $data['requisition_id'],
             $data['supplier_id'],
-            $data['status'] ?? 'pending_dispatch',
+            $data['status'] ?? 'pending_budget_check',
             $data['order_date'],
             $data['expected_delivery_date'] ?? null,
             $data['subtotal'] ?? 0,
@@ -96,10 +96,36 @@ class PurchaseOrder
         return $po;
     }
 
-    public function updateStatus($id, $status)
+    public function updateStatus($id, $status, $extra = [])
     {
-        $stmt = $this->db->prepare("UPDATE purchase_orders SET status = ?, updated_at = NOW() WHERE id = ?");
-        return $stmt->execute([$status, $id]);
+        $fields = ['status = ?'];
+        $params = [$status];
+        foreach (['approved_by', 'approved_at', 'rejection_reason', 'budget_rejected_reason'] as $col) {
+            if (array_key_exists($col, $extra)) {
+                $fields[] = "$col = ?";
+                $params[] = $extra[$col];
+            }
+        }
+        $params[] = $id;
+        $stmt = $this->db->prepare("UPDATE purchase_orders SET " . implode(', ', $fields) . ", updated_at = NOW() WHERE id = ?");
+        return $stmt->execute($params);
+    }
+
+    /**
+     * Whether a PO's items are fully or only partially received so far,
+     * based on goods_receipt_items logged against it. Shared by the goods
+     * receipt handler (moving a PO forward) and the payment-approval reject
+     * path (reverting a PO back to its pre-payment-request state).
+     */
+    public function determineReceivedStatus($poId)
+    {
+        $items = $this->getItems($poId);
+        foreach ($items as $item) {
+            if ((int)$item['received_quantity'] < (int)$item['quantity']) {
+                return 'partially_received';
+            }
+        }
+        return 'received';
     }
 
     public function markDispatched($id, $via = 'email')

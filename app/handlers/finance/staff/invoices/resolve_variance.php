@@ -16,6 +16,19 @@ require_once __DIR__ . '/../../../../models/InvoiceMatcher.php';
 require_once __DIR__ . '/../../../../models/PurchaseOrder.php';
 require_once __DIR__ . '/../../../../helpers/functions.php';
 
+function notifyReadyForPayment($db, $invoice)
+{
+    $stmt = $db->prepare("SELECT po_number FROM purchase_orders WHERE id = ?");
+    $stmt->execute([$invoice['po_id']]);
+    $po = $stmt->fetch();
+    if (!$po) {
+        return;
+    }
+    foreach (getUsersByRole('finance_staff') as $u) {
+        createNotification($u['user_id'], 'ready_for_payment_request', "Invoice {$invoice['invoice_number']} for PO {$po['po_number']} is now reconciled and ready for a payment request.", "?page=finance_staff_payment_requests");
+    }
+}
+
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
@@ -60,6 +73,7 @@ try {
         $invoiceModel->setMatchStatus($invoiceId, 'reconciled');
         $stmt = $db->prepare("UPDATE invoices SET notes = CONCAT(COALESCE(notes,''), '\n[OVERRIDE] ', ?) WHERE id = ?");
         $stmt->execute([$note, $invoiceId]);
+        notifyReadyForPayment($db, $invoice);
 
         Response::success(['invoice_id' => $invoiceId, 'match_status' => 'reconciled'], 'Hold overridden. Invoice marked reconciled.');
     } else {
@@ -81,6 +95,9 @@ try {
 
         $matcher = new InvoiceMatcher();
         $matchStatus = $matcher->match($invoiceId);
+        if ($matchStatus === 'reconciled') {
+            notifyReadyForPayment($db, $invoice);
+        }
 
         Response::success(['invoice_id' => $invoiceId, 'match_status' => $matchStatus], 'PO price updated. Invoice re-matched: ' . $matchStatus);
     }
