@@ -73,6 +73,208 @@ body.dashboard-theme .ambient-glow-2 {
     display: none;
 }
 
+body.dashboard-theme #notificationBell.text-dark {
+    color: var(--text-main) !important;
+}
+
+/* ==========================================================================
+   REQUISITION CREATE FORM (Store Manager): item rows + supplier picker
+   ========================================================================== */
+
+body.dashboard-theme .sm-section-divider {
+    height: 1px;
+    background: var(--border-color);
+    margin: 20px 0 16px;
+}
+
+body.dashboard-theme .sm-section-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    margin-bottom: 4px;
+}
+
+body.dashboard-theme .sm-item-table {
+    margin-top: 10px;
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+body.dashboard-theme .sm-item-list-header {
+    display: grid;
+    grid-template-columns: 1fr 90px 36px;
+    gap: 10px;
+    padding: 10px 12px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    background: var(--bg-card-subtle);
+    box-shadow: inset 0 -1px 0 var(--border-color);
+}
+
+body.dashboard-theme .sm-item-list {
+    max-height: 260px;
+    overflow-y: auto;
+    background: var(--bg-card);
+}
+
+body.dashboard-theme .sm-item-row {
+    display: grid;
+    grid-template-columns: 1fr 90px 36px;
+    gap: 10px;
+    align-items: center;
+    padding: 8px 12px;
+    box-shadow: inset 0 -1px 0 var(--border-color);
+    transition: background 0.15s ease;
+}
+
+body.dashboard-theme .sm-item-list .sm-item-row:last-child {
+    box-shadow: none;
+}
+
+body.dashboard-theme .sm-item-row:hover {
+    background: var(--bg-card-subtle);
+}
+
+body.dashboard-theme .sm-add-item-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    box-shadow: inset 0 1px 0 var(--border-color);
+    background: var(--light-yellow-subtle);
+    color: var(--brand-yellow);
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+body.dashboard-theme .sm-add-item-btn:hover {
+    background: var(--light-yellow-accent);
+    color: var(--brand-yellow-hover);
+}
+
+body.dashboard-theme .sm-item-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: none;
+    background: transparent;
+    color: var(--danger);
+    transition: background 0.15s ease;
+}
+
+body.dashboard-theme .sm-item-remove:hover {
+    background: rgba(223, 91, 85, 0.12);
+}
+
+body.dashboard-theme .sm-supplier-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    border: 1.5px solid var(--border-color);
+    border-radius: 12px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+body.dashboard-theme .sm-supplier-option:hover {
+    border-color: var(--brand-yellow);
+    background: var(--light-yellow-subtle);
+}
+
+body.dashboard-theme .sm-supplier-option.selected {
+    border-color: var(--brand-yellow);
+    background: var(--light-yellow-accent);
+}
+
+body.dashboard-theme .sm-supplier-option .form-check-input {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+body.dashboard-theme .sm-supplier-name {
+    font-weight: 700;
+    flex: 1 1 auto;
+}
+
+body.dashboard-theme .sm-supplier-price {
+    font-weight: 700;
+    color: var(--brand-yellow);
+}
+
+body.dashboard-theme .sm-requisition-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--bg-card-subtle);
+}
+
+body.dashboard-theme .sm-requisition-total {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+/* Purchase Orders card: sticky, pinned just under the topbar, so it
+   stays in view while the taller Create Requisition form beside it
+   scrolls. Sized against the viewport (not height:100% of its column --
+   that would make it exactly as tall as its own containing block, which
+   leaves position:sticky no room to move and silently cancels it) so it
+   still reaches down toward the bottom of the screen. The table body
+   fills the remaining height and scrolls internally past that, with the
+   header row staying put via its own position:sticky. */
+body.dashboard-theme .sm-po-card {
+    position: sticky;
+    top: 88px;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 120px);
+}
+
+body.dashboard-theme .sm-po-scroll {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+body.dashboard-theme .sm-po-scroll table {
+    height: 100%;
+}
+
+body.dashboard-theme .sm-po-scroll thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+
+body.dashboard-theme .sm-po-scroll td[colspan] {
+    vertical-align: middle;
+    padding: 2.5rem 1rem;
+}
+
+/* Notes stays user-resizable, just not draggable into something tall
+   enough to push the whole page into a scroll. */
+body.dashboard-theme .sm-notes-input {
+    max-height: 200px;
+}
+
 body.dashboard-theme {
     background: var(--app-bg);
 }
@@ -424,7 +626,55 @@ body.dashboard-theme .theme-toggle-btn:hover {
     padding: 12px 16px;
     font-weight: 600;
     color: var(--text-main);
+}
+.notification-dropdown .notification-filter-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 12px 10px;
     border-bottom: 1px solid var(--border-color);
+}
+.notification-dropdown .notif-filter-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+.notification-dropdown .notif-filter-btn:hover {
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+}
+.notification-dropdown .notif-filter-btn.active {
+    background: var(--brand-yellow);
+    color: #fff;
+}
+.notification-dropdown .notification-date-group {
+    padding: 10px 16px 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+}
+.notification-dropdown .notification-load-more {
+    display: block;
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-card-subtle);
+    color: var(--brand-yellow);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s ease;
+}
+.notification-dropdown .notification-load-more:hover {
+    background: var(--light-yellow-subtle);
 }
 .notification-dropdown .notification-item {
     display: flex;
@@ -1560,9 +1810,8 @@ body.dashboard-theme .dash-edit-label {
    one continuous piece of feedback instead of jumping across the page. */
 .dash-saved-toast-container {
     position: fixed;
-    left: 50%;
-    bottom: 28px;
-    transform: translateX(-50%);
+    top: 100px;
+    right: 24px;
     z-index: 1090;
 }
 body.dashboard-theme .dash-saved-toast {
@@ -1674,24 +1923,28 @@ body.dashboard-theme .dash-widget.dash-drag-over {
     outline: 2px solid var(--brand-yellow) !important;
 }
 
-/* "Keep changes?" confirmation, shown bottom-center when exiting edit
-   mode -- same dark-snackbar language as .dash-saved-toast. Hidden via
-   opacity/transform (not display:none) so the slide-up transition has
-   something to animate from; pointer-events off while hidden so it can't
-   eat clicks underneath it. */
+/* "Keep changes?" confirmation, shown top-right when exiting edit mode --
+   a proper toast card (stacked text over actions, fixed width) rather
+   than a wide horizontal pill, sitting in the same corner as
+   .dash-saved-toast-container. Hidden via opacity/transform (not
+   display:none) so the slide-in transition has something to animate
+   from; pointer-events off while hidden so it can't eat clicks underneath
+   it. */
 body.dashboard-theme .dash-revert-confirm {
     position: fixed;
-    left: 50%;
-    bottom: 28px;
-    transform: translate(-50%, 12px);
+    top: 100px;
+    right: 24px;
+    width: 300px;
+    transform: translateX(16px);
     z-index: 1090;
     display: flex;
-    align-items: center;
-    gap: 16px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
     background: #20201d;
     color: #fff;
     border-radius: 12px;
-    padding: 12px 14px 12px 18px;
+    padding: 16px;
     box-shadow: 0 8px 28px rgba(0, 0, 0, 0.25);
     opacity: 0;
     pointer-events: none;
@@ -1700,7 +1953,7 @@ body.dashboard-theme .dash-revert-confirm {
 body.dashboard-theme .dash-revert-confirm.show {
     opacity: 1;
     pointer-events: auto;
-    transform: translate(-50%, 0);
+    transform: translateX(0);
 }
 body.dashboard-theme .dash-revert-text {
     display: flex;
@@ -1708,11 +1961,11 @@ body.dashboard-theme .dash-revert-text {
     gap: 10px;
     font-weight: 600;
     font-size: 0.9rem;
-    white-space: nowrap;
 }
 body.dashboard-theme .dash-revert-text i {
     color: var(--brand-yellow);
     font-size: 1.05rem;
+    flex-shrink: 0;
 }
 body.dashboard-theme .dash-revert-actions {
     display: flex;
@@ -1720,6 +1973,10 @@ body.dashboard-theme .dash-revert-actions {
     gap: 8px;
 }
 body.dashboard-theme .dash-revert-btn {
+    flex: 1 1 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: none;
     border-radius: 8px;
     padding: 7px 14px;
@@ -1763,8 +2020,8 @@ body.dashboard-theme .dash-revert-countdown {
     body.dashboard-theme .dash-revert-confirm {
         left: 12px;
         right: 12px;
-        bottom: 16px;
-        transform: translateY(12px);
+        top: 90px;
+        transform: translateY(-12px);
         flex-direction: column;
         align-items: stretch;
         gap: 10px;

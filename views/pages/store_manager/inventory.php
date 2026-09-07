@@ -92,6 +92,11 @@ $content = <<<'EOT'
         </nav>
     </div>
 </div>
+
+<a href="?page=store_manager_requisitions&tab=create" class="sm-fab" title="Create Requisition">
+    <span class="sm-fab-icon"><i class="bi bi-plus-lg"></i></span>
+    <span class="sm-fab-label">Create Requisition</span>
+</a>
 EOT;
 
 require_once __DIR__ . '/../../layouts/store_manager.php';

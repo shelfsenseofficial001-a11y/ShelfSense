@@ -2,6 +2,7 @@
 // views/pages/landing.php
 require_once __DIR__ . '/../../app/core/Database.php';
 require_once __DIR__ . '/../../app/models/JobPosting.php';
+require_once __DIR__ . '/../../app/helpers/functions.php';
 
 use App\Models\JobPosting;
 
@@ -28,22 +29,33 @@ if (empty($publicJobs)) {
 } else {
     foreach ($publicJobs as $i => $job) {
         $delay = 'delay-' . min(5, $i + 1);
-        $salary = '';
+
+        $badges = [];
+        $badges[] = '<span class="job-badge job-badge-yellow"><i class="bi bi-briefcase-fill"></i> ' . htmlspecialchars($job['department']) . '</span>';
+        if (!empty($job['location'])) {
+            $badges[] = '<span class="job-badge job-badge-yellow"><i class="bi bi-geo-alt-fill"></i> ' . htmlspecialchars($job['location']) . '</span>';
+        }
+        if (!empty($job['employment_type'])) {
+            $badges[] = '<span class="job-badge job-badge-yellow"><i class="bi bi-clock-fill"></i> ' . htmlspecialchars($job['employment_type']) . '</span>';
+        }
         if ($job['salary_range_min'] || $job['salary_range_max']) {
-            $salary = '<span class="job-badge job-badge-yellow">₱' . number_format((float)$job['salary_range_min'], 0)
+            $badges[] = '<span class="job-badge job-badge-yellow">₱' . number_format((float)$job['salary_range_min'], 0)
                 . ' - ₱' . number_format((float)$job['salary_range_max'], 0) . '</span>';
         }
+        if ($job['remaining_slots'] !== null) {
+            $badges[] = '<span class="job-badge job-badge-yellow"><i class="bi bi-people-fill"></i> ' . (int)$job['remaining_slots'] . ' slot' . ((int)$job['remaining_slots'] === 1 ? '' : 's') . ' left</span>';
+        }
+
         $jobCardsHtml .= '
             <div class="col-lg-10 animate-reveal ' . $delay . '">
                 <div class="modern-card job-card p-4">
                     <div class="row align-items-center gy-3">
                         <div class="col-md-7">
-                            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
-                                <span class="job-badge">' . htmlspecialchars($job['department']) . '</span>
-                                ' . $salary . '
-                            </div>
                             <h4 class="mb-2">' . htmlspecialchars($job['title']) . '</h4>
-                            <p class="text-muted small mb-1">' . nl2br(htmlspecialchars(mb_strimwidth($job['description'], 0, 220, '...'))) . '</p>
+                            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+                                ' . implode('', $badges) . '
+                            </div>
+                            <p class="text-muted small mb-1">' . nl2br(htmlspecialchars(stripMarkdownPreview($job['description'], 220))) . '</p>
                             <small class="text-muted"><i class="bi bi-calendar-x me-1"></i>Applications close ' . date('M j, Y', strtotime($job['open_until'])) . '</small>
                         </div>
                         <div class="col-md-5 text-md-end">

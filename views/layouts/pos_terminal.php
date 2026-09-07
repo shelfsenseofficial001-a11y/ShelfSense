@@ -17,8 +17,8 @@ use App\Core\Auth;
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260905300000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260905220000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260908520000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260908380000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -125,8 +125,8 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260908120000"></script>
-    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260830122211"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260908400000"></script>
+    <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
     <script src="/ShelfSense/public/assets/js/pos/pos-notifications.js?v=20260905070000"></script>
 
     <?= $additional_js ?? '' ?>

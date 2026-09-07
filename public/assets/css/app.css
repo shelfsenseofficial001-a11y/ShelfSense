@@ -456,6 +456,9 @@ h1, h2, h3, h4, h5, .font-heading {
 }
 
 .job-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     background: var(--bg-card-subtle);
     border: 1px solid var(--border-color);
     font-size: 0.75rem;
@@ -463,6 +466,9 @@ h1, h2, h3, h4, h5, .font-heading {
     padding: 4px 12px;
     border-radius: 20px;
     color: var(--text-muted);
+}
+.job-badge i {
+    font-size: 0.7rem;
 }
 
 .job-badge-yellow {

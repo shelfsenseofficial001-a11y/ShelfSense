@@ -19,10 +19,11 @@ if (!Auth::check()) {
     Response::unauthorized('Please login to access this resource');
 }
 
-$limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
+$limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 10;
+$offset = isset($_GET['offset']) ? max(0, intval($_GET['offset'])) : 0;
 
 try {
-    $notifications = getNotifications(Auth::userId(), $limit);
+    $notifications = getNotifications(Auth::userId(), $limit, $offset);
 
     $db = Database::getInstance()->getConnection();
     $stmt = $db->prepare("SELECT COUNT(*) as cnt FROM notifications WHERE user_id = ? AND is_read = 0");

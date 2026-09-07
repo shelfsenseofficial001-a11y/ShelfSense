@@ -29,6 +29,18 @@ CREATE TABLE `applicants` (
   `middle_name` varchar(50) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `phone` varchar(20) DEFAULT NULL,
+  `birthdate` date DEFAULT NULL,
+  `province` varchar(100) DEFAULT NULL,
+  `province_code` varchar(20) DEFAULT NULL,
+  `city_municipality` varchar(150) DEFAULT NULL,
+  `city_municipality_code` varchar(20) DEFAULT NULL,
+  `barangay` varchar(150) DEFAULT NULL,
+  `barangay_code` varchar(20) DEFAULT NULL,
+  `house_block_lot` varchar(255) DEFAULT NULL,
+  `street` varchar(255) DEFAULT NULL,
+  `subdivision` varchar(255) DEFAULT NULL,
+  `postal_code` varchar(4) DEFAULT NULL,
+  `country` varchar(50) NOT NULL DEFAULT 'Philippines',
   `target_role` varchar(50) NOT NULL,
   `job_posting_id` int(11) DEFAULT NULL,
   `resume_path` varchar(255) NOT NULL,
@@ -38,6 +50,8 @@ CREATE TABLE `applicants` (
   PRIMARY KEY (`id`),
   KEY `idx_status` (`status`),
   KEY `idx_email` (`email`),
+  KEY `idx_province_code` (`province_code`),
+  KEY `idx_city_municipality_code` (`city_municipality_code`),
   KEY `idx_target_role` (`target_role`),
   KEY `job_posting_id` (`job_posting_id`),
   CONSTRAINT `applicants_ibfk_job_posting` FOREIGN KEY (`job_posting_id`) REFERENCES `job_postings` (`id`) ON DELETE SET NULL
@@ -50,7 +64,7 @@ CREATE TABLE `applicants` (
 
 LOCK TABLES `applicants` WRITE;
 /*!40000 ALTER TABLE `applicants` DISABLE KEYS */;
-INSERT INTO `applicants` VALUES (1,'test','test','test','test@gmail.com','09264550078','Employee',1,'uploads/resumes/cd59030f7be000ae2bf73bc363643ee9.docx','initial_passed','2026-08-30 09:55:42','2026-08-30 12:16:45');
+INSERT INTO `applicants` VALUES (1,'test','test','test','test@gmail.com','09264550078',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'Philippines','Employee',1,'uploads/resumes/cd59030f7be000ae2bf73bc363643ee9.docx','initial_passed','2026-08-30 09:55:42','2026-08-30 12:16:45');
 /*!40000 ALTER TABLE `applicants` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1222,6 +1236,7 @@ CREATE TABLE `orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `order_number` varchar(20) NOT NULL,
   `cashier_id` int(11) NOT NULL,
+  `register_allocation_id` int(11) DEFAULT NULL,
   `subtotal` decimal(10,2) NOT NULL DEFAULT 0.00,
   `total` decimal(10,2) NOT NULL DEFAULT 0.00,
   `amount_paid` decimal(10,2) DEFAULT 0.00,
@@ -1238,6 +1253,7 @@ CREATE TABLE `orders` (
   UNIQUE KEY `order_number` (`order_number`),
   KEY `cashier_id` (`cashier_id`),
   KEY `voided_by` (`voided_by`),
+  KEY `register_allocation_id` (`register_allocation_id`),
   CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`voided_by`) REFERENCES `users` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -1862,6 +1878,93 @@ LOCK TABLES `recruitment_logs` WRITE;
 INSERT INTO `recruitment_logs` VALUES (18,'job_posting',1,2,'hr_head','created',NULL,'draft',NULL,NULL,'2026-08-30 09:43:36'),(19,'job_posting',1,2,'hr_head','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-30 09:43:36'),(20,'job_posting',1,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-30 09:43:40'),(21,'job_posting',2,2,'hr_head','created',NULL,'draft',NULL,NULL,'2026-08-30 09:44:57'),(22,'job_posting',2,2,'hr_head','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-30 09:44:57'),(23,'job_posting',2,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-30 09:45:00'),(24,'applicant',1,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 1)','2026-08-30 09:55:47'),(25,'applicant',1,3,'hr_staff','initial_interview_scheduled','pending','initial_scheduled',NULL,NULL,'2026-08-30 10:01:00');
 /*!40000 ALTER TABLE `recruitment_logs` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Table structure for table `registers`
+--
+
+DROP TABLE IF EXISTS `registers`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `registers` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `store_manager_id` int(11) NOT NULL,
+  `name` varchar(50) NOT NULL DEFAULT 'Main Register',
+  `pos_id` varchar(20) DEFAULT NULL,
+  `pin_hash` varchar(255) DEFAULT NULL,
+  `pos_created_by` int(11) DEFAULT NULL,
+  `pos_created_at` timestamp NULL DEFAULT NULL,
+  `status` enum('closed','open') NOT NULL DEFAULT 'closed',
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `pos_id` (`pos_id`),
+  KEY `registers_pos_created_by_fk` (`pos_created_by`),
+  KEY `idx_registers_store_manager_id` (`store_manager_id`),
+  CONSTRAINT `registers_ibfk_1` FOREIGN KEY (`store_manager_id`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `registers_pos_created_by_fk` FOREIGN KEY (`pos_created_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `registers`
+--
+
+LOCK TABLES `registers` WRITE;
+/*!40000 ALTER TABLE `registers` DISABLE KEYS */;
+/*!40000 ALTER TABLE `registers` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `register_allocations`
+--
+
+DROP TABLE IF EXISTS `register_allocations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `register_allocations` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `register_id` int(11) NOT NULL,
+  `cashier_id` int(11) DEFAULT NULL,
+  `allocated_by` int(11) NOT NULL,
+  `initial_budget` decimal(10,2) NOT NULL,
+  `status` enum('active','cashed_out') NOT NULL DEFAULT 'active',
+  `cash_sales` decimal(10,2) DEFAULT NULL,
+  `online_sales` decimal(10,2) DEFAULT NULL,
+  `total_pulled` decimal(10,2) DEFAULT NULL,
+  `opened_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `cashed_out_at` timestamp NULL DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `register_id` (`register_id`),
+  KEY `cashier_id` (`cashier_id`),
+  KEY `allocated_by` (`allocated_by`),
+  CONSTRAINT `register_allocations_ibfk_1` FOREIGN KEY (`register_id`) REFERENCES `registers` (`id`),
+  CONSTRAINT `register_allocations_ibfk_2` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `register_allocations_ibfk_3` FOREIGN KEY (`allocated_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `register_allocations`
+--
+
+LOCK TABLES `register_allocations` WRITE;
+/*!40000 ALTER TABLE `register_allocations` DISABLE KEYS */;
+/*!40000 ALTER TABLE `register_allocations` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- `orders`.`register_allocation_id` references `register_allocations`, which
+-- must exist first -- added here (rather than inline on `orders`, which the
+-- dump creates earlier) so a top-to-bottom re-import doesn't fail with
+-- "referenced table doesn't exist".
+--
+
+ALTER TABLE `orders`
+  ADD CONSTRAINT `orders_ibfk_3` FOREIGN KEY (`register_allocation_id`) REFERENCES `register_allocations` (`id`);
 
 --
 -- Table structure for table `rejection_reasons`

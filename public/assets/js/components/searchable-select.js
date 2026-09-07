@@ -86,7 +86,21 @@ class SearchableSelect {
         this.input.addEventListener('keydown', (e) => {
             this.handleKeydown(e);
         });
-        
+
+        // Browser autofill (Chrome's address autofill in particular ignores
+        // autocomplete="off" on fields it recognizes) can type straight into
+        // this visible text box without ever clicking a dropdown item -- so
+        // the real hidden <select> this widget wraps never gets a value,
+        // even though the field looks filled. Reconcile on blur: if what's
+        // typed matches a real option, select it properly (syncs the hidden
+        // select + fires 'change', which any dependent cascade relies on);
+        // otherwise revert the box to whatever's actually selected so it
+        // can't show text that isn't backed by a real value.
+        this.input.addEventListener('blur', () => {
+            if (this.ignoreBlur) { this.ignoreBlur = false; return; }
+            this.resolveTypedValue();
+        });
+
         this.optionsContainer.addEventListener('click', (e) => {
             e.stopPropagation();
             this.ignoreBlur = true;
@@ -329,6 +343,33 @@ class SearchableSelect {
         this.closeDropdown();
         this.updateFilters('all');
         this.triggerChange();
+    }
+
+    // ============================================
+    // RESOLVE TYPED VALUE (blur reconciliation -- see the blur listener
+    // in init() for why this exists)
+    // ============================================
+
+    resolveTypedValue() {
+        const query = this.input.value.trim();
+
+        if (!query) {
+            if (this.currentValue !== 'all' && this.currentValue !== '') this.clearSelection();
+            return;
+        }
+
+        const selectedOpt = this.originalOptions.find(o => o.value === this.currentValue);
+        if (selectedOpt && selectedOpt.label === query) return; // already in sync
+
+        const exact = this.originalOptions.find(o => o.label.toLowerCase() === query.toLowerCase());
+        if (exact) { this.selectOption(exact.value, exact.label); return; }
+
+        const partial = this.originalOptions.filter(o => o.label.toLowerCase().includes(query.toLowerCase()));
+        if (partial.length === 1) { this.selectOption(partial[0].value, partial[0].label); return; }
+
+        // Ambiguous or no match at all -- don't leave unresolved text
+        // sitting in the box looking like a valid selection.
+        this.updateFromSelect();
     }
 
     // ============================================

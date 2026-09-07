@@ -421,6 +421,48 @@ $content = '
         color: #f45b35;
     }
 
+    /* Rendered markdown from the Description field editor */
+    .job-description-rendered {
+        color: var(--panel-text);
+        font-size: 0.85rem;
+        line-height: 1.55;
+    }
+    .job-description-rendered h1,
+    .job-description-rendered h2,
+    .job-description-rendered h3 {
+        color: var(--panel-title);
+        font-weight: 700;
+        margin: 10px 0 6px;
+    }
+    .job-description-rendered h1:first-child,
+    .job-description-rendered h2:first-child,
+    .job-description-rendered h3:first-child {
+        margin-top: 0;
+    }
+    .job-description-rendered h1 { font-size: 1rem; }
+    .job-description-rendered h2 { font-size: 0.92rem; }
+    .job-description-rendered h3 { font-size: 0.87rem; }
+    .job-description-rendered p {
+        margin: 0 0 8px;
+    }
+    .job-description-rendered ul,
+    .job-description-rendered ol {
+        margin: 0 0 8px;
+        padding-left: 18px;
+    }
+    .job-description-rendered code {
+        background: var(--card-bg-subtle, rgba(0, 0, 0, 0.06));
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-size: 0.85em;
+    }
+    .job-description-rendered a {
+        color: #df4d29;
+    }
+    [data-bs-theme="dark"] .job-description-rendered a {
+        color: #f45b35;
+    }
+
     /* Carousel Dots */
     .carousel-dots {
         display: flex;
@@ -492,7 +534,7 @@ $content = '
         padding: 36px;
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
     }
 
     .form-header h3 {
@@ -1177,7 +1219,8 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/components/searchable-select.js"></script>
+<script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
+<script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
 <script>
 (function () {
     var APPLY_JOBS = ' . $jobsJson . ';
@@ -1228,6 +1271,14 @@ $content = '
         return \'<p class="mb-0">\' + escapeHtml(lines[0]).replace(/\\n/g, "<br>") + "</p>";
     }
 
+    function renderDescription(text) {
+        text = (text || "").trim();
+        if (!text) {
+            return \'<p class="text-muted mb-0 small fst-italic">Description not provided.</p>\';
+        }
+        return \'<div class="job-description-rendered">\' + window.mdToHtml(text) + "</div>";
+    }
+
     function formatMoney(n) {
         return "₱" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 0 });
     }
@@ -1257,7 +1308,7 @@ $content = '
             "<h2>" + escapeHtml(job.title) + "</h2>" +
             \'<div class="job-meta-badges">\' + badges.join("") + "</div>" +
             \'<div class="job-detail-section"><h6><i class="bi bi-file-text"></i> Job Description</h6>\'
-                + renderListOrParagraph(job.description, "Description not provided.") + "</div>" +
+                + renderDescription(job.description) + "</div>" +
             \'<div class="job-detail-section"><h6><i class="bi bi-check2-square"></i> Requirements</h6>\'
                 + renderListOrParagraph(job.requirements, "Requirements not provided.") + "</div>" +
             responsibilitiesHtml +

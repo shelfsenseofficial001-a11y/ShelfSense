@@ -626,12 +626,85 @@ document.addEventListener('DOMContentLoaded', function() {
         return div.innerHTML;
     }
 
-    async function fetchNotifications() {
+    const NOTIF_PAGE_SIZE = 10;
+
+    let lastNotifications = [];
+    let notifFilter = 'all';
+    let notifOffset = 0;
+    let notifHasMore = false;
+    let notifLoadingMore = false;
+
+    // Buckets a notification's timestamp into a group label, by elapsed
+    // time rather than calendar day: "Recent" under 24h old, "Yesterday"
+    // from 24h up to 48h, and its calendar date beyond that.
+    function dateGroupFor(dateStr) {
+        if (!dateStr) return '';
+        const d = new Date(dateStr.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return '';
+        const hoursAgo = (Date.now() - d.getTime()) / 3600000;
+        if (hoursAgo < 24) return 'Recent';
+        if (hoursAgo < 48) return 'Yesterday';
+        return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: d.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined });
+    }
+
+    function renderNotifications() {
+        const list = document.getElementById('notificationList');
+        if (!list) return;
+
+        const filtered = lastNotifications.filter(n => {
+            if (notifFilter === 'unread') return n.is_read == 0;
+            if (notifFilter === 'read') return n.is_read != 0;
+            return true;
+        });
+
+        if (filtered.length === 0) {
+            const emptyMessage = notifFilter === 'unread' ? 'No unread notifications'
+                : notifFilter === 'read' ? 'No read notifications'
+                : 'No notifications';
+            list.innerHTML = `<div class="text-center text-muted small py-3">${emptyMessage}</div>`;
+            return;
+        }
+
+        let html = '';
+        let lastGroup = null;
+        filtered.forEach(n => {
+            const group = dateGroupFor(n.created_at);
+            if (group !== lastGroup) {
+                html += `<div class="notification-date-group">${escapeHtml(group)}</div>`;
+                lastGroup = group;
+            }
+            html += `
+                <div class="notification-item ${n.is_read == 0 ? 'unread' : ''}" data-id="${n.id}" data-link="${escapeHtml(n.link || '')}" role="button">
+                    <div class="notification-icon"><i class="bi ${iconFor(n.type)}"></i></div>
+                    <div class="notification-body">
+                        <div class="notification-message">${escapeHtml(n.message)}</div>
+                        <div class="notification-time">${timeAgo(n.created_at)}</div>
+                    </div>
+                </div>
+            `;
+        });
+
+        // Only "all" shows the paging button -- filtering to unread/read
+        // works against what's already loaded, and loading more under a
+        // filter would silently skip notifications the filter excludes.
+        if (notifFilter === 'all' && notifHasMore) {
+            html += `<button type="button" class="notification-load-more" id="notificationLoadMore">
+                ${notifLoadingMore ? 'Loading...' : 'See Previous Notifications'}
+            </button>`;
+        }
+
+        list.innerHTML = html;
+    }
+
+    // preserveList: true for the background poll while the dropdown is open
+    // -- refreshes the unread badge without silently collapsing whatever
+    // the user has loaded via "See Previous Notifications" back to page 1.
+    async function fetchNotifications(preserveList) {
         const badge = document.getElementById('notificationBadge');
         const list = document.getElementById('notificationList');
         if (!list) return;
         try {
-            const res = await fetch('?page=api_get_notifications&limit=15');
+            const res = await fetch(`?page=api_get_notifications&limit=${NOTIF_PAGE_SIZE}&offset=0`);
             const data = await res.json();
             if (!data.success) return;
             const { notifications, unread_count } = data.data;
@@ -645,22 +718,35 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            if (!notifications || notifications.length === 0) {
-                list.innerHTML = '<div class="text-center text-muted small py-3">No notifications</div>';
-                return;
-            }
+            if (preserveList) return;
 
-            list.innerHTML = notifications.map(n => `
-                <div class="notification-item ${n.is_read == 0 ? 'unread' : ''}" data-id="${n.id}" data-link="${escapeHtml(n.link || '')}" role="button">
-                    <div class="notification-icon"><i class="bi ${iconFor(n.type)}"></i></div>
-                    <div class="notification-body">
-                        <div class="notification-message">${escapeHtml(n.message)}</div>
-                        <div class="notification-time">${timeAgo(n.created_at)}</div>
-                    </div>
-                </div>
-            `).join('');
+            lastNotifications = notifications || [];
+            notifOffset = lastNotifications.length;
+            notifHasMore = lastNotifications.length === NOTIF_PAGE_SIZE;
+            renderNotifications();
         } catch (e) {
             // Silent -- the bell just won't update this cycle; no need to alarm the user over a background poll failing.
+        }
+    }
+
+    async function loadMoreNotifications() {
+        if (notifLoadingMore || !notifHasMore) return;
+        notifLoadingMore = true;
+        renderNotifications();
+        try {
+            const res = await fetch(`?page=api_get_notifications&limit=${NOTIF_PAGE_SIZE}&offset=${notifOffset}`);
+            const data = await res.json();
+            if (data.success) {
+                const more = data.data.notifications || [];
+                lastNotifications = lastNotifications.concat(more);
+                notifOffset += more.length;
+                notifHasMore = more.length === NOTIF_PAGE_SIZE;
+            }
+        } catch (e) {
+            // Best-effort -- the button just stays put so they can retry.
+        } finally {
+            notifLoadingMore = false;
+            renderNotifications();
         }
     }
 
@@ -688,10 +774,19 @@ document.addEventListener('DOMContentLoaded', function() {
         const dropdown = document.getElementById('notificationDropdown');
         const list = document.getElementById('notificationList');
         const markAllLink = document.getElementById('notificationMarkAllRead');
+        const filterTabs = document.getElementById('notificationFilterTabs');
         if (!bell || !dropdown || !list) return;
 
         fetchNotifications();
-        setInterval(fetchNotifications, NOTIF_POLL_MS);
+        setInterval(() => fetchNotifications(dropdown.style.display === 'block'), NOTIF_POLL_MS);
+
+        filterTabs?.addEventListener('click', function (e) {
+            const btn = e.target.closest('.notif-filter-btn');
+            if (!btn) return;
+            notifFilter = btn.dataset.filter;
+            filterTabs.querySelectorAll('.notif-filter-btn').forEach(b => b.classList.toggle('active', b === btn));
+            renderNotifications();
+        });
 
         bell.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -709,6 +804,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         list.addEventListener('click', function (e) {
+            if (e.target.closest('#notificationLoadMore')) {
+                loadMoreNotifications();
+                return;
+            }
             const item = e.target.closest('.notification-item');
             if (!item) return;
             const id = parseInt(item.dataset.id);

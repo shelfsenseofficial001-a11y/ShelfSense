@@ -21,6 +21,9 @@ function populatePositionOptions(group, selectedPosition) {
     posSelect.disabled = positions.length === 0;
     posSelect.value = selectedPosition && positions.includes(selectedPosition) ? selectedPosition : '';
     window.refreshSearchableSelect && window.refreshSearchableSelect(posSelect);
+    // Assigning .value directly doesn't fire 'change', so the live preview
+    // (which listens on postingDepartment) would otherwise miss this.
+    if (typeof renderFullPreview === 'function') renderFullPreview();
 }
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -199,6 +202,308 @@ function setupForm() {
     document.getElementById('saveAndSubmitBtn').addEventListener('click', function () {
         submitForm(true);
     });
+    setupMarkdownEditor();
+}
+
+// ============================================
+// DESCRIPTION MARKDOWN TOOLBAR
+// Wraps/inserts markdown syntax around the current selection (or at the
+// cursor, with placeholder text, when nothing is selected) -- the same
+// interaction every markdown editor toolbar uses. Rendering back to HTML
+// (for the Preview toggle here, and on the public Apply page) is handled
+// by the shared mdToHtml() in assets/js/shared/markdown.js.
+// ============================================
+const JP_MD_ACTIONS = {
+    h1: { type: 'line-prefix', prefix: '# ' },
+    h2: { type: 'line-prefix', prefix: '## ' },
+    h3: { type: 'line-prefix', prefix: '### ' },
+    bold: { type: 'wrap', before: '**', after: '**', placeholder: 'bold text' },
+    italic: { type: 'wrap', before: '*', after: '*', placeholder: 'italic text' },
+    strike: { type: 'wrap', before: '~~', after: '~~', placeholder: 'strikethrough text' },
+    code: { type: 'wrap', before: '`', after: '`', placeholder: 'code' },
+    ul: { type: 'line-prefix', prefix: '- ' },
+    ol: { type: 'line-prefix', prefix: '1. ' },
+};
+
+function applyMarkdownAction(textarea, action) {
+    const start = textarea.selectionStart;
+    const end = textarea.selectionEnd;
+    const value = textarea.value;
+    const selected = value.slice(start, end);
+
+    if (action.type === 'wrap') {
+        const text = selected || action.placeholder;
+        const newValue = value.slice(0, start) + action.before + text + action.after + value.slice(end);
+        textarea.value = newValue;
+        const selStart = start + action.before.length;
+        textarea.setSelectionRange(selStart, selStart + text.length);
+    } else if (action.type === 'line-prefix') {
+        // Prefix every line touched by the selection (so selecting several
+        // lines and hitting "bullet list" turns all of them into list items).
+        let lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = value.indexOf('\n', end);
+        if (lineEnd === -1) lineEnd = value.length;
+        const block = value.slice(lineStart, lineEnd);
+        const prefixed = block.split('\n').map(l => action.prefix + l).join('\n');
+        textarea.value = value.slice(0, lineStart) + prefixed + value.slice(lineEnd);
+        textarea.setSelectionRange(lineStart, lineStart + prefixed.length);
+    }
+
+    textarea.focus();
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    jpMdCommit(textarea); // discrete toolbar/keyboard actions are always their own undo step
+}
+
+// Grows the textarea to fit its content (up to a sane cap, beyond which it
+// scrolls internally like before) so typing -- including pressing Enter for
+// a new line -- pushes the box taller instead of hiding what's just been
+// typed below the fold.
+function autosizeTextarea(textarea) {
+    const maxHeight = 500;
+    textarea.style.height = 'auto';
+    textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+}
+
+// ============================================
+// UNDO / REDO
+// Toolbar actions (and the link modal) replace textarea.value directly,
+// which silently wipes the browser's own undo history for that field --
+// so once any button is used, native Ctrl+Z would otherwise stop working
+// for everything, even plain typing. This is a small self-contained undo
+// stack instead: every discrete action (toolbar click, keyboard shortcut,
+// link insert) commits its own step immediately; plain typing is coalesced
+// into one step per ~500ms pause, so undo doesn't take one press per
+// keystroke.
+// ============================================
+const jpMdHistory = { stack: [], index: -1 };
+let jpMdCommitTimer = null;
+const JP_MD_HISTORY_LIMIT = 100;
+
+function jpMdSnapshotNow(textarea) {
+    return { value: textarea.value, start: textarea.selectionStart, end: textarea.selectionEnd };
+}
+
+function jpMdCommit(textarea) {
+    clearTimeout(jpMdCommitTimer);
+    jpMdCommitTimer = null;
+    const current = jpMdSnapshotNow(textarea);
+    const top = jpMdHistory.stack[jpMdHistory.index];
+    if (top && top.value === current.value) return; // nothing actually changed
+    jpMdHistory.stack = jpMdHistory.stack.slice(0, jpMdHistory.index + 1);
+    jpMdHistory.stack.push(current);
+    if (jpMdHistory.stack.length > JP_MD_HISTORY_LIMIT) jpMdHistory.stack.shift();
+    jpMdHistory.index = jpMdHistory.stack.length - 1;
+    jpUpdateUndoRedoButtons();
+}
+
+function jpMdScheduleCommit(textarea) {
+    clearTimeout(jpMdCommitTimer);
+    jpMdCommitTimer = setTimeout(() => jpMdCommit(textarea), 500);
+}
+
+function jpMdResetHistory(textarea) {
+    clearTimeout(jpMdCommitTimer);
+    jpMdCommitTimer = null;
+    jpMdHistory.stack = [jpMdSnapshotNow(textarea)];
+    jpMdHistory.index = 0;
+    jpUpdateUndoRedoButtons();
+}
+
+function jpMdRestoreSnapshot(textarea, snapshot) {
+    textarea.value = snapshot.value;
+    textarea.setSelectionRange(snapshot.start, snapshot.end);
+    textarea.focus();
+    autosizeTextarea(textarea);
+    renderFullPreview();
+    jpUpdateUndoRedoButtons();
+}
+
+function jpMdUndo(textarea) {
+    jpMdCommit(textarea); // finalize any typing in progress before stepping back
+    if (jpMdHistory.index <= 0) return;
+    jpMdHistory.index--;
+    jpMdRestoreSnapshot(textarea, jpMdHistory.stack[jpMdHistory.index]);
+}
+
+function jpMdRedo(textarea) {
+    if (jpMdHistory.index >= jpMdHistory.stack.length - 1) return;
+    jpMdHistory.index++;
+    jpMdRestoreSnapshot(textarea, jpMdHistory.stack[jpMdHistory.index]);
+}
+
+function jpUpdateUndoRedoButtons() {
+    const undoBtn = document.getElementById('jpMdUndoBtn');
+    const redoBtn = document.getElementById('jpMdRedoBtn');
+    if (undoBtn) undoBtn.disabled = jpMdHistory.index <= 0;
+    if (redoBtn) redoBtn.disabled = jpMdHistory.index >= jpMdHistory.stack.length - 1;
+}
+
+// ============================================
+// INSERT LINK MODAL
+// ============================================
+let jpLinkTextarea = null;
+let jpLinkSelStart = 0;
+let jpLinkSelEnd = 0;
+
+function openLinkModal(textarea) {
+    jpLinkTextarea = textarea;
+    jpLinkSelStart = textarea.selectionStart;
+    jpLinkSelEnd = textarea.selectionEnd;
+    const selectedText = textarea.value.slice(jpLinkSelStart, jpLinkSelEnd);
+
+    document.getElementById('jpLinkLabel').value = selectedText;
+    document.getElementById('jpLinkUrl').value = '';
+    updateLinkPreview();
+
+    const modalEl = document.getElementById('jpLinkModal');
+    modalEl.addEventListener('shown.bs.modal', function focusField() {
+        modalEl.removeEventListener('shown.bs.modal', focusField);
+        document.getElementById(selectedText ? 'jpLinkUrl' : 'jpLinkLabel').focus();
+    });
+    bootstrap.Modal.getOrCreateInstance(modalEl).show();
+}
+
+function isValidLinkUrl(url) {
+    return /^https?:\/\/\S+$/.test(url);
+}
+
+function updateLinkPreview() {
+    const label = document.getElementById('jpLinkLabel').value.trim();
+    const url = document.getElementById('jpLinkUrl').value.trim();
+    const preview = document.getElementById('jpLinkPreview');
+    const insertBtn = document.getElementById('jpLinkInsertBtn');
+    const valid = isValidLinkUrl(url);
+    insertBtn.disabled = !valid;
+
+    if (!url) {
+        preview.innerHTML = '<span class="text-muted small fst-italic">Nothing to preview yet.</span>';
+    } else if (!valid) {
+        preview.innerHTML = '<span class="text-danger small">URL must start with http:// or https://</span>';
+    } else {
+        preview.innerHTML = `<a href="${jpEscapeHtml(url)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right"></i> ${jpEscapeHtml(label || url)}</a>`;
+    }
+}
+
+function insertLinkFromModal() {
+    const label = document.getElementById('jpLinkLabel').value.trim();
+    const url = document.getElementById('jpLinkUrl').value.trim();
+    if (!isValidLinkUrl(url) || !jpLinkTextarea) return;
+
+    const textarea = jpLinkTextarea;
+    const markdown = `[${label || url}](${url})`;
+    const value = textarea.value;
+    textarea.value = value.slice(0, jpLinkSelStart) + markdown + value.slice(jpLinkSelEnd);
+    const caret = jpLinkSelStart + markdown.length;
+    textarea.setSelectionRange(caret, caret);
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    jpMdCommit(textarea);
+
+    bootstrap.Modal.getInstance(document.getElementById('jpLinkModal'))?.hide();
+}
+
+// ============================================
+// KEYBOARD SHORTCUTS
+// Digit-based combos use e.code (the physical key) rather than e.key,
+// because Shift+8/Shift+7/etc. produce symbol characters ('*', '&') in
+// e.key on a US layout -- e.code stays "Digit8"/"Digit7" regardless.
+// ============================================
+function handleMarkdownShortcut(e, textarea) {
+    const mod = e.ctrlKey || e.metaKey;
+    if (!mod) return;
+
+    if (e.code === 'KeyZ' && !e.shiftKey) { e.preventDefault(); jpMdUndo(textarea); return; }
+    if ((e.code === 'KeyZ' && e.shiftKey) || e.code === 'KeyY') { e.preventDefault(); jpMdRedo(textarea); return; }
+
+    if (e.code === 'KeyB') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.bold); return; }
+    if (e.code === 'KeyI') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.italic); return; }
+    if (e.code === 'KeyE') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.code); return; }
+    if (e.code === 'KeyK') { e.preventDefault(); openLinkModal(textarea); return; }
+    if (e.shiftKey && e.code === 'KeyX') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.strike); return; }
+    if (e.shiftKey && e.code === 'Digit8') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.ul); return; }
+    if (e.shiftKey && e.code === 'Digit7') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.ol); return; }
+    if (e.altKey && e.code === 'Digit1') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.h1); return; }
+    if (e.altKey && e.code === 'Digit2') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.h2); return; }
+    if (e.altKey && e.code === 'Digit3') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.h3); return; }
+}
+
+function setupMarkdownEditor() {
+    const textarea = document.getElementById('postingDescription');
+    if (!textarea || textarea.dataset.mdWired) return;
+    textarea.dataset.mdWired = '1';
+
+    textarea.addEventListener('input', () => {
+        autosizeTextarea(textarea);
+        renderFullPreview();
+        jpMdScheduleCommit(textarea);
+    });
+    textarea.addEventListener('keydown', e => handleMarkdownShortcut(e, textarea));
+
+    document.querySelectorAll('.jp-md-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            if (btn.dataset.md === 'link') { openLinkModal(textarea); return; }
+            const action = JP_MD_ACTIONS[btn.dataset.md];
+            if (action) applyMarkdownAction(textarea, action);
+        });
+        // Same hover tooltip component used app-wide (e.g. the table
+        // action icons) -- title already carries the label + shortcut,
+        // e.g. "Bold (Ctrl+B)".
+        if (btn.title && window.bootstrap && window.bootstrap.Tooltip) {
+            btn.setAttribute('data-bs-toggle', 'tooltip');
+            new window.bootstrap.Tooltip(btn, { trigger: 'hover focus', placement: 'top' });
+        }
+    });
+
+    document.getElementById('jpMdUndoBtn')?.addEventListener('click', () => jpMdUndo(textarea));
+    document.getElementById('jpMdRedoBtn')?.addEventListener('click', () => jpMdRedo(textarea));
+
+    document.getElementById('jpLinkLabel')?.addEventListener('input', updateLinkPreview);
+    document.getElementById('jpLinkUrl')?.addEventListener('input', updateLinkPreview);
+    document.getElementById('jpLinkInsertBtn')?.addEventListener('click', insertLinkFromModal);
+
+    // Live preview panel (permanent split, not a tab): re-render on every
+    // field that feeds it, so it always reflects unsaved edits as you type.
+    ['postingTitle', 'postingDepartment', 'postingLocation', 'postingSlots', 'postingOpenUntil'].forEach(id => {
+        document.getElementById(id)?.addEventListener('input', renderFullPreview);
+        document.getElementById(id)?.addEventListener('change', renderFullPreview);
+    });
+}
+
+function renderFullPreview() {
+    const container = document.getElementById('postingFullPreview');
+    if (!container) return;
+
+    const title = document.getElementById('postingTitle').value.trim();
+    const department = document.getElementById('postingDepartment').value.trim();
+    const location = document.getElementById('postingLocation').value.trim();
+    const slots = document.getElementById('postingSlots').value.trim();
+    const description = document.getElementById('postingDescription').value.trim();
+    const openUntil = document.getElementById('postingOpenUntil').value;
+
+    const badges = [];
+    if (department) badges.push(`<span class="jp-preview-badge"><i class="bi bi-briefcase"></i> ${jpEscapeHtml(department)}</span>`);
+    if (location) badges.push(`<span class="jp-preview-badge"><i class="bi bi-geo-alt"></i> ${jpEscapeHtml(location)}</span>`);
+    if (slots) badges.push(`<span class="jp-preview-badge"><i class="bi bi-people"></i> ${jpEscapeHtml(slots)} slot${slots == 1 ? '' : 's'}</span>`);
+
+    const descriptionHtml = description
+        ? window.mdToHtml(description)
+        : '<p class="text-muted fst-italic mb-0">No description written yet.</p>';
+
+    const closingHtml = openUntil
+        ? `<p class="mb-0"><i class="bi bi-calendar-event"></i> Applications close <strong>${jpEscapeHtml(new Date(openUntil + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))}</strong></p>`
+        : '<p class="text-muted fst-italic mb-0">No closing date set yet.</p>';
+
+    container.innerHTML = `
+        <h4 class="jp-preview-title">${title ? jpEscapeHtml(title) : '<span class="text-muted fst-italic">Untitled position</span>'}</h4>
+        <div class="jp-preview-badges">${badges.join('') || '<span class="text-muted small fst-italic">No department/location/slots set yet.</span>'}</div>
+        <div class="jp-preview-section">
+            <h6><i class="bi bi-file-text"></i> Job Description</h6>
+            <div class="jp-preview-description">${descriptionHtml}</div>
+        </div>
+        <div class="jp-preview-section jp-preview-section-last">
+            ${closingHtml}
+        </div>
+    `;
 }
 
 function openFormModal(posting) {
@@ -211,14 +516,12 @@ function openFormModal(posting) {
     document.getElementById('postingDepartmentGroup').value = posting ? (posting.department_group || '') : '';
     window.refreshSearchableSelect && window.refreshSearchableSelect('postingDepartmentGroup');
     populatePositionOptions(posting ? (posting.department_group || '') : '', posting ? posting.department : null);
-    document.getElementById('postingRole').value = posting ? posting.role : '';
     document.getElementById('postingLocation').value = posting ? (posting.location || '') : '';
     document.getElementById('postingSlots').value = posting && posting.slots !== null ? posting.slots : '';
-    document.getElementById('postingDescription').value = posting ? posting.description : '';
-    document.getElementById('postingRequirements').value = posting ? (posting.requirements || '') : '';
-    document.getElementById('postingResponsibilities').value = posting ? (posting.responsibilities || '') : '';
-    document.getElementById('postingSalaryMin').value = posting ? (posting.salary_range_min || '') : '';
-    document.getElementById('postingSalaryMax').value = posting ? (posting.salary_range_max || '') : '';
+    const descriptionTextarea = document.getElementById('postingDescription');
+    descriptionTextarea.value = posting ? posting.description : '';
+    descriptionTextarea.style.height = '';
+    jpMdResetHistory(descriptionTextarea);
 
     const openUntilInput = document.getElementById('postingOpenUntil');
     const today = new Date();
@@ -229,26 +532,46 @@ function openFormModal(posting) {
     openUntilInput.max = toIso(maxDate);
     openUntilInput.value = posting ? posting.open_until : '';
 
+    renderFullPreview();
+
     bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
-    new bootstrap.Modal(document.getElementById('postingFormModal')).show();
+    const formModalEl = document.getElementById('postingFormModal');
+    // scrollHeight reads 0 while the modal is still display:none, so the
+    // initial autosize (for an existing description on Edit) has to wait
+    // until Bootstrap has actually shown it.
+    formModalEl.addEventListener('shown.bs.modal', () => autosizeTextarea(descriptionTextarea), { once: true });
+    new bootstrap.Modal(formModalEl).show();
+}
+
+// job_postings.role has no user-facing meaning anymore (the form no longer
+// asks for it) -- it only still exists in the DB as a NOT NULL, unique-among-
+// active-postings internal key. Slugify the title for new postings so it
+// still gets a sane, differentiated value; the id suffix keeps two postings
+// with the same title from colliding on the uniqueness check.
+function slugifyForRoleKey(title, id) {
+    const slug = (title || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+    return (slug || 'posting') + '-' + id;
 }
 
 function collectFormPayload() {
-    return {
-        id: document.getElementById('postingId').value || undefined,
-        title: document.getElementById('postingTitle').value.trim(),
+    const id = document.getElementById('postingId').value || undefined;
+    const title = document.getElementById('postingTitle').value.trim();
+    const payload = {
+        id,
+        title,
         department_group: document.getElementById('postingDepartmentGroup').value.trim(),
         department: document.getElementById('postingDepartment').value.trim(),
-        role: document.getElementById('postingRole').value.trim(),
         location: document.getElementById('postingLocation').value.trim(),
         slots: document.getElementById('postingSlots').value,
         description: document.getElementById('postingDescription').value.trim(),
-        requirements: document.getElementById('postingRequirements').value.trim(),
-        responsibilities: document.getElementById('postingResponsibilities').value.trim(),
-        salary_range_min: document.getElementById('postingSalaryMin').value,
-        salary_range_max: document.getElementById('postingSalaryMax').value,
         open_until: document.getElementById('postingOpenUntil').value
     };
+    // Editing an existing posting: leave `role` out entirely so the backend
+    // keeps whatever value it already has (see update_job_posting.php).
+    if (!id) {
+        payload.role = slugifyForRoleKey(title, Date.now());
+    }
+    return payload;
 }
 
 function submitForm(alsoSubmit) {
@@ -342,8 +665,7 @@ function renderDetail(p) {
             <div class="col-md-6">
                 <p class="mb-1"><strong>Title:</strong> ${jpEscapeHtml(p.title)}</p>
                 <p class="mb-1"><strong>Department:</strong> ${jpEscapeHtml(p.department_group || '—')}</p>
-                <p class="mb-1"><strong>Position:</strong> ${jpEscapeHtml(p.department)}</p>
-                <p class="mb-0"><strong>Role Key:</strong> ${jpEscapeHtml(p.role)}</p>
+                <p class="mb-0"><strong>Position:</strong> ${jpEscapeHtml(p.department)}</p>
                 ${p.shares_location_count > 0 ? `<p class="mb-0 mt-1"><span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-geo-alt"></i> Shares location "${jpEscapeHtml(p.location || '')}" with ${p.shares_location_count} other active posting(s)</span></p>` : ''}
             </div>
             <div class="col-md-6">

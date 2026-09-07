@@ -13,11 +13,24 @@ document.addEventListener('DOMContentLoaded', function () {
     loadMineList();
     loadPoList();
     setDefaultOrderDate();
+    activateTabFromQuery();
 
     document.getElementById('mineStatusFilter').addEventListener('change', () => { minePage = 1; loadMineList(); });
     document.getElementById('addItemRowBtn').addEventListener('click', () => addItemRow());
     document.getElementById('submitRequisitionBtn').addEventListener('click', submitRequisition);
+
+    document.getElementById('mineCreateFab').addEventListener('click', function (e) {
+        e.preventDefault();
+        bootstrap.Tab.getOrCreateInstance(document.getElementById('create-tab')).show();
+    });
 });
+
+function activateTabFromQuery() {
+    const tabKey = new URLSearchParams(window.location.search).get('tab');
+    if (!tabKey) return;
+    const tabButton = document.querySelector(`#requisitionTabs [data-tab-key="${tabKey}"]`);
+    if (tabButton) bootstrap.Tab.getOrCreateInstance(tabButton).show();
+}
 
 function setDefaultOrderDate() {
     const input = document.getElementById('createOrderDate');
@@ -45,28 +58,29 @@ async function loadDepartments() {
 }
 
 function addItemRow() {
-    const tbody = document.getElementById('createItemsBody');
+    const list = document.getElementById('createItemsBody');
     const rowId = 'row_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     const options = smProducts.map(p => `<option value="${p.store_product_id}">${prEscapeHtml(p.name)}</option>`).join('');
-    const tr = document.createElement('tr');
-    tr.id = rowId;
-    tr.innerHTML = `
-        <td><select class="form-select form-select-sm item-product">${options}</select></td>
-        <td><input type="number" class="form-control form-control-sm item-qty" min="1" max="999" value="1"></td>
-        <td><button type="button" class="btn btn-sm btn-outline-danger" onclick="document.getElementById('${rowId}').remove(); refreshEligibleSuppliers();"><i class="bi bi-trash"></i></button></td>
+    const row = document.createElement('div');
+    row.className = 'sm-item-row';
+    row.id = rowId;
+    row.innerHTML = `
+        <select class="form-select form-select-sm item-product">${options}</select>
+        <input type="number" class="form-control form-control-sm item-qty" min="1" max="999" value="1">
+        <button type="button" class="sm-item-remove" onclick="document.getElementById('${rowId}').remove(); refreshEligibleSuppliers();" title="Remove item"><i class="bi bi-trash"></i></button>
     `;
-    tbody.appendChild(tr);
+    list.appendChild(row);
 
-    tr.querySelector('.item-product').addEventListener('change', refreshEligibleSuppliers);
-    tr.querySelector('.item-qty').addEventListener('input', refreshEligibleSuppliers);
+    row.querySelector('.item-product').addEventListener('change', refreshEligibleSuppliers);
+    row.querySelector('.item-qty').addEventListener('input', refreshEligibleSuppliers);
     refreshEligibleSuppliers();
 }
 
 function collectItems() {
     const items = [];
-    document.querySelectorAll('#createItemsBody tr').forEach(tr => {
-        const storeProductId = parseInt(tr.querySelector('.item-product')?.value);
-        const quantity = parseInt(tr.querySelector('.item-qty')?.value) || 0;
+    document.querySelectorAll('#createItemsBody .sm-item-row').forEach(row => {
+        const storeProductId = parseInt(row.querySelector('.item-product')?.value);
+        const quantity = parseInt(row.querySelector('.item-qty')?.value) || 0;
         if (storeProductId && quantity > 0) {
             items.push({ store_product_id: storeProductId, quantity });
         }
@@ -102,12 +116,11 @@ async function doRefreshEligibleSuppliers() {
             return;
         }
         panel.innerHTML = smEligibleSuppliers.map(s => `
-            <div class="form-check border rounded p-2 mb-2">
+            <label class="sm-supplier-option" for="supplier_${s.supplier_id}">
                 <input class="form-check-input" type="radio" name="supplierChoice" id="supplier_${s.supplier_id}" value="${s.supplier_id}" onchange="selectSupplier(${s.supplier_id})">
-                <label class="form-check-label w-100" for="supplier_${s.supplier_id}">
-                    <strong>${prEscapeHtml(s.supplier_name)}</strong> — <span class="fw-bold">${prCurrency(s.total)}</span>
-                </label>
-            </div>
+                <span class="sm-supplier-name">${prEscapeHtml(s.supplier_name)}</span>
+                <span class="sm-supplier-price">${prCurrency(s.total)}</span>
+            </label>
         `).join('');
     } catch (e) {
         panel.innerHTML = `<div class="alert alert-danger small mb-0">${prEscapeHtml(e.message)}</div>`;
@@ -119,6 +132,9 @@ function selectSupplier(supplierId) {
     const supplier = smEligibleSuppliers.find(s => s.supplier_id === supplierId);
     document.getElementById('createSubtotal').textContent = prCurrency(supplier ? supplier.total : 0);
     document.getElementById('submitRequisitionBtn').disabled = !supplier;
+    document.querySelectorAll('#eligibleSuppliersPanel .sm-supplier-option').forEach(el => {
+        el.classList.toggle('selected', el.querySelector('input').value == supplierId);
+    });
 }
 
 async function submitRequisition() {
@@ -197,7 +213,7 @@ async function loadPoList() {
     try {
         const data = await prFetchJson('?page=api_sm_list_pos&limit=20');
         const rows = data.purchase_orders || [];
-        prSetTabBadge('po-tab', rows.length);
+        prSetTabBadge('poSectionHeading', rows.length);
         tbody.innerHTML = rows.length ? rows.map(po => `
             <tr>
                 <td>${prEscapeHtml(po.po_number)}</td>

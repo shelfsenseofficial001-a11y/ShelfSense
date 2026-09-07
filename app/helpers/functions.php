@@ -8,6 +8,33 @@
 // level below the department group.
 define('JOB_POSTING_DEPARTMENTS', ['Cashier', 'HR Staff', 'Finance Staff']);
 
+/**
+ * Strips markdown syntax from a job posting's Description (written with the
+ * toolbar in views/pages/hr/job_postings.php) down to plain text, then
+ * truncates it -- for short, non-HTML teasers like the landing page's job
+ * cards, where the full markdown-to-HTML render (mdToHtml() in
+ * assets/js/shared/markdown.js) would be overkill and truncating raw
+ * markdown mid-syntax (e.g. cutting off inside "**bold") looks broken, as
+ * would leaving literal "##"/"**" characters visible in a plain-text card.
+ */
+function stripMarkdownPreview($text, $length = 220)
+{
+    $text = (string)$text;
+    $text = preg_replace('/^#{1,6}\s+/m', '', $text);          // # / ## / ### headings
+    $text = preg_replace('/^[-*]{3,}\s*$/m', '', $text);       // --- horizontal rules
+    $text = preg_replace('/^[-*]\s+/m', '', $text);            // - / * bullet markers
+    $text = preg_replace('/^\d+\.\s+/m', '', $text);           // 1. numbered markers
+    $text = preg_replace('/\*\*([^*]+)\*\*/', '$1', $text);    // **bold**
+    $text = preg_replace('/~~([^~]+)~~/', '$1', $text);        // ~~strikethrough~~
+    $text = preg_replace('/`([^`]+)`/', '$1', $text);          // `code`
+    $text = preg_replace('/\*([^*]+)\*/', '$1', $text);        // *italic*
+    $text = preg_replace('/\[([^\]]+)\]\([^)]+\)/', '$1', $text); // [label](url)
+    $text = preg_replace('/\n{2,}/', ' ', $text);              // collapse blank lines
+    $text = trim(preg_replace('/\s+/', ' ', $text));
+
+    return mb_strimwidth($text, 0, $length, '...');
+}
+
 // Top-level department groups shown to HR Staff when creating a posting.
 // Each group scopes which JOB_POSTING_DEPARTMENTS positions are selectable,
 // so the form is a two-step Department -> Position cascade rather than one
@@ -438,18 +465,18 @@ function getUnreadNotifications($userId)
     return $stmt->fetchAll();
 }
 
-function getNotifications($userId, $limit = 10)
+function getNotifications($userId, $limit = 10, $offset = 0)
 {
     $db = \App\Core\Database::getInstance()->getConnection();
 
     $stmt = $db->prepare("
-        SELECT * FROM notifications 
-        WHERE user_id = ? 
-        ORDER BY created_at DESC 
-        LIMIT ?
+        SELECT * FROM notifications
+        WHERE user_id = ?
+        ORDER BY created_at DESC
+        LIMIT ? OFFSET ?
     ");
 
-    $stmt->execute([$userId, $limit]);
+    $stmt->execute([$userId, $limit, $offset]);
     return $stmt->fetchAll();
 }
 
