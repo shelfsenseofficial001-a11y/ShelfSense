@@ -714,7 +714,7 @@ $content = '
                         <div class="icon-box mb-0"><i class="bi bi-envelope"></i></div>
                         <div>
                             <small class="text-muted d-block">Enterprise Inquiries</small>
-                            <span class="fw-semibold">contact@shelfsense.io</span>
+                            <span class="fw-semibold">shelfsenseofficial001@gmail.com</span>
                         </div>
                     </div>
 
@@ -722,7 +722,7 @@ $content = '
                         <div class="icon-box mb-0"><i class="bi bi-telephone"></i></div>
                         <div>
                             <small class="text-muted d-block">Direct Line</small>
-                            <span class="fw-semibold">+1 (800) 555-SENSE</span>
+                            <span class="fw-semibold">0926 455 0078</span>
                         </div>
                     </div>
 
@@ -876,8 +876,8 @@ $content = '
             <div class="col-lg-2 col-6 footer-col">
                 <h6>Get in Touch</h6>
                 <ul>
-                    <li><a href="mailto:contact@shelfsense.io">contact@shelfsense.io</a></li>
-                    <li><a href="tel:+18005557367">+1 (800) 555-SENSE</a></li>
+                    <li><a href="mailto:shelfsenseofficial001@gmail.com">shelfsenseofficial001@gmail.com</a></li>
+                    <li><a href="tel:+639264550078">0926 455 0078</a></li>
                     <li><a href="?page=home#contact">Branch Location</a></li>
                 </ul>
             </div>

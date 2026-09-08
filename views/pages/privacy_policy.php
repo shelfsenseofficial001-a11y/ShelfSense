@@ -62,7 +62,8 @@ $content = '
 
     <h5 class="mt-4">Contact</h5>
     <p>Questions about this policy or your data can be directed to HR at
-    <a href="mailto:contact@shelfsense.io">contact@shelfsense.io</a>.</p>
+    <a href="mailto:shelfsenseofficial001@gmail.com">shelfsenseofficial001@gmail.com</a> or
+    <a href="tel:+639264550078">0926 455 0078</a>.</p>
 
     <p class="text-muted small mt-4">This is a student project (ShelfSense) built for academic purposes. This
     policy describes how the prototype is designed to handle data.</p>
