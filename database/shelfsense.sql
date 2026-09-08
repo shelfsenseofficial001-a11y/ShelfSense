@@ -1939,7 +1939,7 @@ CREATE TABLE `register_allocations` (
   CONSTRAINT `register_allocations_ibfk_1` FOREIGN KEY (`register_id`) REFERENCES `registers` (`id`),
   CONSTRAINT `register_allocations_ibfk_2` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `register_allocations_ibfk_3` FOREIGN KEY (`allocated_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1984,7 +1984,7 @@ CREATE TABLE `registers` (
 
 LOCK TABLES `registers` WRITE;
 /*!40000 ALTER TABLE `registers` DISABLE KEYS */;
-INSERT INTO `registers` VALUES (1,5,'Register 1','POS-001','$2y$10$w5/l7tcOzklSnbfJLMgXjO.sgImsSigAAsF2JsVi7CfA0iNBBMqry',1,'2026-09-08 03:03:57','closed','2026-09-08 03:01:02','2026-09-08 03:03:57'),(2,5,'Register 2','POS-002','$2y$10$w5/l7tcOzklSnbfJLMgXjO.sgImsSigAAsF2JsVi7CfA0iNBBMqry',1,'2026-09-08 03:03:57','closed','2026-09-08 03:01:02','2026-09-08 03:03:57');
+INSERT INTO `registers` VALUES (1,5,'Register 1','POS-001','$2y$10$w5/l7tcOzklSnbfJLMgXjO.sgImsSigAAsF2JsVi7CfA0iNBBMqry',1,'2026-09-08 03:03:57','closed','2026-09-08 03:01:02','2026-09-08 07:36:00'),(2,5,'Register 2','POS-002','$2y$10$w5/l7tcOzklSnbfJLMgXjO.sgImsSigAAsF2JsVi7CfA0iNBBMqry',1,'2026-09-08 03:03:57','closed','2026-09-08 03:01:02','2026-09-08 03:03:57');
 /*!40000 ALTER TABLE `registers` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2599,4 +2599,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-08 12:21:47
+-- Dump completed on 2026-09-08 15:36:12
