@@ -1,12 +1,21 @@
 <?php
+use App\Models\PayrollCycle;
+
 $title = 'Payroll - ShelfSense HR';
 $pageTitle = 'Payroll Management';
 $activePage = 'payroll';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260908600000"></script>';
 
 $currentMonth = date('m');
 $currentYear = date('Y');
 $currentDate = date('Y-m-d');
+
+// The Year/Month filter selects default to the current year/month (see the
+// "selected" logic below) -- match that exact default here so the embedded
+// data equals what loadPayrollCycles() would have fetched.
+$cycleModel = new PayrollCycle();
+$initialData = ['cycles' => $cycleModel->getAll(['year' => (int)$currentYear, 'month' => (int)$currentMonth])];
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 
 // Month options
 $monthOptions = '';
@@ -25,7 +34,7 @@ for ($y = $cy - 1; $y <= $cy + 1; $y++) {
     $yearOptions .= "<option value=\"$y\" $selected>$y</option>";
 }
 
-$content = <<<HTML
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<HTML
 <style>
     .payroll-stats-card { cursor: default; }
     .payroll-status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 12px; }

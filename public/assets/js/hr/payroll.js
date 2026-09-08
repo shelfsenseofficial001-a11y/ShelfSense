@@ -732,7 +732,24 @@ document.getElementById('createCycleForm').addEventListener('submit', function(e
 
 document.addEventListener('DOMContentLoaded', function() {
     // Load cycles on page load
-    loadPayrollCycles();
+    if (window.__INITIAL_DATA__) {
+        const cycles = window.__INITIAL_DATA__.cycles || [];
+        renderCycles(cycles);
+        renderStats(cycles);
+        document.getElementById('tableCount').textContent = cycles.length + ' cycles';
+        const currentMonth = String(new Date().getMonth() + 1).padStart(2, '0');
+        const currentYear = String(new Date().getFullYear());
+        const hasDraft = cycles.some(c =>
+            c.status === 'draft' &&
+            c.start_date &&
+            c.start_date.startsWith(currentYear + '-' + currentMonth)
+        );
+        const alert = document.getElementById('payrollReadyAlert');
+        if (alert) alert.style.display = hasDraft ? 'block' : 'none';
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadPayrollCycles();
+    }
 
     if (window.ShelfSenseFilterChips) {
         window.ShelfSenseFilterChips.init('activeFilterChips', [
