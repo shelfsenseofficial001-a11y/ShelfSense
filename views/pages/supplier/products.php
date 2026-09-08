@@ -1,10 +1,26 @@
 <?php
+use App\Core\Auth;
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/supplier/get_supplier_products.php';
+
+$db = Database::getInstance()->getConnection();
+$userId = Auth::userId();
+$stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
+$stmt->execute([$userId]);
+$supplier = $stmt->fetch();
+$supplierId = $supplier ? $supplier['id'] : $userId;
+
+$initialData = supplier_products_build_data($db, $supplierId, 1, 20, '', '');
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Supplier Products - ShelfSense';
 $pageTitle = 'My Product Catalog';
 $activePage = 'products';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260907"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260908600000"></script>';
 
-$content = <<<'EOT'
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<'EOT'
 <div class="sp-stats-grid">
     <div class="sp-stat-card">
         <div class="sp-stat-label">Total Products</div>

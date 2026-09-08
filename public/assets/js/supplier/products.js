@@ -8,7 +8,22 @@ let currentPage = 1;
 let allProducts = [];
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadProducts();
+    if (window.__INITIAL_DATA__) {
+        const data = window.__INITIAL_DATA__;
+        allProducts = data.products || [];
+        renderProducts(allProducts);
+        spRenderPagination(
+            document.getElementById('paginationContainer'),
+            document.getElementById('tableInfo'),
+            data.pagination,
+            'products',
+            (p) => loadProducts(p)
+        );
+        renderStats(data.stats);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadProducts();
+    }
     setupEventListeners();
 
     if (window.ShelfSenseFilterChips) {
