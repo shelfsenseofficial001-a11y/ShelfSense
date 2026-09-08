@@ -9,39 +9,13 @@ use App\Core\Auth;
 use App\Core\Response;
 use App\Models\Applicant;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-// Only full HR (not trainees) can access applicants
-if (!Auth::canAccessModule('hr_head') && !Auth::isHR()) {
-    Response::forbidden('Access denied. HR role required.');
-}
-
-// Trainees cannot access applicants
-if (Auth::isTrainee()) {
-    Response::forbidden('Access denied. Trainees cannot access applicants.');
-}
-
-try {
-    $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
-    $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
-    $status = isset($_GET['status']) ? $_GET['status'] : 'all';
-    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-    $role = isset($_GET['role']) ? trim($_GET['role']) : '';
-
-    if (strlen($search) > 100) {
-        Response::error('Search term cannot exceed 100 characters.', 400);
-    }
-
-    $filters = [
-        'status' => $status,
-        'search' => $search,
-        'role' => $role
-    ];
-
+if (!function_exists('hr_applicants_build_data')) {
+/**
+ * Builds a page of applicants + stats. Shared by the API endpoint (filter/
+ * pagination/search) and the HR dashboard + Applicants page's first paint
+ * (both called with default filters, page 1).
+ */
+function hr_applicants_build_data(int $page, int $limit, array $filters): array {
     $applicantModel = new Applicant();
     $result = $applicantModel->getAll($page, $limit, $filters);
 
@@ -69,14 +43,52 @@ try {
 
     $stats = $applicantModel->getStatusCounts();
 
-    Response::success([
+    return [
         'applicants' => $result['applicants'],
         'pagination' => $result['pagination'],
         'stats' => $stats,
         'filters' => $filters
-    ], 'Applicants fetched successfully');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_applicants.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    // Only full HR (not trainees) can access applicants
+    if (!Auth::canAccessModule('hr_head') && !Auth::isHR()) {
+        Response::forbidden('Access denied. HR role required.');
+    }
+
+    // Trainees cannot access applicants
+    if (Auth::isTrainee()) {
+        Response::forbidden('Access denied. Trainees cannot access applicants.');
+    }
+
+    try {
+        $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+        $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
+        $status = isset($_GET['status']) ? $_GET['status'] : 'all';
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $role = isset($_GET['role']) ? trim($_GET['role']) : '';
+
+        if (strlen($search) > 100) {
+            Response::error('Search term cannot exceed 100 characters.', 400);
+        }
+
+        $filters = [
+            'status' => $status,
+            'search' => $search,
+            'role' => $role
+        ];
+
+        Response::success(hr_applicants_build_data($page, $limit, $filters), 'Applicants fetched successfully');
+    } catch (Exception $e) {
+        error_log('get_applicants.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

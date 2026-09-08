@@ -9,39 +9,13 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-// Allow HR, SuperAdmin, and HR trainees
-$targetRole = Auth::getNormalizedTargetRole();
-$isHrTrainee = Auth::isTrainee() && in_array($targetRole, ['hr_head', 'hr_staff']);
-
-if (!Auth::canAccessModule('hr_head') && !$isHrTrainee) {
-    Response::forbidden('Access denied. HR role required.');
-}
-
-// Trainees cannot view interviews
-if (Auth::isTrainee() && !$isHrTrainee) {
-    Response::forbidden('Access denied. Trainees cannot view interviews.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-    $currentUserId = Auth::userId();
-
-    $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
-    $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
-    $type = isset($_GET['type']) ? $_GET['type'] : 'all';
-    $status = isset($_GET['status']) ? $_GET['status'] : 'all';
-    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
-    if (strlen($search) > 100) {
-        Response::error('Search term cannot exceed 100 characters.', 400);
-    }
-
+if (!function_exists('hr_interviews_build_data')) {
+/**
+ * Builds a page of interviews + stats. Shared by the API endpoint (filter/
+ * pagination/search, and the HR dashboard's "upcoming interviews" query)
+ * and the Interviews page's first paint.
+ */
+function hr_interviews_build_data(PDO $db, int $currentUserId, int $page, int $limit, string $type, string $status, string $search): array {
     $where = "1=1";
     $params = [];
 
@@ -180,7 +154,7 @@ try {
     $statsStmt = $db->query($statsSql);
     $stats = $statsStmt->fetch();
 
-    Response::success([
+    return [
         'interviews' => $interviews,
         'pagination' => [
             'currentPage' => (int)$page,
@@ -196,9 +170,46 @@ try {
             'failed' => (int)($stats['failed'] ?? 0)
         ],
         'filters' => ['type' => $type, 'status' => $status, 'search' => $search]
-    ], 'Interviews fetched successfully');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_interviews.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    // Allow HR, SuperAdmin, and HR trainees
+    $targetRole = Auth::getNormalizedTargetRole();
+    $isHrTrainee = Auth::isTrainee() && in_array($targetRole, ['hr_head', 'hr_staff']);
+
+    if (!Auth::canAccessModule('hr_head') && !$isHrTrainee) {
+        Response::forbidden('Access denied. HR role required.');
+    }
+
+    // Trainees cannot view interviews
+    if (Auth::isTrainee() && !$isHrTrainee) {
+        Response::forbidden('Access denied. Trainees cannot view interviews.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+
+        $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+        $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
+        $type = isset($_GET['type']) ? $_GET['type'] : 'all';
+        $status = isset($_GET['status']) ? $_GET['status'] : 'all';
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+        if (strlen($search) > 100) {
+            Response::error('Search term cannot exceed 100 characters.', 400);
+        }
+
+        Response::success(hr_interviews_build_data($db, Auth::userId(), $page, $limit, $type, $status, $search), 'Interviews fetched successfully');
+    } catch (Exception $e) {
+        error_log('get_interviews.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

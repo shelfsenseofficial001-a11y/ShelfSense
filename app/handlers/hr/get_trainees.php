@@ -9,35 +9,12 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-// Only full HR (not trainees) can access trainees list
-if (!Auth::canAccessModule('hr_head')) {
-    Response::forbidden('Access denied. HR role required.');
-}
-
-// Trainees cannot access trainees list
-if (Auth::isTrainee()) {
-    Response::forbidden('Access denied. Trainees cannot access this module.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-
-    $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
-    $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
-    $status = isset($_GET['status']) ? $_GET['status'] : 'all';
-    $role = isset($_GET['role']) ? trim($_GET['role']) : '';
-    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
-    if (strlen($search) > 100) {
-        Response::error('Search term cannot exceed 100 characters.', 400);
-    }
-
+if (!function_exists('hr_trainees_build_data')) {
+/**
+ * Builds a page of trainees + stats. Shared by the API endpoint (filter/
+ * pagination/search) and the HR dashboard + Trainees page's first paint.
+ */
+function hr_trainees_build_data(PDO $db, int $page, int $limit, string $status, string $role, string $search): array {
     $where = "1=1";
     $where .= " AND a.status NOT IN ('hired', 'contract_declined')";
     $params = [];
@@ -152,7 +129,7 @@ try {
     $statsStmt = $db->query($statsSql);
     $stats = $statsStmt->fetch();
 
-    Response::success([
+    return [
         'trainees' => $trainees,
         'pagination' => [
             'currentPage' => (int)$page,
@@ -167,9 +144,43 @@ try {
             'terminated' => (int)($stats['terminated_count'] ?? 0)
         ],
         'filters' => ['status' => $status, 'role' => $role, 'search' => $search]
-    ], 'Trainees fetched successfully');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_trainees.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    // Only full HR (not trainees) can access trainees list
+    if (!Auth::canAccessModule('hr_head')) {
+        Response::forbidden('Access denied. HR role required.');
+    }
+
+    // Trainees cannot access trainees list
+    if (Auth::isTrainee()) {
+        Response::forbidden('Access denied. Trainees cannot access this module.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+
+        $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+        $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
+        $status = isset($_GET['status']) ? $_GET['status'] : 'all';
+        $role = isset($_GET['role']) ? trim($_GET['role']) : '';
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+        if (strlen($search) > 100) {
+            Response::error('Search term cannot exceed 100 characters.', 400);
+        }
+
+        Response::success(hr_trainees_build_data($db, $page, $limit, $status, $role, $search), 'Trainees fetched successfully');
+    } catch (Exception $e) {
+        error_log('get_trainees.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

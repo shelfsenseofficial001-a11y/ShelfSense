@@ -11,27 +11,17 @@ use App\Models\Interview;
 use App\Core\Auth;
 use App\Core\Response;
 
-header('Content-Type: application/json');
+if (!function_exists('hr_dashboard_build_data')) {
+/**
+ * Builds the HR dashboard data. Shared by the API endpoint (for refresh)
+ * and the dashboard page itself (server-rendered first paint).
+ */
+function hr_dashboard_build_data(PDO $db, int $currentUserId): array {
+    $applicantModel = new Applicant();
+    $interviewModel = new Interview();
 
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-// Allow HR, HR Head, SuperAdmin, and HR trainees
-$targetRole = Auth::getNormalizedTargetRole();
-$isHrTrainee = Auth::isTrainee() && in_array($targetRole, ['hr_head', 'hr_staff']);
-
-if (!Auth::canAccessModule('hr_head') && !$isHrTrainee) {
-    Response::forbidden('Access denied. HR role required.');
-}
-
-$applicantModel = new Applicant();
-$interviewModel = new Interview();
-
-$stats = $applicantModel->getStatusCounts();
-
-$currentUserId = Auth::userId();
-$upcomingInterviews = $interviewModel->getUpcoming($currentUserId, 5);
+    $stats = $applicantModel->getStatusCounts();
+    $upcomingInterviews = $interviewModel->getUpcoming($currentUserId, 5);
 
 foreach ($upcomingInterviews as &$interview) {
     $interview['applicant_name'] = $interview['first_name'] . ' ' . $interview['last_name'];
@@ -40,7 +30,6 @@ foreach ($upcomingInterviews as &$interview) {
     $interview['type_label'] = ucfirst($interview['interview_type']) . ' Interview';
 }
 
-$db = \App\Core\Database::getInstance()->getConnection();
 $monthlyStmt = $db->query("
     SELECT 
         DATE_FORMAT(applied_date, '%Y-%m') as month,
@@ -82,9 +71,30 @@ foreach ($pipelineData as $item) {
     ];
 }
 
-Response::success([
-    'stats' => $stats,
-    'upcoming_interviews' => $upcomingInterviews,
-    'monthly_applications' => $monthlyData,
-    'pipeline' => $pipeline
-], 'Dashboard stats fetched successfully');
+    return [
+        'stats' => $stats,
+        'upcoming_interviews' => $upcomingInterviews,
+        'monthly_applications' => $monthlyData,
+        'pipeline' => $pipeline
+    ];
+}
+}
+
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    // Allow HR, HR Head, SuperAdmin, and HR trainees
+    $targetRole = Auth::getNormalizedTargetRole();
+    $isHrTrainee = Auth::isTrainee() && in_array($targetRole, ['hr_head', 'hr_staff']);
+
+    if (!Auth::canAccessModule('hr_head') && !$isHrTrainee) {
+        Response::forbidden('Access denied. HR role required.');
+    }
+
+    $db = \App\Core\Database::getInstance()->getConnection();
+    Response::success(hr_dashboard_build_data($db, Auth::userId()), 'Dashboard stats fetched successfully');
+}
