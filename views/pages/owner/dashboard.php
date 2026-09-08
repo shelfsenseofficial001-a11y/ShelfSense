@@ -1,8 +1,15 @@
 <?php
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/owner/get_overview.php';
+$initialData = owner_overview_build_data(Database::getInstance()->getConnection());
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Owner Dashboard - ShelfSense';
 $pageTitle = 'Owner Dashboard';
 $activePage = 'dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/owner/dashboard.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/owner/dashboard.js?v=20260908600000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [
@@ -31,7 +38,7 @@ window.dashboardTourSteps = [
 </script>
 <script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <div class="alert alert-warning d-flex align-items-center gap-2 mb-4">
     <i class="bi bi-flask"></i>
     <span><strong>Prototype:</strong> this Owner dashboard is an early, minimal overview for testing the Owner role end-to-end. Use the sidebar to access the full HR, recruitment, and training modules.</span>

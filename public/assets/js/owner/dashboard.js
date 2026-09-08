@@ -3,7 +3,12 @@
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadOwnerOverview();
+    if (window.__INITIAL_DATA__) {
+        renderOwnerOverview(window.__INITIAL_DATA__);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadOwnerOverview();
+    }
 });
 
 function ownerEscapeHtml(text) {
@@ -18,14 +23,17 @@ function loadOwnerOverview() {
         .then(response => response.json())
         .then(data => {
             if (!data.success) return;
-            const d = data.data;
-            document.getElementById('ownerStatApplicants').textContent = d.applicants.total || 0;
-            document.getElementById('ownerStatTrainees').textContent = d.trainees.active || 0;
-            document.getElementById('ownerStatHired').textContent = d.applicants.hired || 0;
-            document.getElementById('ownerStatPendingPostings').textContent = d.job_postings.pending_approval || 0;
-            renderFinalInterviews(d.upcoming_final_interviews || []);
+            renderOwnerOverview(data.data);
         })
         .catch(() => {});
+}
+
+function renderOwnerOverview(d) {
+    document.getElementById('ownerStatApplicants').textContent = d.applicants.total || 0;
+    document.getElementById('ownerStatTrainees').textContent = d.trainees.active || 0;
+    document.getElementById('ownerStatHired').textContent = d.applicants.hired || 0;
+    document.getElementById('ownerStatPendingPostings').textContent = d.job_postings.pending_approval || 0;
+    renderFinalInterviews(d.upcoming_final_interviews || []);
 }
 
 function renderFinalInterviews(interviews) {

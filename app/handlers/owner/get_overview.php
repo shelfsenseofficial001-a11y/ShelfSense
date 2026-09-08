@@ -11,18 +11,12 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login');
-}
-if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Owner role required.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-
+if (!function_exists('owner_overview_build_data')) {
+/**
+ * Builds the Owner dashboard overview. Shared by the API endpoint (for
+ * refresh) and the dashboard page itself (server-rendered first paint).
+ */
+function owner_overview_build_data(PDO $db): array {
     $applicantStats = $db->query("
         SELECT
             COUNT(*) as total,
@@ -57,14 +51,30 @@ try {
         LIMIT 10
     ")->fetchAll();
 
-    Response::success([
+    return [
         'applicants' => $applicantStats,
         'trainees' => $traineeStats,
         'job_postings' => $jobPostingStats,
         'upcoming_final_interviews' => $upcomingFinals
-    ], 'Owner overview fetched');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('owner/get_overview.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login');
+    }
+    if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Owner role required.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+        Response::success(owner_overview_build_data($db), 'Owner overview fetched');
+    } catch (Exception $e) {
+        error_log('owner/get_overview.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }
