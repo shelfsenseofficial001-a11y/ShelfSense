@@ -13,19 +13,12 @@ use App\Core\Response;
 use App\Core\CutoffPeriod;
 use App\Models\Budget;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login');
-}
-
-if (!Auth::isFinanceStaff() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Finance Staff role required.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-    $budgetModel = new Budget();
+if (!function_exists('fs_dashboard_build_data')) {
+/**
+ * Builds the Finance Staff dashboard data. Shared by the API endpoint
+ * (for refresh) and the dashboard page itself (server-rendered first paint).
+ */
+function fs_dashboard_build_data(PDO $db, Budget $budgetModel): array {
 
     $stmt = $db->query("
         SELECT po.id, r.department_id, r.period_key, po.total as subtotal
@@ -58,7 +51,7 @@ try {
     $stmt->execute([Auth::userId()]);
     $recentActivity = $stmt->fetchAll();
 
-    Response::success([
+    return [
         'stats' => [
             'pending_requisitions' => $pendingCount,
             'budget_exceeded_count' => $exceededCount,
@@ -75,9 +68,26 @@ try {
             'budget_has_allocation' => $budgetStatus ? $budgetStatus['allocated'] > 0 : false
         ],
         'recent_activity' => $recentActivity
-    ], 'Dashboard stats fetched');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_dashboard_stats.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login');
+    }
+
+    if (!Auth::isFinanceStaff() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Finance Staff role required.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+        Response::success(fs_dashboard_build_data($db, new Budget()), 'Dashboard stats fetched');
+    } catch (Exception $e) {
+        error_log('get_dashboard_stats.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

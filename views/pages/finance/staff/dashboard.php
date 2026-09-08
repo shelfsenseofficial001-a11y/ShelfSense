@@ -1,8 +1,17 @@
 <?php
+use App\Core\Database;
+use App\Models\Budget;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../../app/handlers/finance/staff/get_dashboard_stats.php';
+require_once __DIR__ . '/../../../../app/models/Budget.php';
+$initialData = fs_dashboard_build_data(Database::getInstance()->getConnection(), new Budget());
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Finance Staff Dashboard';
 $pageTitle = 'Finance Staff Dashboard';
 $activePage = 'staff_dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/dashboard.js?v=20260905300000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/dashboard.js?v=20260908600000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourReadyEvent = "fn-staff-dashboard-rendered";
@@ -27,13 +36,12 @@ window.dashboardTourSteps = [
 </script>
 <script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 
-$content = <<<'EOT'
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <div id="dashboardContent">
     <div class="text-center py-5">
         <div class="spinner-border text-primary" role="status"></div>
         <p class="mt-2 text-muted">Loading dashboard...</p>
     </div>
-</div>
-EOT;
+</div>';
 
 require_once __DIR__ . '/../../../layouts/finance.php';
