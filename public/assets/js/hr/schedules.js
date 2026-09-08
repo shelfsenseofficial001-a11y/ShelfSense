@@ -601,5 +601,14 @@ document.addEventListener('DOMContentLoaded', function() {
         renderEmployeeList(filtered);
     });
 
-    loadEmployeeList();
+    if (window.__INITIAL_DATA__) {
+        allEmployees = window.__INITIAL_DATA__.employees || [];
+        renderEmployeeList(allEmployees);
+        if (!currentEmployeeId && allEmployees.length > 0) {
+            loadSchedule(allEmployees[0].user_id);
+        }
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadEmployeeList();
+    }
 });

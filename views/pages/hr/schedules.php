@@ -1,10 +1,17 @@
 <?php
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/hr/get_all_employees.php';
+$initialData = hr_all_employees_build_data(Database::getInstance()->getConnection(), 'all');
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Employee Schedules - ShelfSense HR';
 $pageTitle = 'Employee Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260908600000"></script>';
 
-$content = <<<HTML
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<HTML
 <style>
     .schedule-grid-table th, .schedule-grid-table td {
         text-align: center;
