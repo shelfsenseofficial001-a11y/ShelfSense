@@ -25,6 +25,7 @@
     <?= $additional_css ?? '' ?>
 </head>
 <body>
+    <?php require __DIR__ . '/../shared/splash_screen.php'; ?>
     <?= $content ?? '' ?>
     
     <!-- Bootstrap 5 JS Bundle -->

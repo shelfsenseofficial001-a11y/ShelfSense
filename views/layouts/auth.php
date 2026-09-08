@@ -341,6 +341,7 @@
     </style>
 </head>
 <body>
+    <?php require __DIR__ . '/../shared/splash_screen.php'; ?>
     <!-- Ambient Background Glows -->
     <div class="ambient-glow-1"></div>
     <div class="ambient-glow-2"></div>
