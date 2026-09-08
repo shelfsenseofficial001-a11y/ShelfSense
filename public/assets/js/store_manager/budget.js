@@ -5,7 +5,12 @@
 console.log('✅ store_manager/budget.js loaded');
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadRegisterStatus();
+    if (window.__INITIAL_DATA__) {
+        renderBudgetPage(window.__INITIAL_DATA__.registers || []);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadRegisterStatus();
+    }
 });
 
 function loadRegisterStatus() {

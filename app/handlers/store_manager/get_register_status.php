@@ -11,20 +11,13 @@ use App\Core\Database;
 use App\Core\Response;
 use App\Models\Register;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Store Manager role required.');
-}
-
-try {
-    $registerModel = new Register();
-
-    $storeManagerId = Auth::userId();
+if (!function_exists('sm_register_status_build_data')) {
+/**
+ * Builds each register's status (active allocation + live sales) for a
+ * store manager. Shared by the API endpoint (for refresh) and the Budget
+ * page's first paint.
+ */
+function sm_register_status_build_data(Register $registerModel, int $storeManagerId): array {
     $registers = $registerModel->getAllForStoreManager($storeManagerId);
 
     $result = [];
@@ -39,9 +32,25 @@ try {
         ];
     }
 
-    Response::success(['registers' => $result], 'Register status fetched');
+    return ['registers' => $result];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_register_status.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Store Manager role required.');
+    }
+
+    try {
+        Response::success(sm_register_status_build_data(new Register(), Auth::userId()), 'Register status fetched');
+    } catch (Exception $e) {
+        error_log('get_register_status.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }
