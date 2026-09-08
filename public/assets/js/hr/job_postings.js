@@ -27,7 +27,16 @@ function populatePositionOptions(group, selectedPosition) {
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadPostings(1);
+    if (window.__INITIAL_DATA__) {
+        const result = window.__INITIAL_DATA__;
+        jpPage = 1;
+        renderTable(result.postings);
+        renderStats(result.counts);
+        renderPagination(result.pagination);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadPostings(1);
+    }
     setupFilters();
     setupForm();
 

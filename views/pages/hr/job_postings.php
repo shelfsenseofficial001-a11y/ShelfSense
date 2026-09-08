@@ -1,5 +1,6 @@
 <?php
 use App\Core\Auth;
+use App\Models\JobPosting;
 
 $title = 'Job Postings - ShelfSense HR';
 $pageTitle = 'Job Postings';
@@ -7,7 +8,16 @@ $activePage = 'job_postings';
 $isHRHead = Auth::isHRHead() || Auth::isSuperAdmin();
 $isHRHeadJs = $isHRHead ? 'true' : 'false';
 
-$content = <<<EOT
+$jpModel = new JobPosting();
+$jpInitial = $jpModel->getAll(1, 10, ['status' => 'all', 'search' => '']);
+$initialData = [
+    'postings' => $jpInitial['postings'],
+    'pagination' => $jpInitial['pagination'],
+    'counts' => $jpModel->getStatusCounts()
+];
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<EOT
 <div class="row g-2 mb-3">
     <div class="col-md-3">
         <select id="filterStatus" class="form-select searchable-select" data-placeholder="Filter by status...">
@@ -268,7 +278,7 @@ $content = <<<EOT
 
 <script>const HR_IS_HEAD = {$isHRHeadJs};</script>
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
-<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260908510000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260908600001"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';
