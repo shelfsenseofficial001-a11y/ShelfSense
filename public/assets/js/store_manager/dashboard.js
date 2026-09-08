@@ -8,7 +8,12 @@ let smTrendChart = null;
 let smStatusChart = null;
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadDashboardData();
+    if (window.__INITIAL_DATA__) {
+        renderDashboard(window.__INITIAL_DATA__);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadDashboardData();
+    }
 });
 
 function loadDashboardData() {

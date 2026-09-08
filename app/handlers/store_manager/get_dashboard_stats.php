@@ -9,19 +9,13 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Store Manager role required.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-
+if (!function_exists('sm_dashboard_build_data')) {
+/**
+ * Builds the Store Manager dashboard data. Shared by the API endpoint
+ * (api_store_manager_dashboard, for refresh/polling) and the dashboard
+ * page itself (for server-rendering the initial paint, no client fetch).
+ */
+function sm_dashboard_build_data(PDO $db): array {
     // "Pending supplier" = a PO that's still waiting on the supplier's side
     // (dispatched but not yet confirmed, or under counter-negotiation).
     $stmt = $db->query("
@@ -169,7 +163,7 @@ try {
     ");
     $mostUrgentLowStock = $stmt->fetch();
 
-    Response::success([
+    return [
         'stats' => [
             'total_requisitions' => (int)($reqStats['total_requisitions'] ?? 0),
             'pending_supplier' => (int)($poStats['pending_supplier'] ?? 0),
@@ -207,9 +201,26 @@ try {
                 'reorder_level' => (int)$mostUrgentLowStock['reorder_level']
             ] : null
         ]
-    ], 'Store Manager dashboard stats fetched');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_dashboard_stats.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Store Manager role required.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+        Response::success(sm_dashboard_build_data($db), 'Store Manager dashboard stats fetched');
+    } catch (Exception $e) {
+        error_log('get_dashboard_stats.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

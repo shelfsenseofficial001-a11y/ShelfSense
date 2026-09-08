@@ -1,8 +1,14 @@
 <?php
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/store_manager/get_dashboard_stats.php';
+$initialData = sm_dashboard_build_data(Database::getInstance()->getConnection());
+
 $title = 'Store Manager Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/dashboard.js?v=20260905320000"></script>
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/dashboard.js?v=20260908600000"></script>
 <script src="/ShelfSense/public/assets/js/store_manager/dashboard-layout.js?v=20260905310000"></script>
 <script>
 window.dashboardTourReadyEvent = "sm-dashboard-rendered";
@@ -42,7 +48,10 @@ window.dashboardTourSteps = [
 </script>
 <script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
 
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $content = <<<EOT
+<script>window.__INITIAL_DATA__ = {$initialDataJson};</script>
 <div id="dashboardContent">
     <div class="text-center py-5">
         <div class="spinner-border text-primary" role="status"></div>
