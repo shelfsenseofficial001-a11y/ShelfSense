@@ -286,15 +286,27 @@
         // is over a different row, a gap between cards, or the sidebar.
         document.addEventListener('dragover', trackPointerForAutoScroll);
 
-        // The dashboard's own canvas rows are injected async by
-        // dashboard.js after its fetch resolves, so wiring dragover
-        // listeners and loading the saved layout has to wait for that
-        // instead of running at DOMContentLoaded.
-        document.addEventListener('sp-dashboard-rendered', function () {
+        function wireCanvasRows() {
             Array.prototype.forEach.call(document.querySelectorAll('.dash-canvas-row'), function (row) {
                 row.addEventListener('dragover', handleDragOver);
             });
             loadLayout();
-        });
+        }
+
+        // The dashboard's own canvas rows are injected by dashboard.js,
+        // either synchronously (server-rendered __INITIAL_DATA__, the
+        // common case) or asynchronously after a fetch resolves. Both
+        // scripts listen for DOMContentLoaded, and dashboard.js's listener
+        // runs first (it's included first) -- for the synchronous case it
+        // dispatches "sp-dashboard-rendered" and finishes *before* this
+        // listener below ever gets registered, so waiting on the event
+        // alone would miss it and no card would ever become draggable.
+        // Wire up immediately if the rows already exist; otherwise fall
+        // back to the event for the async-fetch case.
+        if (document.getElementById('spDashCanvasStats')) {
+            wireCanvasRows();
+        } else {
+            document.addEventListener('sp-dashboard-rendered', wireCanvasRows);
+        }
     });
 })();

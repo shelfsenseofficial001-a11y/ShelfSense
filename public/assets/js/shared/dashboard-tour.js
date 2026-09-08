@@ -76,20 +76,45 @@
         spotlightEl.style.height = (rect.height + pad * 2) + 'px';
 
         // Prefer the card below the target; flip above if there isn't
-        // room, and clamp horizontally so it never runs off-screen.
+        // room. For a target taller than the viewport allows for either
+        // (e.g. a full-height sidebar nav), try beside it instead --
+        // centering the card over the target's middle would otherwise
+        // bury whatever the spotlight is meant to be highlighting there.
         var cardWidth = 320;
         var estCardHeight = cardEl.offsetHeight || 200;
         var spaceBelow = window.innerHeight - rect.bottom;
-        var top;
+        var spaceRight = window.innerWidth - rect.right;
+        var spaceLeft = rect.left;
+        var top, left;
+
+        // For the "beside" branches, center on the portion of the target
+        // actually on screen, not its full (possibly viewport-taller)
+        // height -- otherwise a nav longer than the window centers the
+        // card near its off-screen midpoint, which then just clamps to
+        // the bottom edge and overlaps unrelated page content instead of
+        // sitting next to what's actually visible.
+        var visibleTop = Math.max(rect.top, 0);
+        var visibleBottom = Math.min(rect.bottom, window.innerHeight);
+        var visibleMidY = (visibleTop + visibleBottom) / 2;
+
         if (spaceBelow > estCardHeight + 24) {
             top = rect.bottom + 16;
+            left = rect.left + rect.width / 2 - cardWidth / 2;
         } else if (rect.top > estCardHeight + 24) {
             top = rect.top - estCardHeight - 16;
+            left = rect.left + rect.width / 2 - cardWidth / 2;
+        } else if (spaceRight > cardWidth + 24) {
+            top = Math.max(16, visibleMidY - estCardHeight / 2);
+            left = rect.right + 16;
+        } else if (spaceLeft > cardWidth + 24) {
+            top = Math.max(16, visibleMidY - estCardHeight / 2);
+            left = rect.left - cardWidth - 16;
         } else {
             top = Math.max(16, (window.innerHeight - estCardHeight) / 2);
+            left = rect.left + rect.width / 2 - cardWidth / 2;
         }
 
-        var left = rect.left + rect.width / 2 - cardWidth / 2;
+        top = Math.max(16, Math.min(top, window.innerHeight - estCardHeight - 16));
         left = Math.max(16, Math.min(left, window.innerWidth - cardWidth - 16));
 
         cardEl.style.top = top + 'px';
@@ -106,6 +131,17 @@
         var style = getComputedStyle(el);
         if (style.display === 'none' || style.visibility === 'hidden') return false;
         return style.position === 'fixed' || style.position === 'sticky';
+    }
+
+    // Whether the target already reads as "in place" without scrolling.
+    // Requiring the *whole* element to fit (bottom edge included) would
+    // force a scroll for any target taller than the remaining viewport --
+    // e.g. a tables/chart section whose top is already visible right
+    // below the stats cards still got dragged into a "center it" scroll
+    // it didn't need. Visible top edge is enough to call it in place.
+    function isInPlace(el) {
+        var rect = el.getBoundingClientRect();
+        return rect.top >= 0 && rect.top < window.innerHeight;
     }
 
     function renderStep() {
@@ -128,7 +164,14 @@
             return;
         }
 
-        target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        // Only scroll if the target isn't already in place -- a
+        // fixed/sticky sidebar nav (step 1 on every portal) is always
+        // visible, and a target whose top is already on screen doesn't
+        // need "centering" either, so scrolling it just jitters the page
+        // for no reason.
+        if (!isInPlace(target)) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
 
         var isLast = currentStep === STEPS.length - 1;
         var dotsHtml = STEPS.map(function (_, i) {

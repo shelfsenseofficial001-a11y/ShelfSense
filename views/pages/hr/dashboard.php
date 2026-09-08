@@ -224,7 +224,7 @@ window.dashboardTourSteps = [
     }
 ];
 </script>
-<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260908710000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
