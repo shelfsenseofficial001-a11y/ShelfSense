@@ -1,8 +1,18 @@
 <?php
+use App\Core\Auth;
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/pos/get_orders.php';
+$cashierId = Auth::posCheck() ? Auth::posCashierId() : Auth::userId();
+$initialData = pos_orders_build_data(Database::getInstance()->getConnection(), $cashierId, 1, 20, []);
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260905090000"></script>';
+$additional_js = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>'
+    . '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260908600000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [

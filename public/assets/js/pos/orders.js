@@ -5,7 +5,14 @@
 console.log('✅ orders.js loaded');
 
 document.addEventListener("DOMContentLoaded", function() {
-    loadOrders();
+    if (window.__INITIAL_DATA__) {
+        renderOrders(window.__INITIAL_DATA__.orders);
+        renderPagination(window.__INITIAL_DATA__.pagination);
+        renderStats(window.__INITIAL_DATA__.orders);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadOrders();
+    }
     const todayStr = new Date().toISOString().split("T")[0];
     document.getElementById("filterDate").value = todayStr;
 
