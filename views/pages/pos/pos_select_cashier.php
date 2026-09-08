@@ -1,13 +1,19 @@
 <?php
 // views/pages/pos/pos_select_cashier.php
 use App\Core\Auth;
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/pos/get_cashiers.php';
+$initialData = pos_cashiers_build_data(Database::getInstance()->getConnection());
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 
 $title = 'Select Cashier - ShelfSense POS';
 $subtitle = 'Select Cashier';
 
 $registerName = htmlspecialchars(Auth::posRegisterName() ?? 'Register');
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <div class="brand">
     <h1><span class="brand-mark"></span>Shelf<span>Sense</span></h1>
     <small>' . $registerName . '</small>
@@ -176,33 +182,41 @@ passwordInput.addEventListener("keydown", function(e) {
     if (e.key === "Enter") submitCashierPassword();
 });
 
-fetch("?page=api_pos_get_cashiers")
-    .then(r => r.json())
-    .then(data => {
-        const container = document.getElementById("cashierList");
-        if (!data.success) {
-            container.innerHTML = \'<div class="text-center text-danger small py-3">Failed to load cashiers.</div>\';
-            return;
-        }
+function renderCashierData(cashiers, trainees) {
+    const container = document.getElementById("cashierList");
+    cashiers = cashiers || [];
+    trainees = trainees || [];
 
-        const cashiers = data.data.cashiers || [];
-        const trainees = data.data.trainees || [];
+    if (cashiers.length === 0) {
+        container.innerHTML = \'<div class="text-center text-muted small py-3">No active cashiers found. Ask your Store Manager to check employee accounts.</div>\';
+    } else {
+        renderPickList(container, cashiers);
+    }
 
-        if (cashiers.length === 0) {
-            container.innerHTML = \'<div class="text-center text-muted small py-3">No active cashiers found. Ask your Store Manager to check employee accounts.</div>\';
-        } else {
-            renderPickList(container, cashiers);
-        }
+    if (trainees.length > 0) {
+        const traineeSection = document.getElementById("traineeSection");
+        traineeSection.style.display = "block";
+        renderPickList(document.getElementById("traineeList"), trainees);
+    }
+}
 
-        if (trainees.length > 0) {
-            const traineeSection = document.getElementById("traineeSection");
-            traineeSection.style.display = "block";
-            renderPickList(document.getElementById("traineeList"), trainees);
-        }
-    })
-    .catch(() => {
-        document.getElementById("cashierList").innerHTML = \'<div class="text-center text-danger small py-3">Failed to load cashiers.</div>\';
-    });
+if (window.__INITIAL_DATA__) {
+    renderCashierData(window.__INITIAL_DATA__.cashiers, window.__INITIAL_DATA__.trainees);
+    if (window.ShelfSplash) window.ShelfSplash.ready();
+} else {
+    fetch("?page=api_pos_get_cashiers")
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                document.getElementById("cashierList").innerHTML = \'<div class="text-center text-danger small py-3">Failed to load cashiers.</div>\';
+                return;
+            }
+            renderCashierData(data.data.cashiers, data.data.trainees);
+        })
+        .catch(() => {
+            document.getElementById("cashierList").innerHTML = \'<div class="text-center text-danger small py-3">Failed to load cashiers.</div>\';
+        });
+}
 </script>
 ';
 
