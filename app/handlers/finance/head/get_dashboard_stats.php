@@ -13,19 +13,12 @@ use App\Core\Response;
 use App\Core\CutoffPeriod;
 use App\Models\Budget;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login');
-}
-
-if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Finance Head role required.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-    $budgetModel = new Budget();
+if (!function_exists('fh_dashboard_build_data')) {
+/**
+ * Builds the Finance Head dashboard data. Shared by the API endpoint
+ * (for refresh) and the dashboard page itself (server-rendered first paint).
+ */
+function fh_dashboard_build_data(PDO $db, Budget $budgetModel): array {
     $calendarMonth = date('Y-m');
     $cutoffKey = CutoffPeriod::getCurrentKey();
 
@@ -72,7 +65,7 @@ try {
     $stmt->execute();
     $recentActivity = $stmt->fetchAll();
 
-    Response::success([
+    return [
         'stats' => [
             'pending' => $pending,
             'approved_this_month' => $approvedThisMonth,
@@ -83,9 +76,26 @@ try {
         'budget_departments' => $departments,
         'departments_near_limit' => $nearLimit,
         'recent_activity' => $recentActivity
-    ], 'Dashboard stats fetched');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('finance/head/get_dashboard_stats.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login');
+    }
+
+    if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Finance Head role required.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+        Response::success(fh_dashboard_build_data($db, new Budget()), 'Dashboard stats fetched');
+    } catch (Exception $e) {
+        error_log('finance/head/get_dashboard_stats.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }
