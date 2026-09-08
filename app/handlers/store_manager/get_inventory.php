@@ -9,35 +9,24 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login');
-}
-
-if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Store Manager role required.');
-}
-
-// Whitelisted sort columns — never build ORDER BY from raw user input
-$sortableColumns = [
-    'name' => 'p.name',
-    'category' => 'c.name',
-    'price' => 'p.price',
-    'stock' => 'p.stock_quantity',
-];
-
-try {
-    $db = Database::getInstance()->getConnection();
-
-    $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
-    $limit = isset($_GET['limit']) ? min(100, max(1, intval($_GET['limit']))) : 30;
-    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-    $category = isset($_GET['category']) ? intval($_GET['category']) : 0;
-    $lowStock = isset($_GET['low_stock']) ? intval($_GET['low_stock']) : 0;
-    $stockStatus = isset($_GET['stock_status']) ? trim($_GET['stock_status']) : '';
-    $sortBy = isset($_GET['sort_by']) && isset($sortableColumns[$_GET['sort_by']]) ? $_GET['sort_by'] : 'name';
-    $sortDir = isset($_GET['sort_dir']) && strtolower($_GET['sort_dir']) === 'desc' ? 'DESC' : 'ASC';
+if (!function_exists('sm_inventory_build_data')) {
+/**
+ * Builds a page of inventory + categories + stock stats. Shared by the
+ * API endpoint (filter/sort/pagination) and the Inventory page's first
+ * paint.
+ */
+function sm_inventory_build_data(PDO $db, int $page, int $limit, string $search, int $category, int $lowStock, string $stockStatus, string $sortBy, string $sortDir): array {
+    // Whitelisted sort columns — never build ORDER BY from raw user input
+    $sortableColumns = [
+        'name' => 'p.name',
+        'category' => 'c.name',
+        'price' => 'p.price',
+        'stock' => 'p.stock_quantity',
+    ];
+    if (!isset($sortableColumns[$sortBy])) {
+        $sortBy = 'name';
+    }
+    $sortDir = strtolower($sortDir) === 'desc' ? 'DESC' : 'ASC';
 
     $where = "p.is_active = 1";
     $params = [];
@@ -115,7 +104,7 @@ try {
     ");
     $stockStats = $stmt->fetch();
 
-    Response::success([
+    return [
         'products' => $products,
         'categories' => $categories,
         'pagination' => [
@@ -134,9 +123,39 @@ try {
             'low_stock_count' => (int)($stockStats['low_stock_count'] ?? 0),
             'out_of_stock_count' => (int)($stockStats['out_of_stock_count'] ?? 0)
         ]
-    ], 'Inventory fetched successfully');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_inventory.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login');
+    }
+
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Store Manager role required.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+
+        $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+        $limit = isset($_GET['limit']) ? min(100, max(1, intval($_GET['limit']))) : 30;
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $category = isset($_GET['category']) ? intval($_GET['category']) : 0;
+        $lowStock = isset($_GET['low_stock']) ? intval($_GET['low_stock']) : 0;
+        $stockStatus = isset($_GET['stock_status']) ? trim($_GET['stock_status']) : '';
+        $sortBy = isset($_GET['sort_by']) ? $_GET['sort_by'] : 'name';
+        $sortDir = isset($_GET['sort_dir']) ? $_GET['sort_dir'] : 'asc';
+
+        Response::success(
+            sm_inventory_build_data($db, $page, $limit, $search, $category, $lowStock, $stockStatus, $sortBy, $sortDir),
+            'Inventory fetched successfully'
+        );
+    } catch (Exception $e) {
+        error_log('get_inventory.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

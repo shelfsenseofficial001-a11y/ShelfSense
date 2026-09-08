@@ -9,8 +9,26 @@ let sortBy = 'name';
 let sortDir = 'asc';
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadInventory();
-    loadCategories();
+    if (window.__INITIAL_DATA__) {
+        const data = window.__INITIAL_DATA__;
+        renderProducts(data.products);
+        renderPagination(data.pagination);
+        renderStats(data.stats);
+        const select = document.getElementById('categoryFilter');
+        if (select) {
+            (data.categories || []).forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.id;
+                option.textContent = cat.name;
+                select.appendChild(option);
+            });
+            window.refreshSearchableSelect?.(select);
+        }
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadInventory();
+        loadCategories();
+    }
     setupEventListeners();
     setupInventoryViewToggle();
 

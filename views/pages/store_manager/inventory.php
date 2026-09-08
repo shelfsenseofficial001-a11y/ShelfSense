@@ -1,10 +1,17 @@
 <?php
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/store_manager/get_inventory.php';
+$initialData = sm_inventory_build_data(Database::getInstance()->getConnection(), 1, 30, '', 0, 0, '', 'name', 'asc');
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Inventory - Store Manager';
 $pageTitle = 'Inventory Management';
 $activePage = 'inventory';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/inventory.js?v=20260902224010"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/inventory.js?v=20260908600000"></script>';
 
-$content = <<<'EOT'
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<'EOT'
 <!-- Stats -->
 <div class="sm-stats-grid">
     <div class="sm-stat-card">
