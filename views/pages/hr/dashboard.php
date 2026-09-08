@@ -1,9 +1,38 @@
 <?php
+use App\Core\Auth;
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/hr/get_dashboard_stats.php';
+require_once __DIR__ . '/../../../app/handlers/hr/get_applicants.php';
+require_once __DIR__ . '/../../../app/handlers/hr/get_trainees.php';
+require_once __DIR__ . '/../../../app/handlers/hr/get_interviews.php';
+
+$db = Database::getInstance()->getConnection();
+$currentUserId = Auth::userId();
+
+$dashStats = hr_dashboard_build_data($db, $currentUserId);
+$applicantsData = hr_applicants_build_data(1, 5, ['status' => 'all', 'search' => '', 'role' => '']);
+$traineesData = hr_trainees_build_data($db, 1, 5, 'all', '', '');
+$interviewsData = hr_interviews_build_data($db, $currentUserId, 1, 5, 'all', 'all', '');
+
+$initialData = [
+    'stats' => $dashStats['stats'],
+    'monthly_applications' => $dashStats['monthly_applications'],
+    'pipeline' => $dashStats['pipeline'],
+    'applicants' => $applicantsData['applicants'],
+    'applicants_pending_count' => $applicantsData['stats']['pending'] ?? 0,
+    'trainees' => $traineesData['trainees'],
+    'interviews' => $interviewsData['interviews']
+];
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'HR Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>'
+. '
 <!-- Dashboard Canvas: each row below is its own drag-reorderable zone
      (stats / mini-tables / charts). Order is user-customizable (see
      dashboard-layout.js) and persisted per account via
@@ -163,7 +192,7 @@ $content = '
 
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260830122553"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260908600000"></script>
 <script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260905310000"></script>
 <script>
 window.dashboardTourSteps = [

@@ -3,10 +3,19 @@
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadDashboardData();
-    loadDashboardApplicants();
-    loadDashboardTrainees();
-    loadDashboardInterviews();
+    const initial = window.__INITIAL_DATA__;
+    if (initial) {
+        renderDashboardStats(initial.stats, initial.monthly_applications, initial.pipeline);
+        renderDashboardApplicants(initial.applicants, initial.applicants_pending_count);
+        renderDashboardTrainees(initial.trainees);
+        renderDashboardInterviews(initial.interviews);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadDashboardData();
+        loadDashboardApplicants();
+        loadDashboardTrainees();
+        loadDashboardInterviews();
+    }
 });
 
 function loadDashboardData() {
@@ -14,10 +23,7 @@ function loadDashboardData() {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                updateStats(data.data.stats);
-                renderMonthlyChart(data.data.monthly_applications);
-                renderPipelineChart(data.data.pipeline);
-                updatePendingBadge(data.data.stats.pending);
+                renderDashboardStats(data.data.stats, data.data.monthly_applications, data.data.pipeline);
             } else {
                 console.error('Failed to load dashboard data:', data.message);
             }
@@ -27,19 +33,30 @@ function loadDashboardData() {
         });
 }
 
+function renderDashboardStats(stats, monthlyApplications, pipeline) {
+    updateStats(stats);
+    if (monthlyApplications) renderMonthlyChart(monthlyApplications);
+    if (pipeline) renderPipelineChart(pipeline);
+    updatePendingBadge(stats.pending);
+}
+
 function loadDashboardInterviews() {
     fetch('?page=api_get_interviews&p=1&limit=5&type=all&status=all&search=')
         .then(response => response.json())
         .then(data => {
             const interviews = (data.success && data.data.interviews) ? data.data.interviews : [];
-            updateUpcomingInterviews(interviews);
-            updateInterviewsDueBadge(interviews);
+            renderDashboardInterviews(interviews);
         })
         .catch(error => {
             console.error('Error loading dashboard interviews:', error);
             const tbody = document.getElementById('dashInterviewsBody');
             if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Failed to load</td></tr>';
         });
+}
+
+function renderDashboardInterviews(interviews) {
+    updateUpcomingInterviews(interviews || []);
+    updateInterviewsDueBadge(interviews || []);
 }
 
 function escapeHtml(text) {
@@ -68,30 +85,9 @@ function loadDashboardApplicants() {
     fetch('?page=api_get_applicants&p=1&limit=5&status=all&role=all&search=')
         .then(response => response.json())
         .then(data => {
-            const tbody = document.getElementById('dashApplicantsBody');
-            if (!tbody) return;
             const applicants = (data.success && data.data.applicants) ? data.data.applicants : [];
             const pendingCount = (data.success && data.data.stats) ? (data.data.stats.pending || 0) : 0;
-            const countBadge = document.getElementById('dashApplicantsCountBadge');
-            if (countBadge) {
-                if (pendingCount > 0) {
-                    countBadge.textContent = pendingCount;
-                    countBadge.style.display = 'inline-flex';
-                } else {
-                    countBadge.style.display = 'none';
-                }
-            }
-            if (applicants.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No applicants yet</td></tr>';
-                return;
-            }
-            tbody.innerHTML = applicants.map(a => `
-                <tr>
-                    <td>${escapeHtml(a.first_name)} ${escapeHtml(a.last_name)}</td>
-                    <td class="text-muted small">${escapeHtml(a.target_role)}</td>
-                    <td><span class="badge bg-${applicantStatusColors[a.status] || 'secondary'}">${escapeHtml(a.status_label || a.status)}</span></td>
-                </tr>
-            `).join('');
+            renderDashboardApplicants(applicants, pendingCount);
         })
         .catch(error => {
             console.error('Error loading dashboard applicants:', error);
@@ -100,30 +96,61 @@ function loadDashboardApplicants() {
         });
 }
 
+function renderDashboardApplicants(applicants, pendingCount) {
+    const tbody = document.getElementById('dashApplicantsBody');
+    if (!tbody) return;
+    applicants = applicants || [];
+    const countBadge = document.getElementById('dashApplicantsCountBadge');
+    if (countBadge) {
+        if (pendingCount > 0) {
+            countBadge.textContent = pendingCount;
+            countBadge.style.display = 'inline-flex';
+        } else {
+            countBadge.style.display = 'none';
+        }
+    }
+    if (applicants.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No applicants yet</td></tr>';
+        return;
+    }
+    tbody.innerHTML = applicants.map(a => `
+        <tr>
+            <td>${escapeHtml(a.first_name)} ${escapeHtml(a.last_name)}</td>
+            <td class="text-muted small">${escapeHtml(a.target_role)}</td>
+            <td><span class="badge bg-${applicantStatusColors[a.status] || 'secondary'}">${escapeHtml(a.status_label || a.status)}</span></td>
+        </tr>
+    `).join('');
+}
+
 function loadDashboardTrainees() {
     fetch('?page=api_get_trainees&p=1&limit=5&status=all&role=all&search=')
         .then(response => response.json())
         .then(data => {
-            const tbody = document.getElementById('dashTraineesBody');
-            if (!tbody) return;
             const trainees = (data.success && data.data.trainees) ? data.data.trainees : [];
-            if (trainees.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No trainees yet</td></tr>';
-                return;
-            }
-            tbody.innerHTML = trainees.map(t => `
-                <tr>
-                    <td>${escapeHtml(t.trainee_name)}</td>
-                    <td class="text-muted small">${t.trainer_name ? escapeHtml(t.trainer_name) : '—'}</td>
-                    <td><span class="badge bg-${t.status_color || 'secondary'}">${escapeHtml(t.status_label || t.status)}</span></td>
-                </tr>
-            `).join('');
+            renderDashboardTrainees(trainees);
         })
         .catch(error => {
             console.error('Error loading dashboard trainees:', error);
             const tbody = document.getElementById('dashTraineesBody');
             if (tbody) tbody.innerHTML = '<tr><td colspan="3" class="text-center text-danger py-3">Failed to load</td></tr>';
         });
+}
+
+function renderDashboardTrainees(trainees) {
+    const tbody = document.getElementById('dashTraineesBody');
+    if (!tbody) return;
+    trainees = trainees || [];
+    if (trainees.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted py-3">No trainees yet</td></tr>';
+        return;
+    }
+    tbody.innerHTML = trainees.map(t => `
+        <tr>
+            <td>${escapeHtml(t.trainee_name)}</td>
+            <td class="text-muted small">${t.trainer_name ? escapeHtml(t.trainer_name) : '—'}</td>
+            <td><span class="badge bg-${t.status_color || 'secondary'}">${escapeHtml(t.status_label || t.status)}</span></td>
+        </tr>
+    `).join('');
 }
 
 function updateStats(stats) {
