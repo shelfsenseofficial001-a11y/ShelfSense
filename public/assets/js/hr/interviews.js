@@ -121,10 +121,37 @@ function validateScheduleDate(dateStr) {
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOM ready - interviews page');
 
-    loadInitialInterviews();
-    loadFinalInterviews();
-    loadContractInterviews();
-    loadAllStats();
+    if (window.__INITIAL_DATA__) {
+        const initial = window.__INITIAL_DATA__;
+        renderInitialInterviews(initial.initial.interviews);
+        renderPagination(initial.initial.pagination, 'initialPaginationContainer', loadInitialInterviews);
+        document.getElementById('initialTableInfo').textContent = `Showing ${initial.initial.pagination.totalRecords || 0} interviews`;
+        document.getElementById('initialCount').textContent = `${initial.initial.pagination.totalRecords || 0} records`;
+
+        renderFinalInterviews(initial.final.interviews);
+        renderPagination(initial.final.pagination, 'finalPaginationContainer', loadFinalInterviews);
+        document.getElementById('finalTableInfo').textContent = `Showing ${initial.final.pagination.totalRecords || 0} interviews`;
+        document.getElementById('finalCount').textContent = `${initial.final.pagination.totalRecords || 0} records`;
+
+        const allInterviews = initial.allStats.interviews || [];
+        const initialScheduled = allInterviews.filter(i => i.interview_type === 'initial' && i.status === 'scheduled').length;
+        const initialCompleted = allInterviews.filter(i => i.interview_type === 'initial' && i.status === 'completed').length;
+        const finalScheduled = allInterviews.filter(i => i.interview_type === 'final' && i.status === 'scheduled').length;
+        const finalCompleted = allInterviews.filter(i => i.interview_type === 'final' && i.status === 'completed').length;
+        document.getElementById('statInitialScheduled').textContent = initialScheduled;
+        document.getElementById('statInitialCompleted').textContent = initialCompleted;
+        document.getElementById('statFinalScheduled').textContent = finalScheduled;
+        document.getElementById('statFinalCompleted').textContent = finalCompleted;
+        updateInitialBadges(allInterviews.filter(i => i.interview_type === 'initial'));
+        updateFinalBadges(allInterviews.filter(i => i.interview_type === 'final'));
+
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadInitialInterviews();
+        loadFinalInterviews();
+        loadContractInterviews();
+        loadAllStats();
+    }
 
     // Deep link from the Trainees page's "Schedule Final Interview" button
     // (?page=hr_interviews&schedule_final=<applicant_id>&name=<name>) --

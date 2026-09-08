@@ -1,4 +1,9 @@
 <?php
+use App\Core\Auth;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/hr/get_interviews.php';
+
 $title = 'Interviews - ShelfSense HR';
 $pageTitle = 'Interviews';
 $activePage = 'interviews';
@@ -13,11 +18,19 @@ $todayDate = date('Y-m-d');
 // Applicant/Target Role rows on the Trainee Contract and Finalize Hire
 // modals), matching whoever schedule_interview.php actually notifies.
 $db = \App\Core\Database::getInstance()->getConnection();
+
+$currentUserId = Auth::userId();
+$initialData = [
+    'initial' => hr_interviews_build_data($db, $currentUserId, 1, 15, 'initial', 'scheduled', ''),
+    'final' => hr_interviews_build_data($db, $currentUserId, 1, 15, 'final', 'scheduled', ''),
+    'allStats' => hr_interviews_build_data($db, $currentUserId, 1, 15, 'all', 'all', '')
+];
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $owners = $db->query("SELECT first_name, last_name FROM users WHERE role = 'owner' AND is_active = 1 ORDER BY first_name")->fetchAll();
 $ownerNames = implode(', ', array_map(fn($o) => $o['first_name'] . ' ' . $o['last_name'], $owners));
 $ownerDisplay = $ownerNames !== '' ? $ownerNames : 'No active Owner account found';
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <!-- Stats Row -->
 <div class="row g-2 mb-3" id="statsRow">
     <div class="col">
@@ -376,7 +389,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260905400000"></script>
+<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260908600000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
