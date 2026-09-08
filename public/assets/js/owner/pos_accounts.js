@@ -5,7 +5,13 @@
 console.log('✅ owner/pos_accounts.js loaded');
 
 document.addEventListener('DOMContentLoaded', function () {
-    load();
+    if (window.__INITIAL_DATA__) {
+        renderStoreManagerSelect(window.__INITIAL_DATA__.available_store_managers);
+        renderTable(window.__INITIAL_DATA__.registers);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        load();
+    }
 
     document.getElementById('createPosForm').addEventListener('submit', handleCreate);
 

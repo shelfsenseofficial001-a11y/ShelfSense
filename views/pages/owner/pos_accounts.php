@@ -1,10 +1,19 @@
 <?php
+use App\Models\Register;
+
+$registerModel = new Register();
+$initialData = [
+    'registers' => $registerModel->getAllWithStoreManagers(),
+    'available_store_managers' => $registerModel->getAllStoreManagers()
+];
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'POS Accounts - Owner';
 $pageTitle = 'POS Accounts';
 $activePage = 'pos_accounts';
-$additional_js = '<script src="/ShelfSense/public/assets/js/owner/pos_accounts.js?v=20260902030000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/owner/pos_accounts.js?v=20260908600000"></script>';
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <div class="alert alert-info d-flex align-items-center gap-2 mb-4">
     <i class="bi bi-info-circle"></i>
     <span>A POS account (POS ID + 4-digit PIN) unlocks a register/terminal for checkout. It is separate from staff logins -- cashiers pick their name after unlocking, purely for sale attribution. A store manager can have any number of registers; creating one here always adds a new one for the store manager you pick.</span>
