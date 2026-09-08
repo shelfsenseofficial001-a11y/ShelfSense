@@ -118,7 +118,27 @@ function validateScheduleDate(dateStr) {
 }
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOM ready - trainees page');
-    loadTrainees();
+    if (window.__INITIAL_DATA__) {
+        const result = window.__INITIAL_DATA__;
+        const tbody = document.getElementById('traineesTableBody');
+        if (result.trainees && result.trainees.length > 0) {
+            renderTrainees(result.trainees);
+            renderPagination(result.pagination);
+            renderStats(result.stats);
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No trainees found
+                    </td>
+                </tr>
+            `;
+        }
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadTrainees();
+    }
 
     if (window.ShelfSenseFilterChips) {
         window.ShelfSenseFilterChips.init('activeFilterChips', [

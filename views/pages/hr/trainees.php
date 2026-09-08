@@ -1,6 +1,9 @@
 <?php
 use App\Core\Auth;
 
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/hr/get_trainees.php';
+
 $title = 'Trainees - ShelfSense HR';
 $pageTitle = 'Trainees';
 $activePage = 'trainees';
@@ -12,13 +15,16 @@ $maxDate = date('Y-m-d\TH:i', strtotime('+3 months'));
 
 // Fetch trainers for the dropdown (only available ones)
 $db = \App\Core\Database::getInstance()->getConnection();
+
+$initialData = hr_trainees_build_data($db, 1, 15, 'all', '', '');
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $trainers = $db->query("SELECT user_id, first_name, last_name, role FROM users WHERE is_active = 1 AND can_train = 1 AND role != 'trainee' ORDER BY first_name");
 $trainerOptions = '';
 while ($trainer = $trainers->fetch()) {
     $trainerOptions .= '<option value="' . $trainer['user_id'] . '">' . $trainer['first_name'] . ' ' . $trainer['last_name'] . ' (' . $trainer['role'] . ')</option>';
 }
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <style>
     .trainee-week-day { flex: 1 1 0; min-width: 44px; text-align: center; padding: 6px 2px; border-radius: 6px; background: var(--bg-card-subtle); border: 1px solid var(--border-color, #e5e7eb); }
     .trainee-week-day-name { font-size: 0.65rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; }
@@ -248,7 +254,7 @@ $content = '
     window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
     window.HR_IS_HEAD = ' . $isHRHeadJs . ';
 </script>
-<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260831160000"></script>
+<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260908600000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
