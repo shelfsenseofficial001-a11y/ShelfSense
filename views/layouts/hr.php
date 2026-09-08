@@ -21,7 +21,7 @@ use App\Core\Auth;
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260908520000">
