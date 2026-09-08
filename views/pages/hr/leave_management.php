@@ -14,8 +14,14 @@ if (!Auth::isHRHead() && !Auth::isOwner()) {
     exit;
 }
 
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/shared/get_leave_requests.php';
+$canApprove = Auth::canApprove() || Auth::isSuperAdmin();
+$initialData = leave_requests_build_data(Auth::userId(), $canApprove, 1, 20, []);
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 // We're in HR layout
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/leave_management.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/leave_management.js?v=20260908600000"></script>';
 $additional_css = '
 <style>
     .leave-status-pending { color: #d97706; }
@@ -49,7 +55,7 @@ $additional_css = '
 </style>
 ';
 
-$content = <<<'EOT'
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<'EOT'
 <!-- Stats -->
 <div class="row g-2 mb-3">
     <div class="col">

@@ -16,7 +16,14 @@ let leaveTypes = {
 let currentLeaveId = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadLeaveRequests();
+    if (window.__INITIAL_DATA__) {
+        renderLeaveRequests(window.__INITIAL_DATA__.leaves);
+        renderPagination(window.__INITIAL_DATA__.pagination);
+        renderStats(window.__INITIAL_DATA__.leaves);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadLeaveRequests();
+    }
     setupEventListeners();
 
     if (window.ShelfSenseFilterChips) {
