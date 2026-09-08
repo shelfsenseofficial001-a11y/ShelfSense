@@ -2,21 +2,27 @@
 require_once __DIR__ . '/../../../../app/core/CutoffPeriod.php';
 
 use App\Core\CutoffPeriod;
+use App\Models\Budget;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../../app/handlers/finance/head/budget/get.php';
 
 $title = 'Budget Management - Finance Head';
 $pageTitle = 'Budget Management';
 $activePage = 'head_budget';
 $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260904"></script>';
+    . '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260908600000"></script>';
 
 $defaultPeriod = CutoffPeriod::getCurrentKey();
+$initialData = budget_overview_build_data(new Budget(), $defaultPeriod);
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $periodOptionsHtml = '';
 foreach (CutoffPeriod::getRecentHalves(2, 1) as $half) {
     $selected = $half['key'] === $defaultPeriod ? ' selected' : '';
     $periodOptionsHtml .= '<option value="' . htmlspecialchars($half['key']) . '"' . $selected . '>' . htmlspecialchars($half['label']) . '</option>';
 }
 
-$content = <<<EOT
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<EOT
 <ul class="nav nav-tabs mb-3" id="budgetTabs" role="tablist">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overviewTab" type="button">Overview</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deptTab" type="button">Departments</button></li>

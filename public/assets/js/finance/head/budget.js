@@ -6,7 +6,12 @@ let fhBudgetSetTarget = { departmentId: null, periodKey: null };
 
 document.addEventListener('DOMContentLoaded', function () {
     const period = document.getElementById('monthFilter').value;
-    loadOverview(period);
+    if (window.__INITIAL_DATA__) {
+        renderOverviewTable(window.__INITIAL_DATA__.statuses, period);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadOverview(period);
+    }
     loadDepartments();
     loadHistory();
     loadTolerance();
@@ -17,32 +22,37 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('saveToleranceBtn').addEventListener('click', saveTolerance);
 });
 
+function renderOverviewTable(statuses, periodKey) {
+    const container = document.getElementById('fh-budget-table');
+    statuses = statuses || [];
+    container.innerHTML = statuses.length ? `
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>Department</th><th>Allocated</th><th>Used</th><th>Reserved</th><th>Available</th><th>Status</th><th></th></tr></thead>
+                <tbody>
+                    ${statuses.map(b => `
+                        <tr>
+                            <td class="fw-semibold">${prEscapeHtml(b.department_name)}</td>
+                            <td>${prCurrency(b.allocated)}</td>
+                            <td>${prCurrency(b.used)}</td>
+                            <td>${prCurrency(b.reserved)}</td>
+                            <td class="fw-semibold">${prCurrency(b.available)}</td>
+                            <td>${prStatusBadge(b.status)} ${b.used_percentage !== null ? `<span class="text-muted small">(${b.used_percentage}%)</span>` : ''}</td>
+                            <td><button class="btn btn-sm btn-outline-primary" onclick="openSetBudget(${b.department_id}, '${periodKey}', '${prEscapeHtml(b.department_name)}', ${b.allocated})">Set Allocation</button></td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </div>
+    ` : `<div class="text-center text-muted py-4">No departments yet — add one in the Departments tab.</div>`;
+}
+
 async function loadOverview(periodKey) {
     const container = document.getElementById('fh-budget-table');
     container.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
     try {
         const data = await prFetchJson(`?page=api_get_budget_overview&period_key=${encodeURIComponent(periodKey)}`);
-        const statuses = data.statuses || [];
-        container.innerHTML = statuses.length ? `
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead><tr><th>Department</th><th>Allocated</th><th>Used</th><th>Reserved</th><th>Available</th><th>Status</th><th></th></tr></thead>
-                    <tbody>
-                        ${statuses.map(b => `
-                            <tr>
-                                <td class="fw-semibold">${prEscapeHtml(b.department_name)}</td>
-                                <td>${prCurrency(b.allocated)}</td>
-                                <td>${prCurrency(b.used)}</td>
-                                <td>${prCurrency(b.reserved)}</td>
-                                <td class="fw-semibold">${prCurrency(b.available)}</td>
-                                <td>${prStatusBadge(b.status)} ${b.used_percentage !== null ? `<span class="text-muted small">(${b.used_percentage}%)</span>` : ''}</td>
-                                <td><button class="btn btn-sm btn-outline-primary" onclick="openSetBudget(${b.department_id}, '${periodKey}', '${prEscapeHtml(b.department_name)}', ${b.allocated})">Set Allocation</button></td>
-                            </tr>
-                        `).join('')}
-                    </tbody>
-                </table>
-            </div>
-        ` : `<div class="text-center text-muted py-4">No departments yet — add one in the Departments tab.</div>`;
+        renderOverviewTable(data.statuses, periodKey);
     } catch (e) {
         container.innerHTML = `<div class="text-danger text-center py-4">${prEscapeHtml(e.message)}</div>`;
     }

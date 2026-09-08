@@ -3,7 +3,14 @@
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadBudget(document.getElementById('monthFilter').value);
+    if (window.__INITIAL_DATA__) {
+        const data = window.__INITIAL_DATA__;
+        renderBudgetTable(data.statuses, data.period);
+        document.getElementById('lastUpdated').textContent = `Period: ${data.period ? data.period.label : document.getElementById('monthFilter').value}`;
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadBudget(document.getElementById('monthFilter').value);
+    }
     document.getElementById('monthFilter').addEventListener('change', function () { loadBudget(this.value); });
     document.getElementById('refreshBtn').addEventListener('click', function () { loadBudget(document.getElementById('monthFilter').value); });
 });
