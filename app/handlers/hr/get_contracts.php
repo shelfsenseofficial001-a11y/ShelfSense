@@ -7,33 +7,12 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-// Only full HR can access contracts (not trainees)
-if (!Auth::canAccessModule('hr_head') && !Auth::isHR()) {
-    Response::forbidden('Access denied. HR role required.');
-}
-
-if (Auth::isTrainee()) {
-    Response::forbidden('Trainees cannot access contracts.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-    
-    $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
-    $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
-    $status = isset($_GET['status']) ? $_GET['status'] : 'all';
-    $search = isset($_GET['search']) ? trim($_GET['search']) : '';
-
-    if (strlen($search) > 100) {
-        Response::error('Search term cannot exceed 100 characters.', 400);
-    }
-
+if (!function_exists('hr_contracts_build_data')) {
+/**
+ * Builds a page of contracts + stats. Shared by the API endpoint (filter/
+ * pagination/search) and the Contracts page's first paint.
+ */
+function hr_contracts_build_data(PDO $db, int $page, int $limit, string $status, string $search): array {
     $where = "1=1";
     $params = [];
 
@@ -112,7 +91,7 @@ try {
     $statsStmt = $db->query($statsSql);
     $stats = $statsStmt->fetch();
 
-    Response::success([
+    return [
         'contracts' => $contracts,
         'pagination' => [
             'currentPage' => $page,
@@ -127,9 +106,41 @@ try {
             'declined' => (int)($stats['declined'] ?? 0)
         ],
         'filters' => ['status' => $status, 'search' => $search]
-    ], 'Contracts fetched successfully');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_contracts.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    // Only full HR can access contracts (not trainees)
+    if (!Auth::canAccessModule('hr_head') && !Auth::isHR()) {
+        Response::forbidden('Access denied. HR role required.');
+    }
+
+    if (Auth::isTrainee()) {
+        Response::forbidden('Trainees cannot access contracts.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+
+        $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
+        $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
+        $status = isset($_GET['status']) ? $_GET['status'] : 'all';
+        $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+
+        if (strlen($search) > 100) {
+            Response::error('Search term cannot exceed 100 characters.', 400);
+        }
+
+        Response::success(hr_contracts_build_data($db, $page, $limit, $status, $search), 'Contracts fetched successfully');
+    } catch (Exception $e) {
+        error_log('get_contracts.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

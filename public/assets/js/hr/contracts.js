@@ -131,7 +131,27 @@ document.getElementById('editContractModal').addEventListener('show.bs.modal', f
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOM ready - contracts page');
-    loadContracts();
+    if (window.__INITIAL_DATA__) {
+        const result = window.__INITIAL_DATA__;
+        const tbody = document.getElementById('contractsTableBody');
+        if (result.contracts && result.contracts.length > 0) {
+            renderContracts(result.contracts);
+            renderPagination(result.pagination);
+            renderStats(result.stats);
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No contracts found
+                    </td>
+                </tr>
+            `;
+        }
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadContracts();
+    }
 
     if (window.ShelfSenseFilterChips) {
         window.ShelfSenseFilterChips.init('activeFilterChips', [

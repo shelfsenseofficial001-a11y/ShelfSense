@@ -1,12 +1,18 @@
 <?php
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/hr/get_contracts.php';
+
 $title = 'Contracts - ShelfSense HR';
 $pageTitle = 'Contracts';
 $activePage = 'contracts';
 
+$db = \App\Core\Database::getInstance()->getConnection();
+$initialData = hr_contracts_build_data($db, 1, 15, 'all', '');
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 // Build trainee options for the dropdown
 $traineeOptions = '<option value="">Select trainee...</option>';
 try {
-    $db = \App\Core\Database::getInstance()->getConnection();
     $traineeQuery = "SELECT a.id, a.first_name, a.last_name, a.target_role FROM applicants a WHERE a.status = 'screening_success' ORDER BY a.first_name";
     $traineeStmt = $db->query($traineeQuery);
     while ($trainee = $traineeStmt->fetch()) {
@@ -16,7 +22,7 @@ try {
     $traineeOptions .= '<option value="" disabled>Error loading trainees</option>';
 }
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <style>
     /* Rest days toggle indicator */
     .rest-day-toggle.btn-primary,
@@ -309,7 +315,7 @@ $content = '
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260831170000"></script>
+<script src="/ShelfSense/public/assets/js/hr/contracts.js?v=20260908600000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
