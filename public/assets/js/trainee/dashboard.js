@@ -5,7 +5,12 @@
 console.log('✅ trainee/dashboard.js loaded');
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadDashboard();
+    if (window.__INITIAL_DATA__) {
+        renderDashboard(window.__INITIAL_DATA__);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadDashboard();
+    }
 });
 
 function loadDashboard() {

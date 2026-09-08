@@ -9,20 +9,13 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-if (!Auth::isTrainee() && !Auth::isOwner()) {
-    Response::forbidden('Access denied');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-    $userId = Auth::userId();
-
+if (!function_exists('trainee_dashboard_build_data')) {
+/**
+ * Builds the Trainee dashboard data, or null if the user has no trainee
+ * record. Shared by the API endpoint (for refresh) and the dashboard page
+ * itself (server-rendered first paint).
+ */
+function trainee_dashboard_build_data(PDO $db, int $userId): ?array {
     // Get trainee data
     $stmt = $db->prepare("
         SELECT 
@@ -50,7 +43,7 @@ try {
     $trainee = $stmt->fetch();
 
     if (!$trainee) {
-        Response::error('Trainee record not found', 404);
+        return null;
     }
 
     // Calculate days remaining
@@ -160,7 +153,7 @@ try {
         'description' => 'Your training is in progress.'
     ];
 
-    Response::success([
+    return [
         'trainee' => [
             'id' => $trainee['id'],
             'applicant_id' => $trainee['applicant_id'],
@@ -219,9 +212,30 @@ try {
             ]
         ],
         'notifications' => $notifications
-    ], 'Trainee dashboard data fetched');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_dashboard_data.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    if (!Auth::isTrainee() && !Auth::isOwner()) {
+        Response::forbidden('Access denied');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+        $data = trainee_dashboard_build_data($db, Auth::userId());
+        if ($data === null) {
+            Response::error('Trainee record not found', 404);
+        }
+        Response::success($data, 'Trainee dashboard data fetched');
+    } catch (Exception $e) {
+        error_log('get_dashboard_data.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }
