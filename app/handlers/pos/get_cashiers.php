@@ -24,7 +24,21 @@ try {
         WHERE role = 'employee' AND is_active = 1
         ORDER BY first_name ASC
     ");
-    Response::success(['cashiers' => $stmt->fetchAll()], 'Cashiers fetched');
+    $cashiers = $stmt->fetchAll();
+
+    // Trainees training for the Cashier role can also ring up sales under
+    // supervision -- shown as a separate group below the hired cashiers.
+    $stmt = $db->query("
+        SELECT u.user_id, u.first_name, u.last_name, u.employee_number, u.profile_pic
+        FROM users u
+        JOIN trainees t ON t.user_id = u.user_id
+        WHERE u.role = 'trainee' AND u.is_active = 1
+          AND t.status = 'active' AND t.target_role = 'Cashier'
+        ORDER BY u.first_name ASC
+    ");
+    $trainees = $stmt->fetchAll();
+
+    Response::success(['cashiers' => $cashiers, 'trainees' => $trainees], 'Cashiers fetched');
 } catch (Exception $e) {
     error_log('get_cashiers.php error: ' . $e->getMessage());
     Response::error('Error: ' . $e->getMessage());

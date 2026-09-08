@@ -19,19 +19,34 @@ if (!Auth::posCheck()) {
 
 $input = json_decode(file_get_contents('php://input'), true);
 $userId = isset($input['user_id']) ? intval($input['user_id']) : 0;
+$password = isset($input['password']) ? (string)$input['password'] : '';
 
 if ($userId <= 0) {
     Response::error('Please select a cashier.', 400);
 }
 
+if ($password === '') {
+    Response::error('Please enter your password.', 400);
+}
+
 try {
     $db = Database::getInstance()->getConnection();
-    $stmt = $db->prepare("SELECT user_id, first_name, last_name FROM users WHERE user_id = ? AND role = 'employee' AND is_active = 1");
+    $stmt = $db->prepare("
+        SELECT u.user_id, u.first_name, u.last_name, u.password
+        FROM users u
+        LEFT JOIN trainees t ON t.user_id = u.user_id AND t.status = 'active' AND t.target_role = 'Cashier'
+        WHERE u.user_id = ? AND u.is_active = 1
+          AND (u.role = 'employee' OR (u.role = 'trainee' AND t.id IS NOT NULL))
+    ");
     $stmt->execute([$userId]);
     $cashier = $stmt->fetch();
 
     if (!$cashier) {
         Response::error('That employee is not available.', 400);
+    }
+
+    if (!password_verify($password, $cashier['password'])) {
+        Response::error('Incorrect password.', 401);
     }
 
     $fullName = $cashier['first_name'] . ' ' . $cashier['last_name'];
