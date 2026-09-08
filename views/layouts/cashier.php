@@ -29,7 +29,6 @@ use App\Core\Auth;
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
-    <?php require __DIR__ . '/../shared/splash_screen.php'; ?>
     <div class="dashboard-page">
     <div class="dashboard-shell">
     <div class="d-flex">

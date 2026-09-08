@@ -13,7 +13,68 @@ $subtitle = 'Staff Portal Login';
 $prefillIdentifier = htmlspecialchars(PortalGate::getPassedEmployeeNumber() ?? '', ENT_QUOTES);
 
 $content = '
+<!-- Shown only during the login transition, once credentials are confirmed
+     valid -- gives a deliberate branded beat before landing on the
+     dashboard, instead of an abrupt jump. Not used for ordinary navigation. -->
+<div id="loginSplash">
+    <div class="login-splash-mark">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="2" y="7" width="20" height="14" rx="2" stroke="#ff6b35" stroke-width="1.6"/>
+            <path d="M2 7L12 2L22 7" stroke="#ff6b35" stroke-width="1.6" stroke-linejoin="round"/>
+            <line x1="7" y1="11" x2="17" y2="11" stroke="#ff6b35" stroke-width="1.4" stroke-linecap="round"/>
+            <line x1="7" y1="15" x2="14" y2="15" stroke="#ff6b35" stroke-width="1.4" stroke-linecap="round"/>
+        </svg>
+        <span class="login-splash-word">Shelf<span>Sense</span></span>
+    </div>
+    <div class="login-splash-spinner"></div>
+</div>
 <style>
+    #loginSplash {
+        position: fixed;
+        inset: 0;
+        z-index: 20000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 18px;
+        background: #14100f;
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+    }
+    #loginSplash.login-splash-visible {
+        opacity: 1;
+        visibility: visible;
+    }
+    .login-splash-mark {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .login-splash-word {
+        font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #f5f2ef;
+        letter-spacing: -0.01em;
+    }
+    .login-splash-word span {
+        color: #ff6b35;
+    }
+    .login-splash-spinner {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        border: 3px solid rgba(255, 107, 53, 0.2);
+        border-top-color: #ff6b35;
+        animation: loginSplashSpin 0.7s linear infinite;
+    }
+    @keyframes loginSplashSpin {
+        to { transform: rotate(360deg); }
+    }
+
     /* Two-column container setup preserving layout structure */
     .auth-card {
         max-width: 900px !important;
@@ -224,7 +285,14 @@ document.getElementById("loginForm").addEventListener("submit", async function(e
         const result = await response.json();
         
         if (result.success) {
-            window.location.href = result.data && result.data.redirect ? result.data.redirect : "?page=dashboard";
+            const redirectTo = result.data && result.data.redirect ? result.data.redirect : "?page=dashboard";
+            const splash = document.getElementById("loginSplash");
+            if (splash) {
+                splash.classList.add("login-splash-visible");
+                setTimeout(function() { window.location.href = redirectTo; }, 700);
+            } else {
+                window.location.href = redirectTo;
+            }
         } else {
             Swal.fire({
                 icon: "error",
