@@ -791,6 +791,41 @@ if ($page === 'pos_logout') {
     exit;
 }
 
+if ($page === 'attendance_scan') {
+    require_once __DIR__ . '/../views/pages/pos/attendance_scan.php';
+    exit;
+}
+
+if ($page === 'api_verify_face_attendance') {
+    require_once __DIR__ . '/../app/handlers/pos/verify_face_attendance.php';
+    exit;
+}
+
+if ($page === 'api_attendance_qr_status') {
+    require_once __DIR__ . '/../app/handlers/pos/get_attendance_qr_status.php';
+    exit;
+}
+
+if ($page === 'api_pos_attendance_fallback_login') {
+    require_once __DIR__ . '/../app/handlers/pos/pos_attendance_fallback_login.php';
+    exit;
+}
+
+if ($page === 'api_enroll_face') {
+    require_once __DIR__ . '/../app/handlers/shared/enroll_face.php';
+    exit;
+}
+
+if ($page === 'api_face_enrollment_status') {
+    require_once __DIR__ . '/../app/handlers/shared/get_face_enrollment_status.php';
+    exit;
+}
+
+if ($page === 'api_remove_face_enrollment') {
+    require_once __DIR__ . '/../app/handlers/shared/remove_face_enrollment.php';
+    exit;
+}
+
 // ============================================
 // POS API ROUTES
 // ============================================

@@ -22,6 +22,9 @@ if (in_array($role, ['hr_head', 'hr_staff', 'owner'])) {
 $additional_js = '<script src="/ShelfSense/public/assets/js/shared/profile.js?v=20260829200500"></script>';
 $additional_js .= '<script src="/ShelfSense/public/assets/js/shared/profile-settings-nav.js?v=20260903000000"></script>';
 $additional_js .= '<script src="/ShelfSense/public/assets/js/shared/profile-tour-toggle.js?v=20260903100000"></script>';
+$additional_js .= '<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>';
+$additional_js .= '<script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260908100000"></script>';
+$additional_js .= '<script src="/ShelfSense/public/assets/js/shared/face-enrollment.js?v=20260908100000"></script>';
 
 // Dashboard walkthrough toggle -- every portal's dashboard has the tour now.
 $prefsNavItems = '
@@ -315,6 +318,23 @@ $content = <<<HTML
                     <i class="bi bi-x-circle-fill"></i>
                     <div class="flex-grow-1">Your last upload was rejected<span id="rejectedReasonText"></span>. Try uploading a different photo.</div>
                 </div>
+            </div>
+
+            <div class="modern-card p-4 mb-3">
+                <div class="profile-section-title">Attendance Face ID</div>
+                <div class="profile-section-sub">Lets the register confirm it's you with a quick face scan instead of manual attendance entry.</div>
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                    <div id="faceEnrollStatus" class="small">Checking status…</div>
+                    <div class="d-flex gap-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="faceEnrollBtn">
+                            <i class="bi bi-camera"></i> Enroll Face ID
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-danger" id="faceRemoveBtn" style="display:none;">
+                            <i class="bi bi-trash"></i> Remove
+                        </button>
+                    </div>
+                </div>
+                <small class="text-muted d-block mt-2">Biometric data notice: we store numeric face measurements and a verification photo, used only to confirm attendance and visible only to HR. You can remove this anytime.</small>
             </div>
 
             <div class="modern-card p-4">

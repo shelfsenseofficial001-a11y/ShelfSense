@@ -14,6 +14,9 @@ $subtitle = 'Select Cashier';
 $registerName = htmlspecialchars(Auth::posRegisterName() ?? 'Register');
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
+<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260908100000"></script>
 <div class="brand">
     <h1><span class="brand-mark"></span>Shelf<span>Sense</span></h1>
     <small>' . $registerName . '</small>
@@ -53,6 +56,36 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-yellow-primary btn-sm" id="cashierPasswordConfirmBtn">Continue</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Attendance QR / face-scan modal -->
+<div class="modal fade" id="attendanceQrModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Attendance scan required</h5>
+                <button type="button" class="btn-close" id="attendanceQrCloseBtn"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-2">Scan this with <strong id="attendanceQrCashierName"></strong>\'s phone to record attendance.</p>
+                <div id="attendanceQrCode" class="d-flex justify-content-center my-3"></div>
+                <div id="attendanceQrStatusMsg" class="small text-muted mb-2">Waiting for scan&hellip;</div>
+
+                <div id="attendanceQrExpired" style="display:none;" class="alert alert-warning small">
+                    This QR code expired. <button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="attendanceQrRetryBtn">Try again</button>
+                </div>
+
+                <hr>
+                <p class="small text-muted mb-2">No phone handy? Verify here instead:</p>
+                <input type="email" id="attendanceFallbackEmail" class="form-control form-control-sm mb-2" placeholder="Employee email" autocomplete="off">
+                <input type="password" id="attendanceFallbackPassword" class="form-control form-control-sm mb-2" placeholder="Password" autocomplete="off">
+                <button type="button" class="btn btn-sm btn-outline-secondary w-100" id="attendanceFallbackBtn">
+                    <i class="bi bi-camera"></i> Verify with this device\'s camera
+                </button>
+                <div id="attendanceFallbackError" class="text-danger small mt-2" style="display:none;"></div>
             </div>
         </div>
     </div>
@@ -162,7 +195,8 @@ function submitCashierPassword() {
         .then(res => {
             confirmBtn.disabled = false;
             if (res.success) {
-                window.location.href = res.data.redirect;
+                passwordModal.hide();
+                openAttendanceQrModal(res.data);
             } else {
                 passwordError.textContent = res.message || "Incorrect password.";
                 passwordError.style.display = "block";
@@ -180,6 +214,137 @@ function submitCashierPassword() {
 document.getElementById("cashierPasswordConfirmBtn").addEventListener("click", submitCashierPassword);
 passwordInput.addEventListener("keydown", function(e) {
     if (e.key === "Enter") submitCashierPassword();
+});
+
+// ---- Attendance QR / face-scan modal ----
+let attendanceQrModal = null;
+let attendancePollTimer = null;
+let currentAttendanceToken = null;
+let currentAttendanceName = null;
+
+function openAttendanceQrModal(data) {
+    if (!attendanceQrModal) {
+        attendanceQrModal = new bootstrap.Modal(document.getElementById("attendanceQrModal"));
+    }
+    currentAttendanceToken = data.token;
+    currentAttendanceName = data.cashier_name;
+    document.getElementById("attendanceQrCashierName").textContent = data.cashier_name;
+    document.getElementById("attendanceQrStatusMsg").textContent = "Waiting for scan…";
+    document.getElementById("attendanceQrExpired").style.display = "none";
+    document.getElementById("attendanceFallbackEmail").value = "";
+    document.getElementById("attendanceFallbackPassword").value = "";
+    document.getElementById("attendanceFallbackError").style.display = "none";
+
+    const qrContainer = document.getElementById("attendanceQrCode");
+    qrContainer.innerHTML = "";
+    new QRCode(qrContainer, { text: data.scan_url, width: 180, height: 180 });
+
+    attendanceQrModal.show();
+    startAttendancePolling();
+}
+
+function startAttendancePolling() {
+    stopAttendancePolling();
+    attendancePollTimer = setInterval(function() {
+        if (!currentAttendanceToken) return;
+        fetch("?page=api_attendance_qr_status&token=" + encodeURIComponent(currentAttendanceToken))
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success) return;
+                if (res.data.status === "confirmed") {
+                    stopAttendancePolling();
+                    document.getElementById("attendanceQrStatusMsg").textContent = "Verified! Redirecting…";
+                    window.location.href = res.data.redirect;
+                } else if (res.data.status === "expired") {
+                    stopAttendancePolling();
+                    document.getElementById("attendanceQrExpired").style.display = "block";
+                }
+            })
+            .catch(() => {});
+    }, 2000);
+}
+
+function stopAttendancePolling() {
+    if (attendancePollTimer) {
+        clearInterval(attendancePollTimer);
+        attendancePollTimer = null;
+    }
+}
+
+document.getElementById("attendanceQrCloseBtn").addEventListener("click", function() {
+    stopAttendancePolling();
+});
+
+document.getElementById("attendanceQrRetryBtn").addEventListener("click", function() {
+    attendanceQrModal.hide();
+    if (pendingCashierId && currentAttendanceName) {
+        openCashierPasswordModal(pendingCashierId, currentAttendanceName);
+    }
+});
+
+document.getElementById("attendanceFallbackBtn").addEventListener("click", function() {
+    const email = document.getElementById("attendanceFallbackEmail").value.trim();
+    const pw = document.getElementById("attendanceFallbackPassword").value;
+    const errEl = document.getElementById("attendanceFallbackError");
+    if (!email || !pw) {
+        errEl.textContent = "Please enter both email and password.";
+        errEl.style.display = "block";
+        return;
+    }
+    const btn = this;
+    btn.disabled = true;
+    errEl.style.display = "none";
+
+    fetch("?page=api_pos_attendance_fallback_login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token: currentAttendanceToken, email: email, password: pw })
+    })
+        .then(r => r.json())
+        .then(res => {
+            btn.disabled = false;
+            if (!res.success) {
+                errEl.textContent = res.message || "Verification failed.";
+                errEl.style.display = "block";
+                return;
+            }
+            stopAttendancePolling();
+            window.ShelfFaceCapture.run({
+                angles: ["Look straight at the camera", "Slowly turn your head slightly left", "Slowly turn your head slightly right"]
+            }).then(result => {
+                return fetch("?page=api_verify_face_attendance", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token: currentAttendanceToken, descriptors: result.descriptors, photo: result.photo })
+                }).then(r => r.json());
+            }).then(res2 => {
+                if (res2.success) {
+                    // Pull the confirmed status once so the register session adopts the cashier.
+                    fetch("?page=api_attendance_qr_status&token=" + encodeURIComponent(currentAttendanceToken))
+                        .then(r => r.json())
+                        .then(statusRes => {
+                            if (statusRes.success && statusRes.data.redirect) {
+                                window.location.href = statusRes.data.redirect;
+                            }
+                        });
+                } else {
+                    errEl.textContent = res2.message || "Face not recognized. Please try again.";
+                    errEl.style.display = "block";
+                    startAttendancePolling();
+                }
+            }).catch(err => {
+                if (err && err.message !== "cancelled") {
+                    errEl.textContent = err.message || "Something went wrong.";
+                    errEl.style.display = "block";
+                }
+                startAttendancePolling();
+            });
+        })
+        .catch(() => {
+            btn.disabled = false;
+            errEl.textContent = "Something went wrong. Please try again.";
+            errEl.style.display = "block";
+        });
 });
 
 function renderCashierData(cashiers, trainees) {

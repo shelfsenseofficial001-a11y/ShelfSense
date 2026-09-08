@@ -88,6 +88,51 @@ class Attendance
         ]);
     }
 
+    /**
+     * Auto-records a face-verified attendance punch: time-in if the
+     * employee hasn't clocked in today, time-out if they have but haven't
+     * clocked out yet, or 'already_recorded' if both are already set.
+     * Bypasses manual HR entry entirely -- used by the POS QR/face flow.
+     */
+    public function recordFaceClock($userId, $photoPath, $distance)
+    {
+        $today = date('Y-m-d');
+        $now = date('H:i:s');
+
+        $stmt = $this->db->prepare("SELECT id, time_in, time_out FROM attendance WHERE user_id = ? AND date = ?");
+        $stmt->execute([$userId, $today]);
+        $existing = $stmt->fetch();
+
+        if (!$existing || !$existing['time_in']) {
+            $stmt = $this->db->prepare("
+                INSERT INTO attendance (user_id, date, time_in, status, verification_method, verification_photo, match_distance, verified_by)
+                VALUES (?, ?, ?, 'present', 'face', ?, ?, ?)
+                ON DUPLICATE KEY UPDATE
+                    time_in = VALUES(time_in),
+                    status = VALUES(status),
+                    verification_method = 'face',
+                    verification_photo = VALUES(verification_photo),
+                    match_distance = VALUES(match_distance),
+                    verified_by = VALUES(verified_by),
+                    updated_at = NOW()
+            ");
+            $stmt->execute([$userId, $today, $now, $photoPath, $distance, $userId]);
+            return 'time_in';
+        }
+
+        if (!$existing['time_out']) {
+            $stmt = $this->db->prepare("
+                UPDATE attendance
+                SET time_out = ?, verification_method = 'face', verification_photo = ?, match_distance = ?, verified_by = ?, updated_at = NOW()
+                WHERE id = ?
+            ");
+            $stmt->execute([$now, $photoPath, $distance, $userId, $existing['id']]);
+            return 'time_out';
+        }
+
+        return 'already_recorded';
+    }
+
     public function getUserAttendance($userId, $startDate, $endDate)
     {
         $stmt = $this->db->prepare("

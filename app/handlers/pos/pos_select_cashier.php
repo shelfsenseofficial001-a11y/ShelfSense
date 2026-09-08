@@ -50,12 +50,27 @@ try {
     }
 
     $fullName = $cashier['first_name'] . ' ' . $cashier['last_name'];
-    Auth::posSetCashier($cashier['user_id'], $fullName);
+
+    // Password only confirms identity for register attribution -- actual
+    // clock-in still requires a face-verified attendance scan (QR handoff
+    // to a phone, or the register's own camera as a fallback).
+    $token = bin2hex(random_bytes(32));
+    $stmt = $db->prepare("
+        INSERT INTO attendance_qr_sessions (token, register_id, user_id, status, created_at, expires_at)
+        VALUES (?, ?, ?, 'pending', NOW(), DATE_ADD(NOW(), INTERVAL 5 MINUTE))
+    ");
+    $stmt->execute([$token, Auth::posRegisterId(), $cashier['user_id']]);
+
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
+    $scanUrl = $scheme . '://' . $host . '/ShelfSense/?page=attendance_scan&token=' . $token;
 
     Response::success([
         'cashier_name' => $fullName,
-        'redirect' => '?page=pos_checkout'
-    ], 'Cashier selected');
+        'token' => $token,
+        'scan_url' => $scanUrl,
+        'expires_in' => 300
+    ], 'Identity confirmed, attendance scan required');
 
 } catch (Exception $e) {
     error_log('pos_select_cashier.php error: ' . $e->getMessage());
