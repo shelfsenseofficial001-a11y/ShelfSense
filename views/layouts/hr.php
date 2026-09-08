@@ -90,6 +90,9 @@ use App\Core\Auth;
                 <a href="?page=hr_job_postings" class="nav-item <?php echo $activePage === 'job_postings' ? 'active' : ''; ?>" title="Job Postings">
                     <span class="nav-icon-wrap"><i class="bi bi-megaphone-fill"></i></span> <span class="nav-label">Job Postings</span>
                 </a>
+                <a href="?page=hr_recruitment_calendar" class="nav-item <?php echo $activePage === 'recruitment_calendar' ? 'active' : ''; ?>" title="Recruitment Calendar">
+                    <span class="nav-icon-wrap"><i class="bi bi-calendar3"></i></span> <span class="nav-label">Recruitment Calendar</span>
+                </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Attendance</span></div>
                 <a href="?page=hr_schedules" class="nav-item <?php echo $activePage === 'schedules' ? 'active' : ''; ?>" title="Schedules">
                     <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Schedules</span>

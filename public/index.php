@@ -292,6 +292,24 @@ if ($page === 'hr_job_postings') {
     exit;
 }
 
+if ($page === 'hr_recruitment_calendar') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isHR() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/hr/recruitment_calendar.php';
+    exit;
+}
+
+if ($page === 'api_hr_get_recruitment_calendar') {
+    require_once __DIR__ . '/../app/handlers/hr/get_recruitment_calendar.php';
+    exit;
+}
+
 // ============================================
 // HR JOB POSTINGS API ROUTES
 // ============================================
