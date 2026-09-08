@@ -124,8 +124,28 @@ function validateScheduleDate(dateStr) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadApplicants();
-    
+    if (window.__INITIAL_DATA__) {
+        const result = window.__INITIAL_DATA__;
+        renderActiveFilterChips();
+        if (result.applicants && result.applicants.length > 0) {
+            renderApplicants(result.applicants);
+            renderPagination(result.pagination);
+            renderStats(result.stats);
+        } else {
+            document.getElementById('applicantsTableBody').innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center text-muted py-4">
+                        <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+                        No applicants found
+                    </td>
+                </tr>
+            `;
+        }
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadApplicants();
+    }
+
     // ============================================
     // FILTER EVENT LISTENERS
     // ============================================

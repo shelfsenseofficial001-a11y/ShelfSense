@@ -1,9 +1,14 @@
 <?php
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/hr/get_applicants.php';
+$initialData = hr_applicants_build_data(1, 15, ['status' => 'all', 'search' => '', 'role' => '']);
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Applicants - ShelfSense HR';
 $pageTitle = 'Applicants';
 $activePage = 'applicants';
 
-$content = '
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . '
 <!-- Filters -->
 <div class="row g-2 mb-3">
     <div class="col-md-3">
@@ -703,7 +708,7 @@ body.dashboard-theme .detail-drawer.applicant-drawer {
 }
 </style>
 
-<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260903241500"></script>
+<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260908600000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';
