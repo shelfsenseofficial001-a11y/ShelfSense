@@ -15,14 +15,15 @@ class OrderItem
     public function create($data)
     {
         $stmt = $this->db->prepare("
-            INSERT INTO order_items (order_id, product_id, quantity, price, subtotal)
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO order_items (order_id, product_id, quantity, price, original_price, subtotal)
+            VALUES (?, ?, ?, ?, ?, ?)
         ");
         return $stmt->execute([
             $data['order_id'],
             $data['product_id'],
             $data['quantity'],
             $data['price'],
+            $data['original_price'] ?? $data['price'],
             $data['subtotal']
         ]);
     }

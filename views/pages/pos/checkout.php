@@ -29,7 +29,7 @@ window.dashboardTourSteps = [
     }
 ];
 </script>
-<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260908710000"></script>';
 
 $content = <<<'EOT'
 <div class="row g-3 flex-grow-1 pos-checkout-row">
@@ -111,6 +111,10 @@ $content = <<<'EOT'
                     <span>Sub Total</span>
                     <span id="cartSubtotal">₱0.00</span>
                 </div>
+                <div class="summary-row" id="cartSavingsRow" style="display:none;color:#d9363e;">
+                    <span>Discount</span>
+                    <span id="cartSavings">₱0.00</span>
+                </div>
                 <div class="summary-total-row">
                     <span class="label">Amount to be Paid</span>
                     <span class="fs-4 fw-bold text-yellow" id="cartTotal">₱0.00</span>
@@ -148,6 +152,7 @@ $content = <<<'EOT'
                 <div class="text-center mb-3">
                     <h4>Total Amount</h4>
                     <h2 class="fw-bold text-yellow" id="paymentTotal">₱0.00</h2>
+                    <div class="small" id="paymentSavingsRow" style="display:none;color:#d9363e;">You saved <span id="paymentSavings">₱0.00</span></div>
                 </div>
 
                 <div class="mb-3">
@@ -159,6 +164,12 @@ $content = <<<'EOT'
                         <button class="btn btn-outline-primary payment-method-btn" data-method="paymaya">📱 PayMaya</button>
                         <button class="btn btn-outline-primary payment-method-btn" data-method="other">🔄 Other</button>
                     </div>
+                </div>
+
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="pwdSeniorDiscount">
+                    <label class="form-check-label" for="pwdSeniorDiscount">Apply PWD / Senior Citizen Discount</label>
+                    <div class="form-text">Only applied where it beats any existing product discount — discounts don't stack.</div>
                 </div>
 
                 <div id="cashFields">

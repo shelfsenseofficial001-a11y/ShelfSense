@@ -9,7 +9,7 @@ $title = 'Store Manager Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
 $additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/dashboard.js?v=20260908600000"></script>
-<script src="/ShelfSense/public/assets/js/store_manager/dashboard-layout.js?v=20260905310000"></script>
+<script src="/ShelfSense/public/assets/js/store_manager/dashboard-layout.js?v=20260908600000"></script>
 <script>
 window.dashboardTourReadyEvent = "sm-dashboard-rendered";
 window.dashboardTourSteps = [
@@ -46,7 +46,7 @@ window.dashboardTourSteps = [
     }
 ];
 </script>
-<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260908710000"></script>';
 
 $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 

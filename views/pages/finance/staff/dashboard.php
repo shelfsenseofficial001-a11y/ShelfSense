@@ -34,7 +34,7 @@ window.dashboardTourSteps = [
     }
 ];
 </script>
-<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260908710000"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <div id="dashboardContent">

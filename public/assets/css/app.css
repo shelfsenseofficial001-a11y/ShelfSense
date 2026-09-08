@@ -1243,6 +1243,26 @@ body.swal2-shown > .modal-backdrop {
     min-width: 70px;
     text-align: right;
 }
+.pos-price-original {
+    text-decoration: line-through;
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: 0.85em;
+}
+.pos-price-discounted {
+    color: #d9363e;
+    font-weight: 700;
+}
+.pos-discount-badge {
+    display: inline-block;
+    background: #d9363e;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 999px;
+    vertical-align: middle;
+}
 .pos-product-list-qty {
     flex-shrink: 0;
     padding: 0 !important;

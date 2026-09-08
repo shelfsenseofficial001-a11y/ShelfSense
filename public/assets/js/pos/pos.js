@@ -192,6 +192,11 @@ function setupEventListeners() {
     document.getElementById('amountTendered')?.addEventListener('input', function() {
         calculateChange();
     });
+
+    // PWD/Senior discount toggle - recompute total, tendered amount, and change
+    document.getElementById('pwdSeniorDiscount')?.addEventListener('change', function() {
+        updatePaymentSummary();
+    });
     
     // Complete payment
     document.getElementById('completePaymentBtn')?.addEventListener('click', function() {
@@ -465,7 +470,12 @@ function renderProductsAsGrid(products) {
                 <div class="pos-product-tile-body">
                     <div class="pos-product-tile-name" title="${escapeHtml(product.name)}">${escapeHtml(product.name)}</div>
                     ${product.category_name ? `<span class="pos-product-category-chip pos-tile-category-chip">${escapeHtml(product.category_name)}</span>` : ''}
-                    <div class="pos-product-tile-price">₱${parseFloat(product.price).toFixed(2)}</div>
+                    <div class="pos-product-tile-price">
+                        ${product.has_discount
+                            ? `<span class="pos-price-original">₱${parseFloat(product.original_price).toFixed(2)}</span> <span class="pos-price-discounted">₱${parseFloat(product.price).toFixed(2)}</span> <span class="pos-discount-badge">${discountBadge(product.discount_type, product.discount_value)}</span>`
+                            : `₱${parseFloat(product.price).toFixed(2)}`
+                        }
+                    </div>
                     ${isOutOfStock ? '' : `<div class="pos-product-tile-stock">${product.stock_quantity} in stock</div>`}
                 </div>
                 ${isOutOfStock ? `
@@ -473,8 +483,8 @@ function renderProductsAsGrid(products) {
                 ` : `
                     <div class="pos-product-tile-qty">
                         <button class="qty-minus" ${qty === 0 ? 'disabled' : ''} onclick="stepProductQty(${product.id}, -1)">−</button>
-                        <input type="number" class="qty-value" min="0" value="${qty}" onchange="setProductQty(${product.id}, this.value)">
-                        <button class="qty-plus" onclick="stepProductQty(${product.id}, 1)">+</button>
+                        <input type="number" class="qty-value" min="0" max="${product.stock_quantity}" value="${qty}" onchange="setProductQty(${product.id}, this.value)">
+                        <button class="qty-plus" ${qty >= product.stock_quantity ? 'disabled' : ''} onclick="stepProductQty(${product.id}, 1)">+</button>
                     </div>
                 `}
             </div>
@@ -504,12 +514,17 @@ function renderProductsAsList(products) {
                         <span class="pos-product-list-stock">${isOutOfStock ? 'Out of Stock' : product.stock_quantity + ' in stock'}</span>
                     </div>
                 </div>
-                <div class="pos-product-list-price">₱${parseFloat(product.price).toFixed(2)}</div>
+                <div class="pos-product-list-price">
+                    ${product.has_discount
+                        ? `<span class="pos-price-original">₱${parseFloat(product.original_price).toFixed(2)}</span> <span class="pos-price-discounted">₱${parseFloat(product.price).toFixed(2)}</span> <span class="pos-discount-badge">${discountBadge(product.discount_type, product.discount_value)}</span>`
+                        : `₱${parseFloat(product.price).toFixed(2)}`
+                    }
+                </div>
                 ${isOutOfStock ? '' : `
                     <div class="pos-product-tile-qty pos-product-list-qty">
                         <button class="qty-minus" ${qty === 0 ? 'disabled' : ''} onclick="stepProductQty(${product.id}, -1)">−</button>
-                        <input type="number" class="qty-value" min="0" value="${qty}" onchange="setProductQty(${product.id}, this.value)">
-                        <button class="qty-plus" onclick="stepProductQty(${product.id}, 1)">+</button>
+                        <input type="number" class="qty-value" min="0" max="${product.stock_quantity}" value="${qty}" onchange="setProductQty(${product.id}, this.value)">
+                        <button class="qty-plus" ${qty >= product.stock_quantity ? 'disabled' : ''} onclick="stepProductQty(${product.id}, 1)">+</button>
                     </div>
                 `}
             </div>
@@ -538,7 +553,11 @@ function stepProductQty(productId, delta) {
     const product = lastRenderedProducts.find(p => p.id === productId);
     if (!product) return;
     if (delta > 0) {
-        addToCart(product.id, product.name, parseFloat(product.price));
+        if (getCartQty(productId) >= product.stock_quantity) {
+            showToast(`Only ${product.stock_quantity} ${product.name} in stock`, 'warning');
+            return;
+        }
+        addToCart(product.id, product.name, parseFloat(product.price), parseFloat(product.original_price), product.discount_type, parseFloat(product.discount_value));
     } else {
         const index = cart.findIndex(i => i.product_id === productId);
         if (index >= 0) updateQuantity(index, -1);
@@ -548,15 +567,20 @@ function stepProductQty(productId, delta) {
 function setProductQty(productId, value) {
     const product = lastRenderedProducts.find(p => p.id === productId);
     if (!product) return;
-    const qty = Math.floor(Number(value));
+    let qty = Math.floor(Number(value));
     const index = cart.findIndex(i => i.product_id === productId);
+
+    if (Number.isFinite(qty) && qty > product.stock_quantity) {
+        qty = product.stock_quantity;
+        showToast(`Only ${product.stock_quantity} ${product.name} in stock`, 'warning');
+    }
 
     if (!Number.isFinite(qty) || qty <= 0) {
         if (index >= 0) cart.splice(index, 1);
     } else if (index >= 0) {
         cart[index].quantity = qty;
     } else {
-        cart.push({ product_id: product.id, name: product.name, price: parseFloat(product.price), quantity: qty });
+        cart.push({ product_id: product.id, name: product.name, price: parseFloat(product.price), original_price: parseFloat(product.original_price), discount_type: product.discount_type || 'percent', discount_value: parseFloat(product.discount_value), quantity: qty });
     }
     updateCart();
 }
@@ -627,7 +651,12 @@ function renderPagination(pagination) {
 // CART FUNCTIONS
 // ============================================
 
-function addToCart(productId, name, price) {
+function discountBadge(discountType, discountValue) {
+    if (!(discountValue > 0)) return '';
+    return discountType === 'fixed' ? `-₱${parseFloat(discountValue).toFixed(2)}` : `-${discountValue}%`;
+}
+
+function addToCart(productId, name, price, originalPrice, discountType, discountValue) {
     const existing = cart.find(item => item.product_id === productId);
     if (existing) {
         existing.quantity += 1;
@@ -636,6 +665,9 @@ function addToCart(productId, name, price) {
             product_id: productId,
             name: name,
             price: price,
+            original_price: originalPrice ?? price,
+            discount_type: discountType || 'percent',
+            discount_value: discountValue ?? 0,
             quantity: 1
         });
     }
@@ -649,7 +681,12 @@ function addProductByBarcode(barcode) {
         .then(data => {
             if (data.success) {
                 const product = data.data.product;
-                addToCart(product.id, product.name, parseFloat(product.price));
+                if (getCartQty(product.id) >= product.stock_quantity) {
+                    Swal.fire({ icon: 'warning', title: 'Out of Stock', text: `Only ${product.stock_quantity} ${product.name} in stock.`, timer: 2000, showConfirmButton: false });
+                    document.getElementById('barcodeInput')?.focus();
+                    return;
+                }
+                addToCart(product.id, product.name, parseFloat(product.price), parseFloat(product.original_price), product.discount_type, parseFloat(product.discount_value));
                 document.getElementById('barcodeInput')?.focus();
             } else {
                 Swal.fire({
@@ -666,12 +703,18 @@ function addProductByBarcode(barcode) {
         });
 }
 
+function cartSavings() {
+    return cart.reduce((sum, item) => sum + ((item.original_price || item.price) - item.price) * item.quantity, 0);
+}
+
 function updateCart() {
     const container = document.getElementById('cartItems');
     const emptyMessage = document.getElementById('emptyCartMessage');
     const countBadge = document.getElementById('cartCount');
     const totalDisplay = document.getElementById('cartTotal');
     const subtotalDisplay = document.getElementById('cartSubtotal');
+    const savingsRow = document.getElementById('cartSavingsRow');
+    const savingsDisplay = document.getElementById('cartSavings');
     const checkoutBtn = document.getElementById('checkoutBtn');
 
     if (cart.length === 0) {
@@ -680,6 +723,7 @@ function updateCart() {
         countBadge.textContent = '0';
         totalDisplay.textContent = '₱0.00';
         if (subtotalDisplay) subtotalDisplay.textContent = '₱0.00';
+        if (savingsRow) savingsRow.style.display = 'none';
         checkoutBtn.disabled = true;
         syncProductTiles();
         return;
@@ -691,12 +735,13 @@ function updateCart() {
     let total = 0;
     let itemCount = 0;
     let html = '';
-    
+
     cart.forEach((item, index) => {
         const subtotal = item.price * item.quantity;
+        const hasDiscount = item.discount_value > 0;
         total += subtotal;
         itemCount += item.quantity;
-        
+
         html += `
             <div class="cart-item">
                 <div class="cart-item-top">
@@ -706,18 +751,30 @@ function updateCart() {
                     </button>
                 </div>
                 <div class="cart-item-bottom">
-                    <div class="item-price">₱${item.price.toFixed(2)} each</div>
+                    <div class="item-price">
+                        ${hasDiscount ? `<span class="pos-price-original">₱${item.original_price.toFixed(2)}</span> <span class="pos-price-discounted">₱${item.price.toFixed(2)}</span>` : `₱${item.price.toFixed(2)}`} each
+                        ${hasDiscount ? `<span class="pos-discount-badge">${discountBadge(item.discount_type, item.discount_value)}</span>` : ''}
+                    </div>
                     <div class="cart-item-qty">${item.quantity}</div>
                     <div class="cart-item-subtotal">₱${subtotal.toFixed(2)}</div>
                 </div>
             </div>
         `;
     });
-    
+
     container.innerHTML = html;
     countBadge.textContent = itemCount;
     totalDisplay.textContent = '₱' + total.toFixed(2);
-    if (subtotalDisplay) subtotalDisplay.textContent = '₱' + total.toFixed(2);
+    const savings = cartSavings();
+    if (subtotalDisplay) subtotalDisplay.textContent = '₱' + (total + savings).toFixed(2);
+    if (savingsRow && savingsDisplay) {
+        if (savings > 0) {
+            savingsRow.style.display = 'flex';
+            savingsDisplay.textContent = '₱' + savings.toFixed(2);
+        } else {
+            savingsRow.style.display = 'none';
+        }
+    }
     checkoutBtn.disabled = false;
     syncProductTiles();
 }
@@ -763,25 +820,71 @@ function showToast(message, type = 'success') {
 // PAYMENT MODAL
 // ============================================
 
+// RA 9994 / RA 10754: the 20% PWD/Senior discount applies to the price net
+// of the 12% VAT already baked into product prices, not the sticker price
+// directly -- i.e. price / 1.12 * 0.80 (never sticker price * 0.80).
+const VAT_RATE = 0.12;
+const PWD_SENIOR_DISCOUNT_RATE = 0.20;
+
+// Discounts don't stack -- when PWD/Senior applies, each line uses
+// whichever discount benefits the customer more (must mirror the same
+// comparison create_order.php makes server-side, since that's what
+// actually gets charged).
+function getPaymentTotal() {
+    const pwdSenior = document.getElementById('pwdSeniorDiscount')?.checked;
+    let subtotal = 0;
+    let total = 0;
+    cart.forEach(item => {
+        const original = item.original_price || item.price;
+        let price = item.price;
+        if (pwdSenior) {
+            const pwdPrice = Math.round((original / (1 + VAT_RATE)) * (1 - PWD_SENIOR_DISCOUNT_RATE) * 100) / 100;
+            price = Math.min(price, pwdPrice);
+        }
+        subtotal += original * item.quantity;
+        total += price * item.quantity;
+    });
+    // Round to cents once at the end -- summing already-rounded per-item
+    // amounts can still land a fraction of a centavo off in floating point
+    // (e.g. 23.770000000000003), which made a tendered amount that matches
+    // the displayed total fail an exact `<` comparison at checkout.
+    subtotal = Math.round(subtotal * 100) / 100;
+    total = Math.round(total * 100) / 100;
+    return { subtotal, total, savings: Math.round((subtotal - total) * 100) / 100 };
+}
+
 function openPaymentModal() {
     if (cart.length === 0) {
         Swal.fire({ icon: 'warning', title: 'Cart Empty', text: 'Add items to the cart first.' });
         return;
     }
-    
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-    document.getElementById('paymentTotal').textContent = '₱' + total.toFixed(2);
-    document.getElementById('amountTendered').value = total.toFixed(2);
+
+    const pwdCheckbox = document.getElementById('pwdSeniorDiscount');
+    if (pwdCheckbox) pwdCheckbox.checked = false;
+    updatePaymentSummary();
     document.getElementById('changeDisplay').textContent = '₱0.00';
     document.getElementById('paymentReference').value = '';
     document.getElementById('paymentNotes').value = '';
-    
+
     selectedPaymentMethod = 'cash';
     document.querySelectorAll('.payment-method-btn').forEach(b => b.classList.remove('active'));
     document.querySelector('.payment-method-btn[data-method="cash"]')?.classList.add('active');
     togglePaymentFields('cash');
-    
+
     new bootstrap.Modal(document.getElementById('paymentModal')).show();
+}
+
+function updatePaymentSummary() {
+    const { total, savings } = getPaymentTotal();
+    document.getElementById('paymentTotal').textContent = '₱' + total.toFixed(2);
+    document.getElementById('amountTendered').value = total.toFixed(2);
+    const savingsRow = document.getElementById('paymentSavingsRow');
+    if (savingsRow) {
+        savingsRow.style.display = savings > 0 ? 'block' : 'none';
+        const savingsEl = document.getElementById('paymentSavings');
+        if (savingsEl) savingsEl.textContent = '₱' + savings.toFixed(2);
+    }
+    calculateChange();
 }
 
 function togglePaymentFields(method) {
@@ -798,7 +901,7 @@ function togglePaymentFields(method) {
 }
 
 function calculateChange() {
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const { total } = getPaymentTotal();
     const tendered = parseFloat(document.getElementById('amountTendered').value) || 0;
     const change = Math.max(0, tendered - total);
     document.getElementById('changeDisplay').textContent = '₱' + change.toFixed(2);
@@ -809,12 +912,13 @@ function calculateChange() {
 // ============================================
 
 function completePayment() {
-    const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const { total } = getPaymentTotal();
+    const pwdSeniorDiscount = document.getElementById('pwdSeniorDiscount')?.checked || false;
     const amountTendered = parseFloat(document.getElementById('amountTendered').value) || 0;
     const notes = document.getElementById('paymentNotes').value.trim();
     const paymentReference = document.getElementById('paymentReference').value.trim();
     
-    if (selectedPaymentMethod === 'cash' && amountTendered < total) {
+    if (selectedPaymentMethod === 'cash' && amountTendered < total - 0.005) {
         Swal.fire({
             icon: 'warning',
             title: 'Insufficient Amount',
@@ -839,6 +943,7 @@ function completePayment() {
         })),
         payment_method: selectedPaymentMethod,
         amount_paid: selectedPaymentMethod === 'cash' ? amountTendered : total,
+        pwd_senior_discount: pwdSeniorDiscount,
         notes: notes,
         payment_reference: paymentReference || null
     };
@@ -925,6 +1030,7 @@ function showReceipt(order) {
         <div>Date: ${date}</div>
         <div>Order #: ${order.order_number}</div>
         <div>Payment: ${order.payment_method.toUpperCase()}</div>
+        ${parseInt(order.pwd_senior_discount) ? '<div>PWD/Senior Citizen Discount Applied</div>' : ''}
     `;
     
     let itemsHtml = '';
@@ -932,19 +1038,26 @@ function showReceipt(order) {
         order.items.forEach(item => {
             itemsHtml += `
                 <div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:2px 0;">
-                    <span>${item.quantity}x ${item.name}</span>
+                    <span>${parseInt(item.quantity)}x ${item.name}</span>
                     <span>₱${parseFloat(item.subtotal).toFixed(2)}</span>
                 </div>
             `;
         });
     }
     itemsContainer.innerHTML = itemsHtml;
-    
+
+    const discountAmount = parseFloat(order.discount_amount) || 0;
     totalsContainer.innerHTML = `
         <div style="display:flex;justify-content:space-between;font-weight:600;">
             <span>Subtotal:</span>
             <span>₱${parseFloat(order.subtotal).toFixed(2)}</span>
         </div>
+        ${discountAmount > 0 ? `
+            <div style="display:flex;justify-content:space-between;color:#d9363e;">
+                <span>Discount:</span>
+                <span>-₱${discountAmount.toFixed(2)}</span>
+            </div>
+        ` : ''}
         <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;color:var(--brand-yellow-hover);">
             <span>Total:</span>
             <span>₱${parseFloat(order.total).toFixed(2)}</span>

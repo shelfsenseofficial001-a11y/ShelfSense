@@ -11,7 +11,7 @@ $title = 'Supplier Dashboard - ShelfSense';
 $pageTitle = 'Dashboard';
 $activePage = 'dashboard';
 $additional_js = '<script src="/ShelfSense/public/assets/js/supplier/dashboard.js?v=20260908600000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/supplier/dashboard-layout.js?v=20260905310000"></script>';
+    . '<script src="/ShelfSense/public/assets/js/supplier/dashboard-layout.js?v=20260908600000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourReadyEvent = "sp-dashboard-rendered";
@@ -34,7 +34,7 @@ window.dashboardTourSteps = [
     }
 ];
 </script>
-<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260903100000"></script>';
+<script src="/ShelfSense/public/assets/js/shared/dashboard-tour.js?v=20260908710000"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <div id="dashboardContent">

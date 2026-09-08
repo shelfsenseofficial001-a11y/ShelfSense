@@ -29,11 +29,11 @@ try {
         Response::error('Product not found', 404);
     }
 
-    $product['image_url'] = $product['image_path'] 
-        ? '/ShelfSense/public/' . $product['image_path'] 
+    $product['image_url'] = $product['image_path']
+        ? '/ShelfSense/public/' . $product['image_path']
         : '/ShelfSense/public/assets/images/placeholder-product.png';
     $product['stock_quantity'] = (int)$product['stock_quantity'];
-    $product['price'] = (float)$product['price'];
+    $product = Product::withEffectivePrice($product);
 
     Response::success([
         'product' => $product
