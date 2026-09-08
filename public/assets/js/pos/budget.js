@@ -5,7 +5,12 @@
 console.log('✅ pos/budget.js loaded');
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadBudgetStatus();
+    if (window.__INITIAL_DATA__) {
+        renderBudget(window.__INITIAL_DATA__);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadBudgetStatus();
+    }
 
     // Checkout redirects here when the register has no active budget --
     // the cashier lands on this page either way, so surface why with a

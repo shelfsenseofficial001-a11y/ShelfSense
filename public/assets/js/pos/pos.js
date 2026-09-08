@@ -17,8 +17,16 @@ let selectedIndex = -1;
 let searchTimeout = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    loadCategories();
-    loadProducts();
+    if (window.__INITIAL_DATA__) {
+        const data = window.__INITIAL_DATA__;
+        renderCategoryChips(data.categories || []);
+        renderProducts(data.products);
+        renderPagination(data.pagination);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadCategories();
+        loadProducts();
+    }
     setupEventListeners();
 });
 
@@ -26,27 +34,30 @@ document.addEventListener('DOMContentLoaded', function() {
 // CATEGORIES
 // ============================================
 
+function renderCategoryChips(categories) {
+    const row = document.getElementById('categoryRow');
+    if (!row) return;
+    let html = `<button class="pos-category-chip active" data-category="0"><i class="bi bi-grid-fill"></i> All</button>`;
+    categories.forEach(cat => {
+        html += `<button class="pos-category-chip" data-category="${cat.id}">${escapeHtml(cat.name)}</button>`;
+    });
+    row.innerHTML = html;
+    row.querySelectorAll('.pos-category-chip').forEach(chip => {
+        chip.addEventListener('click', function() {
+            row.querySelectorAll('.pos-category-chip').forEach(c => c.classList.remove('active'));
+            this.classList.add('active');
+            activeCategory = parseInt(this.dataset.category) || 0;
+            loadProducts(currentSearch, 1);
+        });
+    });
+}
+
 function loadCategories() {
     fetch('?page=api_get_categories')
         .then(response => response.json())
         .then(data => {
             if (!data.success) return;
-            const row = document.getElementById('categoryRow');
-            if (!row) return;
-            const categories = data.data.categories || [];
-            let html = `<button class="pos-category-chip active" data-category="0"><i class="bi bi-grid-fill"></i> All</button>`;
-            categories.forEach(cat => {
-                html += `<button class="pos-category-chip" data-category="${cat.id}">${escapeHtml(cat.name)}</button>`;
-            });
-            row.innerHTML = html;
-            row.querySelectorAll('.pos-category-chip').forEach(chip => {
-                chip.addEventListener('click', function() {
-                    row.querySelectorAll('.pos-category-chip').forEach(c => c.classList.remove('active'));
-                    this.classList.add('active');
-                    activeCategory = parseInt(this.dataset.category) || 0;
-                    loadProducts(currentSearch, 1);
-                });
-            });
+            renderCategoryChips(data.data.categories || []);
         })
         .catch(error => console.error('Error loading categories:', error));
 }

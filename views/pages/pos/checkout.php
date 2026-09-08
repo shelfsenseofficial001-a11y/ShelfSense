@@ -1,8 +1,19 @@
 <?php
+use App\Core\Database;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/pos/get_products.php';
+require_once __DIR__ . '/../../../app/handlers/shared/get_categories.php';
+
+$initialData = pos_products_build_data(1, 24, '', 0);
+$initialData['categories'] = shared_categories_build_data(Database::getInstance()->getConnection())['categories'];
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
 $title = 'Checkout - ShelfSense POS';
 $pageTitle = 'Checkout';
 $activePage = 'checkout';
-$additional_js = '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260905200000"></script>';
+$additional_js = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>'
+    . '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260908600000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [
