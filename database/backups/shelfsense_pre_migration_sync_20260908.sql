@@ -16,34 +16,6 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
--- Table structure for table `applicant_skill_ratings`
---
-
-DROP TABLE IF EXISTS `applicant_skill_ratings`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `applicant_skill_ratings` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `applicant_id` int(11) NOT NULL,
-  `skill_key` varchar(100) NOT NULL,
-  `rating` tinyint(3) unsigned NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_applicant_skill` (`applicant_id`,`skill_key`),
-  CONSTRAINT `fk_skill_rating_applicant` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `applicant_skill_ratings`
---
-
-LOCK TABLES `applicant_skill_ratings` WRITE;
-/*!40000 ALTER TABLE `applicant_skill_ratings` DISABLE KEYS */;
-/*!40000 ALTER TABLE `applicant_skill_ratings` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `applicants`
 --
 
@@ -57,18 +29,6 @@ CREATE TABLE `applicants` (
   `middle_name` varchar(50) DEFAULT NULL,
   `email` varchar(100) NOT NULL,
   `phone` varchar(20) DEFAULT NULL,
-  `birthdate` date DEFAULT NULL,
-  `province` varchar(100) DEFAULT NULL,
-  `province_code` varchar(20) DEFAULT NULL,
-  `city_municipality` varchar(150) DEFAULT NULL,
-  `city_municipality_code` varchar(20) DEFAULT NULL,
-  `barangay` varchar(150) DEFAULT NULL,
-  `barangay_code` varchar(20) DEFAULT NULL,
-  `house_block_lot` varchar(255) DEFAULT NULL,
-  `street` varchar(255) DEFAULT NULL,
-  `subdivision` varchar(255) DEFAULT NULL,
-  `postal_code` varchar(4) DEFAULT NULL,
-  `country` varchar(50) NOT NULL DEFAULT 'Philippines',
   `target_role` varchar(50) NOT NULL,
   `job_posting_id` int(11) DEFAULT NULL,
   `resume_path` varchar(255) NOT NULL,
@@ -80,8 +40,6 @@ CREATE TABLE `applicants` (
   KEY `idx_email` (`email`),
   KEY `idx_target_role` (`target_role`),
   KEY `job_posting_id` (`job_posting_id`),
-  KEY `idx_province_code` (`province_code`),
-  KEY `idx_city_municipality_code` (`city_municipality_code`),
   CONSTRAINT `applicants_ibfk_job_posting` FOREIGN KEY (`job_posting_id`) REFERENCES `job_postings` (`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
@@ -92,7 +50,7 @@ CREATE TABLE `applicants` (
 
 LOCK TABLES `applicants` WRITE;
 /*!40000 ALTER TABLE `applicants` DISABLE KEYS */;
-INSERT INTO `applicants` VALUES (1,'test','test','test','test@gmail.com','09264550078',NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'Philippines','Employee',1,'uploads/resumes/cd59030f7be000ae2bf73bc363643ee9.docx','initial_passed','2026-08-30 09:55:42','2026-08-30 12:16:45');
+INSERT INTO `applicants` VALUES (1,'test','test','test','test@gmail.com','09264550078','Employee',1,'uploads/resumes/cd59030f7be000ae2bf73bc363643ee9.docx','initial_passed','2026-08-30 09:55:42','2026-08-30 12:16:45');
 /*!40000 ALTER TABLE `applicants` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1264,7 +1222,6 @@ CREATE TABLE `orders` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `order_number` varchar(20) NOT NULL,
   `cashier_id` int(11) NOT NULL,
-  `register_allocation_id` int(11) DEFAULT NULL,
   `subtotal` decimal(10,2) NOT NULL DEFAULT 0.00,
   `total` decimal(10,2) NOT NULL DEFAULT 0.00,
   `amount_paid` decimal(10,2) DEFAULT 0.00,
@@ -1281,10 +1238,8 @@ CREATE TABLE `orders` (
   UNIQUE KEY `order_number` (`order_number`),
   KEY `cashier_id` (`cashier_id`),
   KEY `voided_by` (`voided_by`),
-  KEY `register_allocation_id` (`register_allocation_id`),
   CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`voided_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `orders_ibfk_3` FOREIGN KEY (`register_allocation_id`) REFERENCES `register_allocations` (`id`)
+  CONSTRAINT `orders_ibfk_2` FOREIGN KEY (`voided_by`) REFERENCES `users` (`user_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -1911,83 +1866,6 @@ INSERT INTO `recruitment_logs` VALUES (18,'job_posting',1,2,'hr_head','created',
 UNLOCK TABLES;
 
 --
--- Table structure for table `register_allocations`
---
-
-DROP TABLE IF EXISTS `register_allocations`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `register_allocations` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `register_id` int(11) NOT NULL,
-  `cashier_id` int(11) DEFAULT NULL,
-  `allocated_by` int(11) NOT NULL,
-  `initial_budget` decimal(10,2) NOT NULL,
-  `status` enum('active','cashed_out') NOT NULL DEFAULT 'active',
-  `cash_sales` decimal(10,2) DEFAULT NULL,
-  `online_sales` decimal(10,2) DEFAULT NULL,
-  `total_pulled` decimal(10,2) DEFAULT NULL,
-  `opened_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `cashed_out_at` timestamp NULL DEFAULT NULL,
-  `notes` text DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `register_id` (`register_id`),
-  KEY `cashier_id` (`cashier_id`),
-  KEY `allocated_by` (`allocated_by`),
-  CONSTRAINT `register_allocations_ibfk_1` FOREIGN KEY (`register_id`) REFERENCES `registers` (`id`),
-  CONSTRAINT `register_allocations_ibfk_2` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `register_allocations_ibfk_3` FOREIGN KEY (`allocated_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `register_allocations`
---
-
-LOCK TABLES `register_allocations` WRITE;
-/*!40000 ALTER TABLE `register_allocations` DISABLE KEYS */;
-/*!40000 ALTER TABLE `register_allocations` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `registers`
---
-
-DROP TABLE IF EXISTS `registers`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `registers` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `store_manager_id` int(11) NOT NULL,
-  `name` varchar(50) NOT NULL DEFAULT 'Main Register',
-  `pos_id` varchar(20) DEFAULT NULL,
-  `pin_hash` varchar(255) DEFAULT NULL,
-  `pos_created_by` int(11) DEFAULT NULL,
-  `pos_created_at` timestamp NULL DEFAULT NULL,
-  `status` enum('closed','open') NOT NULL DEFAULT 'closed',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `pos_id` (`pos_id`),
-  KEY `registers_pos_created_by_fk` (`pos_created_by`),
-  KEY `idx_registers_store_manager_id` (`store_manager_id`),
-  CONSTRAINT `registers_ibfk_1` FOREIGN KEY (`store_manager_id`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `registers_pos_created_by_fk` FOREIGN KEY (`pos_created_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `registers`
---
-
-LOCK TABLES `registers` WRITE;
-/*!40000 ALTER TABLE `registers` DISABLE KEYS */;
-/*!40000 ALTER TABLE `registers` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
 -- Table structure for table `rejection_reasons`
 --
 
@@ -2097,103 +1975,6 @@ LOCK TABLES `requisitions` WRITE;
 /*!40000 ALTER TABLE `requisitions` DISABLE KEYS */;
 INSERT INTO `requisitions` VALUES (1,'REQ-2026-0001',5,1,1,'2026-09-H1','converted_to_po','2026-09-06',NULL,12.78,'',NULL,'2026-09-06 11:37:16','2026-09-06 11:37:16'),(2,'REQ-2026-0002',5,1,1,'2026-09-H1','cancelled','2026-09-06',NULL,3.98,'','Testing the reject path for the report','2026-09-06 11:54:53','2026-09-06 14:59:15'),(3,'REQ-2026-0003',5,1,1,'2026-09-H1','converted_to_po','2026-09-06',NULL,31.17,'',NULL,'2026-09-06 12:00:05','2026-09-06 12:00:05'),(4,'REQ-2026-0004',5,1,1,'2026-09-H1','converted_to_po','2026-09-06','2026-09-21',9.95,'',NULL,'2026-09-06 14:41:42','2026-09-06 14:59:15'),(5,'REQ-2026-0005',5,1,1,'2026-09-H1','cancelled','2026-09-06',NULL,31.17,'',NULL,'2026-09-06 15:17:40','2026-09-06 15:18:35');
 /*!40000 ALTER TABLE `requisitions` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `revenue_split_rules`
---
-
-DROP TABLE IF EXISTS `revenue_split_rules`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `revenue_split_rules` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `department` varchar(20) NOT NULL,
-  `percentage` decimal(5,2) NOT NULL DEFAULT 0.00,
-  `is_remainder` tinyint(1) NOT NULL DEFAULT 0,
-  `updated_by` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `department` (`department`),
-  KEY `revenue_split_rules_ibfk_1` (`updated_by`),
-  CONSTRAINT `revenue_split_rules_ibfk_1` FOREIGN KEY (`updated_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `revenue_split_rules`
---
-
-LOCK TABLES `revenue_split_rules` WRITE;
-/*!40000 ALTER TABLE `revenue_split_rules` DISABLE KEYS */;
-INSERT INTO `revenue_split_rules` VALUES (1,'store',5.00,0,NULL,'2026-09-08 02:52:04','2026-09-08 02:52:04'),(2,'hr',60.00,0,NULL,'2026-09-08 02:52:04','2026-09-08 02:52:04'),(3,'general',0.00,1,NULL,'2026-09-08 02:52:04','2026-09-08 02:52:04'),(4,'finance',10.00,0,NULL,'2026-09-08 02:52:19','2026-09-08 02:52:19');
-/*!40000 ALTER TABLE `revenue_split_rules` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `revenue_split_shares`
---
-
-DROP TABLE IF EXISTS `revenue_split_shares`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `revenue_split_shares` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `revenue_split_id` int(11) NOT NULL,
-  `department` varchar(20) NOT NULL,
-  `percentage` decimal(5,2) DEFAULT NULL,
-  `amount` decimal(12,2) NOT NULL,
-  PRIMARY KEY (`id`),
-  KEY `revenue_split_id` (`revenue_split_id`),
-  CONSTRAINT `revenue_split_shares_ibfk_1` FOREIGN KEY (`revenue_split_id`) REFERENCES `revenue_splits` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `revenue_split_shares`
---
-
-LOCK TABLES `revenue_split_shares` WRITE;
-/*!40000 ALTER TABLE `revenue_split_shares` DISABLE KEYS */;
-/*!40000 ALTER TABLE `revenue_split_shares` ENABLE KEYS */;
-UNLOCK TABLES;
-
---
--- Table structure for table `revenue_splits`
---
-
-DROP TABLE IF EXISTS `revenue_splits`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `revenue_splits` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `period_start` date NOT NULL,
-  `period_end` date NOT NULL,
-  `period_label` varchar(50) NOT NULL,
-  `budget_period` varchar(10) NOT NULL,
-  `total_revenue` decimal(12,2) NOT NULL,
-  `status` enum('draft','applied') NOT NULL DEFAULT 'draft',
-  `computed_by` int(11) NOT NULL,
-  `computed_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `applied_by` int(11) DEFAULT NULL,
-  `applied_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `period_range` (`period_start`,`period_end`),
-  KEY `computed_by` (`computed_by`),
-  KEY `applied_by` (`applied_by`),
-  CONSTRAINT `revenue_splits_ibfk_1` FOREIGN KEY (`computed_by`) REFERENCES `users` (`user_id`),
-  CONSTRAINT `revenue_splits_ibfk_2` FOREIGN KEY (`applied_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Dumping data for table `revenue_splits`
---
-
-LOCK TABLES `revenue_splits` WRITE;
-/*!40000 ALTER TABLE `revenue_splits` DISABLE KEYS */;
-/*!40000 ALTER TABLE `revenue_splits` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -2541,7 +2322,6 @@ CREATE TABLE `users` (
   `maternity_leave_balance` decimal(5,2) DEFAULT 60.00,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  `show_dashboard_tour` tinyint(1) NOT NULL DEFAULT 1,
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `employee_number` (`employee_number`),
   UNIQUE KEY `email` (`email`)
@@ -2554,7 +2334,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'SA-001','Stephen','Frias',NULL,'stephenfrias4@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 11:42:35',1),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(4,'HS-002','Ana','Reyes',NULL,'stephenfrias04@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:44:43',1),(5,'SM-001','Store','Manager',NULL,'store.manager@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','store_manager',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39',1),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39',1),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39',1),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 12:21:39',1),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:43:48',1),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05',1),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-21 03:04:09','2026-09-06 11:33:52',1),(13,'SUP-002','Northgate','Supplies',NULL,'supplier2@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-09-06 15:00:17','2026-09-06 15:00:17',1);
+INSERT INTO `users` VALUES (1,'SA-001','Stephen','Frias',NULL,'stephenfrias4@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 11:42:35'),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(4,'HS-002','Ana','Reyes',NULL,'stephenfrias04@gmail.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:44:43'),(5,'SM-001','Store','Manager',NULL,'store.manager@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','store_manager',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39'),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39'),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-06 11:33:39'),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-30 12:21:39'),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-21 14:43:48'),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$JNrnPP.TfsAws1o1AwAYJ.Gim25c6QgPhyQFcMJOJLHAtUE3NyHTu','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-08-20 17:09:05'),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-21 03:04:09','2026-09-06 11:33:52'),(13,'SUP-002','Northgate','Supplies',NULL,'supplier2@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-09-06 15:00:17','2026-09-06 15:00:17');
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2597,4 +2377,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-08 10:57:59
+-- Dump completed on 2026-09-08 10:51:47
