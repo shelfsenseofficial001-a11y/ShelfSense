@@ -248,6 +248,9 @@ $content = '
                 <i class="bi bi-box-arrow-in-right me-2"></i>Login
             </button>
         </form>
+        <p class="text-center small text-muted mt-3 mb-0">
+            By logging in, you agree to our <a href="?page=privacy_policy" class="auth-link" target="_blank">Privacy Policy</a>.
+        </p>
     </div>
 </div>
 

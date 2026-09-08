@@ -73,6 +73,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                 <p class="mb-2">Scan this with <strong id="attendanceQrCashierName"></strong>\'s phone to record attendance.</p>
                 <div id="attendanceQrCode" class="d-flex justify-content-center my-3"></div>
                 <div id="attendanceQrStatusMsg" class="small text-muted mb-2">Waiting for scan&hellip;</div>
+                <p class="small text-muted mb-2">Scanning uses your camera for face verification. See our <a href="?page=privacy_policy" target="_blank">Privacy Policy</a>.</p>
 
                 <div id="attendanceQrExpired" style="display:none;" class="alert alert-warning small">
                     This QR code expired. <button type="button" class="btn btn-sm btn-outline-secondary ms-1" id="attendanceQrRetryBtn">Try again</button>

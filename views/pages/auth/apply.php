@@ -1202,6 +1202,9 @@ $content = '
             <div class="form-step" data-step="4">
                 <input type="hidden" name="skill_ratings" id="skillRatingsInput" value="{}">
                 <div id="skillsAssessmentContainer"></div>
+                <p class="small text-muted mb-2">
+                    By submitting this application, you agree to our <a href="?page=privacy_policy" target="_blank">Privacy Policy</a>.
+                </p>
                 <div class="step-actions">
                     <button type="button" class="btn btn-outline-secondary step-back-btn" data-goto="3"><i class="bi bi-arrow-left me-1"></i> Back</button>
                     <button type="submit" id="applySubmitBtn" class="btn btn-yellow-primary">

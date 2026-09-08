@@ -61,7 +61,7 @@ if (!$token || !$cashierName) {
         <button type="button" class="btn btn-yellow-primary w-100 rounded-3" id="startScanBtn">
             <i class="bi bi-camera me-2"></i>Start Face Scan
         </button>
-        <p class="text-muted small mt-3">By continuing you agree to a quick face scan for attendance verification. See the biometric notice for details.</p>
+        <p class="text-muted small mt-3">By continuing you agree to a quick face scan for attendance verification. See our <a href="?page=privacy_policy" target="_blank">Privacy Policy</a> for details.</p>
     </div>
 
     <script>

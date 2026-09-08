@@ -382,6 +382,11 @@ if ($page === 'apply') {
     exit;
 }
 
+if ($page === 'privacy_policy') {
+    require_once __DIR__ . '/../views/pages/privacy_policy.php';
+    exit;
+}
+
 if ($page === 'test') {
     require_once __DIR__ . '/../test.php';
     exit;

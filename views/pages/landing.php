@@ -887,12 +887,14 @@ $content = '
                 <ul>
                     <li><a href="?page=login"><i class="bi bi-shield-lock me-1"></i>Staff Portal</a></li>
                     <li><a href="?page=forgot_password">Forgot Password</a></li>
+                    <li><a href="?page=privacy_policy">Privacy Policy</a></li>
                 </ul>
             </div>
         </div>
 
         <div class="footer-bottom">
             ShelfSense is an internal retail operations platform. Not a public storefront or e-commerce service.
+            &middot; <a href="?page=privacy_policy">Privacy Policy</a>
         </div>
     </div>
 </footer>
