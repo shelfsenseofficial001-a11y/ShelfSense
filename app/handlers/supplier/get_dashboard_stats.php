@@ -9,20 +9,12 @@ use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-if (!Auth::isSupplier() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Supplier role required.');
-}
-
-try {
-    $db = Database::getInstance()->getConnection();
-    $userId = Auth::userId();
-
+if (!function_exists('supplier_dashboard_build_data')) {
+/**
+ * Builds the Supplier dashboard data. Shared by the API endpoint (for
+ * refresh) and the dashboard page itself (server-rendered first paint).
+ */
+function supplier_dashboard_build_data(PDO $db, int $userId): array {
     $stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
     $stmt->execute([$userId]);
     $supplier = $stmt->fetch();
@@ -114,7 +106,7 @@ try {
     $stmt->execute([$supplierId]);
     $recentPos = $stmt->fetchAll();
 
-    Response::success([
+    return [
         'stats' => [
             'total_requisitions' => (int)($stats['total_requisitions'] ?? 0),
             'pending_requisitions' => (int)($stats['pending_requisitions'] ?? 0),
@@ -132,9 +124,26 @@ try {
         'recent_invoices' => $recentInvoices,
         'active_products' => $activeProducts,
         'recent_pos' => $recentPos
-    ], 'Supplier dashboard stats fetched');
+    ];
+}
+}
 
-} catch (Exception $e) {
-    error_log('get_dashboard_stats.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    if (!Auth::isSupplier() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Supplier role required.');
+    }
+
+    try {
+        $db = Database::getInstance()->getConnection();
+        Response::success(supplier_dashboard_build_data($db, Auth::userId()), 'Supplier dashboard stats fetched');
+    } catch (Exception $e) {
+        error_log('get_dashboard_stats.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }
