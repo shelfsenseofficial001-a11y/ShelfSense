@@ -3,6 +3,7 @@
 
 use App\Core\Auth;
 use App\Core\Response;
+use App\Core\Database;
 
 $title = 'Profile Picture Approvals - ShelfSense';
 $pageTitle = 'Profile Picture Approvals';
@@ -14,7 +15,12 @@ if (!Auth::isOwner()) {
     exit;
 }
 
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/avatar_approvals.js?v=20260829200500"></script>';
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../app/handlers/hr/list_pending_avatars.php';
+$initialData = hr_pending_avatars_build_data(Database::getInstance()->getConnection());
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/avatar_approvals.js?v=20260908600000"></script>';
 $additional_css = '
 <style>
     .avatar-approval-card {
@@ -60,7 +66,7 @@ $additional_css = '
 </style>
 ';
 
-$content = <<<'EOT'
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<'EOT'
 <div class="modern-card mb-3">
     <div class="card-body p-0">
         <div id="pendingAvatarsList">

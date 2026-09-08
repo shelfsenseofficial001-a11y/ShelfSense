@@ -18,6 +18,36 @@ document.addEventListener('DOMContentLoaded', function () {
         return '<div class="avatar-approval-current"><i class="bi bi-person-fill"></i></div>';
     }
 
+    function renderPendingList(items) {
+        if (!items.length) {
+            listEl.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-check2-circle fs-3 d-block mb-2"></i>No profile pictures waiting for review.</div>';
+            return;
+        }
+        listEl.innerHTML = items.map(item => `
+            <div class="avatar-approval-card border-bottom" data-user-id="${item.user_id}">
+                <div class="avatar-approval-thumb">
+                    <img src="${avatarUrl(item.pending_profile_pic)}" alt="Pending">
+                </div>
+                <div class="flex-grow-1">
+                    <div class="fw-semibold">${escapeHtml(item.name)}</div>
+                    <div class="text-muted small">${escapeHtml(item.employee_number)} &middot; ${escapeHtml(item.role_label)}</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-muted small mb-1">Current</div>
+                    ${renderCurrentAvatar(item.current_profile_pic)}
+                </div>
+                <div class="d-flex gap-2">
+                    <button type="button" class="btn btn-sm btn-success approve-btn" data-user-id="${item.user_id}">
+                        <i class="bi bi-check2"></i> Approve
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger reject-btn" data-user-id="${item.user_id}">
+                        <i class="bi bi-x-lg"></i> Reject
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
     function loadPending() {
         fetch('?page=api_list_pending_avatars')
             .then(r => r.json())
@@ -26,34 +56,7 @@ document.addEventListener('DOMContentLoaded', function () {
                     listEl.innerHTML = `<div class="text-center py-4 text-muted">${escapeHtml(res.message || 'Failed to load')}</div>`;
                     return;
                 }
-                const items = res.data.pending;
-                if (!items.length) {
-                    listEl.innerHTML = '<div class="text-center py-4 text-muted"><i class="bi bi-check2-circle fs-3 d-block mb-2"></i>No profile pictures waiting for review.</div>';
-                    return;
-                }
-                listEl.innerHTML = items.map(item => `
-                    <div class="avatar-approval-card border-bottom" data-user-id="${item.user_id}">
-                        <div class="avatar-approval-thumb">
-                            <img src="${avatarUrl(item.pending_profile_pic)}" alt="Pending">
-                        </div>
-                        <div class="flex-grow-1">
-                            <div class="fw-semibold">${escapeHtml(item.name)}</div>
-                            <div class="text-muted small">${escapeHtml(item.employee_number)} &middot; ${escapeHtml(item.role_label)}</div>
-                        </div>
-                        <div class="text-center">
-                            <div class="text-muted small mb-1">Current</div>
-                            ${renderCurrentAvatar(item.current_profile_pic)}
-                        </div>
-                        <div class="d-flex gap-2">
-                            <button type="button" class="btn btn-sm btn-success approve-btn" data-user-id="${item.user_id}">
-                                <i class="bi bi-check2"></i> Approve
-                            </button>
-                            <button type="button" class="btn btn-sm btn-outline-danger reject-btn" data-user-id="${item.user_id}">
-                                <i class="bi bi-x-lg"></i> Reject
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
+                renderPendingList(res.data.pending);
             })
             .catch(() => {
                 listEl.innerHTML = '<div class="text-center py-4 text-muted">Failed to load pending uploads.</div>';
@@ -119,5 +122,10 @@ document.addEventListener('DOMContentLoaded', function () {
         }
     });
 
-    loadPending();
+    if (window.__INITIAL_DATA__) {
+        renderPendingList(window.__INITIAL_DATA__.pending);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadPending();
+    }
 });
