@@ -1,0 +1,6 @@
+# Lets the app be reached as /ShelfSense/... instead of /ShelfSense/public/...
+# Internally forwards everything into public/ (where index.php actually lives)
+# unless the request already targets public/ directly (e.g. hardcoded asset URLs).
+RewriteEngine On
+RewriteCond %{REQUEST_URI} !^/ShelfSense/public/
+RewriteRule ^(.*)$ public/$1 [L]
