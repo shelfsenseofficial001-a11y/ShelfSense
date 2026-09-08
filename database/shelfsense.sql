@@ -114,6 +114,9 @@ CREATE TABLE `attendance` (
   `notes` text DEFAULT NULL,
   `recorded_by` int(11) DEFAULT NULL,
   `verified_by` int(11) DEFAULT NULL,
+  `verification_method` enum('manual','face') NOT NULL DEFAULT 'manual',
+  `verification_photo` varchar(255) DEFAULT NULL,
+  `match_distance` decimal(6,4) DEFAULT NULL,
   `verified_at` datetime DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
@@ -124,7 +127,7 @@ CREATE TABLE `attendance` (
   CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `attendance_ibfk_2` FOREIGN KEY (`recorded_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `attendance_ibfk_3` FOREIGN KEY (`verified_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -172,6 +175,43 @@ CREATE TABLE `attendance_monthly_summaries` (
 LOCK TABLES `attendance_monthly_summaries` WRITE;
 /*!40000 ALTER TABLE `attendance_monthly_summaries` DISABLE KEYS */;
 /*!40000 ALTER TABLE `attendance_monthly_summaries` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `attendance_qr_sessions`
+--
+
+DROP TABLE IF EXISTS `attendance_qr_sessions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `attendance_qr_sessions` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `token` varchar(64) NOT NULL,
+  `register_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `status` enum('pending','confirmed','failed','expired') NOT NULL DEFAULT 'pending',
+  `fail_reason` varchar(255) DEFAULT NULL,
+  `match_distance` decimal(6,4) DEFAULT NULL,
+  `captured_photo` varchar(255) DEFAULT NULL,
+  `attendance_action` enum('time_in','time_out') DEFAULT NULL,
+  `created_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `expires_at` datetime NOT NULL,
+  `confirmed_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_qr_token` (`token`),
+  KEY `idx_qr_register` (`register_id`),
+  KEY `attendance_qr_sessions_ibfk_1` (`user_id`),
+  CONSTRAINT `attendance_qr_sessions_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `attendance_qr_sessions`
+--
+
+LOCK TABLES `attendance_qr_sessions` WRITE;
+/*!40000 ALTER TABLE `attendance_qr_sessions` DISABLE KEYS */;
+/*!40000 ALTER TABLE `attendance_qr_sessions` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -453,6 +493,35 @@ LOCK TABLES `email_logs` WRITE;
 /*!40000 ALTER TABLE `email_logs` DISABLE KEYS */;
 INSERT INTO `email_logs` VALUES (1,'test.trainee@example.com','Final Interview Scheduled',NULL,'failed','2026-08-25 20:09:49'),(2,'test.trainee@example.com','Contract Offered',NULL,'failed','2026-08-25 20:10:08'),(3,'test.trainee@example.com','Congratulations! You\'re Hired!',NULL,'failed','2026-08-25 20:10:17'),(4,'test@gmail.com','Application Received',NULL,'sent','2026-08-30 09:55:47'),(5,'test@gmail.com','Initial Interview Scheduled',NULL,'sent','2026-08-30 10:01:04'),(8,'qa_finalpass_temp@shelfsense.test','Your Employment Contract - ShelfSense',NULL,'sent','2026-08-30 12:09:09'),(9,'qa_salary_temp@shelfsense.test','Your Trainee Contract - ShelfSense',NULL,'sent','2026-08-30 12:21:15'),(10,'employee@shelfsense.com','New Trainee Assigned - ShelfSense',NULL,'sent','2026-08-30 12:21:18'),(11,'supplier@shelfsense.com','New Purchase Order PO-2026-0001 - ShelfSense',NULL,'failed','2026-09-06 11:40:44'),(12,'supplier@shelfsense.com','Payment Sent - PO PO-2026-0001',NULL,'failed','2026-09-06 11:50:14'),(13,'supplier@shelfsense.com','New Purchase Order PO-2026-0003 - ShelfSense',NULL,'failed','2026-09-06 12:04:53'),(14,'supplier@shelfsense.com','Payment Sent - PO PO-2026-0003',NULL,'failed','2026-09-06 12:20:31'),(15,'supplier@shelfsense.com','New Purchase Order PO-2026-0004 - ShelfSense',NULL,'failed','2026-09-06 14:50:15'),(16,'supplier@shelfsense.com','Payment Sent - PO PO-2026-0004',NULL,'failed','2026-09-06 15:13:45');
 /*!40000 ALTER TABLE `email_logs` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `face_enrollments`
+--
+
+DROP TABLE IF EXISTS `face_enrollments`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `face_enrollments` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `descriptors` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin NOT NULL COMMENT 'Array of 128-float face descriptor arrays, one per captured angle' CHECK (json_valid(`descriptors`)),
+  `consent_at` datetime NOT NULL COMMENT 'When the employee accepted the biometric-data notice for this enrollment',
+  `enrolled_at` datetime NOT NULL DEFAULT current_timestamp(),
+  `updated_at` datetime NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_face_enrollment_user` (`user_id`),
+  CONSTRAINT `face_enrollments_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `face_enrollments`
+--
+
+LOCK TABLES `face_enrollments` WRITE;
+/*!40000 ALTER TABLE `face_enrollments` DISABLE KEYS */;
+/*!40000 ALTER TABLE `face_enrollments` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -2594,6 +2663,10 @@ LOCK TABLES `variance_tolerance_settings` WRITE;
 INSERT INTO `variance_tolerance_settings` VALUES (1,2.00,50.00,0.00,NULL,'2026-09-06 11:20:01');
 /*!40000 ALTER TABLE `variance_tolerance_settings` ENABLE KEYS */;
 UNLOCK TABLES;
+
+--
+-- Dumping routines for database 'shelfsense'
+--
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
 /*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
@@ -2604,4 +2677,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-08 15:36:12
+-- Dump completed on 2026-09-09  0:13:29
