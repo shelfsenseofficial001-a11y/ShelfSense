@@ -9,9 +9,18 @@ let rsSelectedPeriod = null; // { year, month, half, start_date, end_date, label
 let rsCurrentPreview = null; // the computed split object
 
 document.addEventListener('DOMContentLoaded', function () {
-    loadRules();
-    loadPeriods();
-    loadHistory();
+    if (window.__INITIAL_DATA__) {
+        const initial = window.__INITIAL_DATA__;
+        rsRules = initial.rules || [];
+        renderRules();
+        renderPeriods(initial.periods.halves, initial.periods.year, initial.periods.month);
+        renderHistory(initial.history || []);
+        if (window.ShelfSplash) window.ShelfSplash.ready();
+    } else {
+        loadRules();
+        loadPeriods();
+        loadHistory();
+    }
 
     document.getElementById('rsSaveRulesBtn').addEventListener('click', saveRules);
     document.getElementById('rsLoadPeriodsBtn').addEventListener('click', loadPeriods);

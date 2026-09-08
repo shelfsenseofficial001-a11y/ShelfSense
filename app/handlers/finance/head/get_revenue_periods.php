@@ -12,28 +12,13 @@ use App\Core\Auth;
 use App\Core\Response;
 use App\Models\RevenueSplit;
 
-header('Content-Type: application/json');
-
-if (!Auth::check()) {
-    Response::unauthorized('Please login to access this resource');
-}
-
-if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Finance Head role required.');
-}
-
-$year = isset($_GET['year']) ? intval($_GET['year']) : intval(date('Y'));
-$month = isset($_GET['month']) ? intval($_GET['month']) : intval(date('n'));
-
-if ($month < 1 || $month > 12) {
-    Response::error('Invalid month', 400);
-}
-if ($year < 2000 || $year > 2100) {
-    Response::error('Invalid year', 400);
-}
-
-try {
-    $model = new RevenueSplit();
+if (!function_exists('revenue_periods_build_data')) {
+/**
+ * Builds the semi-monthly period list (with draft/applied split status)
+ * for a month. Shared by the API endpoint and the Revenue Split page's
+ * first paint.
+ */
+function revenue_periods_build_data(RevenueSplit $model, int $year, int $month): array {
     $halves = $model->getHalves($year, $month);
 
     foreach ($halves as &$half) {
@@ -43,12 +28,39 @@ try {
         $half['applied'] = $applied ?: null;
     }
 
-    Response::success([
+    return [
         'year' => $year,
         'month' => $month,
         'halves' => $halves
-    ], 'Revenue periods fetched');
-} catch (Exception $e) {
-    error_log('get_revenue_periods.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+    ];
+}
+}
+
+if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
+    header('Content-Type: application/json');
+
+    if (!Auth::check()) {
+        Response::unauthorized('Please login to access this resource');
+    }
+
+    if (!Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
+        Response::forbidden('Access denied. Finance Head role required.');
+    }
+
+    $year = isset($_GET['year']) ? intval($_GET['year']) : intval(date('Y'));
+    $month = isset($_GET['month']) ? intval($_GET['month']) : intval(date('n'));
+
+    if ($month < 1 || $month > 12) {
+        Response::error('Invalid month', 400);
+    }
+    if ($year < 2000 || $year > 2100) {
+        Response::error('Invalid year', 400);
+    }
+
+    try {
+        Response::success(revenue_periods_build_data(new RevenueSplit(), $year, $month), 'Revenue periods fetched');
+    } catch (Exception $e) {
+        error_log('get_revenue_periods.php error: ' . $e->getMessage());
+        Response::error('Error: ' . $e->getMessage());
+    }
 }

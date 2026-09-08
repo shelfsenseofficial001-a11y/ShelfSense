@@ -1,12 +1,25 @@
 <?php
+use App\Models\RevenueSplit;
+
+define('SHELFSENSE_INTERNAL_INCLUDE', true);
+require_once __DIR__ . '/../../../../app/handlers/finance/head/get_revenue_periods.php';
+
 $title = 'Revenue Split - Finance Head';
 $pageTitle = 'Revenue Split';
 $activePage = 'head_revenue_split';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/revenue_split.js?v=20260901010000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/head/revenue_split.js?v=20260908600000"></script>';
 
 $defaultMonthPicker = date('Y-m');
 
-$content = <<<EOT
+$rsModel = new RevenueSplit();
+$initialData = [
+    'rules' => $rsModel->getRules(),
+    'periods' => revenue_periods_build_data($rsModel, (int)date('Y'), (int)date('n')),
+    'history' => $rsModel->getHistory(20)
+];
+$initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
+
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<EOT
 <div class="row g-3 mb-3">
     <div class="col-lg-5">
         <div class="modern-card p-3">
