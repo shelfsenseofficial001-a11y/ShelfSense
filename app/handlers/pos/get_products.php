@@ -32,7 +32,7 @@ function pos_products_build_data(int $page, int $limit, string $search, int $cat
             ? '/ShelfSense/public/' . $product['image_path']
             : '/ShelfSense/public/assets/images/placeholder-product.png';
         $product['stock_quantity'] = (int)$product['stock_quantity'];
-        $product['price'] = (float)$product['price'];
+        $product = Product::withEffectivePrice($product);
     }
 
     return [

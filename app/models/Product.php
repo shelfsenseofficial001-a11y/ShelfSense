@@ -98,7 +98,12 @@ class Product
     public function reduceStock($productId, $quantity)
     {
         $stmt = $this->db->prepare("UPDATE products SET stock_quantity = stock_quantity - ? WHERE id = ? AND stock_quantity >= ?");
-        return $stmt->execute([$quantity, $productId, $quantity]);
+        $stmt->execute([$quantity, $productId, $quantity]);
+        // execute() reports the query ran, not whether the `stock_quantity >= ?`
+        // guard actually matched a row -- rowCount() is the real signal that
+        // stock was insufficient at update time (e.g. another order beat this
+        // one to the last units between the earlier check and this call).
+        return $stmt->rowCount() > 0;
     }
 
     public function increaseStock($productId, $quantity)
@@ -126,11 +131,29 @@ class Product
         ]);
     }
 
+    public static function withEffectivePrice(array $product): array
+    {
+        $product['discount_type'] = $product['discount_type'] ?? 'percent';
+        $product['discount_value'] = (float)($product['discount_value'] ?? 0);
+        $product['original_price'] = (float)$product['price'];
+
+        $discountAmount = 0;
+        if ($product['discount_value'] > 0) {
+            $discountAmount = $product['discount_type'] === 'fixed'
+                ? min($product['discount_value'], $product['original_price'])
+                : $product['original_price'] * ($product['discount_value'] / 100);
+        }
+
+        $product['price'] = round($product['original_price'] - $discountAmount, 2);
+        $product['has_discount'] = $discountAmount > 0;
+        return $product;
+    }
+
     public function update($id, $data)
     {
         $fields = [];
         $params = [];
-        $allowed = ['barcode','name','description','category_id','price','cost','stock_quantity','reorder_level','image_path','is_active'];
+        $allowed = ['barcode','name','description','category_id','price','cost','discount_value','discount_type','stock_quantity','reorder_level','image_path','is_active'];
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
                 $fields[] = "$field = ?";

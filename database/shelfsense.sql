@@ -1234,6 +1234,7 @@ CREATE TABLE `order_items` (
   `product_id` int(11) NOT NULL,
   `quantity` int(11) NOT NULL,
   `price` decimal(10,2) NOT NULL,
+  `original_price` decimal(10,2) NOT NULL DEFAULT 0.00,
   `subtotal` decimal(10,2) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   PRIMARY KEY (`id`),
@@ -1266,6 +1267,8 @@ CREATE TABLE `orders` (
   `cashier_id` int(11) NOT NULL,
   `register_allocation_id` int(11) DEFAULT NULL,
   `subtotal` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `discount_amount` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `pwd_senior_discount` tinyint(1) NOT NULL DEFAULT 0,
   `total` decimal(10,2) NOT NULL DEFAULT 0.00,
   `amount_paid` decimal(10,2) DEFAULT 0.00,
   `change_amount` decimal(10,2) DEFAULT 0.00,
@@ -1761,6 +1764,8 @@ CREATE TABLE `products` (
   `category_id` int(11) DEFAULT NULL,
   `price` decimal(10,2) NOT NULL,
   `cost` decimal(10,2) DEFAULT NULL,
+  `discount_value` decimal(10,2) NOT NULL DEFAULT 0.00,
+  `discount_type` enum('percent','fixed') NOT NULL DEFAULT 'percent',
   `stock_quantity` int(11) NOT NULL DEFAULT 0,
   `reorder_level` int(11) DEFAULT 5,
   `image_path` varchar(255) DEFAULT NULL,
@@ -1780,7 +1785,7 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,12,5,NULL,1,'2026-08-20 17:09:05','2026-09-06 12:13:51'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,38,5,NULL,1,'2026-08-20 17:09:05','2026-09-06 15:07:42');
+INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,0.00,'percent',12,5,NULL,1,'2026-08-20 17:09:05','2026-09-06 12:13:51'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,0.00,'percent',38,5,NULL,1,'2026-08-20 17:09:05','2026-09-06 15:07:42');
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
 

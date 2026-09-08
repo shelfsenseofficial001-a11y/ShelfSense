@@ -978,6 +978,16 @@ if ($page === 'api_store_manager_inventory') {
     exit;
 }
 
+if ($page === 'api_store_manager_update_product') {
+    require_once __DIR__ . '/../app/handlers/store_manager/update_product.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_upload_product_image') {
+    require_once __DIR__ . '/../app/handlers/store_manager/upload_product_image.php';
+    exit;
+}
+
 // ============================================
 // STORE MANAGER - REGISTER BUDGET
 // ============================================

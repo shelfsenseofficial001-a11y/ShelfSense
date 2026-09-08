@@ -81,7 +81,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     </div>
 </div>
 
-<!-- Product Grid (View-Only) -->
+<!-- Product Grid -->
 <div class="modern-card p-3 sm-fill-card">
     <div id="sm-product-grid" class="sm-product-grid">
         <div class="text-center py-4" style="grid-column:1/-1;">
@@ -97,6 +97,87 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                 <li class="page-item disabled"><span class="page-link">1</span></li>
             </ul>
         </nav>
+    </div>
+</div>
+
+<!-- Edit Product Modal -->
+<div class="modal fade" id="editProductModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Product</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editProductForm">
+                <input type="hidden" id="editProductId" name="id" value="">
+                <div class="modal-body">
+                    <div class="mb-3 text-center">
+                        <img id="editProductImagePreview" src="" alt="" style="max-width:120px;max-height:120px;border-radius:8px;object-fit:cover;display:none;">
+                        <div id="editProductImagePlaceholder" class="text-muted"><i class="bi bi-box-seam" style="font-size:2.5rem;"></i></div>
+                        <div class="mt-2">
+                            <input type="file" id="editProductImage" class="form-control form-control-sm" accept="image/jpeg,image/png,image/webp">
+                            <div class="form-text">JPG, PNG, or WEBP, up to 3MB.</div>
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Product Name *</label>
+                        <input type="text" id="editProductName" class="form-control" required maxlength="100">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea id="editProductDescription" class="form-control" rows="2" maxlength="500"></textarea>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Category</label>
+                        <select id="editProductCategory" class="form-select searchable-select" data-placeholder="Select category...">
+                            <option value="">Uncategorized</option>
+                        </select>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Price *</label>
+                            <input type="number" id="editProductPrice" class="form-control" step="0.01" min="0.01" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Cost</label>
+                            <input type="number" id="editProductCost" class="form-control" step="0.01" min="0">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Discount</label>
+                        <div class="input-group">
+                            <select id="editProductDiscountType" class="form-select" style="flex:0 0 135px;width:135px;">
+                                <option value="percent" selected>Percent %</option>
+                                <option value="fixed">Fixed ₱</option>
+                            </select>
+                            <input type="number" id="editProductDiscount" class="form-control" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="form-text" id="editProductDiscountPreview"></div>
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Stock Quantity *</label>
+                            <input type="number" id="editProductStock" class="form-control" min="0" step="1" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold">Reorder Level</label>
+                            <input type="number" id="editProductReorder" class="form-control" min="0" step="1">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label fw-semibold">Status</label>
+                        <select id="editProductStatus" class="form-select">
+                            <option value="1">Active</option>
+                            <option value="0">Inactive</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-yellow-primary btn-sm">Save Product</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 
