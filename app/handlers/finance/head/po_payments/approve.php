@@ -50,8 +50,18 @@ if ($requestId <= 0 || !in_array($action, ['approve', 'reject'], true)) {
 if ($action === 'reject' && $reason === '') {
     Response::error('Rejection reason is required', 400);
 }
-if (!in_array($method, ['bank_transfer', 'check', 'cash', 'other'], true)) {
+if (!in_array($method, ['bank_transfer', 'check', 'cash', 'paymongo_simulated', 'other'], true)) {
     Response::error('Invalid payment method', 400);
+}
+
+// A real PayMongo disbursement needs business/KYB verification ShelfSense
+// doesn't have -- this records the same payment data a real payout would
+// (method, reference, timestamp) without moving any real money. The
+// reference is always generated server-side here, never trusted from the
+// client, so it's unmistakably a demo reference rather than something
+// that could be confused for a real PayMongo payout id.
+if ($method === 'paymongo_simulated') {
+    $referenceNumber = 'sim_pay_' . bin2hex(random_bytes(8));
 }
 
 $db = Database::getInstance()->getConnection();
@@ -107,7 +117,10 @@ try {
     $paymentModel = new Payment();
     $paymentId = $paymentModel->createForPo($po['id'], $requestId, $amount, $method, $referenceNumber, Auth::userId());
 
-    $eventModel->log($po['id'], 'payment_approved', "Payment of ₱" . number_format($amount, 2) . " approved by Finance Head.", 'all', Auth::userId());
+    $eventNote = "Payment of ₱" . number_format($amount, 2) . " approved by Finance Head via "
+        . ($method === 'paymongo_simulated' ? 'a simulated PayMongo disbursement (demo only, no real funds moved)' : str_replace('_', ' ', $method))
+        . ". Reference: {$referenceNumber}";
+    $eventModel->log($po['id'], 'payment_approved', $eventNote, 'all', Auth::userId());
 
     $stmt = $db->prepare("SELECT company_name, email FROM suppliers WHERE id = ?");
     $stmt->execute([$po['supplier_id']]);
@@ -115,6 +128,10 @@ try {
 
     if (!empty($supplier['email'])) {
         $mailer = new Mailer('procurement');
+        $methodLabel = $method === 'paymongo_simulated' ? 'PayMongo (Simulated)' : strtoupper($method);
+        $simulatedNotice = $method === 'paymongo_simulated'
+            ? "<p style='color:#92400e;background:#fef3c7;padding:10px;border-radius:6px;'><strong>Demo notice:</strong> This is a school project prototype -- no real funds were transferred. This message only demonstrates what a real payout notification would look like.</p>"
+            : '';
         $body = "
             <div style='text-align:center;padding:20px;background:#facc15;border-radius:8px 8px 0 0;'>
                 <h2 style='margin:0;color:#1a1a1a;'>Payment Sent</h2>
@@ -123,8 +140,9 @@ try {
                 <p>Dear <strong>{$supplier['company_name']}</strong>,</p>
                 <p>Payment for Purchase Order <strong>{$po['po_number']}</strong> has been approved and sent.</p>
                 <p><strong>Amount:</strong> ₱" . number_format($amount, 2) . "</p>
-                <p><strong>Method:</strong> " . strtoupper($method) . "</p>
+                <p><strong>Method:</strong> {$methodLabel}</p>
                 <p><strong>Reference:</strong> {$referenceNumber}</p>
+                {$simulatedNotice}
                 <p style='margin-top:16px;'>This closes out the order. Thank you for your business.</p>
             </div>
         ";

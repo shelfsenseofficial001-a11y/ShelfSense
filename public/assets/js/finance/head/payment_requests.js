@@ -6,6 +6,7 @@ let fhApproveTargetId = null;
 let fhApproveExceeded = false;
 let fhRejectReqTargetId = null;
 let fhRejectPoPaymentTargetId = null;
+let fhPayTargetId = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     loadPendingRequisitions();
@@ -13,6 +14,11 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('confirmApproveReqBtn').addEventListener('click', confirmApproveReq);
     document.getElementById('confirmRejectReqBtn').addEventListener('click', confirmRejectReq);
     document.getElementById('confirmRejectPoPaymentBtn').addEventListener('click', confirmRejectPoPayment);
+    document.getElementById('payMethodSelect')?.addEventListener('change', function () {
+        document.getElementById('payReferenceWrap').classList.toggle('d-none', this.value === 'paymongo_simulated');
+        document.getElementById('paySimulatedNotice').classList.toggle('d-none', this.value !== 'paymongo_simulated');
+    });
+    document.getElementById('confirmApprovePoPaymentBtn')?.addEventListener('click', confirmApprovePoPayment);
 });
 
 async function loadPendingRequisitions() {
@@ -116,7 +122,7 @@ async function loadPendingPoPayments() {
                 <td>${prCurrency(pr.amount)}</td>
                 <td>${prEscapeHtml(pr.requested_by_name || '')}</td>
                 <td>
-                    <button class="btn btn-sm btn-success" onclick="approvePoPayment(${pr.id}, this)"><i class="bi bi-check"></i> Approve</button>
+                    <button class="btn btn-sm btn-success" onclick="openApprovePoPayment(${pr.id}, ${pr.amount}, '${prEscapeHtml(pr.po_number)}')"><i class="bi bi-check"></i> Approve</button>
                     <button class="btn btn-sm btn-danger" onclick="openRejectPoPayment(${pr.id})"><i class="bi bi-x"></i> Reject</button>
                 </td>
             </tr>
@@ -126,20 +132,51 @@ async function loadPendingPoPayments() {
     }
 }
 
-async function approvePoPayment(id, btn) {
+function openApprovePoPayment(id, amount, poNumber) {
+    fhPayTargetId = id;
+    document.getElementById('payApproveSummary').textContent = `Pay ${prCurrency(amount)} to the supplier for PO ${poNumber}.`;
+    document.getElementById('payMethodSelect').value = 'bank_transfer';
+    document.getElementById('payReferenceWrap').classList.remove('d-none');
+    document.getElementById('paySimulatedNotice').classList.add('d-none');
+    document.getElementById('payReferenceInput').value = '';
+    new bootstrap.Modal(document.getElementById('approvePoPaymentModal')).show();
+}
+
+async function confirmApprovePoPayment() {
+    const method = document.getElementById('payMethodSelect').value;
+    const referenceNumber = document.getElementById('payReferenceInput').value.trim();
+    const btn = document.getElementById('confirmApprovePoPaymentBtn');
+    const originalBtnHtml = btn.innerHTML;
     const unlock = prLockButton(btn);
+
+    // The simulated disbursement gets its own brief "processing" beat so
+    // it reads as a real payout step, not just an instant DB write --
+    // makes it obvious to whoever's watching that something happened,
+    // even though the label already says it's simulated.
+    if (method === 'paymongo_simulated') {
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Simulating PayMongo disbursement...';
+        await new Promise(r => setTimeout(r, 1200));
+    }
+
     try {
         const res = await fetch('?page=api_fh_approve_po_payment', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ payment_request_id: id, action: 'approve' }),
+            body: JSON.stringify({
+                payment_request_id: fhPayTargetId,
+                action: 'approve',
+                method: method,
+                reference_number: method === 'paymongo_simulated' ? '' : referenceNumber
+            }),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        Swal.fire('Approved', data.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('approvePoPaymentModal'))?.hide();
+        Swal.fire('Payment sent', data.message, 'success');
         loadPendingPoPayments();
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     } finally {
+        btn.innerHTML = originalBtnHtml;
         unlock();
     }
 }

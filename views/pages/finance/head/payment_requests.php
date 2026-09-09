@@ -64,6 +64,41 @@ $content = <<<'EOT'
     </div>
 </div>
 
+<div class="modal fade" id="approvePoPaymentModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Send Payment to Supplier</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p id="payApproveSummary"></p>
+                <div class="mb-3">
+                    <label class="form-label">Payment method</label>
+                    <select id="payMethodSelect" class="form-select">
+                        <option value="bank_transfer">Bank Transfer</option>
+                        <option value="check">Check</option>
+                        <option value="cash">Cash</option>
+                        <option value="paymongo_simulated">PayMongo (Simulated)</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div id="payReferenceWrap" class="mb-2">
+                    <label class="form-label">Reference number (optional)</label>
+                    <input type="text" id="payReferenceInput" class="form-control" placeholder="e.g. bank transaction #">
+                </div>
+                <div id="paySimulatedNotice" class="alert alert-warning small d-none mb-0">
+                    <strong>Demo notice:</strong> ShelfSense has no registered business behind it, so PayMongo's real
+                    supplier-payout product isn't available (it requires business verification). This simulates the
+                    disbursement -- a reference number and receipt are recorded exactly like a real payout would be,
+                    but no actual funds are transferred.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-success btn-sm" id="confirmApprovePoPaymentBtn">Approve & Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="rejectPoPaymentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
