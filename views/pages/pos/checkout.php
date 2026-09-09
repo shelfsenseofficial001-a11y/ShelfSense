@@ -13,7 +13,8 @@ $title = 'Checkout - ShelfSense POS';
 $pageTitle = 'Checkout';
 $activePage = 'checkout';
 $additional_js = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>'
-    . '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260908600000"></script>';
+    . '<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>'
+    . '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260909700000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [
@@ -208,6 +209,23 @@ $content = <<<'EOT'
                 <button type="button" class="btn btn-yellow-primary" id="completePaymentBtn">
                     <i class="bi bi-check-circle"></i> Pay
                 </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PayMongo (GCash / PayMaya) QR Modal -->
+<div class="modal fade" id="paymongoModal" tabindex="-1" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Pay with <span id="paymongoModalMethod">GCash</span></h5>
+                <button type="button" class="btn-close" id="paymongoCancelBtn" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <p class="mb-2">Scan with the customer's phone to pay <strong id="paymongoModalAmount">₱0.00</strong>.</p>
+                <div id="paymongoQrCode" class="d-flex justify-content-center my-3"></div>
+                <div id="paymongoStatusMsg" class="small text-muted mb-2">Waiting for approval&hellip;</div>
             </div>
         </div>
     </div>

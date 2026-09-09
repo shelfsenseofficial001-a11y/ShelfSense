@@ -853,6 +853,21 @@ if ($page === 'api_remove_face_enrollment') {
 // POS API ROUTES
 // ============================================
 
+if ($page === 'api_paymongo_create_source') {
+    require_once __DIR__ . '/../app/handlers/pos/paymongo_create_source.php';
+    exit;
+}
+
+if ($page === 'api_paymongo_source_status') {
+    require_once __DIR__ . '/../app/handlers/pos/paymongo_source_status.php';
+    exit;
+}
+
+if ($page === 'api_paymongo_charge_source') {
+    require_once __DIR__ . '/../app/handlers/pos/paymongo_charge_source.php';
+    exit;
+}
+
 if ($page === 'api_get_products') {
     require_once __DIR__ . '/../app/handlers/pos/get_products.php';
     exit;

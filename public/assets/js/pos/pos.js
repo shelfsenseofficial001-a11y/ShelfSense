@@ -203,6 +203,11 @@ function setupEventListeners() {
         completePayment();
     });
     
+    // Cancel a pending PayMongo payment (stop polling if the modal is closed)
+    document.getElementById('paymongoCancelBtn')?.addEventListener('click', function() {
+        stopPayMongoPolling();
+    });
+
     // Cancel payment (void order) - Shows confirmation
     document.getElementById('cancelPaymentBtn')?.addEventListener('click', function() {
         if (cart.length === 0) {
@@ -913,11 +918,9 @@ function calculateChange() {
 
 function completePayment() {
     const { total } = getPaymentTotal();
-    const pwdSeniorDiscount = document.getElementById('pwdSeniorDiscount')?.checked || false;
     const amountTendered = parseFloat(document.getElementById('amountTendered').value) || 0;
     const notes = document.getElementById('paymentNotes').value.trim();
-    const paymentReference = document.getElementById('paymentReference').value.trim();
-    
+
     if (selectedPaymentMethod === 'cash' && amountTendered < total - 0.005) {
         Swal.fire({
             icon: 'warning',
@@ -926,16 +929,34 @@ function completePayment() {
         });
         return;
     }
-    
+
     if (notes.length > 500) {
         Swal.fire({ icon: 'warning', title: 'Notes Too Long', text: 'Notes cannot exceed 500 characters.' });
         return;
     }
-    
+
+    // GCash/PayMaya go through PayMongo first (customer approves on their
+    // own phone via a QR code) -- the order itself is only created once
+    // that payment actually clears, with the PayMongo payment id as the
+    // reference instead of a manually-typed one.
+    if (selectedPaymentMethod === 'gcash' || selectedPaymentMethod === 'paymaya') {
+        startPayMongoEwalletFlow(selectedPaymentMethod, total);
+        return;
+    }
+
+    submitOrder(document.getElementById('paymentReference').value.trim() || null);
+}
+
+function submitOrder(paymentReference) {
+    const { total } = getPaymentTotal();
+    const pwdSeniorDiscount = document.getElementById('pwdSeniorDiscount')?.checked || false;
+    const amountTendered = parseFloat(document.getElementById('amountTendered').value) || 0;
+    const notes = document.getElementById('paymentNotes').value.trim();
+
     const btn = document.getElementById('completePaymentBtn');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Processing...';
-    
+
     const orderData = {
         items: cart.map(item => ({
             product_id: item.product_id,
@@ -947,7 +968,7 @@ function completePayment() {
         notes: notes,
         payment_reference: paymentReference || null
     };
-    
+
     fetch('?page=api_create_order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -998,6 +1019,108 @@ function completePayment() {
             text: error.message || 'Something went wrong. Please try again.'
         });
     });
+}
+
+// ============================================
+// PAYMONGO (GCASH / PAYMAYA)
+// ============================================
+
+let paymongoPollTimer = null;
+let paymongoModalInstance = null;
+
+function startPayMongoEwalletFlow(method, total) {
+    const btn = document.getElementById('completePaymentBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Starting payment...';
+
+    fetch('?page=api_paymongo_create_source', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total, type: method })
+    })
+        .then(r => r.json())
+        .then(res => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Pay';
+            if (!res.success) {
+                Swal.fire({ icon: 'error', title: 'Payment Error', text: res.message || 'Could not start payment.' });
+                return;
+            }
+            openPayMongoQrModal(res.data.source_id, res.data.checkout_url, method, total);
+        })
+        .catch(() => {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle"></i> Pay';
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Could not start payment. Please try again.' });
+        });
+}
+
+function openPayMongoQrModal(sourceId, checkoutUrl, method, total) {
+    if (!paymongoModalInstance) {
+        paymongoModalInstance = new bootstrap.Modal(document.getElementById('paymongoModal'));
+    }
+    document.getElementById('paymongoModalMethod').textContent = method === 'gcash' ? 'GCash' : 'PayMaya';
+    document.getElementById('paymongoModalAmount').textContent = '₱' + total.toFixed(2);
+    document.getElementById('paymongoStatusMsg').textContent = "Waiting for the customer to approve on their phone…";
+    document.getElementById('paymongoStatusMsg').className = 'small text-muted mb-2';
+
+    const qrContainer = document.getElementById('paymongoQrCode');
+    qrContainer.innerHTML = '';
+    new QRCode(qrContainer, { text: checkoutUrl, width: 200, height: 200 });
+
+    paymongoModalInstance.show();
+    startPayMongoPolling(sourceId, total);
+}
+
+function startPayMongoPolling(sourceId, total) {
+    stopPayMongoPolling();
+    paymongoPollTimer = setInterval(function () {
+        fetch('?page=api_paymongo_source_status&source_id=' + encodeURIComponent(sourceId))
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success) return;
+
+                if (res.data.status === 'chargeable') {
+                    stopPayMongoPolling();
+                    document.getElementById('paymongoStatusMsg').textContent = 'Approved! Finalizing payment…';
+
+                    fetch('?page=api_paymongo_charge_source', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ source_id: sourceId, amount: total })
+                    })
+                        .then(r => r.json())
+                        .then(chargeRes => {
+                            if (chargeRes.success) {
+                                paymongoModalInstance.hide();
+                                submitOrder(chargeRes.data.payment_id);
+                            } else {
+                                const msgEl = document.getElementById('paymongoStatusMsg');
+                                msgEl.textContent = chargeRes.message || 'Payment failed. Please try again.';
+                                msgEl.className = 'small text-danger mb-2';
+                            }
+                        })
+                        .catch(() => {
+                            const msgEl = document.getElementById('paymongoStatusMsg');
+                            msgEl.textContent = 'Something went wrong finalizing the payment.';
+                            msgEl.className = 'small text-danger mb-2';
+                        });
+                } else if (['failed', 'expired', 'cancelled'].includes(res.data.status)) {
+                    stopPayMongoPolling();
+                    const msgEl = document.getElementById('paymongoStatusMsg');
+                    msgEl.textContent = 'Payment was not completed (' + res.data.status + '). Please close this and try again.';
+                    msgEl.className = 'small text-danger mb-2';
+                }
+            })
+            .catch(() => {});
+    }, 2000);
+}
+
+function stopPayMongoPolling() {
+    if (paymongoPollTimer) {
+        clearInterval(paymongoPollTimer);
+        paymongoPollTimer = null;
+    }
 }
 
 // Flags unusually large sales for the cashier's own awareness (e.g. to
