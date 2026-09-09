@@ -25,14 +25,17 @@ function pos_cashiers_build_data(PDO $db): array {
     ");
     $cashiers = $stmt->fetchAll();
 
-    // Trainees training for the Cashier role can also ring up sales under
-    // supervision -- shown as a separate group below the hired cashiers.
+    // Trainees training for the Employee (cashier-facing) role can also
+    // ring up sales under supervision -- shown as a separate group below
+    // the hired cashiers. "Employee" is the current target_role label for
+    // this track -- "Cashier" was the old label before it was renamed to
+    // avoid a one-dimensional job title.
     $stmt = $db->query("
         SELECT u.user_id, u.first_name, u.last_name, u.employee_number, u.profile_pic
         FROM users u
         JOIN trainees t ON t.user_id = u.user_id
         WHERE u.role = 'trainee' AND u.is_active = 1
-          AND t.status = 'active' AND t.target_role = 'Cashier'
+          AND t.status = 'active' AND t.target_role = 'Employee'
         ORDER BY u.first_name ASC
     ");
     $trainees = $stmt->fetchAll();

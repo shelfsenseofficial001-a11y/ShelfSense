@@ -261,7 +261,7 @@ class Auth
             'head hr' => 'hr_head',
             'hr head' => 'hr_head',
             'hr' => 'hr_head',
-            'cashier' => 'employee',
+            'cashier' => 'employee', // legacy label, retired in favor of "Employee"
             'employee' => 'employee',
             'finance head' => 'finance_head',
             'finance' => 'finance_head',

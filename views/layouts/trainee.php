@@ -3,7 +3,7 @@ use App\Core\Auth;
 
 $targetRole = Auth::getNormalizedTargetRole();
 $isHrTrainee = in_array($targetRole, ['hr_head', 'hr_staff']);
-$isCashierTrainee = $targetRole === 'cashier';
+$isCashierTrainee = $targetRole === 'employee';
 $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
 ?>
 <!DOCTYPE html>

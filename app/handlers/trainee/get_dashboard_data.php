@@ -111,10 +111,16 @@ function trainee_dashboard_build_data(PDO $db, int $userId): ?array {
     $stmt->execute([$userId]);
     $notifications = $stmt->fetchAll();
 
-    // Role → Module mapping
+    // Role → Module mapping. "employee" is the current target_role label
+    // for the cashier-facing track ("Cashier" was retired as too
+    // one-dimensional a job title) -- kept as a fallback key too, in case
+    // any older record still has the legacy value.
     $roleKey = strtolower($trainee['target_role'] ?? '');
+    if ($roleKey === 'cashier') {
+        $roleKey = 'employee';
+    }
     $moduleMap = [
-        'cashier' => [
+        'employee' => [
             'name' => 'Cashier / POS',
             'url' => '?page=pos_checkout',
             'icon' => 'bi-cart-plus',
