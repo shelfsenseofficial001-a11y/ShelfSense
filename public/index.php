@@ -1369,6 +1369,11 @@ if ($page === 'api_fs_request_po_payment') {
     exit;
 }
 
+if ($page === 'api_fs_list_my_po_payments') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/po_payments/list_mine.php';
+    exit;
+}
+
 if ($page === 'api_supplier_ship_po') {
     require_once __DIR__ . '/../app/handlers/supplier/purchase_orders/ship.php';
     exit;

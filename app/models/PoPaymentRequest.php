@@ -70,18 +70,29 @@ class PoPaymentRequest
             $where .= " AND ppr.status = ?";
             $params[] = $filters['status'];
         }
+        if (!empty($filters['requested_by'])) {
+            $where .= " AND ppr.requested_by = ?";
+            $params[] = $filters['requested_by'];
+        }
 
         $countStmt = $this->db->prepare("SELECT COUNT(*) as total FROM po_payment_requests ppr WHERE $where");
         $countStmt->execute($params);
         $total = $countStmt->fetch()['total'];
 
+        // Once approved, the resulting payments row (method/reference/when)
+        // is what actually happened -- surfaced here so Finance Staff can
+        // see the real outcome of their own request, not just "approved".
         $sql = "
             SELECT ppr.*, po.po_number, s.company_name as supplier_name,
-                   CONCAT(u.first_name, ' ', u.last_name) as requested_by_name
+                   CONCAT(u.first_name, ' ', u.last_name) as requested_by_name,
+                   CONCAT(approver.first_name, ' ', approver.last_name) as approved_by_name,
+                   pay.method as payment_method, pay.reference_number as payment_reference, pay.paid_at as payment_paid_at
             FROM po_payment_requests ppr
             JOIN purchase_orders po ON ppr.po_id = po.id
             JOIN suppliers s ON po.supplier_id = s.id
             JOIN users u ON ppr.requested_by = u.user_id
+            LEFT JOIN users approver ON ppr.approved_by = approver.user_id
+            LEFT JOIN payments pay ON pay.payment_request_id = ppr.id
             WHERE $where
             ORDER BY ppr.created_at DESC
             LIMIT ? OFFSET ?

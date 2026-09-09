@@ -6,7 +6,46 @@ document.addEventListener('DOMContentLoaded', function () {
     loadDispatch();
     loadRequestPayment();
     loadHolds();
+    loadMyPayments();
 });
+
+const PAYMENT_METHOD_LABELS = {
+    bank_transfer: 'Bank Transfer',
+    check: 'Check',
+    cash: 'Cash',
+    paymongo_simulated: 'PayMongo (Simulated)',
+    other: 'Other'
+};
+
+async function loadMyPayments() {
+    const tbody = document.getElementById('myPaymentsTableBody');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-4">Loading...</td></tr>';
+    try {
+        const data = await prFetchJson('?page=api_fs_list_my_po_payments&limit=50');
+        const rows = data.payment_requests || [];
+        tbody.innerHTML = rows.length ? rows.map(pr => {
+            let methodCell = '<span class="text-muted">&mdash;</span>';
+            if (pr.status === 'approved' && pr.payment_method) {
+                const label = PAYMENT_METHOD_LABELS[pr.payment_method] || pr.payment_method;
+                methodCell = `${prEscapeHtml(label)}<br><small class="text-muted">${prEscapeHtml(pr.payment_reference || '')}</small>`;
+            } else if (pr.status === 'rejected' && pr.rejection_reason) {
+                methodCell = `<small class="text-danger">${prEscapeHtml(pr.rejection_reason)}</small>`;
+            }
+            return `
+            <tr>
+                <td>${prEscapeHtml(pr.po_number)}</td>
+                <td>${prEscapeHtml(pr.supplier_name)}</td>
+                <td>${prCurrency(pr.amount)}</td>
+                <td>${prStatusBadge(pr.status)}</td>
+                <td>${methodCell}</td>
+                <td>${prEscapeHtml(pr.approved_by_name || '')}</td>
+            </tr>
+        `;
+        }).join('') : prEmptyRow(6, "You haven't submitted any payment requests yet.");
+    } catch (e) {
+        tbody.innerHTML = prErrorRow(6, e.message);
+    }
+}
 
 async function loadDispatch() {
     const tbody = document.getElementById('dispatchTableBody');
@@ -77,6 +116,7 @@ async function requestPayment(poId, btn) {
         if (!data.success) throw new Error(data.message);
         Swal.fire('Requested', data.message, 'success');
         loadRequestPayment();
+        loadMyPayments();
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     } finally {

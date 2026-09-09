@@ -10,6 +10,7 @@ $content = <<<'EOT'
     <li class="nav-item"><button class="nav-link active" id="tabDispatch" data-bs-toggle="tab" data-bs-target="#dispatchTab" type="button">Pending Dispatch</button></li>
     <li class="nav-item"><button class="nav-link" id="tabRequestPayment" data-bs-toggle="tab" data-bs-target="#requestPaymentTab" type="button">Request Payment</button></li>
     <li class="nav-item"><button class="nav-link" id="tabHolds" data-bs-toggle="tab" data-bs-target="#holdsTab" type="button">Reconciliation Holds</button></li>
+    <li class="nav-item"><button class="nav-link" id="tabMyPayments" data-bs-toggle="tab" data-bs-target="#myPaymentsTab" type="button">My Payment Requests</button></li>
 </ul>
 
 <div class="tab-content">
@@ -39,6 +40,16 @@ $content = <<<'EOT'
             <table class="table table-hover align-middle">
                 <thead><tr><th>Invoice #</th><th>PO #</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>
                 <tbody id="holdsTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="myPaymentsTab">
+        <p class="text-muted">Every payment request you've submitted, and what actually happened to it.</p>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>PO #</th><th>Supplier</th><th>Amount</th><th>Status</th><th>Method / Reference</th><th>Decided By</th></tr></thead>
+                <tbody id="myPaymentsTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
             </table>
         </div>
     </div>
