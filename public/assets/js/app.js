@@ -821,3 +821,69 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 })();
+
+// ============================================
+// SHOW/HIDE TOGGLE - EVERY PASSWORD FIELD, SITE-WIDE
+// Runs once at load and keeps watching for new password fields added
+// later (a modal built at click time, content swapped in after a fetch)
+// so nothing needs to opt in by hand -- any <input type="password">
+// anywhere in the app gets an eye-icon toggle automatically.
+// ============================================
+(function () {
+    function toggle(input, btn) {
+        const icon = btn.querySelector('i');
+        const showing = input.type === 'text';
+        input.type = showing ? 'password' : 'text';
+        if (icon) {
+            icon.classList.toggle('bi-eye', showing);
+            icon.classList.toggle('bi-eye-slash', !showing);
+        }
+        btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
+    }
+
+    function addPasswordToggle(input) {
+        if (input.dataset.pwToggleAdded) return;
+        input.dataset.pwToggleAdded = '1';
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('aria-label', 'Show password');
+        btn.innerHTML = '<i class="bi bi-eye"></i>';
+
+        // Already a Bootstrap input-group (e.g. alongside a "Password"
+        // label addon)? Just add another button to it instead of
+        // wrapping -- wrapping would break the group's own layout.
+        const group = input.closest('.input-group');
+        if (group) {
+            btn.className = 'btn btn-outline-secondary';
+            group.appendChild(btn);
+        } else {
+            btn.className = 'pw-toggle-btn-inline';
+            const wrap = document.createElement('div');
+            wrap.className = 'pw-toggle-wrap';
+            input.parentNode.insertBefore(wrap, input);
+            wrap.appendChild(input);
+            wrap.appendChild(btn);
+        }
+
+        btn.addEventListener('click', function () { toggle(input, btn); });
+    }
+
+    function scanForPasswordFields(root) {
+        root.querySelectorAll('input[type="password"]').forEach(addPasswordToggle);
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        scanForPasswordFields(document);
+    });
+
+    new MutationObserver(function (mutations) {
+        mutations.forEach(function (m) {
+            m.addedNodes.forEach(function (node) {
+                if (node.nodeType !== 1) return;
+                if (node.matches && node.matches('input[type="password"]')) addPasswordToggle(node);
+                if (node.querySelectorAll) scanForPasswordFields(node);
+            });
+        });
+    }).observe(document.documentElement, { childList: true, subtree: true });
+})();

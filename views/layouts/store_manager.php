@@ -16,7 +16,7 @@ use App\Core\Auth;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260908520000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260910100000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260908380000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/store_manager.css?v=20260908360000">
     <?= $additional_css ?? '' ?>
@@ -178,7 +178,7 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260908400000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260910100000"></script>
     <script src="/ShelfSense/public/assets/js/store_manager/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>

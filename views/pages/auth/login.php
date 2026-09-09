@@ -239,9 +239,6 @@ $content = '
                 </div>
                 <div class="input-group mt-1">
                     <input type="password" name="password" id="password" class="form-control" placeholder="Enter password" required>
-                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
-                        <i class="bi bi-eye"></i>
-                    </button>
                 </div>
             </div>
             <button type="submit" class="btn btn-yellow-primary w-100 rounded-3">
@@ -255,20 +252,6 @@ $content = '
 </div>
 
 <script>
-document.getElementById("togglePassword").addEventListener("click", function() {
-    const input = document.getElementById("password");
-    const icon = this.querySelector("i");
-    if (input.type === "password") {
-        input.type = "text";
-        icon.classList.remove("bi-eye");
-        icon.classList.add("bi-eye-slash");
-    } else {
-        input.type = "password";
-        icon.classList.remove("bi-eye-slash");
-        icon.classList.add("bi-eye");
-    }
-});
-
 document.getElementById("loginForm").addEventListener("submit", async function(e) {
     e.preventDefault();
     const form = this;

@@ -1758,3 +1758,30 @@ body.swal2-shown > .modal-backdrop {
     background: var(--bg-card-subtle) !important;
     color: var(--text-main) !important;
 }
+
+/* Show/hide toggle auto-attached to every password field (see app.js) --
+   only styles the standalone case (a bare <input> not already inside a
+   Bootstrap .input-group, which gets a plain button appended instead). */
+.pw-toggle-wrap {
+    position: relative;
+    display: flex;
+}
+.pw-toggle-wrap input {
+    padding-right: 40px !important;
+}
+.pw-toggle-btn-inline {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px 6px;
+    color: var(--text-muted, #73736f);
+    cursor: pointer;
+    line-height: 1;
+    z-index: 5;
+}
+.pw-toggle-btn-inline:hover {
+    color: var(--text-main, #20201d);
+}

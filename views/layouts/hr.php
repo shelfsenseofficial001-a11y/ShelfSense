@@ -24,7 +24,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260908520000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260910100000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260908380000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260908520000">
     <?php echo $additional_css ?? ''; ?>
@@ -222,7 +222,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260908400000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20260910100000"></script>
     <?php echo $additional_js ?? ''; ?>
 
     <!-- Searchable Select Component -->

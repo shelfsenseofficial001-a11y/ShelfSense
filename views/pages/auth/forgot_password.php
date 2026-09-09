@@ -157,9 +157,6 @@ $content = '
                     <label class="form-label fw-semibold">New Password</label>
                     <div class="input-group">
                         <input type="password" name="password" id="newPassword" class="form-control" placeholder="New password" required minlength="8">
-                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword(\'newPassword\')">
-                            <i class="bi bi-eye"></i>
-                        </button>
                     </div>
                     <small class="text-muted">At least 8 characters, with uppercase, lowercase, and number.</small>
                 </div>
@@ -167,9 +164,6 @@ $content = '
                     <label class="form-label fw-semibold">Confirm Password</label>
                     <div class="input-group">
                         <input type="password" name="confirm_password" id="confirmPassword" class="form-control" placeholder="Confirm password" required>
-                        <button class="btn btn-outline-secondary" type="button" onclick="togglePassword(\'confirmPassword\')">
-                            <i class="bi bi-eye"></i>
-                        </button>
                     </div>
                 </div>
                 <input type="hidden" id="resetIdFinal" value="">
@@ -183,18 +177,6 @@ $content = '
 
 <script>
 let timerInterval = null;
-
-function togglePassword(id) {
-    const input = document.getElementById(id);
-    const icon = input.parentElement.querySelector(\'button i\');
-    if (input.type === \'password\') {
-        input.type = \'text\';
-        icon.className = \'bi bi-eye-slash\';
-    } else {
-        input.type = \'password\';
-        icon.className = \'bi bi-eye\';
-    }
-}
 
 // Step 1: Request OTP
 document.getElementById("forgotPasswordForm").addEventListener("submit", function(e) {
