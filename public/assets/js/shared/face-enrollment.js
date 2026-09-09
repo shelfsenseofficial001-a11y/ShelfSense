@@ -34,7 +34,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return fetch('?page=api_enroll_face', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ descriptors: result.descriptors, consent: true })
+                body: JSON.stringify({ descriptors: result.descriptors, consent: true, blink_verified: result.blinkVerified })
             }).then(r => r.json());
         }).then(res => {
             enrollBtn.disabled = false;

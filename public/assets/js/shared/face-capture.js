@@ -88,6 +88,68 @@
         return Math.sqrt(sum);
     }
 
+    function pointDist(p1, p2) {
+        return Math.hypot(p1.x - p2.x, p1.y - p2.y);
+    }
+
+    // Eye Aspect Ratio (Soukupova & Cech) from a 6-point eye landmark set --
+    // drops sharply when the eye closes, so tracking it across frames is a
+    // cheap, no-extra-model way to prove a live blink happened rather than
+    // a static photo being held up to the camera.
+    function eyeAspectRatio(eye) {
+        const vertical1 = pointDist(eye[1], eye[5]);
+        const vertical2 = pointDist(eye[2], eye[4]);
+        const horizontal = pointDist(eye[0], eye[3]);
+        return (vertical1 + vertical2) / (2 * horizontal);
+    }
+
+    const EAR_CLOSED = 0.22;
+    const EAR_OPEN = 0.27;
+    const BLINKS_REQUIRED = 2;
+    const BLINK_TIMEOUT_MS = 25000;
+
+    // Requires two full open->closed->open cycles before continuing --
+    // rejects a printed photo or a frozen video frame held up to the
+    // camera, which can supply a face descriptor but can't blink on cue.
+    async function runBlinkLiveness(video, statusEl, dotsEl) {
+        dotsEl.innerHTML = '<span></span><span></span>';
+        const dots = dotsEl.querySelectorAll('span');
+        statusEl.textContent = 'Blink twice to verify you\'re really here';
+
+        let blinkCount = 0;
+        let eyesClosed = false;
+        const deadline = Date.now() + BLINK_TIMEOUT_MS;
+
+        while (blinkCount < BLINKS_REQUIRED) {
+            if (Date.now() > deadline) {
+                throw new Error('Could not detect a blink in time. Make sure your eyes are clearly visible and try again.');
+            }
+
+            const detection = await faceapi
+                .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+                .withFaceLandmarks();
+
+            if (detection) {
+                const leftEAR = eyeAspectRatio(detection.landmarks.getLeftEye());
+                const rightEAR = eyeAspectRatio(detection.landmarks.getRightEye());
+                const ear = (leftEAR + rightEAR) / 2;
+
+                if (!eyesClosed && ear < EAR_CLOSED) {
+                    eyesClosed = true;
+                } else if (eyesClosed && ear > EAR_OPEN) {
+                    eyesClosed = false;
+                    blinkCount++;
+                    if (dots[blinkCount - 1]) dots[blinkCount - 1].classList.add('done');
+                }
+            }
+
+            await new Promise(r => setTimeout(r, 100));
+        }
+
+        statusEl.textContent = 'Liveness verified!';
+        await new Promise(r => setTimeout(r, 400));
+    }
+
     async function run(options) {
         options = options || {};
         const angles = options.angles || [
@@ -144,8 +206,6 @@
                 overlay.querySelector('#sfcCamera').style.display = 'block';
                 const statusEl = overlay.querySelector('#sfcStatus');
                 const dotsEl = overlay.querySelector('#sfcDots');
-                dotsEl.innerHTML = angles.map(() => '<span></span>').join('');
-                const dots = dotsEl.querySelectorAll('span');
 
                 try {
                     statusEl.textContent = 'Loading face model…';
@@ -159,12 +219,19 @@
                     video.srcObject = stream;
                     await new Promise(res => { video.onloadedmetadata = res; });
 
+                    if (cancelled) return;
+                    await runBlinkLiveness(video, statusEl, dotsEl);
+                    if (cancelled) return;
+
+                    dotsEl.innerHTML = angles.map(() => '<span></span>').join('');
+                    const angleDots = dotsEl.querySelectorAll('span');
+
                     const descriptors = [];
                     let photoDataUrl = null;
 
                     for (let i = 0; i < angles.length; i++) {
                         if (cancelled) return;
-                        dots[i].classList.add('active');
+                        angleDots[i].classList.add('active');
                         statusEl.textContent = angles[i];
 
                         let captured = false;
@@ -196,8 +263,8 @@
                             throw new Error('Could not see your face clearly. Make sure you\'re in good lighting and try again.');
                         }
 
-                        dots[i].classList.remove('active');
-                        dots[i].classList.add('done');
+                        angleDots[i].classList.remove('active');
+                        angleDots[i].classList.add('done');
                         await new Promise(r => setTimeout(r, 250));
                     }
 
@@ -205,7 +272,7 @@
                     statusEl.textContent = 'Done!';
                     stopStream();
                     cleanup();
-                    resolve({ descriptors, photo: photoDataUrl });
+                    resolve({ descriptors, photo: photoDataUrl, blinkVerified: true });
                 } catch (err) {
                     stopStream();
                     if (cancelled) return;

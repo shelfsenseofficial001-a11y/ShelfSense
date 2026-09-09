@@ -322,7 +322,7 @@ $content = <<<HTML
 
             <div class="modern-card p-4 mb-3">
                 <div class="profile-section-title">Attendance Face ID</div>
-                <div class="profile-section-sub">Lets the register confirm it's you with a quick face scan instead of manual attendance entry.</div>
+                <div class="profile-section-sub">Lets the register confirm it's you with a quick face scan instead of manual attendance entry. Normally set up during your first login -- use this if you need to re-enroll.</div>
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
                     <div id="faceEnrollStatus" class="small">Checking status…</div>
                     <div class="d-flex gap-2">

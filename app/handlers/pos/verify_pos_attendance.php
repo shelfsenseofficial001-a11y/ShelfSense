@@ -1,17 +1,18 @@
 <?php
-// app/handlers/pos/verify_face_attendance.php
-// Called from the phone that scanned the QR (public, token-authenticated,
-// no staff login) or from the register's own fallback camera. Compares
-// captured face descriptors against the employee's enrolled descriptors
-// and, on a match, auto-records the attendance punch -- no manual HR
-// entry. Never touches POS session state directly: the confirming device
-// is frequently not the register's own browser session, so the register
-// picks up the result by polling get_attendance_qr_status.php.
+// app/handlers/pos/verify_pos_attendance.php
+// Face verification now happens directly on the register's own camera --
+// no QR handoff to a phone. pos_select_cashier.php stamps who just passed
+// the password check into this POS session ($_SESSION['pos_pending_*']);
+// this endpoint only accepts a face capture for that exact pending
+// cashier, within a short window, so a client can't just submit an
+// arbitrary user_id and skip the password step.
 
 require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../models/Attendance.php';
 
+use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
 use App\Models\Attendance;
@@ -23,12 +24,25 @@ header('Content-Type: application/json');
 // false-positive clock-ins over convenience.
 const FACE_MATCH_THRESHOLD = 0.5;
 
+if (!Auth::posCheck()) {
+    Response::unauthorized('Please log in to a register first.');
+}
+
+$pendingUserId = $_SESSION['pos_pending_cashier_id'] ?? null;
+$pendingExpires = $_SESSION['pos_pending_cashier_expires'] ?? 0;
+$pendingName = $_SESSION['pos_pending_cashier_name'] ?? null;
+
+if (!$pendingUserId || time() > $pendingExpires) {
+    unset($_SESSION['pos_pending_cashier_id'], $_SESSION['pos_pending_cashier_name'], $_SESSION['pos_pending_cashier_expires']);
+    Response::error('Your session to verify has expired. Please select the cashier again.', 400);
+}
+
 $input = json_decode(file_get_contents('php://input'), true);
-$token = isset($input['token']) ? (string)$input['token'] : '';
 $descriptors = $input['descriptors'] ?? null;
 $photoDataUrl = isset($input['photo']) ? (string)$input['photo'] : '';
+$blinkVerified = !empty($input['blink_verified']);
 
-if ($token === '' || !is_array($descriptors) || count($descriptors) < 1) {
+if (!is_array($descriptors) || count($descriptors) < 1) {
     Response::error('Missing face data.', 400);
 }
 
@@ -38,33 +52,19 @@ foreach ($descriptors as $d) {
     }
 }
 
+if (!$blinkVerified) {
+    Response::error('Liveness check (blink) was not completed.', 400);
+}
+
 try {
     $db = Database::getInstance()->getConnection();
 
-    $stmt = $db->prepare("SELECT * FROM attendance_qr_sessions WHERE token = ?");
-    $stmt->execute([$token]);
-    $session = $stmt->fetch();
-
-    if (!$session) {
-        Response::error('Attendance session not found.', 404);
-    }
-
-    if ($session['status'] !== 'pending') {
-        Response::error('This attendance session is no longer active.', 400);
-    }
-
-    if (strtotime($session['expires_at']) < time()) {
-        $db->prepare("UPDATE attendance_qr_sessions SET status = 'expired' WHERE id = ?")->execute([$session['id']]);
-        Response::error('This attendance session has expired. Please select the cashier again at the register.', 400);
-    }
-
     $stmt = $db->prepare("SELECT descriptors FROM face_enrollments WHERE user_id = ?");
-    $stmt->execute([$session['user_id']]);
+    $stmt->execute([$pendingUserId]);
     $enrollment = $stmt->fetch();
 
     if (!$enrollment) {
-        $db->prepare("UPDATE attendance_qr_sessions SET status = 'failed', fail_reason = 'not_enrolled' WHERE id = ?")->execute([$session['id']]);
-        Response::error('This employee has not enrolled Face ID yet. Ask HR to enroll them from their Profile.', 400);
+        Response::error('This employee has not enrolled Face ID yet. Ask HR to check their account.', 400);
     }
 
     $enrolledDescriptors = json_decode($enrollment['descriptors'], true);
@@ -85,8 +85,8 @@ try {
     }
 
     if ($bestDistance === null || $bestDistance > FACE_MATCH_THRESHOLD) {
-        // Left as 'pending' -- the phone can retry immediately within the
-        // same 5-minute window instead of forcing a fresh QR code.
+        // Pending state is left intact -- the cashier can retry immediately
+        // within the same window instead of re-entering their password.
         Response::error('Face not recognized. Please try again with clear lighting.', 401);
     }
 
@@ -99,7 +99,7 @@ try {
             if (!is_dir($baseDir)) {
                 mkdir($baseDir, 0777, true);
             }
-            $filename = 'att_' . $session['user_id'] . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+            $filename = 'att_' . $pendingUserId . '_' . date('Ymd_His') . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
             if (file_put_contents($baseDir . $filename, $binary) !== false) {
                 $photoPath = 'uploads/attendance/' . $filename;
             }
@@ -107,17 +107,17 @@ try {
     }
 
     $attendanceModel = new Attendance();
-    $action = $attendanceModel->recordFaceClock((int)$session['user_id'], $photoPath, $bestDistance);
+    $action = $attendanceModel->recordFaceClock((int)$pendingUserId, $photoPath, $bestDistance);
 
-    $db->prepare("
-        UPDATE attendance_qr_sessions
-        SET status = 'confirmed', match_distance = ?, captured_photo = ?, attendance_action = ?, confirmed_at = NOW()
-        WHERE id = ?
-    ")->execute([$bestDistance, $photoPath, $action, $session['id']]);
+    Auth::posSetCashier((int)$pendingUserId, $pendingName);
+    unset($_SESSION['pos_pending_cashier_id'], $_SESSION['pos_pending_cashier_name'], $_SESSION['pos_pending_cashier_expires']);
 
-    Response::success(['action' => $action], 'Attendance recorded');
+    Response::success([
+        'action' => $action,
+        'redirect' => '?page=pos_checkout'
+    ], 'Attendance recorded');
 
 } catch (Exception $e) {
-    error_log('verify_face_attendance.php error: ' . $e->getMessage());
+    error_log('verify_pos_attendance.php error: ' . $e->getMessage());
     Response::error('Error: ' . $e->getMessage());
 }

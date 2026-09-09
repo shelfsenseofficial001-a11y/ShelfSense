@@ -76,6 +76,39 @@ if ($page === 'logout') {
 }
 
 // ============================================
+// FIRST-LOGIN GATE
+// ============================================
+// A brand-new account (trainee creation, direct hire) or one just
+// promoted (trainee -> employee) always has is_first_login=1 in the DB --
+// this forces a password change (and, for cashier-facing roles without an
+// existing Face ID, biometric enrollment) before any other authenticated
+// page loads. Runs on every request, not just right after login, so it
+// also catches an account promoted mid-session (is_first_login flips to 1
+// in the DB and is refreshed into the session immediately on promotion).
+$firstLoginExemptPages = [
+    'first_login_setup', 'api_first_login_change_password', 'api_enroll_face',
+    'logout', 'privacy_policy'
+];
+if (Auth::check() && Auth::isFirstLogin() && !in_array($page, $firstLoginExemptPages, true)) {
+    Response::redirect('?page=first_login_setup');
+    exit;
+}
+
+if ($page === 'first_login_setup') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/first_login_setup.php';
+    exit;
+}
+
+if ($page === 'api_first_login_change_password') {
+    require_once __DIR__ . '/../app/handlers/shared/first_login_change_password.php';
+    exit;
+}
+
+// ============================================
 // DASHBOARD REDIRECT
 // ============================================
 
@@ -796,23 +829,8 @@ if ($page === 'pos_logout') {
     exit;
 }
 
-if ($page === 'attendance_scan') {
-    require_once __DIR__ . '/../views/pages/pos/attendance_scan.php';
-    exit;
-}
-
-if ($page === 'api_verify_face_attendance') {
-    require_once __DIR__ . '/../app/handlers/pos/verify_face_attendance.php';
-    exit;
-}
-
-if ($page === 'api_attendance_qr_status') {
-    require_once __DIR__ . '/../app/handlers/pos/get_attendance_qr_status.php';
-    exit;
-}
-
-if ($page === 'api_pos_attendance_fallback_login') {
-    require_once __DIR__ . '/../app/handlers/pos/pos_attendance_fallback_login.php';
+if ($page === 'api_verify_pos_attendance') {
+    require_once __DIR__ . '/../app/handlers/pos/verify_pos_attendance.php';
     exit;
 }
 

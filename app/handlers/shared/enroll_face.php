@@ -22,9 +22,14 @@ if (!Auth::check()) {
 $input = json_decode(file_get_contents('php://input'), true);
 $descriptors = $input['descriptors'] ?? null;
 $consent = $input['consent'] ?? false;
+$blinkVerified = !empty($input['blink_verified']);
 
 if (!$consent) {
     Response::error('Consent is required to enroll Face ID.', 400);
+}
+
+if (!$blinkVerified) {
+    Response::error('Liveness check (blink) was not completed.', 400);
 }
 
 if (!is_array($descriptors) || count($descriptors) < 1 || count($descriptors) > 10) {
@@ -54,5 +59,10 @@ $stmt = $db->prepare("
         updated_at = NOW()
 ");
 $stmt->execute([$userId, json_encode($descriptors)]);
+
+// Completes the forced first-login flow, if this enrollment was that
+// flow's step 2 -- harmless no-op if it wasn't (already 0).
+$db->prepare("UPDATE users SET is_first_login = 0 WHERE user_id = ? AND is_first_login = 1")->execute([$userId]);
+$_SESSION['is_first_login'] = 0;
 
 Response::success([], 'Face ID enrolled successfully');
