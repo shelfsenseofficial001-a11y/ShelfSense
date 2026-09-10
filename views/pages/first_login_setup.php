@@ -26,9 +26,14 @@ $firstName = htmlspecialchars(Auth::role() ? ($_SESSION['first_name'] ?? '') : '
 $needsFaceStepJs = $needsFaceStep ? 'true' : 'false';
 
 $content = '
-<div class="brand">
-    <h1><span class="brand-mark"></span>Shelf<span>Sense</span></h1>
-    <small>Account Setup</small>
+<div class="d-flex justify-content-between align-items-start">
+    <div class="brand mb-0">
+        <h1><span class="brand-mark"></span>Shelf<span>Sense</span></h1>
+        <small>Account Setup</small>
+    </div>
+    <a href="?page=logout" class="auth-link small text-muted" style="white-space:nowrap;">
+        <i class="bi bi-box-arrow-right me-1"></i>Log out
+    </a>
 </div>
 
 <div class="form-header text-center mb-3">
