@@ -15,7 +15,7 @@ $registerName = htmlspecialchars(Auth::posRegisterName() ?? 'Register');
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-<script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260909100000"></script>
+<script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260910200000"></script>
 <div class="brand">
     <h1><span class="brand-mark"></span>Shelf<span>Sense</span></h1>
     <small>' . $registerName . '</small>
@@ -66,7 +66,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Attendance verification</h5>
-                <button type="button" class="btn-close" id="attendanceFaceCloseBtn"></button>
+                <button type="button" class="btn-close" id="attendanceFaceCloseBtn" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body text-center">
                 <i class="bi bi-camera" style="font-size:2rem;color:#ff6b35;"></i>

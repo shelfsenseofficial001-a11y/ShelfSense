@@ -23,7 +23,7 @@ $additional_js = '<script src="/ShelfSense/public/assets/js/shared/profile.js?v=
 $additional_js .= '<script src="/ShelfSense/public/assets/js/shared/profile-settings-nav.js?v=20260903000000"></script>';
 $additional_js .= '<script src="/ShelfSense/public/assets/js/shared/profile-tour-toggle.js?v=20260903100000"></script>';
 $additional_js .= '<script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>';
-$additional_js .= '<script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260908100000"></script>';
+$additional_js .= '<script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260910200000"></script>';
 $additional_js .= '<script src="/ShelfSense/public/assets/js/shared/face-enrollment.js?v=20260908100000"></script>';
 
 // Dashboard walkthrough toggle -- every portal's dashboard has the tour now.

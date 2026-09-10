@@ -171,7 +171,7 @@ if (faceEnrollBtn) {
 if ($needsFaceStep) {
     $content .= '
     <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
-    <script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260909100000"></script>';
+    <script src="/ShelfSense/public/assets/js/shared/face-capture.js?v=20260910200000"></script>';
 }
 
 require_once __DIR__ . '/../layouts/auth.php';

@@ -49,6 +49,7 @@
                     </div>
                     <div class="sfc-status" id="sfcStatus">Loading camera&hellip;</div>
                     <div class="sfc-dots" id="sfcDots"></div>
+                    <div class="sfc-debug" id="sfcDebug" style="display:none;"></div>
                     <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="sfcCancelBtn">Cancel</button>
                 </div>
                 <div class="sfc-error" id="sfcError" style="display:none;">
@@ -76,6 +77,8 @@
                 background:var(--border-color,#ebebe7); }
             #shelfFaceCaptureOverlay .sfc-dots span.done { background:#2fb380; }
             #shelfFaceCaptureOverlay .sfc-dots span.active { background:#ff6b35; }
+            #shelfFaceCaptureOverlay .sfc-debug { margin-top:8px; font-family:monospace; font-size:0.7rem;
+                color:var(--text-muted,#73736f); }
         `;
         document.body.appendChild(style);
         document.body.appendChild(overlay);
@@ -111,13 +114,15 @@
     // Requires two full open->closed->open cycles before continuing --
     // rejects a printed photo or a frozen video frame held up to the
     // camera, which can supply a face descriptor but can't blink on cue.
-    async function runBlinkLiveness(video, statusEl, dotsEl) {
+    async function runBlinkLiveness(video, statusEl, dotsEl, debugEl) {
         dotsEl.innerHTML = '<span></span><span></span>';
         const dots = dotsEl.querySelectorAll('span');
         statusEl.textContent = 'Blink twice to verify you\'re really here';
 
         let blinkCount = 0;
         let eyesClosed = false;
+        let minEarSeen = 1;
+        let maxEarSeen = 0;
         const deadline = Date.now() + BLINK_TIMEOUT_MS;
 
         while (blinkCount < BLINKS_REQUIRED) {
@@ -133,6 +138,16 @@
                 const leftEAR = eyeAspectRatio(detection.landmarks.getLeftEye());
                 const rightEAR = eyeAspectRatio(detection.landmarks.getRightEye());
                 const ear = (leftEAR + rightEAR) / 2;
+                minEarSeen = Math.min(minEarSeen, ear);
+                maxEarSeen = Math.max(maxEarSeen, ear);
+
+                // Temporary live readout while we calibrate thresholds
+                // against real cameras -- remove once EAR_CLOSED/EAR_OPEN
+                // are confirmed to work reliably in practice.
+                if (debugEl) {
+                    debugEl.textContent = 'EAR: ' + ear.toFixed(3) + ' (' + (eyesClosed ? 'closed' : 'open') + ') '
+                        + 'min:' + minEarSeen.toFixed(3) + ' max:' + maxEarSeen.toFixed(3);
+                }
 
                 if (!eyesClosed && ear < EAR_CLOSED) {
                     eyesClosed = true;
@@ -141,9 +156,9 @@
                     blinkCount++;
                     if (dots[blinkCount - 1]) dots[blinkCount - 1].classList.add('done');
                 }
+            } else if (debugEl) {
+                debugEl.textContent = 'No face detected';
             }
-
-            await new Promise(r => setTimeout(r, 100));
         }
 
         statusEl.textContent = 'Liveness verified!';
@@ -206,6 +221,8 @@
                 overlay.querySelector('#sfcCamera').style.display = 'block';
                 const statusEl = overlay.querySelector('#sfcStatus');
                 const dotsEl = overlay.querySelector('#sfcDots');
+                const debugEl = overlay.querySelector('#sfcDebug');
+                debugEl.style.display = 'block';
 
                 try {
                     statusEl.textContent = 'Loading face model…';
@@ -220,8 +237,9 @@
                     await new Promise(res => { video.onloadedmetadata = res; });
 
                     if (cancelled) return;
-                    await runBlinkLiveness(video, statusEl, dotsEl);
+                    await runBlinkLiveness(video, statusEl, dotsEl, debugEl);
                     if (cancelled) return;
+                    debugEl.style.display = 'none';
 
                     dotsEl.innerHTML = angles.map(() => '<span></span>').join('');
                     const angleDots = dotsEl.querySelectorAll('span');
