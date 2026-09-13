@@ -2,15 +2,17 @@
 // Calendar view of one employee's effective schedule for a cutoff period,
 // shared by HR's and Store Manager's Schedules pages. Each date cell shows
 // that day's Time In/Out (or Rest Day) and, if it deviates from the
-// standing schedule, the reason. The only change operation is a rest-day
-// swap: pick a day that becomes rest and an existing rest day (same
-// period) that becomes the work day instead -- one paired action with one
-// reason, never a free-form per-day time edit.
+// standing schedule, the reason. Clicking a cell opens a direct Time
+// In/Out editor for that single date (a reason is required); turning a
+// day into a rest day is a separate flow, not handled here. Below the
+// calendar, a change history lists every override made this period and
+// who made it.
 //
 // Usage: ScheduleOverrides.init({
 //   periodSelectId, calendarGridId,
-//   formContainerId, formRestDaySelectId, formWorkDaySelectId,
+//   formContainerId, formTitleId, formTimeInId, formTimeOutId,
 //   formReasonId, formSaveBtnId, formCancelBtnId,
+//   changesListId,
 //   emptyMessage, getCurrentUserId: () => currentEmployeeId
 // });
 
@@ -33,6 +35,7 @@ window.ScheduleOverrides = (function () {
     let opts = null;
     let currentPeriod = null; // { key, start_date, end_date, label }
     let effectiveByDay = {};  // day_of_week -> effective schedule row for the loaded period
+    let editingDay = null;
 
     function escapeHtml(text) {
         if (text === null || text === undefined) return '';
@@ -57,6 +60,14 @@ window.ScheduleOverrides = (function () {
         const d = new Date(dateStr + 'T00:00:00Z');
         d.setUTCDate(d.getUTCDate() + n);
         return d.toISOString().slice(0, 10);
+    }
+
+    function formatChangeTimestamp(ts) {
+        if (!ts) return '';
+        const d = new Date(ts.replace(' ', 'T'));
+        if (isNaN(d.getTime())) return ts;
+        return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' ' +
+            d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
     }
 
     function init(options) {
@@ -84,7 +95,7 @@ window.ScheduleOverrides = (function () {
                 });
         });
 
-        document.getElementById(opts.formSaveBtnId).addEventListener('click', saveSwap);
+        document.getElementById(opts.formSaveBtnId).addEventListener('click', saveDayEdit);
         document.getElementById(opts.formCancelBtnId).addEventListener('click', closeForm);
         closeForm();
     }
@@ -101,6 +112,7 @@ window.ScheduleOverrides = (function () {
         if (!userId) {
             gridEl.innerHTML = `<p class="text-muted small mb-0">${escapeHtml(opts.emptyMessage || 'Select an employee to view.')}</p>`;
             effectiveByDay = {};
+            renderChangesList([]);
             return;
         }
         const periodKey = currentPeriodKey();
@@ -120,6 +132,56 @@ window.ScheduleOverrides = (function () {
                 (res.data.schedule || []).forEach(row => { effectiveByDay[row.day_of_week] = row; });
                 renderCalendar();
             });
+
+        loadChangesList(userId, periodKey);
+    }
+
+    function loadChangesList(userId, periodKey) {
+        const listEl = document.getElementById(opts.changesListId);
+        if (!listEl) return;
+        listEl.innerHTML = '<div class="text-center py-2"><span class="spinner-border spinner-border-sm"></span></div>';
+
+        fetch(`?page=api_get_schedule_user_period_changes&user_id=${encodeURIComponent(userId)}&period_key=${encodeURIComponent(periodKey)}`)
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success) {
+                    listEl.innerHTML = `<p class="text-danger small mb-0">${escapeHtml(res.message || 'Failed to load')}</p>`;
+                    return;
+                }
+                renderChangesList(res.data.changes || []);
+            });
+    }
+
+    function renderChangesList(changes) {
+        const listEl = document.getElementById(opts.changesListId);
+        if (!listEl) return;
+
+        if (!changes.length) {
+            listEl.innerHTML = '<p class="text-muted small mb-0">No changes made this cutoff period.</p>';
+            return;
+        }
+
+        listEl.innerHTML = changes.map(c => {
+            const isRest = c.is_rest_day == 1;
+            const timeLabel = isRest ? 'Rest Day' : `${(c.time_in || '').slice(0, 5)}–${(c.time_out || '').slice(0, 5)}`;
+            const who = c.changed_by_name || 'Unknown';
+            return `
+                <div class="sched-change-row d-flex justify-content-between align-items-start">
+                    <div>
+                        <div><strong>${DAY_NAMES_FULL[c.day_of_week] || c.day_of_week}</strong> &mdash; ${escapeHtml(timeLabel)}</div>
+                        ${c.reason ? `<div class="text-muted">${escapeHtml(c.reason)}</div>` : ''}
+                        <div class="text-muted">By ${escapeHtml(who)} &middot; ${escapeHtml(formatChangeTimestamp(c.updated_at))}</div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-link p-0 text-danger sched-change-revert-btn" data-day="${c.day_of_week}" title="Revert to standing schedule">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </button>
+                </div>
+            `;
+        }).join('');
+
+        listEl.querySelectorAll('.sched-change-revert-btn').forEach(btn => {
+            btn.addEventListener('click', function () { revertDay(this.dataset.day, this); });
+        });
     }
 
     function renderCalendar() {
@@ -155,12 +217,6 @@ window.ScheduleOverrides = (function () {
         gridEl.querySelectorAll('.sched-cal-cell[data-day]').forEach(cell => {
             cell.addEventListener('click', function () { onCellClick(this.dataset.day); });
         });
-        gridEl.querySelectorAll('.sched-cal-revert-btn').forEach(btn => {
-            btn.addEventListener('click', function (e) {
-                e.stopPropagation();
-                revertDay(this.dataset.day, this);
-            });
-        });
     }
 
     function renderCell(dateStr) {
@@ -177,18 +233,12 @@ window.ScheduleOverrides = (function () {
         const isRest = row.is_rest_day == 1;
         const timeLabel = isRest ? 'Rest Day' : `${(row.time_in || '').slice(0, 5)}–${(row.time_out || '').slice(0, 5)}`;
         const changedBadge = row.is_override ? '<span class="badge bg-warning text-dark sched-cal-badge">Changed</span>' : '';
-        const reasonHtml = row.is_override && row.reason ? `<div class="sched-cal-reason">${escapeHtml(row.reason)}</div>` : '';
-        const revertBtn = row.is_override ? `<button type="button" class="btn btn-sm btn-link p-0 sched-cal-revert-btn text-danger" data-day="${day}" title="Revert swap"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
 
         return `
             <div class="sched-cal-cell ${row.is_override ? 'sched-cal-cell-changed' : ''} ${isRest ? 'sched-cal-cell-rest' : ''}" data-day="${day}">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="sched-cal-date">${dateNum}</div>
-                    ${revertBtn}
-                </div>
+                <div class="sched-cal-date">${dateNum}</div>
                 <div class="sched-cal-time">${escapeHtml(timeLabel)}</div>
                 ${changedBadge}
-                ${reasonHtml}
             </div>
         `;
     }
@@ -197,37 +247,20 @@ window.ScheduleOverrides = (function () {
         openForm(day);
     }
 
-    function openForm(clickedDay) {
-        const clickedRow = effectiveByDay[clickedDay];
-        if (!clickedRow) return;
+    function openForm(day) {
+        const row = effectiveByDay[day];
+        if (!row) return;
 
-        const restSelect = document.getElementById(opts.formRestDaySelectId);
-        const workSelect = document.getElementById(opts.formWorkDaySelectId);
-
-        const workDays = DAY_ORDER.filter(d => effectiveByDay[d] && !effectiveByDay[d].is_rest_day);
-        const restDays = DAY_ORDER.filter(d => effectiveByDay[d] && effectiveByDay[d].is_rest_day);
-
-        if (workDays.length === 0 || restDays.length === 0) {
-            Swal.fire('Not available', 'Need at least one work day and one rest day in this period to swap.', 'info');
-            return;
-        }
-
-        restSelect.innerHTML = workDays.map(d => `<option value="${d}">${DAY_NAMES_FULL[d]}</option>`).join('');
-        workSelect.innerHTML = restDays.map(d => `<option value="${d}">${DAY_NAMES_FULL[d]}</option>`).join('');
-
-        // Pre-select based on which day was clicked, so the common case
-        // (click the day you want to rest) needs one fewer choice.
-        if (!clickedRow.is_rest_day) {
-            restSelect.value = clickedDay;
-        } else {
-            workSelect.value = clickedDay;
-        }
-
+        editingDay = day;
+        document.getElementById(opts.formTitleId).textContent = 'Edit ' + DAY_NAMES_FULL[day];
+        document.getElementById(opts.formTimeInId).value = row.is_rest_day ? '' : (row.time_in || '').slice(0, 5);
+        document.getElementById(opts.formTimeOutId).value = row.is_rest_day ? '' : (row.time_out || '').slice(0, 5);
         document.getElementById(opts.formReasonId).value = '';
         document.getElementById(opts.formContainerId).style.display = 'block';
     }
 
     function closeForm() {
+        editingDay = null;
         const el = document.getElementById(opts.formContainerId);
         if (el) el.style.display = 'none';
     }
@@ -253,20 +286,20 @@ window.ScheduleOverrides = (function () {
             });
     }
 
-    function saveSwap() {
+    function saveDayEdit() {
         const userId = opts.getCurrentUserId();
-        if (!userId) return;
+        if (!userId || !editingDay) return;
         const periodKey = currentPeriodKey();
-        const restDay = document.getElementById(opts.formRestDaySelectId).value;
-        const workDay = document.getElementById(opts.formWorkDaySelectId).value;
+        const timeIn = document.getElementById(opts.formTimeInId).value;
+        const timeOut = document.getElementById(opts.formTimeOutId).value;
         const reason = (document.getElementById(opts.formReasonId).value || '').trim();
 
-        if (!reason) {
-            Swal.fire('Reason required', 'Please explain why this schedule is changing.', 'warning');
+        if (!timeIn || !timeOut) {
+            Swal.fire('Missing time', 'Please set both Time In and Time Out.', 'warning');
             return;
         }
-        if (restDay === workDay) {
-            Swal.fire('Pick two different days', '', 'warning');
+        if (!reason) {
+            Swal.fire('Reason required', 'Please explain why this schedule is changing.', 'warning');
             return;
         }
 
@@ -274,15 +307,15 @@ window.ScheduleOverrides = (function () {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
 
-        fetch('?page=api_swap_schedule_rest_day', {
+        fetch('?page=api_save_schedule_day_override', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, period_key: periodKey, rest_day: restDay, work_day: workDay, reason })
+            body: JSON.stringify({ user_id: userId, period_key: periodKey, day_of_week: editingDay, time_in: timeIn, time_out: timeOut, reason })
         })
             .then(r => r.json())
             .then(res => {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Swap';
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
                 if (res.success) {
                     closeForm();
                     loadForCurrentEmployee();
@@ -293,7 +326,7 @@ window.ScheduleOverrides = (function () {
             })
             .catch(() => {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Swap';
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
                 Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
             });
     }

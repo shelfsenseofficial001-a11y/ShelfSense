@@ -9,36 +9,11 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $title = 'Employee Schedules - ShelfSense HR';
 $pageTitle = 'Employee Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913600000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260913600000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913800000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260913800000"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<HTML
 <style>
-    .schedule-grid-table th, .schedule-grid-table td {
-        text-align: center;
-        vertical-align: middle;
-        padding: 6px 4px;
-        font-size: 0.85rem;
-    }
-    .schedule-grid-table .employee-name-cell {
-        text-align: left;
-        font-weight: 500;
-        white-space: nowrap;
-    }
-    .schedule-time-input {
-        width: 120px;
-        padding: 6px 8px;
-        font-size: 1rem;
-        text-align: center;
-    }
-    .schedule-rest-day {
-        background: #e5e7eb;
-        color: #6b7280;
-    }
-    [data-bs-theme="dark"] .schedule-rest-day {
-        background: #374151;
-        color: #9ca3af;
-    }
     .contract-info-card {
         background: var(--bg-card-subtle);
         border-left: 4px solid var(--brand-yellow);
@@ -58,17 +33,9 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     [data-bs-theme="dark"] .contract-info-card .contract-shift {
         color: var(--brand-yellow);
     }
-    /* Sync button - subtle but visible */
-    #syncScheduleBtn {
-        margin-right: 4px;
-    }
-
     /* Master-detail layout: employee list is the entry point on the left,
-       Contract Info + Schedule fill in as the detail panel on the right
-       once someone is picked -- replaces the old top-row-of-2-cards +
-       separate full-width table below, which had two different "pick an
-       employee" controls (a dropdown and a table) fighting for the same
-       job and a lot of dead empty-state space above the fold. */
+       Contract Info + Cutoff Schedule fill in as the detail panel on the
+       right once someone is picked. */
     .schedule-master-detail {
         display: grid;
         grid-template-columns: 420px 1fr;
@@ -85,20 +52,6 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
         display: flex;
         flex-direction: column;
         gap: 20px;
-    }
-    /* Schedule card (not Contract Info, which stays its natural short
-       height) absorbs the rest of the detail column's height, and its
-       table area grows with it, so the white card reaches all the way
-       down instead of leaving gray page background showing below it. */
-    .schedule-detail-col > .modern-card:last-child {
-        flex: 1 1 auto;
-        display: flex;
-        flex-direction: column;
-        min-height: 0;
-    }
-    .schedule-detail-col > .modern-card:last-child > .card-body.p-0 {
-        flex: 1 1 auto;
-        min-height: 0;
     }
     /* Employee List card stretches to match the detail column's full
        height (grid align-items:stretch) and the scroll area grows to
@@ -153,62 +106,21 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     <div class="schedule-detail-col">
     <!-- Contract Info Card -->
     <div class="modern-card p-3" id="contractCard">
-        <h6 class="fw-bold"><i class="bi bi-file-earmark-text me-2"></i>Contract Info</h6>
-        <div id="contractInfoContent">
+        <div class="d-flex justify-content-between align-items-center">
+            <h6 class="fw-bold mb-0"><i class="bi bi-file-earmark-text me-2"></i>Contract Info</h6>
+            <button class="btn btn-sm btn-outline-primary" id="syncScheduleBtn" title="Sync the standing schedule from this employee's contract" style="display:none;">
+                <i class="bi bi-arrow-repeat"></i> Sync from Contract
+            </button>
+        </div>
+        <div id="contractInfoContent" class="mt-2">
             <p class="text-muted small mb-0">Select an employee to view contract details.</p>
         </div>
     </div>
 
-    <!-- Schedule Grid -->
-    <div class="modern-card">
-        <div class="card-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <span><i class="bi bi-calendar-week me-2"></i> <span id="scheduleEmployeeName">Schedule</span></span>
-                <div>
-                    <span class="text-muted small me-2" id="scheduleEmployeeInfo" style="display:none;"></span>
-                    <button class="btn btn-sm btn-outline-primary" id="syncScheduleBtn" title="Sync schedule from contract" style="display:none;">
-                        <i class="bi bi-arrow-repeat"></i> Sync from Contract
-                    </button>
-                    <button class="btn btn-sm btn-success" id="saveScheduleBtn">
-                        <i class="bi bi-save"></i> Save
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary reset-schedule-btn" id="resetScheduleBtn">
-                        <i class="bi bi-arrow-counterclockwise"></i> Reset
-                    </button>
-                </div>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover mb-0 schedule-grid-table" id="scheduleGridTable">
-                    <thead>
-                        <tr>
-                            <th style="min-width:120px; text-align:left;">Day</th>
-                            <th>Time In</th>
-                            <th>Time Out</th>
-                            <th>Rest Day</th>
-                        </tr>
-                    </thead>
-                    <tbody id="scheduleGridBody">
-                        <tr>
-                            <td colspan="4" class="text-center py-4 text-muted">
-                                <i class="bi bi-inbox fs-3 d-block mb-2"></i>
-                                Select an employee on the left to view their schedule.
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
-        <div class="card-footer">
-            <span class="text-muted small">Set Time In/Out for each day. Check "Rest Day" for non-working days.</span>
-        </div>
-    </div>
-
-    <!-- Cutoff Schedule Calendar: the effective schedule (standing +
-         any per-period swaps) for the selected cutoff, one cell per date.
-         Click a day to swap its rest/work status with another day in the
-         same period -- the only way a cutoff change is made. -->
+    <!-- Cutoff Schedule Calendar: the effective schedule (standing + any
+         per-period overrides) for the selected cutoff, one cell per date.
+         Click a day to set its Time In/Out for this period only; turning a
+         day into a rest day is a separate flow. -->
     <div class="modern-card p-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
             <h6 class="fw-bold mb-0"><i class="bi bi-calendar2-range me-2"></i>Cutoff Schedule</h6>
@@ -219,27 +131,34 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
         </div>
 
         <div id="overrideForm" class="border rounded p-3 mt-2" style="display:none;">
-            <p class="small fw-semibold mb-2">Swap rest day</p>
+            <p class="small fw-semibold mb-2" id="overrideFormTitle">Edit day</p>
             <div class="row g-2 align-items-end">
                 <div class="col-auto">
-                    <label class="form-label small mb-1">Day becoming rest</label>
-                    <select class="form-select form-select-sm" id="overrideFormRestDay"></select>
+                    <label class="form-label small mb-1">Time In</label>
+                    <input type="time" class="form-control form-control-sm" id="overrideFormTimeIn">
                 </div>
                 <div class="col-auto">
-                    <label class="form-label small mb-1">Day becoming work (currently rest)</label>
-                    <select class="form-select form-select-sm" id="overrideFormWorkDay"></select>
+                    <label class="form-label small mb-1">Time Out</label>
+                    <input type="time" class="form-control form-control-sm" id="overrideFormTimeOut">
                 </div>
             </div>
             <div class="mt-2">
                 <label class="form-label small mb-1">Reason (required)</label>
-                <input type="text" class="form-control form-control-sm" id="overrideFormReason" placeholder="e.g. employee requested day off">
+                <input type="text" class="form-control form-control-sm" id="overrideFormReason" placeholder="e.g. employee requested different hours">
             </div>
             <div class="mt-2 d-flex gap-2">
-                <button type="button" class="btn btn-sm btn-success" id="overrideFormSaveBtn"><i class="bi bi-save"></i> Save Swap</button>
+                <button type="button" class="btn btn-sm btn-success" id="overrideFormSaveBtn"><i class="bi bi-save"></i> Save</button>
                 <button type="button" class="btn btn-sm btn-outline-secondary" id="overrideFormCancelBtn">Cancel</button>
             </div>
         </div>
         <p class="text-muted small mb-0 mt-2">Only affects the selected cutoff period -- the standing schedule above is untouched.</p>
+
+        <div class="mt-3 pt-3 border-top">
+            <p class="small fw-semibold mb-2"><i class="bi bi-clock-history me-1"></i>Change History (this cutoff)</p>
+            <div id="scheduleChangesList" class="small">
+                <p class="text-muted small mb-0">Select an employee to view.</p>
+            </div>
+        </div>
     </div>
     </div>
 </div>
@@ -255,19 +174,6 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
         </div>
     </div>
 </div>
-
-<script>
-const DAY_NAMES = {
-    'monday': 'Monday',
-    'tuesday': 'Tuesday',
-    'wednesday': 'Wednesday',
-    'thursday': 'Thursday',
-    'friday': 'Friday',
-    'saturday': 'Saturday',
-    'sunday': 'Sunday'
-};
-const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-</script>
 
 HTML;
 

@@ -30,20 +30,6 @@ class Schedule
         return $stmt->fetch();
     }
 
-    public function saveSchedule($userId, $dayOfWeek, $timeIn, $timeOut, $isRestDay = 0)
-    {
-        $stmt = $this->db->prepare("
-            INSERT INTO schedules (user_id, day_of_week, time_in, time_out, is_rest_day) 
-            VALUES (?, ?, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE 
-                time_in = VALUES(time_in), 
-                time_out = VALUES(time_out), 
-                is_rest_day = VALUES(is_rest_day),
-                updated_at = NOW()
-        ");
-        return $stmt->execute([$userId, $dayOfWeek, $timeIn, $timeOut, $isRestDay]);
-    }
-
     public function deleteSchedule($userId, $dayOfWeek)
     {
         $stmt = $this->db->prepare("DELETE FROM schedules WHERE user_id = ? AND day_of_week = ?");
@@ -196,7 +182,34 @@ class Schedule
     }
 
     /**
-     * The only way a cutoff schedule change is made: pick a day that
+     * Direct per-day time override for one cutoff period -- the calendar
+     * cell editor. Always clears is_rest_day since you're supplying work
+     * hours; turning a day INTO a rest day is a separate flow, not this one.
+     */
+    public function saveDayOverride($userId, $periodKey, $dayOfWeek, $timeIn, $timeOut, $reason, $changedBy)
+    {
+        return $this->saveOverrideRow($userId, $periodKey, $dayOfWeek, $timeIn, $timeOut, 0, $changedBy, $reason, null);
+    }
+
+    /**
+     * Every override made for one employee in one cutoff period, most
+     * recent first -- the "change history" list shown under the calendar.
+     */
+    public function getChangesForUserPeriod($userId, $periodKey)
+    {
+        $stmt = $this->db->prepare("
+            SELECT so.*, CONCAT(cb.first_name, ' ', cb.last_name) as changed_by_name
+            FROM schedule_overrides so
+            LEFT JOIN users cb ON cb.user_id = so.changed_by
+            WHERE so.user_id = ? AND so.period_key = ?
+            ORDER BY so.updated_at DESC
+        ");
+        $stmt->execute([$userId, $periodKey]);
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * The only way a paired rest-day change is made: pick a day that
      * becomes a rest day and an existing rest day (in this same period)
      * that becomes the work day instead, in one paired action with one
      * reason. The new work day inherits the rest day's former hours --

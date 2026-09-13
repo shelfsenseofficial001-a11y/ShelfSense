@@ -659,16 +659,6 @@ if ($page === 'api_delete_dtr_image') {
 // SCHEDULES & CONTRACT API
 // ============================================
 
-if ($page === 'api_get_schedule') {
-    require_once __DIR__ . '/../app/handlers/hr/get_schedule.php';
-    exit;
-}
-
-if ($page === 'api_save_schedule') {
-    require_once __DIR__ . '/../app/handlers/hr/save_schedule.php';
-    exit;
-}
-
 if ($page === 'api_get_employee_contract') {
     require_once __DIR__ . '/../app/handlers/hr/get_employee_contract.php';
     exit;
@@ -706,6 +696,16 @@ if ($page === 'api_swap_schedule_rest_day') {
 
 if ($page === 'api_revert_schedule_swap') {
     require_once __DIR__ . '/../app/handlers/shared/schedules/revert_swap.php';
+    exit;
+}
+
+if ($page === 'api_save_schedule_day_override') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/save_day_override.php';
+    exit;
+}
+
+if ($page === 'api_get_schedule_user_period_changes') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/get_user_period_changes.php';
     exit;
 }
 

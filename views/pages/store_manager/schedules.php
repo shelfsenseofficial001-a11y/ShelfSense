@@ -2,8 +2,8 @@
 $title = 'Front Department Schedules - Store Manager';
 $pageTitle = 'Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913600000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/store_manager/schedules.js?v=20260913600000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913800000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/store_manager/schedules.js?v=20260913800000"></script>';
 
 $content = <<<'HTML'
 <style>
@@ -74,27 +74,34 @@ $content = <<<'HTML'
             </div>
 
             <div id="overrideForm" class="border rounded p-3 mt-2" style="display:none;">
-                <p class="small fw-semibold mb-2">Swap rest day</p>
+                <p class="small fw-semibold mb-2" id="overrideFormTitle">Edit day</p>
                 <div class="row g-2 align-items-end">
                     <div class="col-auto">
-                        <label class="form-label small mb-1">Day becoming rest</label>
-                        <select class="form-select form-select-sm" id="overrideFormRestDay"></select>
+                        <label class="form-label small mb-1">Time In</label>
+                        <input type="time" class="form-control form-control-sm" id="overrideFormTimeIn">
                     </div>
                     <div class="col-auto">
-                        <label class="form-label small mb-1">Day becoming work (currently rest)</label>
-                        <select class="form-select form-select-sm" id="overrideFormWorkDay"></select>
+                        <label class="form-label small mb-1">Time Out</label>
+                        <input type="time" class="form-control form-control-sm" id="overrideFormTimeOut">
                     </div>
                 </div>
                 <div class="mt-2">
                     <label class="form-label small mb-1">Reason (required)</label>
-                    <input type="text" class="form-control form-control-sm" id="overrideFormReason" placeholder="e.g. employee requested day off">
+                    <input type="text" class="form-control form-control-sm" id="overrideFormReason" placeholder="e.g. employee requested different hours">
                 </div>
                 <div class="mt-2 d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-success" id="overrideFormSaveBtn"><i class="bi bi-save"></i> Save Swap</button>
+                    <button type="button" class="btn btn-sm btn-success" id="overrideFormSaveBtn"><i class="bi bi-save"></i> Save</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="overrideFormCancelBtn">Cancel</button>
                 </div>
             </div>
             <p class="text-muted small mb-0 mt-2">Only affects the selected cutoff period.</p>
+
+            <div class="mt-3 pt-3 border-top">
+                <p class="small fw-semibold mb-2"><i class="bi bi-clock-history me-1"></i>Change History (this cutoff)</p>
+                <div id="scheduleChangesList" class="small">
+                    <p class="text-muted small mb-0">Select an employee to view.</p>
+                </div>
+            </div>
         </div>
     </div>
 </div>

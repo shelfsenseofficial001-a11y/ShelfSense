@@ -1819,18 +1819,16 @@ body.swal2-shown > .modal-backdrop {
 .sched-cal-date { font-weight: 700; font-size: 0.85rem; }
 .sched-cal-time { font-size: 0.72rem; margin-top: 2px; }
 .sched-cal-badge { font-size: 0.6rem; margin-top: 2px; display: inline-block; }
-.sched-cal-reason {
-    font-size: 0.68rem;
-    font-style: italic;
-    color: var(--text-muted, #73736f);
-    margin-top: 2px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-}
 @media (max-width: 700px) {
     .sched-cal-cell { min-height: 60px; font-size: 0.75rem; }
     .sched-cal-headcell { font-size: 0.65rem; }
 }
+
+/* Change history list under the calendar: one row per override, most
+   recent first, with who made it and a revert action. */
+.sched-change-row {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color, #ebebe7);
+}
+.sched-change-row:last-child { border-bottom: none; }
+.sched-change-row .text-muted { font-size: 0.75rem; }

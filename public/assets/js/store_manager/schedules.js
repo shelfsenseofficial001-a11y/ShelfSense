@@ -138,11 +138,13 @@ document.addEventListener('DOMContentLoaded', function () {
         periodSelectId: 'periodSelect',
         calendarGridId: 'scheduleCalendarGrid',
         formContainerId: 'overrideForm',
-        formRestDaySelectId: 'overrideFormRestDay',
-        formWorkDaySelectId: 'overrideFormWorkDay',
+        formTitleId: 'overrideFormTitle',
+        formTimeInId: 'overrideFormTimeIn',
+        formTimeOutId: 'overrideFormTimeOut',
         formReasonId: 'overrideFormReason',
         formSaveBtnId: 'overrideFormSaveBtn',
         formCancelBtnId: 'overrideFormCancelBtn',
+        changesListId: 'scheduleChangesList',
         emptyMessage: 'Select an employee to view.',
         getCurrentUserId: () => currentEmployeeId
     });
