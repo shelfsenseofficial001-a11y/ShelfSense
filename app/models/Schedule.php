@@ -145,6 +145,7 @@ class Schedule
                     'is_rest_day' => $o['is_rest_day'],
                     'is_override' => true,
                     'reason' => $o['reason'],
+                    'swap_with_day' => $o['swap_with_day'],
                 ];
                 unset($overrides[$day]);
             } else {
@@ -155,6 +156,7 @@ class Schedule
                     'is_rest_day' => $row['is_rest_day'],
                     'is_override' => false,
                     'reason' => null,
+                    'swap_with_day' => null,
                 ];
             }
         }
@@ -169,18 +171,20 @@ class Schedule
                 'is_rest_day' => $o['is_rest_day'],
                 'is_override' => true,
                 'reason' => $o['reason'],
+                'swap_with_day' => $o['swap_with_day'],
             ];
         }
 
         return $result;
     }
 
-    public function saveOverride($userId, $periodKey, $dayOfWeek, $timeIn, $timeOut, $isRestDay, $changedBy, $reason = null)
+    private function saveOverrideRow($userId, $periodKey, $dayOfWeek, $timeIn, $timeOut, $isRestDay, $changedBy, $reason, $swapWithDay)
     {
         $stmt = $this->db->prepare("
-            INSERT INTO schedule_overrides (user_id, period_key, day_of_week, time_in, time_out, is_rest_day, changed_by, reason)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO schedule_overrides (user_id, period_key, day_of_week, swap_with_day, time_in, time_out, is_rest_day, changed_by, reason)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
+                swap_with_day = VALUES(swap_with_day),
                 time_in = VALUES(time_in),
                 time_out = VALUES(time_out),
                 is_rest_day = VALUES(is_rest_day),
@@ -188,15 +192,82 @@ class Schedule
                 reason = VALUES(reason),
                 updated_at = NOW()
         ");
-        return $stmt->execute([$userId, $periodKey, $dayOfWeek, $timeIn, $timeOut, $isRestDay, $changedBy, $reason]);
+        return $stmt->execute([$userId, $periodKey, $dayOfWeek, $swapWithDay, $timeIn, $timeOut, $isRestDay, $changedBy, $reason]);
     }
 
-    public function deleteOverride($userId, $periodKey, $dayOfWeek)
+    /**
+     * The only way a cutoff schedule change is made: pick a day that
+     * becomes a rest day and an existing rest day (in this same period)
+     * that becomes the work day instead, in one paired action with one
+     * reason. The new work day inherits the rest day's former hours --
+     * there's no separate time entry, it's a straight swap.
+     */
+    public function saveRestDaySwap($userId, $periodKey, $restDay, $workDay, $reason, $changedBy)
+    {
+        if ($restDay === $workDay) {
+            throw new \Exception('Choose two different days.');
+        }
+
+        $effective = $this->getEffectiveSchedule($userId, $periodKey);
+        $byDay = [];
+        foreach ($effective as $row) {
+            $byDay[$row['day_of_week']] = $row;
+        }
+
+        $restDayRow = $byDay[$restDay] ?? null;
+        $workDayRow = $byDay[$workDay] ?? null;
+
+        if (!$restDayRow || $restDayRow['is_rest_day']) {
+            throw new \Exception(ucfirst($restDay) . ' is already a rest day.');
+        }
+        if (!$workDayRow || !$workDayRow['is_rest_day']) {
+            throw new \Exception(ucfirst($workDay) . ' is not currently a rest day.');
+        }
+
+        // The day becoming rest hands its former hours to the day that
+        // picks up the work instead.
+        $formerTimeIn = $restDayRow['time_in'];
+        $formerTimeOut = $restDayRow['time_out'];
+
+        $this->db->beginTransaction();
+        try {
+            $this->saveOverrideRow($userId, $periodKey, $restDay, null, null, 1, $changedBy, $reason, $workDay);
+            $this->saveOverrideRow($userId, $periodKey, $workDay, $formerTimeIn, $formerTimeOut, 0, $changedBy, $reason, $restDay);
+            $this->db->commit();
+        } catch (\Exception $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
+        return true;
+    }
+
+    /**
+     * Reverts both sides of a swap back to the standing baseline -- looked
+     * up from whichever day is passed in, so either half of the pair works.
+     */
+    public function revertSwap($userId, $periodKey, $dayOfWeek)
     {
         $stmt = $this->db->prepare("
-            DELETE FROM schedule_overrides WHERE user_id = ? AND period_key = ? AND day_of_week = ?
+            SELECT day_of_week, swap_with_day FROM schedule_overrides WHERE user_id = ? AND period_key = ? AND day_of_week = ?
         ");
-        return $stmt->execute([$userId, $periodKey, $dayOfWeek]);
+        $stmt->execute([$userId, $periodKey, $dayOfWeek]);
+        $row = $stmt->fetch();
+
+        if (!$row) {
+            return false;
+        }
+
+        $days = [$row['day_of_week']];
+        if (!empty($row['swap_with_day'])) {
+            $days[] = $row['swap_with_day'];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($days), '?'));
+        $stmt = $this->db->prepare("
+            DELETE FROM schedule_overrides WHERE user_id = ? AND period_key = ? AND day_of_week IN ($placeholders)
+        ");
+        return $stmt->execute(array_merge([$userId, $periodKey], $days));
     }
 
     /**

@@ -699,13 +699,13 @@ if ($page === 'api_get_effective_schedule') {
     exit;
 }
 
-if ($page === 'api_save_schedule_override') {
-    require_once __DIR__ . '/../app/handlers/shared/schedules/save_override.php';
+if ($page === 'api_swap_schedule_rest_day') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/swap_rest_day.php';
     exit;
 }
 
-if ($page === 'api_delete_schedule_override') {
-    require_once __DIR__ . '/../app/handlers/shared/schedules/delete_override.php';
+if ($page === 'api_revert_schedule_swap') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/revert_swap.php';
     exit;
 }
 

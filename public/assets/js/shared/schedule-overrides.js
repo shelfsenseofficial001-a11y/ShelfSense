@@ -1,37 +1,62 @@
 // public/assets/js/shared/schedule-overrides.js
-// "Cutoff Schedule Changes" panel shared by HR's and Store Manager's
-// Schedules pages. The standing/baseline schedule (separate grid, separate
-// endpoints) is untouched by this -- this only ever reads/writes
-// schedule_overrides for one specific H1/H2 cutoff period at a time.
-//
-// Shows a short list of actual changes for the selected employee+period
-// (empty by default -- most employees/periods have none), not a second
-// full 7-day grid mirroring the baseline. "Add Change" opens a small form
-// to pick one day and set its override.
+// Calendar view of one employee's effective schedule for a cutoff period,
+// shared by HR's and Store Manager's Schedules pages. Each date cell shows
+// that day's Time In/Out (or Rest Day) and, if it deviates from the
+// standing schedule, the reason. The only change operation is a rest-day
+// swap: pick a day that becomes rest and an existing rest day (same
+// period) that becomes the work day instead -- one paired action with one
+// reason, never a free-form per-day time edit.
 //
 // Usage: ScheduleOverrides.init({
-//   periodSelectId, listContainerId, addBtnId, formContainerId,
-//   formDaySelectId, formTimeInId, formTimeOutId, formRestDayId,
+//   periodSelectId, calendarGridId,
+//   formContainerId, formRestDaySelectId, formWorkDaySelectId,
 //   formReasonId, formSaveBtnId, formCancelBtnId,
-//   getCurrentUserId: () => currentEmployeeId
+//   emptyMessage, getCurrentUserId: () => currentEmployeeId
 // });
 
-const ScheduleOverrides = (function () {
+// Assigned directly to window (not "const ScheduleOverrides = ...") --
+// top-level const/let in a classic script creates a global *binding* but
+// does NOT attach as a window property, so `window.ScheduleOverrides`
+// checks elsewhere would silently always be false otherwise.
+window.ScheduleOverrides = (function () {
     const DAY_NAMES = {
+        monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu',
+        friday: 'Fri', saturday: 'Sat', sunday: 'Sun'
+    };
+    const DAY_NAMES_FULL = {
         monday: 'Monday', tuesday: 'Tuesday', wednesday: 'Wednesday', thursday: 'Thursday',
         friday: 'Friday', saturday: 'Saturday', sunday: 'Sunday'
     };
+    // Monday-first, matching this app's day_of_week convention elsewhere.
     const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
     let opts = null;
-    let currentChanges = []; // overrides only, for the selected employee+period
-    let editingDay = null;
+    let currentPeriod = null; // { key, start_date, end_date, label }
+    let effectiveByDay = {};  // day_of_week -> effective schedule row for the loaded period
 
     function escapeHtml(text) {
         if (text === null || text === undefined) return '';
         const div = document.createElement('div');
         div.textContent = String(text);
         return div.innerHTML;
+    }
+
+    // Pure UTC date math throughout -- parsing "YYYY-MM-DDT00:00:00" without
+    // a "Z" is LOCAL time, and toISOString() converts back to UTC, which
+    // rolls the date backward across midnight in any positive-UTC-offset
+    // timezone (e.g. Philippines, UTC+8). That made addDays() return the
+    // same date it was given instead of advancing, hanging the browser in
+    // an infinite loop building the calendar. Explicit "Z" + getUTC*/setUTC*
+    // sidesteps local-timezone conversion entirely.
+    function dayOfWeekFor(dateStr) {
+        const utcDay = new Date(dateStr + 'T00:00:00Z').getUTCDay();
+        return ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'][utcDay];
+    }
+
+    function addDays(dateStr, n) {
+        const d = new Date(dateStr + 'T00:00:00Z');
+        d.setUTCDate(d.getUTCDate() + n);
+        return d.toISOString().slice(0, 10);
     }
 
     function init(options) {
@@ -45,18 +70,22 @@ const ScheduleOverrides = (function () {
                 periodSelect.innerHTML = res.data.periods.map(p =>
                     `<option value="${p.key}" ${p.key === res.data.current_key ? 'selected' : ''}>${escapeHtml(p.label)}</option>`
                 ).join('');
+                currentPeriod = res.data.periods.find(p => p.key === res.data.current_key) || res.data.periods[0];
                 loadForCurrentEmployee();
             });
 
-        periodSelect.addEventListener('change', loadForCurrentEmployee);
-        document.getElementById(opts.addBtnId).addEventListener('click', () => openForm(null));
-        document.getElementById(opts.formSaveBtnId).addEventListener('click', saveForm);
-        document.getElementById(opts.formCancelBtnId).addEventListener('click', closeForm);
-        document.getElementById(opts.formRestDayId).addEventListener('change', function () {
-            document.getElementById(opts.formTimeInId).disabled = this.checked;
-            document.getElementById(opts.formTimeOutId).disabled = this.checked;
+        periodSelect.addEventListener('change', function () {
+            fetch('?page=api_get_schedule_periods')
+                .then(r => r.json())
+                .then(res => {
+                    if (!res.success) return;
+                    currentPeriod = res.data.periods.find(p => p.key === periodSelect.value);
+                    loadForCurrentEmployee();
+                });
         });
 
+        document.getElementById(opts.formSaveBtnId).addEventListener('click', saveSwap);
+        document.getElementById(opts.formCancelBtnId).addEventListener('click', closeForm);
         closeForm();
     }
 
@@ -66,102 +95,141 @@ const ScheduleOverrides = (function () {
 
     function loadForCurrentEmployee() {
         const userId = opts.getCurrentUserId();
-        const listEl = document.getElementById(opts.listContainerId);
+        const gridEl = document.getElementById(opts.calendarGridId);
         closeForm();
-        document.getElementById(opts.addBtnId).disabled = !userId;
 
         if (!userId) {
-            listEl.innerHTML = `<p class="text-muted small mb-0">${escapeHtml(opts.emptyMessage || 'Select an employee to view.')}</p>`;
-            currentChanges = [];
+            gridEl.innerHTML = `<p class="text-muted small mb-0">${escapeHtml(opts.emptyMessage || 'Select an employee to view.')}</p>`;
+            effectiveByDay = {};
             return;
         }
         const periodKey = currentPeriodKey();
         if (!periodKey) return;
 
-        listEl.innerHTML = '<div class="text-center py-2"><span class="spinner-border spinner-border-sm"></span></div>';
+        gridEl.innerHTML = '<div class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></div>';
 
         fetch(`?page=api_get_effective_schedule&user_id=${encodeURIComponent(userId)}&period_key=${encodeURIComponent(periodKey)}`)
             .then(r => r.json())
             .then(res => {
                 if (!res.success) {
-                    listEl.innerHTML = `<p class="text-danger small mb-0">${escapeHtml(res.message || 'Failed to load')}</p>`;
+                    gridEl.innerHTML = `<p class="text-danger small mb-0">${escapeHtml(res.message || 'Failed to load')}</p>`;
                     return;
                 }
-                currentChanges = (res.data.schedule || []).filter(row => row.is_override);
-                render();
+                currentPeriod = res.data.period;
+                effectiveByDay = {};
+                (res.data.schedule || []).forEach(row => { effectiveByDay[row.day_of_week] = row; });
+                renderCalendar();
             });
     }
 
-    function render() {
-        const listEl = document.getElementById(opts.listContainerId);
-        if (currentChanges.length === 0) {
-            listEl.innerHTML = '<p class="text-muted small mb-0">No changes for this cutoff period -- following the standing schedule.</p>';
+    function renderCalendar() {
+        const gridEl = document.getElementById(opts.calendarGridId);
+        if (!currentPeriod) { gridEl.innerHTML = ''; return; }
+
+        // Leading blanks so the grid aligns Monday-first.
+        const startDow = dayOfWeekFor(currentPeriod.start_date);
+        const leadingBlanks = DAY_ORDER.indexOf(startDow);
+
+        const cells = [];
+        for (let i = 0; i < leadingBlanks; i++) cells.push(null);
+
+        let cursor = currentPeriod.start_date;
+        while (cursor <= currentPeriod.end_date) {
+            cells.push(cursor);
+            cursor = addDays(cursor, 1);
+        }
+        while (cells.length % 7 !== 0) cells.push(null);
+
+        let html = '<div class="sched-cal-headrow">' + DAY_ORDER.map(d => `<div class="sched-cal-headcell">${DAY_NAMES[d]}</div>`).join('') + '</div>';
+        html += '<div class="sched-cal-body">';
+        for (let i = 0; i < cells.length; i += 7) {
+            html += '<div class="sched-cal-row">';
+            for (let j = i; j < i + 7; j++) {
+                html += renderCell(cells[j]);
+            }
+            html += '</div>';
+        }
+        html += '</div>';
+        gridEl.innerHTML = html;
+
+        gridEl.querySelectorAll('.sched-cal-cell[data-day]').forEach(cell => {
+            cell.addEventListener('click', function () { onCellClick(this.dataset.day); });
+        });
+        gridEl.querySelectorAll('.sched-cal-revert-btn').forEach(btn => {
+            btn.addEventListener('click', function (e) {
+                e.stopPropagation();
+                revertDay(this.dataset.day, this);
+            });
+        });
+    }
+
+    function renderCell(dateStr) {
+        if (!dateStr) return '<div class="sched-cal-cell sched-cal-cell-blank"></div>';
+
+        const day = dayOfWeekFor(dateStr);
+        const row = effectiveByDay[day];
+        const dateNum = parseInt(dateStr.slice(8, 10), 10);
+
+        if (!row) {
+            return `<div class="sched-cal-cell" data-day="${day}"><div class="sched-cal-date">${dateNum}</div><div class="small text-muted">No baseline set</div></div>`;
+        }
+
+        const isRest = row.is_rest_day == 1;
+        const timeLabel = isRest ? 'Rest Day' : `${(row.time_in || '').slice(0, 5)}–${(row.time_out || '').slice(0, 5)}`;
+        const changedBadge = row.is_override ? '<span class="badge bg-warning text-dark sched-cal-badge">Changed</span>' : '';
+        const reasonHtml = row.is_override && row.reason ? `<div class="sched-cal-reason">${escapeHtml(row.reason)}</div>` : '';
+        const revertBtn = row.is_override ? `<button type="button" class="btn btn-sm btn-link p-0 sched-cal-revert-btn text-danger" data-day="${day}" title="Revert swap"><i class="bi bi-arrow-counterclockwise"></i></button>` : '';
+
+        return `
+            <div class="sched-cal-cell ${row.is_override ? 'sched-cal-cell-changed' : ''} ${isRest ? 'sched-cal-cell-rest' : ''}" data-day="${day}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="sched-cal-date">${dateNum}</div>
+                    ${revertBtn}
+                </div>
+                <div class="sched-cal-time">${escapeHtml(timeLabel)}</div>
+                ${changedBadge}
+                ${reasonHtml}
+            </div>
+        `;
+    }
+
+    function onCellClick(day) {
+        openForm(day);
+    }
+
+    function openForm(clickedDay) {
+        const clickedRow = effectiveByDay[clickedDay];
+        if (!clickedRow) return;
+
+        const restSelect = document.getElementById(opts.formRestDaySelectId);
+        const workSelect = document.getElementById(opts.formWorkDaySelectId);
+
+        const workDays = DAY_ORDER.filter(d => effectiveByDay[d] && !effectiveByDay[d].is_rest_day);
+        const restDays = DAY_ORDER.filter(d => effectiveByDay[d] && effectiveByDay[d].is_rest_day);
+
+        if (workDays.length === 0 || restDays.length === 0) {
+            Swal.fire('Not available', 'Need at least one work day and one rest day in this period to swap.', 'info');
             return;
         }
 
-        const rows = DAY_ORDER
-            .map(day => currentChanges.find(c => c.day_of_week === day))
-            .filter(Boolean);
+        restSelect.innerHTML = workDays.map(d => `<option value="${d}">${DAY_NAMES_FULL[d]}</option>`).join('');
+        workSelect.innerHTML = restDays.map(d => `<option value="${d}">${DAY_NAMES_FULL[d]}</option>`).join('');
 
-        listEl.innerHTML = rows.map(row => {
-            const isRest = row.is_rest_day == 1;
-            const timeLabel = isRest ? 'Rest day' : `${(row.time_in || '').slice(0, 5)} - ${(row.time_out || '').slice(0, 5)}`;
-            return `
-                <div class="d-flex justify-content-between align-items-start border rounded p-2 mb-2" data-day="${row.day_of_week}">
-                    <div>
-                        <div class="fw-semibold">${DAY_NAMES[row.day_of_week]} <span class="badge bg-warning text-dark ms-1">Changed</span></div>
-                        <div class="small">${escapeHtml(timeLabel)}</div>
-                        ${row.reason ? `<div class="small text-muted fst-italic">${escapeHtml(row.reason)}</div>` : ''}
-                    </div>
-                    <div class="d-flex gap-1 flex-shrink-0">
-                        <button type="button" class="btn btn-sm btn-outline-secondary so-edit-btn" data-day="${row.day_of_week}" title="Edit"><i class="bi bi-pencil"></i></button>
-                        <button type="button" class="btn btn-sm btn-outline-danger so-revert-btn" data-day="${row.day_of_week}" title="Revert to standard"><i class="bi bi-arrow-counterclockwise"></i></button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-
-        listEl.querySelectorAll('.so-edit-btn').forEach(btn => {
-            btn.addEventListener('click', function () { openForm(this.dataset.day); });
-        });
-        listEl.querySelectorAll('.so-revert-btn').forEach(btn => {
-            btn.addEventListener('click', function () { revertDay(this.dataset.day, this); });
-        });
-    }
-
-    function openForm(day) {
-        editingDay = day;
-        const daySelect = document.getElementById(opts.formDaySelectId);
-        daySelect.innerHTML = DAY_ORDER.map(d => `<option value="${d}">${DAY_NAMES[d]}</option>`).join('');
-
-        const existing = day ? currentChanges.find(c => c.day_of_week === day) : null;
-        if (existing) {
-            daySelect.value = day;
-            daySelect.disabled = true;
-            document.getElementById(opts.formRestDayId).checked = existing.is_rest_day == 1;
-            document.getElementById(opts.formTimeInId).value = (existing.time_in || '').slice(0, 5);
-            document.getElementById(opts.formTimeOutId).value = (existing.time_out || '').slice(0, 5);
-            document.getElementById(opts.formReasonId).value = existing.reason || '';
+        // Pre-select based on which day was clicked, so the common case
+        // (click the day you want to rest) needs one fewer choice.
+        if (!clickedRow.is_rest_day) {
+            restSelect.value = clickedDay;
         } else {
-            daySelect.disabled = false;
-            document.getElementById(opts.formRestDayId).checked = false;
-            document.getElementById(opts.formTimeInId).value = '';
-            document.getElementById(opts.formTimeOutId).value = '';
-            document.getElementById(opts.formReasonId).value = '';
+            workSelect.value = clickedDay;
         }
-        document.getElementById(opts.formTimeInId).disabled = document.getElementById(opts.formRestDayId).checked;
-        document.getElementById(opts.formTimeOutId).disabled = document.getElementById(opts.formRestDayId).checked;
 
+        document.getElementById(opts.formReasonId).value = '';
         document.getElementById(opts.formContainerId).style.display = 'block';
-        document.getElementById(opts.addBtnId).style.display = 'none';
     }
 
     function closeForm() {
-        editingDay = null;
-        const formEl = document.getElementById(opts.formContainerId);
-        if (formEl) formEl.style.display = 'none';
-        const addBtn = document.getElementById(opts.addBtnId);
-        if (addBtn) addBtn.style.display = 'inline-block';
+        const el = document.getElementById(opts.formContainerId);
+        if (el) el.style.display = 'none';
     }
 
     function revertDay(day, btn) {
@@ -169,7 +237,7 @@ const ScheduleOverrides = (function () {
         const periodKey = currentPeriodKey();
         if (btn) btn.disabled = true;
 
-        fetch('?page=api_delete_schedule_override', {
+        fetch('?page=api_revert_schedule_swap', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ user_id: userId, period_key: periodKey, day_of_week: day })
@@ -185,18 +253,20 @@ const ScheduleOverrides = (function () {
             });
     }
 
-    function saveForm() {
+    function saveSwap() {
         const userId = opts.getCurrentUserId();
         if (!userId) return;
         const periodKey = currentPeriodKey();
-        const day = document.getElementById(opts.formDaySelectId).value;
-        const isRestDay = document.getElementById(opts.formRestDayId).checked ? 1 : 0;
-        const timeIn = document.getElementById(opts.formTimeInId).value;
-        const timeOut = document.getElementById(opts.formTimeOutId).value;
+        const restDay = document.getElementById(opts.formRestDaySelectId).value;
+        const workDay = document.getElementById(opts.formWorkDaySelectId).value;
         const reason = (document.getElementById(opts.formReasonId).value || '').trim();
 
-        if (!isRestDay && (!timeIn || !timeOut)) {
-            Swal.fire('Missing time', 'Set Time In and Time Out, or mark it a rest day.', 'warning');
+        if (!reason) {
+            Swal.fire('Reason required', 'Please explain why this schedule is changing.', 'warning');
+            return;
+        }
+        if (restDay === workDay) {
+            Swal.fire('Pick two different days', '', 'warning');
             return;
         }
 
@@ -204,23 +274,15 @@ const ScheduleOverrides = (function () {
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
 
-        fetch('?page=api_save_schedule_override', {
+        fetch('?page=api_swap_schedule_rest_day', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                user_id: userId,
-                period_key: periodKey,
-                day_of_week: day,
-                time_in: isRestDay ? '' : timeIn,
-                time_out: isRestDay ? '' : timeOut,
-                is_rest_day: isRestDay,
-                reason: reason || null
-            })
+            body: JSON.stringify({ user_id: userId, period_key: periodKey, rest_day: restDay, work_day: workDay, reason })
         })
             .then(r => r.json())
             .then(res => {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Swap';
                 if (res.success) {
                     closeForm();
                     loadForCurrentEmployee();
@@ -231,7 +293,7 @@ const ScheduleOverrides = (function () {
             })
             .catch(() => {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Swap';
                 Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
             });
     }

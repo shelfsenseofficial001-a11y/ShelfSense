@@ -1785,3 +1785,52 @@ body.swal2-shown > .modal-backdrop {
 .pw-toggle-btn-inline:hover {
     color: var(--text-main, #20201d);
 }
+
+/* Cutoff Schedule calendar (see public/assets/js/shared/schedule-overrides.js)
+   -- shared by HR's and Store Manager's Schedules pages. */
+.sched-calendar { width: 100%; }
+.sched-cal-headrow, .sched-cal-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+}
+.sched-cal-headrow { margin-bottom: 6px; }
+.sched-cal-headcell {
+    text-align: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted, #73736f);
+    text-transform: uppercase;
+}
+.sched-cal-row { margin-bottom: 6px; }
+.sched-cal-cell {
+    min-height: 84px;
+    border: 1px solid var(--border-color, #ebebe7);
+    border-radius: 8px;
+    padding: 6px;
+    cursor: pointer;
+    background: var(--bg-card-subtle, #f8f8f7);
+    transition: border-color 0.12s ease;
+}
+.sched-cal-cell:hover { border-color: var(--brand-yellow, #f45b35); }
+.sched-cal-cell-blank { visibility: hidden; cursor: default; }
+.sched-cal-cell-rest { background: var(--light-yellow-subtle, #fdf1ee); }
+.sched-cal-cell-changed { border-color: #f0ad4e; border-width: 2px; }
+.sched-cal-date { font-weight: 700; font-size: 0.85rem; }
+.sched-cal-time { font-size: 0.72rem; margin-top: 2px; }
+.sched-cal-badge { font-size: 0.6rem; margin-top: 2px; display: inline-block; }
+.sched-cal-reason {
+    font-size: 0.68rem;
+    font-style: italic;
+    color: var(--text-muted, #73736f);
+    margin-top: 2px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+@media (max-width: 700px) {
+    .sched-cal-cell { min-height: 60px; font-size: 0.75rem; }
+    .sched-cal-headcell { font-size: 0.65rem; }
+}

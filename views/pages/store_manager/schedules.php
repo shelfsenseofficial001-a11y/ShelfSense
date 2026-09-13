@@ -2,8 +2,8 @@
 $title = 'Front Department Schedules - Store Manager';
 $pageTitle = 'Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913200000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/store_manager/schedules.js?v=20260913200000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913600000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/store_manager/schedules.js?v=20260913600000"></script>';
 
 $content = <<<'HTML'
 <style>
@@ -66,41 +66,31 @@ $content = <<<'HTML'
 
         <div class="modern-card p-3">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
-                <h6 class="fw-bold mb-0"><i class="bi bi-calendar2-range me-2"></i>Cutoff Schedule Changes</h6>
+                <h6 class="fw-bold mb-0"><i class="bi bi-calendar2-range me-2"></i>Cutoff Schedule</h6>
                 <select class="form-select form-select-sm" style="width:auto;" id="periodSelect"></select>
             </div>
-            <div id="overrideChangesList" class="mb-2">
+            <div id="scheduleCalendarGrid" class="sched-calendar mb-2">
                 <p class="text-muted small mb-0">Select an employee to view.</p>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-primary" id="addOverrideBtn" disabled>
-                <i class="bi bi-plus-lg"></i> Add Change
-            </button>
 
             <div id="overrideForm" class="border rounded p-3 mt-2" style="display:none;">
+                <p class="small fw-semibold mb-2">Swap rest day</p>
                 <div class="row g-2 align-items-end">
                     <div class="col-auto">
-                        <label class="form-label small mb-1">Day</label>
-                        <select class="form-select form-select-sm" id="overrideFormDay"></select>
+                        <label class="form-label small mb-1">Day becoming rest</label>
+                        <select class="form-select form-select-sm" id="overrideFormRestDay"></select>
                     </div>
                     <div class="col-auto">
-                        <label class="form-label small mb-1">Time In</label>
-                        <input type="time" class="form-control form-control-sm" id="overrideFormTimeIn">
-                    </div>
-                    <div class="col-auto">
-                        <label class="form-label small mb-1">Time Out</label>
-                        <input type="time" class="form-control form-control-sm" id="overrideFormTimeOut">
-                    </div>
-                    <div class="col-auto form-check mb-1">
-                        <input type="checkbox" class="form-check-input" id="overrideFormRestDay">
-                        <label class="form-check-label small" for="overrideFormRestDay">Rest Day</label>
+                        <label class="form-label small mb-1">Day becoming work (currently rest)</label>
+                        <select class="form-select form-select-sm" id="overrideFormWorkDay"></select>
                     </div>
                 </div>
                 <div class="mt-2">
-                    <label class="form-label small mb-1">Reason (optional)</label>
+                    <label class="form-label small mb-1">Reason (required)</label>
                     <input type="text" class="form-control form-control-sm" id="overrideFormReason" placeholder="e.g. employee requested day off">
                 </div>
                 <div class="mt-2 d-flex gap-2">
-                    <button type="button" class="btn btn-sm btn-success" id="overrideFormSaveBtn"><i class="bi bi-save"></i> Save</button>
+                    <button type="button" class="btn btn-sm btn-success" id="overrideFormSaveBtn"><i class="bi bi-save"></i> Save Swap</button>
                     <button type="button" class="btn btn-sm btn-outline-secondary" id="overrideFormCancelBtn">Cancel</button>
                 </div>
             </div>

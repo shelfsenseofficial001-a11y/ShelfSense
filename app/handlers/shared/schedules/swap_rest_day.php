@@ -1,6 +1,9 @@
 <?php
-// app/handlers/shared/schedules/delete_override.php
-// Reverts one day back to the standing baseline for a specific period.
+// app/handlers/shared/schedules/swap_rest_day.php
+// The only way a cutoff schedule change is made: pick a day that becomes
+// a rest day and an existing rest day (same period) that becomes the
+// work day instead -- one paired action, one reason. The work day
+// inherits the rest day's former hours automatically.
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
@@ -22,15 +25,23 @@ if (!Auth::check()) {
 $input = json_decode(file_get_contents('php://input'), true);
 $userId = isset($input['user_id']) ? intval($input['user_id']) : 0;
 $periodKey = isset($input['period_key']) ? trim($input['period_key']) : '';
-$dayOfWeek = isset($input['day_of_week']) ? trim($input['day_of_week']) : '';
+$restDay = isset($input['rest_day']) ? trim($input['rest_day']) : '';
+$workDay = isset($input['work_day']) ? trim($input['work_day']) : '';
+$reason = isset($input['reason']) ? trim($input['reason']) : null;
 
 $validDays = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
 
-if ($userId <= 0 || !in_array($dayOfWeek, $validDays, true)) {
+if ($userId <= 0 || !in_array($restDay, $validDays, true) || !in_array($workDay, $validDays, true)) {
     Response::error('Missing required fields', 400);
 }
 if (!CutoffPeriod::describeKey($periodKey)) {
     Response::error('Invalid period key', 400);
+}
+if (!$reason) {
+    Response::error('A reason is required for this change.', 400);
+}
+if (strlen($reason) > 255) {
+    Response::error('Reason cannot exceed 255 characters.', 400);
 }
 
 $scheduleModel = new Schedule();
@@ -45,9 +56,13 @@ if (!$isHr && !$isStoreManagerAllowed) {
 }
 
 try {
-    $scheduleModel->deleteOverride($userId, $periodKey, $dayOfWeek);
-    Response::success(['user_id' => $userId, 'period_key' => $periodKey, 'day_of_week' => $dayOfWeek], 'Reverted to standing schedule');
+    $scheduleModel->saveRestDaySwap($userId, $periodKey, $restDay, $workDay, $reason, Auth::userId());
+    Response::success([
+        'user_id' => $userId,
+        'period_key' => $periodKey,
+        'rest_day' => $restDay,
+        'work_day' => $workDay
+    ], 'Schedule swap saved');
 } catch (Exception $e) {
-    error_log('delete_override.php error: ' . $e->getMessage());
-    Response::error('Error: ' . $e->getMessage());
+    Response::error($e->getMessage(), 400);
 }

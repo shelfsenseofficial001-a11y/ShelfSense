@@ -136,13 +136,10 @@ function smEscapeHtml(text) {
 document.addEventListener('DOMContentLoaded', function () {
     ScheduleOverrides.init({
         periodSelectId: 'periodSelect',
-        listContainerId: 'overrideChangesList',
-        addBtnId: 'addOverrideBtn',
+        calendarGridId: 'scheduleCalendarGrid',
         formContainerId: 'overrideForm',
-        formDaySelectId: 'overrideFormDay',
-        formTimeInId: 'overrideFormTimeIn',
-        formTimeOutId: 'overrideFormTimeOut',
-        formRestDayId: 'overrideFormRestDay',
+        formRestDaySelectId: 'overrideFormRestDay',
+        formWorkDaySelectId: 'overrideFormWorkDay',
         formReasonId: 'overrideFormReason',
         formSaveBtnId: 'overrideFormSaveBtn',
         formCancelBtnId: 'overrideFormCancelBtn',
