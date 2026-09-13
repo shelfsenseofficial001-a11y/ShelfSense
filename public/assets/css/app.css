@@ -1853,3 +1853,13 @@ body.swal2-shown > .modal-backdrop {
     border-radius: 8px;
     padding: 8px 12px;
 }
+
+/* Rest Day edit mode: once a day is picked, only its valid opposite-type
+   partner (or, once the pair is complete, nothing else) can be clicked
+   next -- dimmed instead of just relying on the banner text. */
+.sched-cal-cell-disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+.sched-cal-cell-disabled:hover { border-color: var(--border-color, #ebebe7); }

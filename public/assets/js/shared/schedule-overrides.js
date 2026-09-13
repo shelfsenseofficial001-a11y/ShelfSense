@@ -243,18 +243,19 @@ window.ScheduleOverrides = (function () {
         const day = dayOfWeekFor(dateStr);
         const row = effectiveByDay[day];
         const dateNum = parseInt(dateStr.slice(8, 10), 10);
+        const disabled = isRestEditDisabled(day, row) ? 'sched-cal-cell-disabled' : '';
 
         if (!row) {
-            return `<div class="sched-cal-cell" data-day="${day}"><div class="sched-cal-date">${dateNum}</div><div class="small text-muted">No baseline set</div></div>`;
+            return `<div class="sched-cal-cell ${disabled}" data-day="${day}"><div class="sched-cal-date">${dateNum}</div><div class="small text-muted">No baseline set</div></div>`;
         }
 
         const isRest = row.is_rest_day == 1;
         const timeLabel = isRest ? 'Rest Day' : `${(row.time_in || '').slice(0, 5)}–${(row.time_out || '').slice(0, 5)}`;
         const changedBadge = row.is_override ? '<span class="badge bg-warning text-dark sched-cal-badge">Changed</span>' : '';
-        const selected = restEditMode && restPick && restPick.day === day ? 'sched-cal-cell-selected' : '';
+        const isPicked = restEditMode && restPick && (day === restPick.day || day === restPick.pairedWith);
 
         return `
-            <div class="sched-cal-cell ${row.is_override ? 'sched-cal-cell-changed' : ''} ${isRest ? 'sched-cal-cell-rest' : ''} ${selected}" data-day="${day}">
+            <div class="sched-cal-cell ${row.is_override ? 'sched-cal-cell-changed' : ''} ${isRest ? 'sched-cal-cell-rest' : ''} ${isPicked ? 'sched-cal-cell-selected' : ''} ${disabled}" data-day="${day}">
                 <div class="sched-cal-date">${dateNum}</div>
                 <div class="sched-cal-time">${escapeHtml(timeLabel)}</div>
                 ${changedBadge}
@@ -373,14 +374,38 @@ window.ScheduleOverrides = (function () {
         if (el) el.textContent = text;
     }
 
+    // Whether a cell can be clicked right now in rest-edit mode. Used both
+    // to guard clicks and to dim/disable invalid targets so the valid next
+    // move is visually obvious instead of something you have to read the
+    // banner text to figure out.
+    function isRestEditDisabled(day, row) {
+        if (!restEditMode || !restPick) return false;
+        if (restPick.restDay) {
+            // Pair already complete -- freeze everything except the two
+            // picked cells until Save or Cancel resolves it.
+            return day !== restPick.restDay && day !== restPick.workDay;
+        }
+        if (day === restPick.day) return false;
+        if (!row) return true;
+        const isRest = row.is_rest_day == 1;
+        return isRest === restPick.wasRest;
+    }
+
+    function updateCancelBtnVisibility() {
+        const btn = document.getElementById(opts.restCancelBtnId);
+        if (btn) btn.style.display = restPick ? 'inline-block' : 'none';
+    }
+
     function onRestEditCellClick(day) {
         const row = effectiveByDay[day];
         if (!row) return;
+        if (isRestEditDisabled(day, row)) return;
         const isRest = row.is_rest_day == 1;
 
         if (!restPick) {
             restPick = { day, wasRest: isRest };
             renderCalendar();
+            updateCancelBtnVisibility();
             if (isRest) {
                 setRestStatusText(`${DAY_NAMES_FULL[day]} will become a work day. Rest day not yet allocated -- select which day becomes the new Rest Day.`);
             } else {
@@ -395,21 +420,11 @@ window.ScheduleOverrides = (function () {
             return;
         }
 
-        if (restPick.wasRest === isRest) {
-            // Same type as the first pick (both rest or both work) --
-            // treat this click as replacing the first pick, not an error.
-            restPick = { day, wasRest: isRest };
-            renderCalendar();
-            if (isRest) {
-                setRestStatusText(`${DAY_NAMES_FULL[day]} will become a work day. Rest day not yet allocated -- select which day becomes the new Rest Day.`);
-            } else {
-                setRestStatusText(`${DAY_NAMES_FULL[day]} will become the Rest Day. Select which currently-resting day becomes a work day instead.`);
-            }
-            return;
-        }
-
-        // Opposite type -- pair complete. Resolve which is becoming rest
-        // vs. which is becoming work, regardless of click order.
+        // Reaching here means `day` is guaranteed to be a valid opposite-
+        // type target (invalid ones were already filtered out above), and
+        // this is the second pick since a completed pair disables every
+        // other cell. Resolve which is becoming rest vs. work, regardless
+        // of click order.
         const restDay = restPick.wasRest ? day : restPick.day;
         const workDay = restPick.wasRest ? restPick.day : day;
 
@@ -429,6 +444,7 @@ window.ScheduleOverrides = (function () {
         restPick = null;
         const actionsEl = document.getElementById(opts.restStatusActionsId);
         if (actionsEl) actionsEl.style.setProperty('display', 'none', 'important');
+        updateCancelBtnVisibility();
         if (restEditMode) setRestStatusText('Pick a day to change its rest/work status.');
         if (currentPeriod) renderCalendar();
     }

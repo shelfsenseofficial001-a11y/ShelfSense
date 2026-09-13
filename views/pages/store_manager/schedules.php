@@ -2,7 +2,7 @@
 $title = 'Front Department Schedules - Store Manager';
 $pageTitle = 'Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913910000"></script>'
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913920000"></script>'
     . '<script src="/ShelfSense/public/assets/js/store_manager/schedules.js?v=20260913900000"></script>';
 
 $content = <<<'HTML'
@@ -76,10 +76,12 @@ $content = <<<'HTML'
             </div>
             <div id="restEditStatus" class="sched-rest-status mb-2" style="display:none;">
                 <span id="restEditStatusText" class="small"></span>
-                <div id="restEditStatusActions" class="d-flex align-items-center gap-2" style="display:none;">
-                    <input type="text" class="form-control form-control-sm" id="restEditReason" placeholder="Reason (required)" style="width:200px;">
-                    <button type="button" class="btn btn-sm btn-success" id="restEditSaveBtn"><i class="bi bi-save"></i> Save</button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="restEditCancelBtn">Cancel</button>
+                <div class="d-flex align-items-center gap-2">
+                    <div id="restEditStatusActions" class="d-flex align-items-center gap-2" style="display:none;">
+                        <input type="text" class="form-control form-control-sm" id="restEditReason" placeholder="Reason (required)" style="width:200px;">
+                        <button type="button" class="btn btn-sm btn-success" id="restEditSaveBtn"><i class="bi bi-save"></i> Save</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="restEditCancelBtn" style="display:none;">Cancel</button>
                 </div>
             </div>
             <div id="scheduleCalendarGrid" class="sched-calendar mb-2">
