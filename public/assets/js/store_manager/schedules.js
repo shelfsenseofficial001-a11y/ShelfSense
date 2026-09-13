@@ -144,6 +144,13 @@ document.addEventListener('DOMContentLoaded', function () {
         formReasonId: 'overrideFormReason',
         formSaveBtnId: 'overrideFormSaveBtn',
         formCancelBtnId: 'overrideFormCancelBtn',
+        restEditBtnId: 'restEditBtn',
+        restStatusId: 'restEditStatus',
+        restStatusTextId: 'restEditStatusText',
+        restStatusActionsId: 'restEditStatusActions',
+        restReasonId: 'restEditReason',
+        restSaveBtnId: 'restEditSaveBtn',
+        restCancelBtnId: 'restEditCancelBtn',
         changesListId: 'scheduleChangesList',
         emptyMessage: 'Select an employee to view.',
         getCurrentUserId: () => currentEmployeeId

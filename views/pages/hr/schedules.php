@@ -9,8 +9,8 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $title = 'Employee Schedules - ShelfSense HR';
 $pageTitle = 'Employee Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913800000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260913800000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913910000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260913900000"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<HTML
 <style>
@@ -119,12 +119,27 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 
     <!-- Cutoff Schedule Calendar: the effective schedule (standing + any
          per-period overrides) for the selected cutoff, one cell per date.
-         Click a day to set its Time In/Out for this period only; turning a
-         day into a rest day is a separate flow. -->
+         Normally, clicking a day sets its Time In/Out for this period only.
+         "Edit Rest Days" swaps into a mode where clicking picks a rest/work
+         pair to swap instead -- removing a rest day always means
+         allocating it to another day in the same period. -->
     <div class="modern-card p-3">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
             <h6 class="fw-bold mb-0"><i class="bi bi-calendar2-range me-2"></i>Cutoff Schedule</h6>
-            <select class="form-select form-select-sm" style="width:auto;" id="periodSelect"></select>
+            <div class="d-flex align-items-center gap-2">
+                <select class="form-select form-select-sm" style="width:auto;" id="periodSelect"></select>
+                <button type="button" class="btn btn-sm btn-outline-primary sched-rest-edit-btn" id="restEditBtn" title="Swap which days are rest days this period">
+                    <i class="bi bi-arrow-left-right"></i> Edit Rest Days
+                </button>
+            </div>
+        </div>
+        <div id="restEditStatus" class="sched-rest-status mb-2" style="display:none;">
+            <span id="restEditStatusText" class="small"></span>
+            <div id="restEditStatusActions" class="d-flex align-items-center gap-2" style="display:none;">
+                <input type="text" class="form-control form-control-sm" id="restEditReason" placeholder="Reason (required)" style="width:200px;">
+                <button type="button" class="btn btn-sm btn-success" id="restEditSaveBtn"><i class="bi bi-save"></i> Save</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="restEditCancelBtn">Cancel</button>
+            </div>
         </div>
         <div id="scheduleCalendarGrid" class="sched-calendar mb-2">
             <p class="text-muted small mb-0">Select an employee to view.</p>

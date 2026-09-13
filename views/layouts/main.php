@@ -21,7 +21,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260913800000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260913910000">
     <?= $additional_css ?? '' ?>
 </head>
 <body>

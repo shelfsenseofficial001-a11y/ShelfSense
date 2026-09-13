@@ -2,16 +2,25 @@
 // Calendar view of one employee's effective schedule for a cutoff period,
 // shared by HR's and Store Manager's Schedules pages. Each date cell shows
 // that day's Time In/Out (or Rest Day) and, if it deviates from the
-// standing schedule, the reason. Clicking a cell opens a direct Time
-// In/Out editor for that single date (a reason is required); turning a
-// day into a rest day is a separate flow, not handled here. Below the
-// calendar, a change history lists every override made this period and
-// who made it.
+// standing schedule, the reason.
+//
+// Two edit modes, mutually exclusive:
+// - Normal mode: clicking a cell opens a direct Time In/Out editor for
+//   that single date (a reason is required).
+// - Rest Day edit mode (toggled via the header button): clicking cells
+//   picks a rest-day/work-day pair to swap. Removing a rest day always
+//   means allocating it to another day in the same period -- there's no
+//   way to just delete one, by design.
+//
+// Below the calendar, a change history lists every override made this
+// period and who made it.
 //
 // Usage: ScheduleOverrides.init({
 //   periodSelectId, calendarGridId,
 //   formContainerId, formTitleId, formTimeInId, formTimeOutId,
 //   formReasonId, formSaveBtnId, formCancelBtnId,
+//   restEditBtnId, restStatusId, restStatusTextId, restStatusActionsId,
+//   restReasonId, restSaveBtnId, restCancelBtnId,
 //   changesListId,
 //   emptyMessage, getCurrentUserId: () => currentEmployeeId
 // });
@@ -36,6 +45,9 @@ window.ScheduleOverrides = (function () {
     let currentPeriod = null; // { key, start_date, end_date, label }
     let effectiveByDay = {};  // day_of_week -> effective schedule row for the loaded period
     let editingDay = null;
+
+    let restEditMode = false;
+    let restPick = null; // { day, wasRest } -- the first day picked in the current swap
 
     function escapeHtml(text) {
         if (text === null || text === undefined) return '';
@@ -98,6 +110,11 @@ window.ScheduleOverrides = (function () {
         document.getElementById(opts.formSaveBtnId).addEventListener('click', saveDayEdit);
         document.getElementById(opts.formCancelBtnId).addEventListener('click', closeForm);
         closeForm();
+
+        document.getElementById(opts.restEditBtnId).addEventListener('click', toggleRestEditMode);
+        document.getElementById(opts.restSaveBtnId).addEventListener('click', saveRestSwap);
+        document.getElementById(opts.restCancelBtnId).addEventListener('click', cancelRestPick);
+        setRestEditMode(false);
     }
 
     function currentPeriodKey() {
@@ -108,6 +125,7 @@ window.ScheduleOverrides = (function () {
         const userId = opts.getCurrentUserId();
         const gridEl = document.getElementById(opts.calendarGridId);
         closeForm();
+        cancelRestPick();
 
         if (!userId) {
             gridEl.innerHTML = `<p class="text-muted small mb-0">${escapeHtml(opts.emptyMessage || 'Select an employee to view.')}</p>`;
@@ -233,9 +251,10 @@ window.ScheduleOverrides = (function () {
         const isRest = row.is_rest_day == 1;
         const timeLabel = isRest ? 'Rest Day' : `${(row.time_in || '').slice(0, 5)}–${(row.time_out || '').slice(0, 5)}`;
         const changedBadge = row.is_override ? '<span class="badge bg-warning text-dark sched-cal-badge">Changed</span>' : '';
+        const selected = restEditMode && restPick && restPick.day === day ? 'sched-cal-cell-selected' : '';
 
         return `
-            <div class="sched-cal-cell ${row.is_override ? 'sched-cal-cell-changed' : ''} ${isRest ? 'sched-cal-cell-rest' : ''}" data-day="${day}">
+            <div class="sched-cal-cell ${row.is_override ? 'sched-cal-cell-changed' : ''} ${isRest ? 'sched-cal-cell-rest' : ''} ${selected}" data-day="${day}">
                 <div class="sched-cal-date">${dateNum}</div>
                 <div class="sched-cal-time">${escapeHtml(timeLabel)}</div>
                 ${changedBadge}
@@ -244,8 +263,16 @@ window.ScheduleOverrides = (function () {
     }
 
     function onCellClick(day) {
-        openForm(day);
+        if (restEditMode) {
+            onRestEditCellClick(day);
+        } else {
+            openForm(day);
+        }
     }
+
+    // ============================================
+    // NORMAL MODE: direct Time In/Out edit for one date
+    // ============================================
 
     function openForm(day) {
         const row = effectiveByDay[day];
@@ -263,27 +290,6 @@ window.ScheduleOverrides = (function () {
         editingDay = null;
         const el = document.getElementById(opts.formContainerId);
         if (el) el.style.display = 'none';
-    }
-
-    function revertDay(day, btn) {
-        const userId = opts.getCurrentUserId();
-        const periodKey = currentPeriodKey();
-        if (btn) btn.disabled = true;
-
-        fetch('?page=api_revert_schedule_swap', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user_id: userId, period_key: periodKey, day_of_week: day })
-        })
-            .then(r => r.json())
-            .then(res => {
-                if (res.success) {
-                    loadForCurrentEmployee();
-                } else {
-                    Swal.fire('Error', res.message || 'Failed to revert', 'error');
-                    if (btn) btn.disabled = false;
-                }
-            });
     }
 
     function saveDayEdit() {
@@ -328,6 +334,162 @@ window.ScheduleOverrides = (function () {
                 saveBtn.disabled = false;
                 saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
                 Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
+            });
+    }
+
+    // ============================================
+    // REST DAY EDIT MODE: pick a rest day + a work day to swap. Removing a
+    // rest day always means allocating it to another day in this same
+    // period -- there's no way to just delete one.
+    // ============================================
+
+    function toggleRestEditMode() {
+        setRestEditMode(!restEditMode);
+    }
+
+    function setRestEditMode(on) {
+        restEditMode = on;
+        closeForm();
+        cancelRestPick();
+
+        const btn = document.getElementById(opts.restEditBtnId);
+        if (on) {
+            btn.classList.add('active');
+            btn.innerHTML = '<i class="bi bi-check2"></i> Done';
+        } else {
+            btn.classList.remove('active');
+            btn.innerHTML = '<i class="bi bi-arrow-left-right"></i> Edit Rest Days';
+        }
+
+        const statusEl = document.getElementById(opts.restStatusId);
+        if (statusEl) statusEl.style.display = on ? 'flex' : 'none';
+        if (on) setRestStatusText('Pick a day to change its rest/work status.');
+
+        renderCalendar();
+    }
+
+    function setRestStatusText(text) {
+        const el = document.getElementById(opts.restStatusTextId);
+        if (el) el.textContent = text;
+    }
+
+    function onRestEditCellClick(day) {
+        const row = effectiveByDay[day];
+        if (!row) return;
+        const isRest = row.is_rest_day == 1;
+
+        if (!restPick) {
+            restPick = { day, wasRest: isRest };
+            renderCalendar();
+            if (isRest) {
+                setRestStatusText(`${DAY_NAMES_FULL[day]} will become a work day. Rest day not yet allocated -- select which day becomes the new Rest Day.`);
+            } else {
+                setRestStatusText(`${DAY_NAMES_FULL[day]} will become the Rest Day. Select which currently-resting day becomes a work day instead.`);
+            }
+            return;
+        }
+
+        if (restPick.day === day) {
+            // Clicked the same cell again -- cancel that pick.
+            cancelRestPick();
+            return;
+        }
+
+        if (restPick.wasRest === isRest) {
+            // Same type as the first pick (both rest or both work) --
+            // treat this click as replacing the first pick, not an error.
+            restPick = { day, wasRest: isRest };
+            renderCalendar();
+            if (isRest) {
+                setRestStatusText(`${DAY_NAMES_FULL[day]} will become a work day. Rest day not yet allocated -- select which day becomes the new Rest Day.`);
+            } else {
+                setRestStatusText(`${DAY_NAMES_FULL[day]} will become the Rest Day. Select which currently-resting day becomes a work day instead.`);
+            }
+            return;
+        }
+
+        // Opposite type -- pair complete. Resolve which is becoming rest
+        // vs. which is becoming work, regardless of click order.
+        const restDay = restPick.wasRest ? day : restPick.day;
+        const workDay = restPick.wasRest ? restPick.day : day;
+
+        restPick = { day, wasRest: isRest, pairedWith: restPick.day, restDay, workDay };
+        renderCalendar();
+        setRestStatusText(`${DAY_NAMES_FULL[restDay]} becomes Rest Day, ${DAY_NAMES_FULL[workDay]} becomes a work day. Add a reason to confirm.`);
+
+        // Bootstrap's .d-flex utility class is !important, so a plain
+        // inline style.display assignment can't hide/show this element --
+        // it needs its own !important to win.
+        const actionsEl = document.getElementById(opts.restStatusActionsId);
+        if (actionsEl) actionsEl.style.setProperty('display', 'flex', 'important');
+        document.getElementById(opts.restReasonId).value = '';
+    }
+
+    function cancelRestPick() {
+        restPick = null;
+        const actionsEl = document.getElementById(opts.restStatusActionsId);
+        if (actionsEl) actionsEl.style.setProperty('display', 'none', 'important');
+        if (restEditMode) setRestStatusText('Pick a day to change its rest/work status.');
+        if (currentPeriod) renderCalendar();
+    }
+
+    function saveRestSwap() {
+        const userId = opts.getCurrentUserId();
+        if (!userId || !restPick || !restPick.restDay || !restPick.workDay) return;
+        const periodKey = currentPeriodKey();
+        const reason = (document.getElementById(opts.restReasonId).value || '').trim();
+
+        if (!reason) {
+            Swal.fire('Reason required', 'Please explain why this schedule is changing.', 'warning');
+            return;
+        }
+
+        const saveBtn = document.getElementById(opts.restSaveBtnId);
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+
+        fetch('?page=api_swap_schedule_rest_day', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, period_key: periodKey, rest_day: restPick.restDay, work_day: restPick.workDay, reason })
+        })
+            .then(r => r.json())
+            .then(res => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
+                if (res.success) {
+                    cancelRestPick();
+                    loadForCurrentEmployee();
+                    if (typeof opts.onSaved === 'function') opts.onSaved();
+                } else {
+                    Swal.fire('Error', res.message || 'Failed to save', 'error');
+                }
+            })
+            .catch(() => {
+                saveBtn.disabled = false;
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
+                Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
+            });
+    }
+
+    function revertDay(day, btn) {
+        const userId = opts.getCurrentUserId();
+        const periodKey = currentPeriodKey();
+        if (btn) btn.disabled = true;
+
+        fetch('?page=api_revert_schedule_swap', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user_id: userId, period_key: periodKey, day_of_week: day })
+        })
+            .then(r => r.json())
+            .then(res => {
+                if (res.success) {
+                    loadForCurrentEmployee();
+                } else {
+                    Swal.fire('Error', res.message || 'Failed to revert', 'error');
+                    if (btn) btn.disabled = false;
+                }
             });
     }
 

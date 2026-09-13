@@ -1816,6 +1816,7 @@ body.swal2-shown > .modal-backdrop {
 .sched-cal-cell-blank { visibility: hidden; cursor: default; }
 .sched-cal-cell-rest { background: var(--light-yellow-subtle, #fdf1ee); }
 .sched-cal-cell-changed { border-color: #f0ad4e; border-width: 2px; }
+.sched-cal-cell-selected { border-color: #0d6efd; border-width: 2px; box-shadow: 0 0 0 1px #0d6efd inset; }
 .sched-cal-date { font-weight: 700; font-size: 0.85rem; }
 .sched-cal-time { font-size: 0.72rem; margin-top: 2px; }
 .sched-cal-badge { font-size: 0.6rem; margin-top: 2px; display: inline-block; }
@@ -1832,3 +1833,23 @@ body.swal2-shown > .modal-backdrop {
 }
 .sched-change-row:last-child { border-bottom: none; }
 .sched-change-row .text-muted { font-size: 0.75rem; }
+
+/* Edit Rest Days toggle + its live status banner. Bootstrap's
+   .btn-outline-primary:hover/.active rules win specificity ties against a
+   same-weight custom selector, so force the active-state colors. */
+.sched-rest-edit-btn.active {
+    background: var(--brand-yellow, #f45b35) !important;
+    border-color: var(--brand-yellow, #f45b35) !important;
+    color: #fff !important;
+}
+.sched-rest-status {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    background: var(--light-yellow-subtle, #fdf1ee);
+    border: 1px solid var(--brand-yellow, #f45b35);
+    border-radius: 8px;
+    padding: 8px 12px;
+}
