@@ -136,10 +136,16 @@ function smEscapeHtml(text) {
 document.addEventListener('DOMContentLoaded', function () {
     ScheduleOverrides.init({
         periodSelectId: 'periodSelect',
-        tableBodyId: 'overrideGridBody',
-        reasonInputId: 'overrideReason',
-        saveBtnId: 'saveOverrideBtn',
-        resetBtnId: 'resetOverrideBtn',
+        listContainerId: 'overrideChangesList',
+        addBtnId: 'addOverrideBtn',
+        formContainerId: 'overrideForm',
+        formDaySelectId: 'overrideFormDay',
+        formTimeInId: 'overrideFormTimeIn',
+        formTimeOutId: 'overrideFormTimeOut',
+        formRestDayId: 'overrideFormRestDay',
+        formReasonId: 'overrideFormReason',
+        formSaveBtnId: 'overrideFormSaveBtn',
+        formCancelBtnId: 'overrideFormCancelBtn',
         emptyMessage: 'Select an employee to view.',
         getCurrentUserId: () => currentEmployeeId
     });

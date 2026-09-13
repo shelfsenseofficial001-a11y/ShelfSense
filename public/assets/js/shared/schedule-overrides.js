@@ -4,9 +4,16 @@
 // endpoints) is untouched by this -- this only ever reads/writes
 // schedule_overrides for one specific H1/H2 cutoff period at a time.
 //
+// Shows a short list of actual changes for the selected employee+period
+// (empty by default -- most employees/periods have none), not a second
+// full 7-day grid mirroring the baseline. "Add Change" opens a small form
+// to pick one day and set its override.
+//
 // Usage: ScheduleOverrides.init({
-//   periodSelectId, tableBodyId, reasonInputId, saveBtnId, resetBtnId,
-//   emptyMessage, getCurrentUserId: () => currentEmployeeId
+//   periodSelectId, listContainerId, addBtnId, formContainerId,
+//   formDaySelectId, formTimeInId, formTimeOutId, formRestDayId,
+//   formReasonId, formSaveBtnId, formCancelBtnId,
+//   getCurrentUserId: () => currentEmployeeId
 // });
 
 const ScheduleOverrides = (function () {
@@ -17,7 +24,8 @@ const ScheduleOverrides = (function () {
     const DAY_ORDER = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 
     let opts = null;
-    let loadedSchedule = {}; // day -> original effective row, to diff against on save
+    let currentChanges = []; // overrides only, for the selected employee+period
+    let editingDay = null;
 
     function escapeHtml(text) {
         if (text === null || text === undefined) return '';
@@ -41,10 +49,15 @@ const ScheduleOverrides = (function () {
             });
 
         periodSelect.addEventListener('change', loadForCurrentEmployee);
-        document.getElementById(opts.saveBtnId).addEventListener('click', saveChanges);
-        if (opts.resetBtnId) {
-            document.getElementById(opts.resetBtnId).addEventListener('click', loadForCurrentEmployee);
-        }
+        document.getElementById(opts.addBtnId).addEventListener('click', () => openForm(null));
+        document.getElementById(opts.formSaveBtnId).addEventListener('click', saveForm);
+        document.getElementById(opts.formCancelBtnId).addEventListener('click', closeForm);
+        document.getElementById(opts.formRestDayId).addEventListener('change', function () {
+            document.getElementById(opts.formTimeInId).disabled = this.checked;
+            document.getElementById(opts.formTimeOutId).disabled = this.checked;
+        });
+
+        closeForm();
     }
 
     function currentPeriodKey() {
@@ -53,61 +66,102 @@ const ScheduleOverrides = (function () {
 
     function loadForCurrentEmployee() {
         const userId = opts.getCurrentUserId();
-        const tbody = document.getElementById(opts.tableBodyId);
+        const listEl = document.getElementById(opts.listContainerId);
+        closeForm();
+        document.getElementById(opts.addBtnId).disabled = !userId;
+
         if (!userId) {
-            tbody.innerHTML = `<tr><td colspan="6" class="text-center text-muted py-3">${escapeHtml(opts.emptyMessage || 'Select an employee to view.')}</td></tr>`;
+            listEl.innerHTML = `<p class="text-muted small mb-0">${escapeHtml(opts.emptyMessage || 'Select an employee to view.')}</p>`;
+            currentChanges = [];
             return;
         }
         const periodKey = currentPeriodKey();
         if (!periodKey) return;
 
-        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>';
+        listEl.innerHTML = '<div class="text-center py-2"><span class="spinner-border spinner-border-sm"></span></div>';
 
         fetch(`?page=api_get_effective_schedule&user_id=${encodeURIComponent(userId)}&period_key=${encodeURIComponent(periodKey)}`)
             .then(r => r.json())
             .then(res => {
                 if (!res.success) {
-                    tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-3">${escapeHtml(res.message || 'Failed to load')}</td></tr>`;
+                    listEl.innerHTML = `<p class="text-danger small mb-0">${escapeHtml(res.message || 'Failed to load')}</p>`;
                     return;
                 }
-                loadedSchedule = {};
-                (res.data.schedule || []).forEach(row => { loadedSchedule[row.day_of_week] = row; });
+                currentChanges = (res.data.schedule || []).filter(row => row.is_override);
                 render();
             });
     }
 
     function render() {
-        const tbody = document.getElementById(opts.tableBodyId);
-        tbody.innerHTML = DAY_ORDER.map(day => {
-            const row = loadedSchedule[day] || { time_in: '', time_out: '', is_rest_day: 0, is_override: false };
+        const listEl = document.getElementById(opts.listContainerId);
+        if (currentChanges.length === 0) {
+            listEl.innerHTML = '<p class="text-muted small mb-0">No changes for this cutoff period -- following the standing schedule.</p>';
+            return;
+        }
+
+        const rows = DAY_ORDER
+            .map(day => currentChanges.find(c => c.day_of_week === day))
+            .filter(Boolean);
+
+        listEl.innerHTML = rows.map(row => {
             const isRest = row.is_rest_day == 1;
+            const timeLabel = isRest ? 'Rest day' : `${(row.time_in || '').slice(0, 5)} - ${(row.time_out || '').slice(0, 5)}`;
             return `
-                <tr data-day="${day}" class="${row.is_override ? 'table-warning' : ''}">
-                    <td>${DAY_NAMES[day]}</td>
-                    <td><input type="time" class="form-control form-control-sm so-time-in" value="${isRest ? '' : (row.time_in || '').slice(0, 5)}" ${isRest ? 'disabled' : ''}></td>
-                    <td><input type="time" class="form-control form-control-sm so-time-out" value="${isRest ? '' : (row.time_out || '').slice(0, 5)}" ${isRest ? 'disabled' : ''}></td>
-                    <td class="text-center">
-                        <input type="checkbox" class="form-check-input so-rest-day" ${isRest ? 'checked' : ''}>
-                    </td>
-                    <td class="text-center">${row.is_override ? '<span class="badge bg-warning text-dark">Changed</span>' : '<span class="text-muted small">Standard</span>'}</td>
-                    <td class="text-center">
-                        ${row.is_override ? `<button type="button" class="btn btn-sm btn-outline-secondary so-revert-btn" data-day="${day}"><i class="bi bi-arrow-counterclockwise"></i> Revert</button>` : ''}
-                    </td>
-                </tr>
+                <div class="d-flex justify-content-between align-items-start border rounded p-2 mb-2" data-day="${row.day_of_week}">
+                    <div>
+                        <div class="fw-semibold">${DAY_NAMES[row.day_of_week]} <span class="badge bg-warning text-dark ms-1">Changed</span></div>
+                        <div class="small">${escapeHtml(timeLabel)}</div>
+                        ${row.reason ? `<div class="small text-muted fst-italic">${escapeHtml(row.reason)}</div>` : ''}
+                    </div>
+                    <div class="d-flex gap-1 flex-shrink-0">
+                        <button type="button" class="btn btn-sm btn-outline-secondary so-edit-btn" data-day="${row.day_of_week}" title="Edit"><i class="bi bi-pencil"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-danger so-revert-btn" data-day="${row.day_of_week}" title="Revert to standard"><i class="bi bi-arrow-counterclockwise"></i></button>
+                    </div>
+                </div>
             `;
         }).join('');
 
-        tbody.querySelectorAll('.so-rest-day').forEach(cb => {
-            cb.addEventListener('change', function () {
-                const row = this.closest('tr');
-                row.querySelector('.so-time-in').disabled = this.checked;
-                row.querySelector('.so-time-out').disabled = this.checked;
-            });
+        listEl.querySelectorAll('.so-edit-btn').forEach(btn => {
+            btn.addEventListener('click', function () { openForm(this.dataset.day); });
         });
-
-        tbody.querySelectorAll('.so-revert-btn').forEach(btn => {
+        listEl.querySelectorAll('.so-revert-btn').forEach(btn => {
             btn.addEventListener('click', function () { revertDay(this.dataset.day, this); });
         });
+    }
+
+    function openForm(day) {
+        editingDay = day;
+        const daySelect = document.getElementById(opts.formDaySelectId);
+        daySelect.innerHTML = DAY_ORDER.map(d => `<option value="${d}">${DAY_NAMES[d]}</option>`).join('');
+
+        const existing = day ? currentChanges.find(c => c.day_of_week === day) : null;
+        if (existing) {
+            daySelect.value = day;
+            daySelect.disabled = true;
+            document.getElementById(opts.formRestDayId).checked = existing.is_rest_day == 1;
+            document.getElementById(opts.formTimeInId).value = (existing.time_in || '').slice(0, 5);
+            document.getElementById(opts.formTimeOutId).value = (existing.time_out || '').slice(0, 5);
+            document.getElementById(opts.formReasonId).value = existing.reason || '';
+        } else {
+            daySelect.disabled = false;
+            document.getElementById(opts.formRestDayId).checked = false;
+            document.getElementById(opts.formTimeInId).value = '';
+            document.getElementById(opts.formTimeOutId).value = '';
+            document.getElementById(opts.formReasonId).value = '';
+        }
+        document.getElementById(opts.formTimeInId).disabled = document.getElementById(opts.formRestDayId).checked;
+        document.getElementById(opts.formTimeOutId).disabled = document.getElementById(opts.formRestDayId).checked;
+
+        document.getElementById(opts.formContainerId).style.display = 'block';
+        document.getElementById(opts.addBtnId).style.display = 'none';
+    }
+
+    function closeForm() {
+        editingDay = null;
+        const formEl = document.getElementById(opts.formContainerId);
+        if (formEl) formEl.style.display = 'none';
+        const addBtn = document.getElementById(opts.addBtnId);
+        if (addBtn) addBtn.style.display = 'inline-block';
     }
 
     function revertDay(day, btn) {
@@ -131,75 +185,53 @@ const ScheduleOverrides = (function () {
             });
     }
 
-    function saveChanges() {
+    function saveForm() {
         const userId = opts.getCurrentUserId();
-        if (!userId) {
-            Swal.fire('No employee selected', 'Please select an employee first.', 'warning');
-            return;
-        }
+        if (!userId) return;
         const periodKey = currentPeriodKey();
-        const reason = opts.reasonInputId ? (document.getElementById(opts.reasonInputId).value || '').trim() : '';
+        const day = document.getElementById(opts.formDaySelectId).value;
+        const isRestDay = document.getElementById(opts.formRestDayId).checked ? 1 : 0;
+        const timeIn = document.getElementById(opts.formTimeInId).value;
+        const timeOut = document.getElementById(opts.formTimeOutId).value;
+        const reason = (document.getElementById(opts.formReasonId).value || '').trim();
 
-        const tbody = document.getElementById(opts.tableBodyId);
-        const changedRows = [];
-
-        tbody.querySelectorAll('tr[data-day]').forEach(tr => {
-            const day = tr.dataset.day;
-            const isRestDay = tr.querySelector('.so-rest-day').checked ? 1 : 0;
-            const timeIn = tr.querySelector('.so-time-in').value;
-            const timeOut = tr.querySelector('.so-time-out').value;
-            const original = loadedSchedule[day] || {};
-            const originalTimeIn = (original.time_in || '').slice(0, 5);
-            const originalTimeOut = (original.time_out || '').slice(0, 5);
-            const originalRest = original.is_rest_day == 1 ? 1 : 0;
-
-            const differs = isRestDay !== originalRest || (!isRestDay && (timeIn !== originalTimeIn || timeOut !== originalTimeOut));
-            if (differs) {
-                if (!isRestDay && (!timeIn || !timeOut)) {
-                    return;
-                }
-                changedRows.push({ day, isRestDay, timeIn, timeOut });
-            }
-        });
-
-        if (changedRows.length === 0) {
-            Swal.fire('No changes', 'Nothing was changed from the current schedule for this period.', 'info');
+        if (!isRestDay && (!timeIn || !timeOut)) {
+            Swal.fire('Missing time', 'Set Time In and Time Out, or mark it a rest day.', 'warning');
             return;
         }
 
-        const saveBtn = document.getElementById(opts.saveBtnId);
+        const saveBtn = document.getElementById(opts.formSaveBtnId);
         saveBtn.disabled = true;
         saveBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
 
-        Promise.all(changedRows.map(row => fetch('?page=api_save_schedule_override', {
+        fetch('?page=api_save_schedule_override', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 user_id: userId,
                 period_key: periodKey,
-                day_of_week: row.day,
-                time_in: row.isRestDay ? '' : row.timeIn,
-                time_out: row.isRestDay ? '' : row.timeOut,
-                is_rest_day: row.isRestDay,
+                day_of_week: day,
+                time_in: isRestDay ? '' : timeIn,
+                time_out: isRestDay ? '' : timeOut,
+                is_rest_day: isRestDay,
                 reason: reason || null
             })
-        }).then(r => r.json())))
-            .then(results => {
+        })
+            .then(r => r.json())
+            .then(res => {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Changes';
-                const failed = results.filter(r => !r.success);
-                if (failed.length === 0) {
-                    Swal.fire({ icon: 'success', title: 'Saved', text: 'Schedule changes recorded for this cutoff.', timer: 1500, showConfirmButton: false });
-                    if (opts.reasonInputId) document.getElementById(opts.reasonInputId).value = '';
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
+                if (res.success) {
+                    closeForm();
                     loadForCurrentEmployee();
                     if (typeof opts.onSaved === 'function') opts.onSaved();
                 } else {
-                    Swal.fire('Some changes failed', failed.map(f => f.message).join(', '), 'error');
+                    Swal.fire('Error', res.message || 'Failed to save', 'error');
                 }
             })
             .catch(() => {
                 saveBtn.disabled = false;
-                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save Changes';
+                saveBtn.innerHTML = '<i class="bi bi-save"></i> Save';
                 Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
             });
     }
