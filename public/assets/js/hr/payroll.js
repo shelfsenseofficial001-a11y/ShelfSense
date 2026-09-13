@@ -604,25 +604,19 @@ document.getElementById('confirmRejectBtn').addEventListener('click', function()
 
 function openCreateCycleModal() {
     document.getElementById('createCycleForm').reset();
-    const today = new Date().toISOString().split('T')[0];
-    document.getElementById('cyclePaymentDate').value = today;
+    hidePaydayWarning();
     previewDates();
     new bootstrap.Modal(document.getElementById('createCycleModal')).show();
 }
 
+// Fixed cutoff split (mirrors App\Core\CutoffPeriod::getHalves() in PHP):
+// H1 is always 1st-15th, H2 is always 16th through the last day of the
+// month, regardless of month length -- no more per-month-length branching
+// to keep in sync between the two implementations.
 function getPeriodDates(year, month, half) {
     const daysInMonth = new Date(year, month, 0).getDate();
-    let startDay, endDay;
-    if (daysInMonth == 31) {
-        if (half == 1) { startDay = 1; endDay = 16; }
-        else { startDay = 17; endDay = 31; }
-    } else if (daysInMonth == 30) {
-        if (half == 1) { startDay = 1; endDay = 15; }
-        else { startDay = 16; endDay = 30; }
-    } else {
-        if (half == 1) { startDay = 1; endDay = 15; }
-        else { startDay = 16; endDay = daysInMonth; }
-    }
+    const startDay = half == 1 ? 1 : 16;
+    const endDay = half == 1 ? 15 : daysInMonth;
     const pad = (n) => String(n).padStart(2, '0');
     return {
         startDate: `${year}-${pad(month)}-${pad(startDay)}`,
@@ -640,10 +634,201 @@ function previewDates() {
             new Date(startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) +
             ' - ' +
             new Date(endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        suggestPaydayFor(endDate);
     } else {
         document.getElementById('previewDates').textContent = 'Select month, year, and half to preview';
     }
 }
+
+// ============================================
+// PAYDAY ADJUSTMENT LOGIC
+// Buffer of up to 5 days after the cutoff ends, for HR to review payslips
+// before pay actually goes out. A weekend/holiday payday is flagged --
+// informational, not a hard block, since disbursement itself may happen
+// through a different channel/schedule; this is just so HR is clear on
+// the target pay date.
+// ============================================
+
+let holidaysCache = {}; // year -> Set of 'YYYY-MM-DD' strings
+
+function addDaysToDate(dateStr, n) {
+    const d = new Date(dateStr + 'T00:00:00Z');
+    d.setUTCDate(d.getUTCDate() + n);
+    return d.toISOString().slice(0, 10);
+}
+
+function isWeekend(dateStr) {
+    const dow = new Date(dateStr + 'T00:00:00Z').getUTCDay();
+    return dow === 0 || dow === 6;
+}
+
+function loadHolidaysForYear(year) {
+    if (holidaysCache[year]) return Promise.resolve(holidaysCache[year]);
+    return fetch(`?page=api_get_holidays&year=${year}`)
+        .then(r => r.json())
+        .then(data => {
+            const set = new Set((data.success ? data.data.holidays : []).map(h => h.holiday_date));
+            holidaysCache[year] = set;
+            return set;
+        })
+        .catch(() => new Set());
+}
+
+function isHolidayDate(dateStr, set) {
+    return set.has(dateStr);
+}
+
+function checkPaydayDate(dateStr) {
+    const year = parseInt(dateStr.slice(0, 4));
+    return loadHolidaysForYear(year).then(set => {
+        const weekend = isWeekend(dateStr);
+        const holiday = isHolidayDate(dateStr, set);
+        return { weekend, holiday, invalid: weekend || holiday };
+    });
+}
+
+function showPaydayWarning(text) {
+    const el = document.getElementById('paydayWarning');
+    document.getElementById('paydayWarningText').textContent = text;
+    el.style.display = 'block';
+}
+
+function hidePaydayWarning() {
+    document.getElementById('paydayWarning').style.display = 'none';
+}
+
+function suggestPaydayFor(endDate) {
+    const year = parseInt(endDate.slice(0, 4));
+    loadHolidaysForYear(year).then(set => {
+        // Prefer the latest day within the 5-day buffer (closest to the
+        // full review window), falling back earlier if it lands on a
+        // weekend/holiday.
+        let chosen = null;
+        for (let offset = 5; offset >= 1; offset--) {
+            const candidate = addDaysToDate(endDate, offset);
+            if (!isWeekend(candidate) && !isHolidayDate(candidate, set)) {
+                chosen = candidate;
+                break;
+            }
+        }
+        const input = document.getElementById('cyclePaymentDate');
+        if (chosen) {
+            input.value = chosen;
+            hidePaydayWarning();
+        } else {
+            // Every day in the 5-day buffer is a weekend/holiday -- rare,
+            // but leave the field for HR to pick manually instead of
+            // guessing further out.
+            input.value = '';
+            showPaydayWarning('Every date in the usual 5-day payday buffer after this cutoff falls on a weekend or holiday. Please choose a payday manually.');
+        }
+    });
+}
+
+document.getElementById('cyclePaymentDate')?.addEventListener('change', function () {
+    if (!this.value) { hidePaydayWarning(); return; }
+    checkPaydayDate(this.value).then(({ weekend, holiday }) => {
+        if (weekend) {
+            showPaydayWarning('This payday falls on a weekend. Consider selecting another date -- this does not block creating the cycle, it\'s just so it\'s clear when pay is expected.');
+        } else if (holiday) {
+            showPaydayWarning('This payday falls on a holiday. Consider selecting another date -- this does not block creating the cycle, it\'s just so it\'s clear when pay is expected.');
+        } else {
+            hidePaydayWarning();
+        }
+    });
+});
+
+// ============================================
+// MANAGE HOLIDAYS
+// ============================================
+
+function loadHolidaysList() {
+    const tbody = document.getElementById('holidaysTableBody');
+    tbody.innerHTML = `<tr><td colspan="4" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>`;
+
+    fetch('?page=api_get_holidays')
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-danger py-3">${data.message || 'Failed to load'}</td></tr>`;
+                return;
+            }
+            const holidays = data.data.holidays || [];
+            if (!holidays.length) {
+                tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No holidays recorded.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = holidays.map(h => `
+                <tr>
+                    <td>${formatDate(h.holiday_date)}</td>
+                    <td>${escapeHtml(h.name)}</td>
+                    <td><span class="badge ${h.type === 'regular' ? 'bg-primary' : 'bg-secondary'}">${h.type === 'regular' ? 'Regular' : 'Special'}</span></td>
+                    <td class="text-end">
+                        <button type="button" class="btn btn-sm btn-outline-danger delete-holiday-btn" data-id="${h.id}"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `).join('');
+
+            tbody.querySelectorAll('.delete-holiday-btn').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    Swal.fire({
+                        title: 'Remove this holiday?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonText: 'Yes, remove',
+                        confirmButtonColor: '#dc3545'
+                    }).then(result => {
+                        if (!result.isConfirmed) return;
+                        fetch('?page=api_delete_holiday', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ id: this.dataset.id })
+                        })
+                            .then(r => r.json())
+                            .then(res => {
+                                if (res.success) {
+                                    holidaysCache = {};
+                                    loadHolidaysList();
+                                } else {
+                                    Swal.fire('Error', res.message || 'Failed to remove holiday', 'error');
+                                }
+                            });
+                    });
+                });
+            });
+        });
+}
+
+document.getElementById('manageHolidaysBtn')?.addEventListener('click', function () {
+    loadHolidaysList();
+    new bootstrap.Modal(document.getElementById('holidaysModal')).show();
+});
+
+document.getElementById('addHolidayForm')?.addEventListener('submit', function (e) {
+    e.preventDefault();
+    const date = document.getElementById('holidayDate').value;
+    const name = document.getElementById('holidayName').value.trim();
+    const type = document.getElementById('holidayType').value;
+
+    if (!date || !name) return;
+
+    fetch('?page=api_save_holiday', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ holiday_date: date, name, type })
+    })
+        .then(r => r.json())
+        .then(res => {
+            if (res.success) {
+                document.getElementById('addHolidayForm').reset();
+                document.getElementById('holidayType').value = 'special_non_working';
+                holidaysCache = {};
+                loadHolidaysList();
+            } else {
+                Swal.fire('Error', res.message || 'Failed to add holiday', 'error');
+            }
+        });
+});
 
 document.getElementById('createCycleForm').addEventListener('submit', function(e) {
     e.preventDefault();

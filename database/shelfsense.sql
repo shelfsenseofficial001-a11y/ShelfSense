@@ -554,6 +554,38 @@ INSERT INTO `goods_receipts` VALUES (1,1,5,'2026-09-06','completed',NULL,'2026-0
 UNLOCK TABLES;
 
 --
+-- Table structure for table `holidays`
+--
+
+DROP TABLE IF EXISTS `holidays`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `holidays` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `holiday_date` date NOT NULL,
+  `name` varchar(150) NOT NULL,
+  `type` enum('regular','special_non_working') NOT NULL DEFAULT 'special_non_working',
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `holiday_date` (`holiday_date`),
+  KEY `created_by` (`created_by`),
+  CONSTRAINT `holidays_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `holidays`
+--
+
+LOCK TABLES `holidays` WRITE;
+/*!40000 ALTER TABLE `holidays` DISABLE KEYS */;
+INSERT INTO `holidays` VALUES (1,'2026-01-01','New Year\'s Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(2,'2026-02-25','EDSA People Power Anniversary','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(3,'2026-04-01','Maundy Thursday','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(4,'2026-04-02','Good Friday','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(5,'2026-04-03','Black Saturday','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(6,'2026-04-09','Araw ng Kagitingan','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(7,'2026-05-01','Labor Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(8,'2026-06-12','Independence Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(9,'2026-08-21','Ninoy Aquino Day','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(10,'2026-08-31','National Heroes Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(11,'2026-11-01','All Saints\' Day','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(12,'2026-11-30','Bonifacio Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(13,'2026-12-08','Feast of the Immaculate Conception','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(14,'2026-12-24','Christmas Eve','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(15,'2026-12-25','Christmas Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(16,'2026-12-30','Rizal Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(17,'2026-12-31','Last Day of the Year','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(18,'2027-01-01','New Year\'s Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(19,'2027-02-25','EDSA People Power Anniversary','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(20,'2027-03-24','Maundy Thursday','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(21,'2027-03-25','Good Friday','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(22,'2027-03-26','Black Saturday','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(23,'2027-04-09','Araw ng Kagitingan','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(24,'2027-05-01','Labor Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(25,'2027-06-12','Independence Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(26,'2027-08-21','Ninoy Aquino Day','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(27,'2027-08-30','National Heroes Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(28,'2027-11-01','All Saints\' Day','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(29,'2027-11-30','Bonifacio Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(30,'2027-12-08','Feast of the Immaculate Conception','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(31,'2027-12-24','Christmas Eve','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(32,'2027-12-25','Christmas Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(33,'2027-12-30','Rizal Day','regular',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08'),(34,'2027-12-31','Last Day of the Year','special_non_working',NULL,'2026-09-13 05:30:08','2026-09-13 05:30:08');
+/*!40000 ALTER TABLE `holidays` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `interviews`
 --
 
@@ -1493,7 +1525,7 @@ CREATE TABLE `payroll_approval_logs` (
   KEY `action_by` (`action_by`),
   CONSTRAINT `payroll_approval_logs_ibfk_1` FOREIGN KEY (`payroll_cycle_id`) REFERENCES `payroll_cycles` (`id`) ON DELETE CASCADE,
   CONSTRAINT `payroll_approval_logs_ibfk_2` FOREIGN KEY (`action_by`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1543,7 +1575,7 @@ CREATE TABLE `payroll_cycles` (
   CONSTRAINT `payroll_cycles_ibfk_2` FOREIGN KEY (`verified_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `payroll_cycles_ibfk_3` FOREIGN KEY (`processed_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `payroll_cycles_ibfk_4` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2679,4 +2711,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-13 12:49:19
+-- Dump completed on 2026-09-13 13:34:58

@@ -748,6 +748,21 @@ if ($page === 'api_create_payroll_cycle') {
     exit;
 }
 
+if ($page === 'api_get_holidays') {
+    require_once __DIR__ . '/../app/handlers/hr/holidays/get_holidays.php';
+    exit;
+}
+
+if ($page === 'api_save_holiday') {
+    require_once __DIR__ . '/../app/handlers/hr/holidays/save_holiday.php';
+    exit;
+}
+
+if ($page === 'api_delete_holiday') {
+    require_once __DIR__ . '/../app/handlers/hr/holidays/delete_holiday.php';
+    exit;
+}
+
 if ($page === 'api_get_payroll_entries') {
     require_once __DIR__ . '/../app/handlers/hr/get_payroll_entries.php';
     exit;

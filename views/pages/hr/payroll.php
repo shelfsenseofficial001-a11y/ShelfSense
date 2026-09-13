@@ -4,7 +4,7 @@ use App\Models\PayrollCycle;
 $title = 'Payroll - ShelfSense HR';
 $pageTitle = 'Payroll Management';
 $activePage = 'payroll';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260908600000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260913100000"></script>';
 
 $currentMonth = date('m');
 $currentYear = date('Y');
@@ -95,7 +95,10 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
             <i class="bi bi-refresh"></i> Load Cycles
         </button>
     </div>
-    <div class="col-md-3 text-end d-flex align-items-end justify-content-end">
+    <div class="col-md-3 text-end d-flex align-items-end justify-content-end gap-2">
+        <button class="btn btn-outline-secondary btn-sm" id="manageHolidaysBtn">
+            <i class="bi bi-calendar-x"></i> Holidays
+        </button>
         <button class="btn btn-success btn-sm" id="createCycleBtn">
             <i class="bi bi-plus-circle"></i> Create New Cycle
         </button>
@@ -176,13 +179,14 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Half</label>
                         <select name="half" id="cycleHalf" class="form-select" required>
-                            <option value="1">1st Half (1-15/16)</option>
-                            <option value="2">2nd Half (16/17-end)</option>
+                            <option value="1">1st Half (1-15)</option>
+                            <option value="2">2nd Half (16-end)</option>
                         </select>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Payment Date</label>
                         <input type="date" name="payment_date" id="cyclePaymentDate" class="form-control" min="$currentDate" required>
+                        <small class="text-muted d-block mt-1">Suggested: up to 5 days after the cutoff ends, to give HR time to review payslips.</small>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Notes</label>
@@ -191,6 +195,10 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                     <div class="alert alert-info" id="cyclePreview">
                         <i class="bi bi-info-circle me-2"></i>
                         <small>Period: <span id="previewDates">Select month and half to preview</span></small>
+                    </div>
+                    <div class="alert alert-warning" id="paydayWarning" style="display:none;">
+                        <i class="bi bi-exclamation-triangle me-2"></i>
+                        <small id="paydayWarningText"></small>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -220,6 +228,54 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
             <div class="modal-header"><h5 class="modal-title">Approval Logs</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body" id="logsBody"><div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div></div>
             <div class="modal-footer"><button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button></div>
+        </div>
+    </div>
+</div>
+
+<!-- Manage Holidays Modal -->
+<div class="modal fade" id="holidaysModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-calendar-x me-2"></i>Manage Holidays</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small">Used to flag a proposed payday that falls on a holiday. Seeded with fixed-date and computable PH holidays for 2026-2027 -- add movable/proclaimed ones (e.g. Chinese New Year) yourself once announced.</p>
+                <form id="addHolidayForm" class="row g-2 align-items-end mb-3">
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Date</label>
+                        <input type="date" class="form-control form-control-sm" id="holidayDate" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Name</label>
+                        <input type="text" class="form-control form-control-sm" id="holidayName" placeholder="e.g. Chinese New Year" required>
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label small mb-1">Type</label>
+                        <select class="form-select form-select-sm" id="holidayType">
+                            <option value="regular">Regular</option>
+                            <option value="special_non_working" selected>Special Non-Working</option>
+                        </select>
+                    </div>
+                    <div class="col-1">
+                        <button type="submit" class="btn btn-sm btn-success w-100"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </form>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover mb-0">
+                        <thead>
+                            <tr><th>Date</th><th>Name</th><th>Type</th><th></th></tr>
+                        </thead>
+                        <tbody id="holidaysTableBody">
+                            <tr><td colspan="4" class="text-center py-3"><span class="spinner-border spinner-border-sm"></span></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
         </div>
     </div>
 </div>

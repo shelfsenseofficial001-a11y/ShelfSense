@@ -16,13 +16,18 @@ class CutoffPeriod
      * The two cutoff halves for a given year/month.
      * Each half: ['half' => 1|2, 'key' => 'YYYY-MM-H1', 'start_date' => 'YYYY-MM-DD',
      *             'end_date' => 'YYYY-MM-DD', 'label' => 'August 1-15, 2026']
+     *
+     * Fixed split: H1 is always the 1st-15th, H2 is always the 16th through
+     * whatever the last day of the month is -- no month-length-dependent
+     * variation. (Previously H1 ran through the 14th for months shorter
+     * than 31 days, to keep both halves closer to equal length.)
      */
     public static function getHalves($year, $month)
     {
         $year = (int)$year;
         $month = (int)$month;
         $daysInMonth = cal_days_in_month(CAL_GREGORIAN, $month, $year);
-        $mid = $daysInMonth >= 30 ? ($daysInMonth === 31 ? 16 : 15) : 15;
+        $mid = 16;
 
         $half1Start = sprintf('%04d-%02d-01', $year, $month);
         $half1End = sprintf('%04d-%02d-%02d', $year, $month, $mid - 1);
