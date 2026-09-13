@@ -2236,6 +2236,43 @@ LOCK TABLES `revenue_splits` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `schedule_overrides`
+--
+
+DROP TABLE IF EXISTS `schedule_overrides`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `schedule_overrides` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `user_id` int(11) NOT NULL,
+  `period_key` varchar(10) NOT NULL,
+  `day_of_week` enum('monday','tuesday','wednesday','thursday','friday','saturday','sunday') NOT NULL,
+  `time_in` time DEFAULT NULL,
+  `time_out` time DEFAULT NULL,
+  `is_rest_day` tinyint(1) NOT NULL DEFAULT 0,
+  `reason` varchar(255) DEFAULT NULL,
+  `changed_by` int(11) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `unique_user_period_day` (`user_id`,`period_key`,`day_of_week`),
+  KEY `idx_period_key` (`period_key`),
+  KEY `schedule_overrides_ibfk_2` (`changed_by`),
+  CONSTRAINT `schedule_overrides_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
+  CONSTRAINT `schedule_overrides_ibfk_2` FOREIGN KEY (`changed_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `schedule_overrides`
+--
+
+LOCK TABLES `schedule_overrides` WRITE;
+/*!40000 ALTER TABLE `schedule_overrides` DISABLE KEYS */;
+/*!40000 ALTER TABLE `schedule_overrides` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `schedules`
 --
 
@@ -2254,7 +2291,7 @@ CREATE TABLE `schedules` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `unique_user_day` (`user_id`,`day_of_week`),
   CONSTRAINT `schedules_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE
-) ENGINE=InnoDB AUTO_INCREMENT=43 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=45 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2585,7 +2622,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `employee_number` (`employee_number`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2594,7 +2631,7 @@ CREATE TABLE `users` (
 
 LOCK TABLES `users` WRITE;
 /*!40000 ALTER TABLE `users` DISABLE KEYS */;
-INSERT INTO `users` VALUES (1,'SA-001','Stephen','Frias',NULL,'stephenfrias4@gmail.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 03:51:28',1),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$ZoPV5BGPh67Uk0k2P4DNku7jL0N4HNsnb/fL4ftU37xvrulCQanSm','hr_staff',1,1,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-09 19:40:23',1),(4,'HS-002','Ana','Reyes',NULL,'stephenfrias04@gmail.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(5,'SM-001','Store','Manager',NULL,'store.manager@shelfsense.com','$2y$10$Jj3EEqnTWEmXM13woOPQ5OBCAB2rAbgv4m/v3b5E1U238.WwKM3oq','store_manager',4,0,1,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-10 00:37:10',1),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-09 17:21:23',1),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-09 17:21:23',1),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$dvVbq4luKdPoLk6N0la2yOvyoW2YgNLeShzMNkJXTeN6vBFq5lOGm','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-10 00:26:53',1),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-21 03:04:09','2026-09-06 11:33:52',1),(13,'SUP-002','Northgate','Supplies',NULL,'supplier2@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-09-06 15:00:17','2026-09-06 15:00:17',1),(14,'TR-002','Maya','Cruz',NULL,'maya.cruz.trainee@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','trainee',1,0,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-09-08 04:20:46','2026-09-08 04:20:46',1);
+INSERT INTO `users` VALUES (1,'SA-001','Stephen','Frias',NULL,'stephenfrias4@gmail.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','owner',5,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(2,'HH-001','Maria','Santos',NULL,'hr.head@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','hr_head',4,1,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-13 01:47:52',1),(3,'HS-001','Juan','Dela Cruz',NULL,'hr.staff@shelfsense.com','$2y$10$ZoPV5BGPh67Uk0k2P4DNku7jL0N4HNsnb/fL4ftU37xvrulCQanSm','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-13 01:49:53',1),(4,'HS-002','Ana','Reyes',NULL,'stephenfrias04@gmail.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','hr_staff',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(5,'SM-001','Store','Manager',NULL,'store.manager@shelfsense.com','$2y$10$Jj3EEqnTWEmXM13woOPQ5OBCAB2rAbgv4m/v3b5E1U238.WwKM3oq','store_manager',4,0,1,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-10 00:37:10',1),(6,'FH-001','Finance','Head',NULL,'finance.head@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_head',4,0,1,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-09 17:21:23',1),(7,'FS-001','Finance','Staff',NULL,'finance.staff@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-09 17:21:23',1),(8,'FS-002','Sarah','Williams',NULL,'finance.staff2@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','finance_staff',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(9,'CA-001','Cashier','Test',NULL,'employee@shelfsense.com','$2y$10$dvVbq4luKdPoLk6N0la2yOvyoW2YgNLeShzMNkJXTeN6vBFq5lOGm','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-10 00:26:53',1),(10,'CA-002','John','Doe',NULL,'rumbines.allen@ncst.edu.ph','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','employee',1,1,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(11,'TR-001','Trainee','User',NULL,'trainee@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','trainee',0,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-20 17:09:05','2026-09-08 04:07:01',1),(12,'SUP-001','Sample','Supplier',NULL,'supplier@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,1,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-08-21 03:04:09','2026-09-06 11:33:52',1),(13,'SUP-002','Northgate','Supplies',NULL,'supplier2@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','supplier',1,0,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-09-06 15:00:17','2026-09-06 15:00:17',1),(14,'TR-002','Maya','Cruz',NULL,'maya.cruz.trainee@shelfsense.com','$2y$10$ai3l/XJb5tdOU2Be7frVS.Tz5nS8DadjTkOJD6UuYHHB2E2KUKk6W','trainee',1,0,0,1,0,NULL,NULL,'none',NULL,NULL,15.00,15.00,5.00,0.00,60.00,'2026-09-08 04:20:46','2026-09-08 04:20:46',1);
 /*!40000 ALTER TABLE `users` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2641,4 +2678,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-10 13:00:53
+-- Dump completed on 2026-09-13  9:50:08

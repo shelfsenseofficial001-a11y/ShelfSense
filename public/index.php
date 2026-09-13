@@ -685,6 +685,41 @@ if ($page === 'api_get_all_employees') {
 }
 
 // ============================================
+// SCHEDULE OVERRIDES (per-cutoff changes) -- shared between HR and
+// Store Manager, each server-side scoped to what they're allowed to touch
+// ============================================
+
+if ($page === 'api_get_schedule_periods') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/get_periods.php';
+    exit;
+}
+
+if ($page === 'api_get_effective_schedule') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/get_effective_schedule.php';
+    exit;
+}
+
+if ($page === 'api_save_schedule_override') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/save_override.php';
+    exit;
+}
+
+if ($page === 'api_delete_schedule_override') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/delete_override.php';
+    exit;
+}
+
+if ($page === 'api_get_schedule_period_changes') {
+    require_once __DIR__ . '/../app/handlers/shared/schedules/get_period_changes.php';
+    exit;
+}
+
+if ($page === 'api_sm_get_front_department_employees') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_front_department_employees.php';
+    exit;
+}
+
+// ============================================
 // PAYROLL ROUTES
 // ============================================
 
@@ -936,6 +971,19 @@ if ($page === 'store_manager_requisitions') {
         exit;
     }
     require_once __DIR__ . '/../views/pages/store_manager/requisitions.php';
+    exit;
+}
+
+if ($page === 'store_manager_schedules') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/store_manager/schedules.php';
     exit;
 }
 

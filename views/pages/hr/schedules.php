@@ -9,7 +9,8 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $title = 'Employee Schedules - ShelfSense HR';
 $pageTitle = 'Employee Schedules';
 $activePage = 'schedules';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260908600000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/schedule-overrides.js?v=20260913100000"></script>'
+    . '<script src="/ShelfSense/public/assets/js/hr/schedules.js?v=20260913100000"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<HTML
 <style>
@@ -201,6 +202,44 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
         </div>
         <div class="card-footer">
             <span class="text-muted small">Set Time In/Out for each day. Check "Rest Day" for non-working days.</span>
+        </div>
+    </div>
+
+    <!-- Cutoff Schedule Changes: per-period overrides on top of the
+         standing schedule above -- most employees/periods have none. -->
+    <div class="modern-card">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span><i class="bi bi-calendar2-range me-2"></i>Cutoff Schedule Changes</span>
+                <select class="form-select form-select-sm" style="width:auto;" id="periodSelect"></select>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0 schedule-grid-table">
+                    <thead>
+                        <tr>
+                            <th style="min-width:100px; text-align:left;">Day</th>
+                            <th>Time In</th>
+                            <th>Time Out</th>
+                            <th>Rest Day</th>
+                            <th>Status</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="overrideGridBody">
+                        <tr><td colspan="6" class="text-center text-muted py-3">Select an employee to view.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="card-footer">
+            <div class="d-flex gap-2 align-items-center flex-wrap">
+                <input type="text" class="form-control form-control-sm" id="overrideReason" placeholder="Reason for this change (optional)" style="max-width:320px;">
+                <button class="btn btn-sm btn-success" id="saveOverrideBtn"><i class="bi bi-save"></i> Save Changes</button>
+                <button class="btn btn-sm btn-outline-secondary" id="resetOverrideBtn"><i class="bi bi-arrow-counterclockwise"></i> Reset</button>
+                <span class="text-muted small ms-auto">Only affects the selected cutoff period -- the standing schedule above is untouched.</span>
+            </div>
         </div>
     </div>
     </div>

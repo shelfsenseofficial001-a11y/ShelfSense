@@ -4,10 +4,12 @@
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 
 header('Content-Type: application/json');
 
@@ -82,6 +84,26 @@ try {
             $scheduleRecords[$row['day_of_week']] = $row;
         }
 
+        // Per-cutoff overrides on top of the standing schedule above -- a
+        // date range can span more than one H1/H2 period, so index by
+        // period_key + day_of_week rather than assuming one period.
+        $periodKeys = array_unique(array_map(function ($d) {
+            return CutoffPeriod::getKeyForDate($d);
+        }, $days));
+        $overridesByPeriodDay = [];
+        if (!empty($periodKeys)) {
+            $placeholders = implode(',', array_fill(0, count($periodKeys), '?'));
+            $overrideStmt = $db->prepare("
+                SELECT period_key, day_of_week, time_in, time_out, is_rest_day
+                FROM schedule_overrides
+                WHERE user_id = ? AND period_key IN ($placeholders)
+            ");
+            $overrideStmt->execute(array_merge([$userId], $periodKeys));
+            while ($row = $overrideStmt->fetch()) {
+                $overridesByPeriodDay[$row['period_key']][$row['day_of_week']] = $row;
+            }
+        }
+
         $dtrStmt = $db->prepare("
             SELECT dtr_image_path FROM attendance_weekly_summaries
             WHERE user_id = ? AND week_start_date = ?
@@ -95,7 +117,8 @@ try {
         foreach ($days as $date) {
             $dayOfWeek = strtolower(date('l', strtotime($date)));
             $attendance = $attendanceRecords[$date] ?? null;
-            $schedule = $scheduleRecords[$dayOfWeek] ?? null;
+            $periodKey = CutoffPeriod::getKeyForDate($date);
+            $schedule = $overridesByPeriodDay[$periodKey][$dayOfWeek] ?? ($scheduleRecords[$dayOfWeek] ?? null);
 
             $userData['days'][$date] = [
                 'date' => $date,

@@ -34,6 +34,7 @@ function loadSchedule(userId) {
 
     currentEmployeeId = userId;
     updateSyncButtonVisibility(userId);
+    if (window.ScheduleOverrides) ScheduleOverrides.reload();
 
     // Load schedule
     const tbody = document.getElementById('scheduleGridBody');
@@ -576,6 +577,16 @@ function escapeHtml(text) {
 // ============================================
 
 document.addEventListener('DOMContentLoaded', function() {
+    ScheduleOverrides.init({
+        periodSelectId: 'periodSelect',
+        tableBodyId: 'overrideGridBody',
+        reasonInputId: 'overrideReason',
+        saveBtnId: 'saveOverrideBtn',
+        resetBtnId: 'resetOverrideBtn',
+        emptyMessage: 'Select an employee to view.',
+        getCurrentUserId: () => currentEmployeeId
+    });
+
     document.getElementById('saveScheduleBtn').addEventListener('click', saveSchedule);
     document.querySelectorAll('.reset-schedule-btn').forEach(function(btn) {
         btn.addEventListener('click', resetSchedule);

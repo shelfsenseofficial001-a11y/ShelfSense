@@ -74,6 +74,9 @@ use App\Core\Auth;
                 <a href="?page=store_manager_budget" class="nav-item <?= $activePage === 'budget' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-cash-stack"></i></span> <span class="nav-label">Budget</span>
                 </a>
+                <a href="?page=store_manager_schedules" class="nav-item <?= $activePage === 'schedules' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-calendar-week"></i></span> <span class="nav-label">Schedules</span>
+                </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?= $activePage === 'my_leaves' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>

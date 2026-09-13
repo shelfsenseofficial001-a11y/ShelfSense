@@ -2,10 +2,12 @@
 // app/handlers/hr/get_employee_contract.php
 
 require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../models/Schedule.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Models\Schedule;
 
 header('Content-Type: application/json');
 
@@ -13,14 +15,18 @@ if (!Auth::check()) {
     Response::unauthorized('Please login to access this resource');
 }
 
-if (!Auth::canAccessModule('hr_head')) {
-    Response::forbidden('Access denied. HR role required.');
-}
-
 $userId = isset($_GET['user_id']) ? intval($_GET['user_id']) : 0;
 
 if ($userId <= 0) {
     Response::error('Invalid user ID', 400);
+}
+
+// HR sees everyone's contract; Store Manager only Front Department's --
+// they consult the contract's shift when scheduling, but shouldn't see
+// contract terms for staff outside their department.
+$isStoreManagerAllowed = Auth::isStoreManager() && (new Schedule())->isFrontDepartmentUser($userId);
+if (!Auth::canAccessModule('hr_head') && !$isStoreManagerAllowed) {
+    Response::forbidden('Access denied.');
 }
 
 try {

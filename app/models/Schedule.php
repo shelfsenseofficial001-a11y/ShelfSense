@@ -61,4 +61,167 @@ class Schedule
         ");
         return $stmt->fetchAll();
     }
+
+    /**
+     * Front Department staff for Store Manager's scheduling scope: hired
+     * cashiers (role=employee) plus Employee-track trainees. Mirrors the
+     * same role/target_role rule already used at the POS cashier picker.
+     */
+    public function getFrontDepartmentEmployees()
+    {
+        $stmt = $this->db->query("
+            SELECT u.user_id, u.first_name, u.last_name, u.employee_number, u.role
+            FROM users u
+            WHERE u.is_active = 1 AND u.role = 'employee'
+            UNION
+            SELECT u.user_id, u.first_name, u.last_name, u.employee_number, u.role
+            FROM users u
+            JOIN trainees t ON t.user_id = u.user_id
+            WHERE u.is_active = 1 AND u.role = 'trainee'
+              AND t.status = 'active' AND t.target_role = 'Employee'
+            ORDER BY first_name
+        ");
+        return $stmt->fetchAll();
+    }
+
+    /**
+     * True if $userId is in Store Manager's Front Department scope -- used
+     * to server-side-enforce the scoping restriction on every write, not
+     * just hide other employees in the UI.
+     */
+    public function isFrontDepartmentUser($userId)
+    {
+        $stmt = $this->db->prepare("
+            SELECT 1 FROM users u
+            LEFT JOIN trainees t ON t.user_id = u.user_id AND t.status = 'active'
+            WHERE u.user_id = ? AND u.is_active = 1
+              AND (u.role = 'employee' OR (u.role = 'trainee' AND t.target_role = 'Employee'))
+        ");
+        $stmt->execute([$userId]);
+        return (bool)$stmt->fetch();
+    }
+
+    // ============================================
+    // PER-CUTOFF OVERRIDES
+    // The standing schedule above is the recurring baseline (contract-
+    // synced). These rows are actual deviations for one specific cutoff
+    // period only -- most users/periods have none. Effective schedule for
+    // a (user, period, day) is the override if present, else baseline.
+    // ============================================
+
+    public function getOverridesForUserPeriod($userId, $periodKey)
+    {
+        $stmt = $this->db->prepare("
+            SELECT * FROM schedule_overrides WHERE user_id = ? AND period_key = ?
+        ");
+        $stmt->execute([$userId, $periodKey]);
+        $rows = $stmt->fetchAll();
+        $byDay = [];
+        foreach ($rows as $row) {
+            $byDay[$row['day_of_week']] = $row;
+        }
+        return $byDay;
+    }
+
+    /**
+     * The baseline schedule with any per-period overrides merged in --
+     * what actually applies for this user on this cutoff. Each returned
+     * day is tagged is_override so the UI can show which days deviate.
+     */
+    public function getEffectiveSchedule($userId, $periodKey)
+    {
+        $baseline = $this->getUserSchedule($userId);
+        $overrides = $this->getOverridesForUserPeriod($userId, $periodKey);
+
+        $result = [];
+        foreach ($baseline as $row) {
+            $day = $row['day_of_week'];
+            if (isset($overrides[$day])) {
+                $o = $overrides[$day];
+                $result[] = [
+                    'day_of_week' => $day,
+                    'time_in' => $o['time_in'],
+                    'time_out' => $o['time_out'],
+                    'is_rest_day' => $o['is_rest_day'],
+                    'is_override' => true,
+                    'reason' => $o['reason'],
+                ];
+                unset($overrides[$day]);
+            } else {
+                $result[] = [
+                    'day_of_week' => $day,
+                    'time_in' => $row['time_in'],
+                    'time_out' => $row['time_out'],
+                    'is_rest_day' => $row['is_rest_day'],
+                    'is_override' => false,
+                    'reason' => null,
+                ];
+            }
+        }
+
+        // An override for a day with no baseline row at all (baseline
+        // hasn't been set up yet) still applies -- surface it too.
+        foreach ($overrides as $day => $o) {
+            $result[] = [
+                'day_of_week' => $day,
+                'time_in' => $o['time_in'],
+                'time_out' => $o['time_out'],
+                'is_rest_day' => $o['is_rest_day'],
+                'is_override' => true,
+                'reason' => $o['reason'],
+            ];
+        }
+
+        return $result;
+    }
+
+    public function saveOverride($userId, $periodKey, $dayOfWeek, $timeIn, $timeOut, $isRestDay, $changedBy, $reason = null)
+    {
+        $stmt = $this->db->prepare("
+            INSERT INTO schedule_overrides (user_id, period_key, day_of_week, time_in, time_out, is_rest_day, changed_by, reason)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                time_in = VALUES(time_in),
+                time_out = VALUES(time_out),
+                is_rest_day = VALUES(is_rest_day),
+                changed_by = VALUES(changed_by),
+                reason = VALUES(reason),
+                updated_at = NOW()
+        ");
+        return $stmt->execute([$userId, $periodKey, $dayOfWeek, $timeIn, $timeOut, $isRestDay, $changedBy, $reason]);
+    }
+
+    public function deleteOverride($userId, $periodKey, $dayOfWeek)
+    {
+        $stmt = $this->db->prepare("
+            DELETE FROM schedule_overrides WHERE user_id = ? AND period_key = ? AND day_of_week = ?
+        ");
+        return $stmt->execute([$userId, $periodKey, $dayOfWeek]);
+    }
+
+    /**
+     * Every change made for a cutoff period, across users -- the "list of
+     * changes" view. $frontDepartmentOnly scopes it to Store Manager's
+     * Front Department staff instead of everyone.
+     */
+    public function getChangesForPeriod($periodKey, $frontDepartmentOnly = false)
+    {
+        $sql = "
+            SELECT so.*, u.first_name, u.last_name, u.employee_number, u.role,
+                   CONCAT(cb.first_name, ' ', cb.last_name) as changed_by_name
+            FROM schedule_overrides so
+            JOIN users u ON u.user_id = so.user_id
+            LEFT JOIN users cb ON cb.user_id = so.changed_by
+            LEFT JOIN trainees t ON t.user_id = u.user_id AND t.status = 'active'
+            WHERE so.period_key = ?
+        ";
+        if ($frontDepartmentOnly) {
+            $sql .= " AND (u.role = 'employee' OR (u.role = 'trainee' AND t.target_role = 'Employee'))";
+        }
+        $sql .= " ORDER BY so.updated_at DESC";
+
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$periodKey]);
+        return $stmt->fetchAll();
+    }
 }

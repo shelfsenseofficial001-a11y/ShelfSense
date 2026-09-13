@@ -2,10 +2,12 @@
 // app/handlers/hr/sync_schedule_from_contract.php
 
 require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../models/Schedule.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Models\Schedule;
 
 header('Content-Type: application/json');
 
@@ -13,19 +15,22 @@ if (!Auth::check()) {
     Response::unauthorized('Please login to access this resource');
 }
 
-// Allow HR, SuperAdmin, and HR trainees
-$targetRole = Auth::getNormalizedTargetRole();
-$isHrTrainee = Auth::isTrainee() && in_array($targetRole, ['hr_head', 'hr_staff']);
-
-if (!Auth::canAccessModule('hr_head') && !$isHrTrainee) {
-    Response::forbidden('Access denied. HR role required.');
-}
-
 $input = json_decode(file_get_contents('php://input'), true);
 $userId = isset($input['user_id']) ? intval($input['user_id']) : 0;
 
 if ($userId <= 0) {
     Response::error('Invalid user ID', 400);
+}
+
+// Allow HR, SuperAdmin, HR trainees, and Store Manager for Front
+// Department staff only.
+$targetRole = Auth::getNormalizedTargetRole();
+$isHrTrainee = Auth::isTrainee() && in_array($targetRole, ['hr_head', 'hr_staff']);
+$isHr = Auth::canAccessModule('hr_head') || $isHrTrainee;
+$isStoreManagerAllowed = Auth::isStoreManager() && (new Schedule())->isFrontDepartmentUser($userId);
+
+if (!$isHr && !$isStoreManagerAllowed) {
+    Response::forbidden('Access denied.');
 }
 
 try {
