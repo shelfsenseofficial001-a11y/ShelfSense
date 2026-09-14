@@ -25,8 +25,8 @@ use App\Core\Auth;
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260913920000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260908380000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260908520000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260914050000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260914330000">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -42,26 +42,6 @@ use App\Core\Auth;
                 </span>
                 <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
                 <span class="badge bg-primary ms-2">HR</span>
-            </div>
-
-            <!-- Profile block pinned to the top of the sidebar -->
-            <div class="sidebar-user">
-                <a href="?page=profile" class="user-profile-link" title="Profile">
-                    <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
-                        <?php if (!empty($_SESSION['profile_pic'])): ?>
-                        <img src="/ShelfSense/public/<?php echo htmlspecialchars($_SESSION['profile_pic']); ?>" alt="Profile">
-                        <?php else: ?>
-                        <i class="bi bi-person-fill text-dark"></i>
-                        <?php endif; ?>
-                    </div>
-                    <div class="user-info">
-                        <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'HR Staff'); ?></div>
-                        <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? 'hr_staff'); ?></small>
-                    </div>
-                </a>
-                <a href="?page=profile" class="user-edit-btn" title="Edit Profile">
-                    <i class="bi bi-pencil-square"></i>
-                </a>
             </div>
 
             <!-- Standalone collapse toggle — its own row, like a nav item -->
@@ -118,18 +98,44 @@ use App\Core\Auth;
                     <span class="nav-icon-wrap"><i class="bi bi-credit-card-2-front"></i></span> <span class="nav-label">POS Accounts</span>
                 </a>
                 <?php endif; ?>
-                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
-                <a href="?page=my_leaves" class="nav-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>" title="My Leaves">
-                    <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
-                </a>
-                <a href="?page=my_payslip" class="nav-item <?php echo $activePage === 'payslip' ? 'active' : ''; ?>" title="My Payslip">
-                    <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span> <span class="nav-label">My Payslip</span>
-                </a>
-                <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Account</span></div>
-                <a href="?page=logout" class="nav-item text-danger" title="Logout">
-                    <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Logout</span>
-                </a>
             </nav>
+
+            <!-- Profile block pinned to the bottom of the sidebar -- click
+                 the up-chevron to reveal My Leaves / My Payslip / Edit
+                 Profile / Logout in a menu that opens upward above it. -->
+            <div class="sidebar-user" id="sidebarUserBlock">
+                <a href="?page=profile" class="user-profile-link" title="Profile">
+                    <div class="avatar-sm bg-yellow rounded-circle d-flex align-items-center justify-content-center">
+                        <?php if (!empty($_SESSION['profile_pic'])): ?>
+                        <img src="/ShelfSense/public/<?php echo htmlspecialchars($_SESSION['profile_pic']); ?>" alt="Profile">
+                        <?php else: ?>
+                        <i class="bi bi-person-fill text-dark"></i>
+                        <?php endif; ?>
+                    </div>
+                    <div class="user-info">
+                        <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'HR Staff'); ?></div>
+                        <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? 'hr_staff'); ?></small>
+                    </div>
+                </a>
+                <button type="button" class="user-menu-toggle" id="sidebarUserMenuToggle" title="More">
+                    <i class="bi bi-chevron-up"></i>
+                </button>
+                <div class="sidebar-user-menu" id="sidebarUserMenu">
+                    <a href="?page=my_leaves" class="sidebar-user-menu-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>">
+                        <i class="bi bi-calendar2-week"></i> My Leaves
+                    </a>
+                    <a href="?page=my_payslip" class="sidebar-user-menu-item <?php echo $activePage === 'payslip' ? 'active' : ''; ?>">
+                        <i class="bi bi-wallet2"></i> My Payslip
+                    </a>
+                    <a href="?page=profile" class="sidebar-user-menu-item">
+                        <i class="bi bi-pencil-square"></i> Edit Profile
+                    </a>
+                    <div class="sidebar-user-menu-divider"></div>
+                    <a href="?page=logout" class="sidebar-user-menu-item text-danger">
+                        <i class="bi bi-box-arrow-right"></i> Logout
+                    </a>
+                </div>
+            </div>
         </div>
 
         <!-- Main Content -->
@@ -264,12 +270,101 @@ use App\Core\Auth;
             color: var(--brand-yellow);
         }
 
+        /* Lets .sidebar-nav's flex:1 1 auto (below) actually push the
+           profile block (margin-top:auto) down to the bottom of the
+           sidebar -- if the nav list is ever taller than the viewport,
+           the whole sidebar (already overflow-y:auto, position:fixed;
+           height:100vh via dashboard-theme.css) just scrolls as one
+           unit, so the profile block still ends up reachable at the
+           very bottom of that scroll. */
+        .hr-sidebar {
+            display: flex;
+            flex-direction: column;
+        }
+
         .hr-sidebar .sidebar-user {
+            position: relative;
             display: flex;
             align-items: center;
             gap: 12px;
             padding: 10px 20px;
-            border-bottom: 1px solid var(--border-color);
+            margin-top: auto;
+            flex-shrink: 0;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .hr-sidebar .user-menu-toggle {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--text-muted);
+            transition: background 0.15s ease, color 0.15s ease, transform 0.2s ease;
+        }
+        .hr-sidebar .user-menu-toggle:hover {
+            background: var(--light-yellow-subtle);
+            color: var(--text-main);
+        }
+        .hr-sidebar .sidebar-user.open .user-menu-toggle {
+            transform: rotate(180deg);
+        }
+
+        .hr-sidebar .sidebar-user-menu {
+            position: absolute;
+            left: 12px;
+            right: 12px;
+            bottom: calc(100% + 8px);
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            padding: 6px;
+            display: none;
+            flex-direction: column;
+            gap: 1px;
+            z-index: 60;
+        }
+        .hr-sidebar .sidebar-user.open .sidebar-user-menu {
+            display: flex;
+        }
+
+        .hr-sidebar .sidebar-user-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: background 0.15s ease, color 0.15s ease;
+        }
+        .hr-sidebar .sidebar-user-menu-item:hover {
+            background: var(--light-yellow-subtle);
+            color: var(--text-main);
+        }
+        .hr-sidebar .sidebar-user-menu-item.active {
+            background: var(--light-yellow-subtle);
+            color: var(--brand-yellow-hover);
+            font-weight: 600;
+        }
+        .hr-sidebar .sidebar-user-menu-divider {
+            margin: 4px 6px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* Collapsed sidebar: icon-only, so the menu toggle (which would
+           have no room next to a label-less avatar) hides too -- expand
+           the sidebar to reach My Leaves/My Payslip/Edit Profile/Logout.
+           (justify-content/padding/profile-link sizing for this state
+           already come from the shared collapsed-sidebar rules.) */
+        body.dashboard-theme .hr-sidebar.collapsed .sidebar-user .user-menu-toggle {
+            display: none;
         }
 
         .hr-sidebar .sidebar-user .avatar-sm {
@@ -503,6 +598,24 @@ use App\Core\Auth;
                     document.getElementById('hrSidebar').classList.toggle('open');
                 });
                 topbar.prepend(toggleBtn);
+            }
+
+            // Profile "upbar" -- opens the My Leaves / My Payslip / Edit
+            // Profile / Logout menu above the bottom-pinned profile block.
+            const userBlock = document.getElementById('sidebarUserBlock');
+            const menuToggle = document.getElementById('sidebarUserMenuToggle');
+            const menu = document.getElementById('sidebarUserMenu');
+            if (userBlock && menuToggle && menu) {
+                menuToggle.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    userBlock.classList.toggle('open');
+                });
+                document.addEventListener('click', function(e) {
+                    if (!userBlock.contains(e.target)) userBlock.classList.remove('open');
+                });
+                document.addEventListener('keydown', function(e) {
+                    if (e.key === 'Escape') userBlock.classList.remove('open');
+                });
             }
         });
     </script>

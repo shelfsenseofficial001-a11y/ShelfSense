@@ -325,6 +325,19 @@ if ($page === 'hr_job_postings') {
     exit;
 }
 
+if ($page === 'hr_job_posting_form') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isHR() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/hr/job_posting_form.php';
+    exit;
+}
+
 if ($page === 'hr_recruitment_calendar') {
     if (!Auth::check()) {
         Response::redirect('?page=login');
@@ -377,6 +390,10 @@ if ($page === 'api_hr_archive_job_posting') {
 }
 if ($page === 'api_hr_reuse_job_posting') {
     require_once __DIR__ . '/../app/handlers/hr/job_postings/reuse_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_delete_job_posting') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/delete_job_posting.php';
     exit;
 }
 

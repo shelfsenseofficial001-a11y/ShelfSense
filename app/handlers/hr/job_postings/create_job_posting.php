@@ -37,18 +37,27 @@ $salaryMax = $input['salary_range_max'] ?? null;
 $openUntil = isset($input['open_until']) ? trim($input['open_until']) : '';
 $submitNow = !empty($input['submit']);
 
+// Only the title is strictly required to persist a draft -- everything
+// else (department, description, closing date, ...) is validated for
+// format/length when present, but its actual *presence* is only enforced
+// at submit time (see submit_job_posting.php), so an unfinished posting
+// can always be saved as a draft instead of losing work or blocking the
+// page from being left. Whether a field still needs attention before
+// submission is driven client-side by the Publishing Checklist.
 $errors = [];
 if ($title === '' || mb_strlen($title) > 100) $errors['title'] = 'Title is required (max 100 characters).';
-if (!in_array($departmentGroup, JOB_POSTING_DEPARTMENT_GROUPS, true)) $errors['department_group'] = 'Please select a valid department.';
-if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) {
-    $errors['department'] = 'Please select a valid position.';
-} elseif (!empty($departmentGroup) && !in_array($department, JOB_POSTING_GROUP_POSITIONS[$departmentGroup] ?? [], true)) {
-    $errors['department'] = 'This position does not belong to the selected department.';
+if ($departmentGroup !== '' && !in_array($departmentGroup, JOB_POSTING_DEPARTMENT_GROUPS, true)) $errors['department_group'] = 'Please select a valid department.';
+if ($department !== '') {
+    if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) {
+        $errors['department'] = 'Please select a valid position.';
+    } elseif (!empty($departmentGroup) && !in_array($department, JOB_POSTING_GROUP_POSITIONS[$departmentGroup] ?? [], true)) {
+        $errors['department'] = 'This position does not belong to the selected department.';
+    }
 }
-if ($role === '' || mb_strlen($role) > 50) $errors['role'] = 'Role is required (max 50 characters).';
+if ($role !== '' && mb_strlen($role) > 50) $errors['role'] = 'Role cannot exceed 50 characters.';
 if (mb_strlen($location) > 150) $errors['location'] = 'Location cannot exceed 150 characters.';
 if ($slots !== '' && (!ctype_digit($slots) || (int)$slots < 1 || (int)$slots > 299)) $errors['slots'] = 'Slots must be a whole number between 1 and 299, or left blank for unlimited.';
-if ($description === '' || mb_strlen($description) > 5000) $errors['description'] = 'Description is required (max 5000 characters).';
+if (mb_strlen($description) > 5000) $errors['description'] = 'Description cannot exceed 5000 characters.';
 if ($requirements !== '' && mb_strlen($requirements) > 5000) $errors['requirements'] = 'Requirements cannot exceed 5000 characters.';
 if ($responsibilities !== '' && mb_strlen($responsibilities) > 5000) $errors['responsibilities'] = 'Responsibilities cannot exceed 5000 characters.';
 if ($salaryMin !== null && $salaryMin !== '' && (!is_numeric($salaryMin) || $salaryMin < 0)) $errors['salary_range_min'] = 'Minimum salary must be a non-negative number.';
@@ -56,12 +65,14 @@ if ($salaryMax !== null && $salaryMax !== '' && (!is_numeric($salaryMax) || $sal
 if ($salaryMin !== null && $salaryMin !== '' && $salaryMax !== null && $salaryMax !== '' && (float)$salaryMax < (float)$salaryMin) {
     $errors['salary_range_max'] = 'Maximum salary cannot be less than minimum salary.';
 }
-if ($openUntil === '' || !validateDate($openUntil)) {
-    $errors['open_until'] = 'A valid closing date (YYYY-MM-DD) is required.';
-} elseif ($openUntil < date('Y-m-d')) {
-    $errors['open_until'] = 'Closing date cannot be in the past.';
-} elseif ($openUntil > date('Y-m-d', strtotime('+6 months'))) {
-    $errors['open_until'] = 'Closing date cannot be more than 6 months out.';
+if ($openUntil !== '') {
+    if (!validateDate($openUntil)) {
+        $errors['open_until'] = 'Closing date must be a valid date (YYYY-MM-DD).';
+    } elseif ($openUntil < date('Y-m-d')) {
+        $errors['open_until'] = 'Closing date cannot be in the past.';
+    } elseif ($openUntil > date('Y-m-d', strtotime('+6 months'))) {
+        $errors['open_until'] = 'Closing date cannot be more than 6 months out.';
+    }
 }
 
 if (empty($errors)) {
@@ -83,6 +94,20 @@ if (!empty($errors)) {
     Response::error('Please correct the highlighted fields.', 400, $errors);
 }
 
+// role has no user-facing meaning (see job_posting_form.js) -- it only
+// exists as a NOT NULL, unique-among-active-postings internal key. The
+// client always sends a slugified one, but fall back to generating one
+// here too now that it's no longer a required field.
+if ($role === '') {
+    $role = 'posting-' . time() . '-' . random_int(100, 999);
+}
+// department_group is a NOT NULL enum with no blank option -- an
+// unfinished draft saved before a department is picked still needs a
+// placeholder value to satisfy the column.
+if ($departmentGroup === '') {
+    $departmentGroup = 'Front Department';
+}
+
 try {
     $model = new JobPosting();
     $id = $model->create([
@@ -98,7 +123,7 @@ try {
         'responsibilities' => $responsibilities !== '' ? $responsibilities : null,
         'salary_range_min' => $salaryMin !== '' ? $salaryMin : null,
         'salary_range_max' => $salaryMax !== '' ? $salaryMax : null,
-        'open_until' => $openUntil,
+        'open_until' => $openUntil !== '' ? $openUntil : null,
         'status' => 'draft',
         'created_by' => Auth::userId()
     ]);

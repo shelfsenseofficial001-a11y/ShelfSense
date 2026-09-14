@@ -41,6 +41,26 @@ if (!in_array($posting['status'], ['draft', 'rejected'], true)) {
     Response::error('Only draft or rejected postings can be submitted for approval. Current status: ' . $posting['status'], 400);
 }
 
+// Draft saves only ever required a title (see create/update_job_posting.php)
+// -- everything else the Publishing Checklist marks "Required" is enforced
+// here instead, right before a posting actually goes live for review. Keep
+// this list in sync with JP_CHECKLIST_ITEMS in job_posting_form.js.
+$missing = [];
+if (trim((string)$posting['title']) === '') $missing[] = 'Job Title';
+if (!in_array($posting['department_group'], JOB_POSTING_DEPARTMENT_GROUPS, true)) $missing[] = 'Department';
+if (!in_array($posting['department'], JOB_POSTING_DEPARTMENTS, true)) $missing[] = 'Position';
+if (trim((string)$posting['location']) === '') $missing[] = 'Location';
+if (trim((string)$posting['description']) === '') $missing[] = 'Description';
+if (empty($posting['open_until'])) $missing[] = 'Timeline (Closing Date)';
+// Qualifications are only a suggestion for most positions, but a real
+// requirement for HR, Finance, and Store Manager postings.
+if (in_array($posting['department'], ['HR Staff', 'Finance Staff', 'Store Manager'], true) && trim((string)($posting['requirements'] ?? '')) === '') {
+    $missing[] = 'Qualifications';
+}
+if (!empty($missing)) {
+    Response::error('This posting is missing required information before it can be submitted: ' . implode(', ', $missing) . '.', 400);
+}
+
 try {
     if (!$model->submitForApproval($id)) {
         Response::error('Failed to submit job posting.', 500);

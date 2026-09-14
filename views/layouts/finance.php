@@ -22,7 +22,7 @@ $role = Auth::role();
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260913920000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260908380000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260914050000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/finance.css">
     <?= $additional_css ?? '' ?>
 </head>

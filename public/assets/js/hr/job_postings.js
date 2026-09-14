@@ -1,30 +1,11 @@
 // ============================================
-// HR - JOB POSTINGS
+// HR - JOB POSTINGS (list + review/archive/reuse)
+// Create/edit now lives on its own page -- see job_posting_form.js.
 // ============================================
 
 let jpPage = 1;
 let jpBusy = false;
 let jpCurrentDetail = null;
-
-// Mirrors JOB_POSTING_GROUP_POSITIONS in app/helpers/functions.php -- keep
-// in sync if a department ever gets more positions.
-const JP_GROUP_POSITIONS = {
-    'Front Department': ['Cashier'],
-    'Human Resources Department': ['HR Staff'],
-    'Finance Department': ['Finance Staff'],
-};
-
-function populatePositionOptions(group, selectedPosition) {
-    const posSelect = document.getElementById('postingDepartment');
-    const positions = JP_GROUP_POSITIONS[group] || [];
-    posSelect.innerHTML = '<option value=""></option>' + positions.map(p => `<option value="${p}">${p}</option>`).join('');
-    posSelect.disabled = positions.length === 0;
-    posSelect.value = selectedPosition && positions.includes(selectedPosition) ? selectedPosition : '';
-    window.refreshSearchableSelect && window.refreshSearchableSelect(posSelect);
-    // Assigning .value directly doesn't fire 'change', so the live preview
-    // (which listens on postingDepartment) would otherwise miss this.
-    if (typeof renderFullPreview === 'function') renderFullPreview();
-}
 
 document.addEventListener('DOMContentLoaded', function () {
     if (window.__INITIAL_DATA__) {
@@ -38,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function () {
         loadPostings(1);
     }
     setupFilters();
-    setupForm();
 
     if (window.ShelfSenseFilterChips) {
         window.ShelfSenseFilterChips.init('activeFilterChips', [
@@ -49,11 +29,27 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     document.getElementById('confirmRejectPostingBtn')?.addEventListener('click', submitReject);
-
-    document.getElementById('postingDepartmentGroup').addEventListener('change', function () {
-        populatePositionOptions(this.value, null);
+    document.getElementById('myDraftsBtn')?.addEventListener('click', openMyDrafts);
+    document.getElementById('jpDraftsSelectBtn')?.addEventListener('click', function () {
+        if (jpDraftsSelecting) { jpDraftsExitSelectMode(); } else { jpDraftsEnterSelectMode(); }
     });
+    document.getElementById('jpDraftsCancelSelectBtn')?.addEventListener('click', jpDraftsExitSelectMode);
+    document.getElementById('jpDraftsDeleteSelectedBtn')?.addEventListener('click', jpDraftsDeleteSelected);
+    jpInitIconTooltips(document);
 });
+
+// Bootstrap tooltip (dark bubble + arrow) for any icon-only control with a
+// `title` -- the plain browser tooltip it'd fall back to is slow to appear
+// and looks inconsistent with the rest of the UI. Safe to call repeatedly
+// on the same root (e.g. after re-rendering dynamic content): skips
+// elements that already have one wired up.
+function jpInitIconTooltips(root) {
+    if (!window.bootstrap || !window.bootstrap.Tooltip) return;
+    root.querySelectorAll('[title]').forEach(el => {
+        if (el.__jpTooltip || !el.title.trim()) return;
+        el.__jpTooltip = new window.bootstrap.Tooltip(el, { trigger: 'hover focus', placement: 'top' });
+    });
+}
 
 function jpEscapeHtml(text) {
     if (text === null || text === undefined) return '';
@@ -62,30 +58,17 @@ function jpEscapeHtml(text) {
     return div.innerHTML;
 }
 
+// Qualifications and Key Responsibilities are entered "one per line" --
+// render each non-empty line as its own bullet instead of just <br>-joining.
+function jpLinesToList(text) {
+    const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return '';
+    return '<ul class="jp-bullet-list">' + lines.map(l => `<li>${jpEscapeHtml(l)}</li>`).join('') + '</ul>';
+}
+
 function jpCurrency(v) {
     if (v === null || v === undefined || v === '') return '—';
     return '₱' + parseFloat(v).toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-}
-
-// Snaps an out-of-range closing date to the nearest allowed bound instead of
-// silently clearing it, so a typed/invalid date never gets past validation.
-function validatePostingDate(input) {
-    const value = input.value;
-    if (!value) return;
-    const selected = new Date(value + 'T00:00:00');
-    const min = new Date(input.min + 'T00:00:00');
-    const max = new Date(input.max + 'T00:00:00');
-    if (isNaN(selected.getTime())) {
-        input.value = '';
-        return;
-    }
-    if (selected < min) {
-        input.value = input.min;
-        Swal.fire({ icon: 'warning', title: 'Date Too Early', text: 'Closing date cannot be in the past. Snapped to today.', timer: 2500, timerProgressBar: true });
-    } else if (selected > max) {
-        input.value = input.max;
-        Swal.fire({ icon: 'warning', title: 'Date Too Far', text: 'Closing date cannot exceed 6 months out. Snapped to the latest allowed date.', timer: 2500, timerProgressBar: true });
-    }
 }
 
 function jpFormatDate(d, withTime = false) {
@@ -119,7 +102,6 @@ function setupFilters() {
     document.getElementById('searchInput')?.addEventListener('input', jpDebounce(() => loadPostings(1), 400));
     document.getElementById('mineOnly')?.addEventListener('change', () => loadPostings(1));
     document.getElementById('refreshBtn')?.addEventListener('click', () => loadPostings(jpPage));
-    document.getElementById('createBtn')?.addEventListener('click', () => openFormModal(null));
 }
 
 function loadPostings(page) {
@@ -170,7 +152,7 @@ function renderTable(postings) {
             <td>${jpEscapeHtml(p.creator_first)} ${jpEscapeHtml(p.creator_last)}</td>
             <td>${jpStatusBadge(p.status)}</td>
             <td class="text-center">
-                <button class="btn btn-sm btn-outline-primary view-posting-btn" data-id="${p.id}"><i class="bi bi-eye"></i></button>
+                <button class="btn btn-sm btn-outline-primary view-posting-btn" data-id="${p.id}" title="View details"><i class="bi bi-eye"></i></button>
             </td>
         </tr>
     `).join('');
@@ -178,6 +160,7 @@ function renderTable(postings) {
     tbody.querySelectorAll('.view-posting-btn').forEach(btn => {
         btn.addEventListener('click', () => viewPosting(parseInt(btn.dataset.id)));
     });
+    jpInitIconTooltips(tbody);
 }
 
 function renderPagination(p) {
@@ -200,439 +183,169 @@ function renderPagination(p) {
 }
 
 // ============================================
-// CREATE / EDIT FORM
+// MY DRAFTS
 // ============================================
 
-function setupForm() {
-    document.getElementById('postingForm').addEventListener('submit', function (e) {
-        e.preventDefault();
-        submitForm(false);
-    });
-    document.getElementById('saveAndSubmitBtn').addEventListener('click', function () {
-        submitForm(true);
-    });
-    setupMarkdownEditor();
-}
+let jpDraftsSelecting = false;
+const jpDraftsSelectedIds = new Set();
 
-// ============================================
-// DESCRIPTION MARKDOWN TOOLBAR
-// Wraps/inserts markdown syntax around the current selection (or at the
-// cursor, with placeholder text, when nothing is selected) -- the same
-// interaction every markdown editor toolbar uses. Rendering back to HTML
-// (for the Preview toggle here, and on the public Apply page) is handled
-// by the shared mdToHtml() in assets/js/shared/markdown.js.
-// ============================================
-const JP_MD_ACTIONS = {
-    h1: { type: 'line-prefix', prefix: '# ' },
-    h2: { type: 'line-prefix', prefix: '## ' },
-    h3: { type: 'line-prefix', prefix: '### ' },
-    bold: { type: 'wrap', before: '**', after: '**', placeholder: 'bold text' },
-    italic: { type: 'wrap', before: '*', after: '*', placeholder: 'italic text' },
-    strike: { type: 'wrap', before: '~~', after: '~~', placeholder: 'strikethrough text' },
-    code: { type: 'wrap', before: '`', after: '`', placeholder: 'code' },
-    ul: { type: 'line-prefix', prefix: '- ' },
-    ol: { type: 'line-prefix', prefix: '1. ' },
-};
+function openMyDrafts() {
+    const body = document.getElementById('myDraftsBody');
+    body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
+    jpDraftsExitSelectMode();
+    new bootstrap.Modal(document.getElementById('myDraftsModal')).show();
 
-function applyMarkdownAction(textarea, action) {
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const value = textarea.value;
-    const selected = value.slice(start, end);
-
-    if (action.type === 'wrap') {
-        const text = selected || action.placeholder;
-        const newValue = value.slice(0, start) + action.before + text + action.after + value.slice(end);
-        textarea.value = newValue;
-        const selStart = start + action.before.length;
-        textarea.setSelectionRange(selStart, selStart + text.length);
-    } else if (action.type === 'line-prefix') {
-        // Prefix every line touched by the selection (so selecting several
-        // lines and hitting "bullet list" turns all of them into list items).
-        let lineStart = value.lastIndexOf('\n', start - 1) + 1;
-        let lineEnd = value.indexOf('\n', end);
-        if (lineEnd === -1) lineEnd = value.length;
-        const block = value.slice(lineStart, lineEnd);
-        const prefixed = block.split('\n').map(l => action.prefix + l).join('\n');
-        textarea.value = value.slice(0, lineStart) + prefixed + value.slice(lineEnd);
-        textarea.setSelectionRange(lineStart, lineStart + prefixed.length);
-    }
-
-    textarea.focus();
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
-    jpMdCommit(textarea); // discrete toolbar/keyboard actions are always their own undo step
-}
-
-// Grows the textarea to fit its content (up to a sane cap, beyond which it
-// scrolls internally like before) so typing -- including pressing Enter for
-// a new line -- pushes the box taller instead of hiding what's just been
-// typed below the fold.
-function autosizeTextarea(textarea) {
-    const maxHeight = 500;
-    textarea.style.height = 'auto';
-    textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
-    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
-}
-
-// ============================================
-// UNDO / REDO
-// Toolbar actions (and the link modal) replace textarea.value directly,
-// which silently wipes the browser's own undo history for that field --
-// so once any button is used, native Ctrl+Z would otherwise stop working
-// for everything, even plain typing. This is a small self-contained undo
-// stack instead: every discrete action (toolbar click, keyboard shortcut,
-// link insert) commits its own step immediately; plain typing is coalesced
-// into one step per ~500ms pause, so undo doesn't take one press per
-// keystroke.
-// ============================================
-const jpMdHistory = { stack: [], index: -1 };
-let jpMdCommitTimer = null;
-const JP_MD_HISTORY_LIMIT = 100;
-
-function jpMdSnapshotNow(textarea) {
-    return { value: textarea.value, start: textarea.selectionStart, end: textarea.selectionEnd };
-}
-
-function jpMdCommit(textarea) {
-    clearTimeout(jpMdCommitTimer);
-    jpMdCommitTimer = null;
-    const current = jpMdSnapshotNow(textarea);
-    const top = jpMdHistory.stack[jpMdHistory.index];
-    if (top && top.value === current.value) return; // nothing actually changed
-    jpMdHistory.stack = jpMdHistory.stack.slice(0, jpMdHistory.index + 1);
-    jpMdHistory.stack.push(current);
-    if (jpMdHistory.stack.length > JP_MD_HISTORY_LIMIT) jpMdHistory.stack.shift();
-    jpMdHistory.index = jpMdHistory.stack.length - 1;
-    jpUpdateUndoRedoButtons();
-}
-
-function jpMdScheduleCommit(textarea) {
-    clearTimeout(jpMdCommitTimer);
-    jpMdCommitTimer = setTimeout(() => jpMdCommit(textarea), 500);
-}
-
-function jpMdResetHistory(textarea) {
-    clearTimeout(jpMdCommitTimer);
-    jpMdCommitTimer = null;
-    jpMdHistory.stack = [jpMdSnapshotNow(textarea)];
-    jpMdHistory.index = 0;
-    jpUpdateUndoRedoButtons();
-}
-
-function jpMdRestoreSnapshot(textarea, snapshot) {
-    textarea.value = snapshot.value;
-    textarea.setSelectionRange(snapshot.start, snapshot.end);
-    textarea.focus();
-    autosizeTextarea(textarea);
-    renderFullPreview();
-    jpUpdateUndoRedoButtons();
-}
-
-function jpMdUndo(textarea) {
-    jpMdCommit(textarea); // finalize any typing in progress before stepping back
-    if (jpMdHistory.index <= 0) return;
-    jpMdHistory.index--;
-    jpMdRestoreSnapshot(textarea, jpMdHistory.stack[jpMdHistory.index]);
-}
-
-function jpMdRedo(textarea) {
-    if (jpMdHistory.index >= jpMdHistory.stack.length - 1) return;
-    jpMdHistory.index++;
-    jpMdRestoreSnapshot(textarea, jpMdHistory.stack[jpMdHistory.index]);
-}
-
-function jpUpdateUndoRedoButtons() {
-    const undoBtn = document.getElementById('jpMdUndoBtn');
-    const redoBtn = document.getElementById('jpMdRedoBtn');
-    if (undoBtn) undoBtn.disabled = jpMdHistory.index <= 0;
-    if (redoBtn) redoBtn.disabled = jpMdHistory.index >= jpMdHistory.stack.length - 1;
-}
-
-// ============================================
-// INSERT LINK MODAL
-// ============================================
-let jpLinkTextarea = null;
-let jpLinkSelStart = 0;
-let jpLinkSelEnd = 0;
-
-function openLinkModal(textarea) {
-    jpLinkTextarea = textarea;
-    jpLinkSelStart = textarea.selectionStart;
-    jpLinkSelEnd = textarea.selectionEnd;
-    const selectedText = textarea.value.slice(jpLinkSelStart, jpLinkSelEnd);
-
-    document.getElementById('jpLinkLabel').value = selectedText;
-    document.getElementById('jpLinkUrl').value = '';
-    updateLinkPreview();
-
-    const modalEl = document.getElementById('jpLinkModal');
-    modalEl.addEventListener('shown.bs.modal', function focusField() {
-        modalEl.removeEventListener('shown.bs.modal', focusField);
-        document.getElementById(selectedText ? 'jpLinkUrl' : 'jpLinkLabel').focus();
-    });
-    bootstrap.Modal.getOrCreateInstance(modalEl).show();
-}
-
-function isValidLinkUrl(url) {
-    return /^https?:\/\/\S+$/.test(url);
-}
-
-function updateLinkPreview() {
-    const label = document.getElementById('jpLinkLabel').value.trim();
-    const url = document.getElementById('jpLinkUrl').value.trim();
-    const preview = document.getElementById('jpLinkPreview');
-    const insertBtn = document.getElementById('jpLinkInsertBtn');
-    const valid = isValidLinkUrl(url);
-    insertBtn.disabled = !valid;
-
-    if (!url) {
-        preview.innerHTML = '<span class="text-muted small fst-italic">Nothing to preview yet.</span>';
-    } else if (!valid) {
-        preview.innerHTML = '<span class="text-danger small">URL must start with http:// or https://</span>';
-    } else {
-        preview.innerHTML = `<a href="${jpEscapeHtml(url)}" target="_blank" rel="noopener noreferrer"><i class="bi bi-box-arrow-up-right"></i> ${jpEscapeHtml(label || url)}</a>`;
-    }
-}
-
-function insertLinkFromModal() {
-    const label = document.getElementById('jpLinkLabel').value.trim();
-    const url = document.getElementById('jpLinkUrl').value.trim();
-    if (!isValidLinkUrl(url) || !jpLinkTextarea) return;
-
-    const textarea = jpLinkTextarea;
-    const markdown = `[${label || url}](${url})`;
-    const value = textarea.value;
-    textarea.value = value.slice(0, jpLinkSelStart) + markdown + value.slice(jpLinkSelEnd);
-    const caret = jpLinkSelStart + markdown.length;
-    textarea.setSelectionRange(caret, caret);
-    textarea.dispatchEvent(new Event('input', { bubbles: true }));
-    jpMdCommit(textarea);
-
-    bootstrap.Modal.getInstance(document.getElementById('jpLinkModal'))?.hide();
-}
-
-// ============================================
-// KEYBOARD SHORTCUTS
-// Digit-based combos use e.code (the physical key) rather than e.key,
-// because Shift+8/Shift+7/etc. produce symbol characters ('*', '&') in
-// e.key on a US layout -- e.code stays "Digit8"/"Digit7" regardless.
-// ============================================
-function handleMarkdownShortcut(e, textarea) {
-    const mod = e.ctrlKey || e.metaKey;
-    if (!mod) return;
-
-    if (e.code === 'KeyZ' && !e.shiftKey) { e.preventDefault(); jpMdUndo(textarea); return; }
-    if ((e.code === 'KeyZ' && e.shiftKey) || e.code === 'KeyY') { e.preventDefault(); jpMdRedo(textarea); return; }
-
-    if (e.code === 'KeyB') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.bold); return; }
-    if (e.code === 'KeyI') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.italic); return; }
-    if (e.code === 'KeyE') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.code); return; }
-    if (e.code === 'KeyK') { e.preventDefault(); openLinkModal(textarea); return; }
-    if (e.shiftKey && e.code === 'KeyX') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.strike); return; }
-    if (e.shiftKey && e.code === 'Digit8') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.ul); return; }
-    if (e.shiftKey && e.code === 'Digit7') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.ol); return; }
-    if (e.altKey && e.code === 'Digit1') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.h1); return; }
-    if (e.altKey && e.code === 'Digit2') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.h2); return; }
-    if (e.altKey && e.code === 'Digit3') { e.preventDefault(); applyMarkdownAction(textarea, JP_MD_ACTIONS.h3); return; }
-}
-
-function setupMarkdownEditor() {
-    const textarea = document.getElementById('postingDescription');
-    if (!textarea || textarea.dataset.mdWired) return;
-    textarea.dataset.mdWired = '1';
-
-    textarea.addEventListener('input', () => {
-        autosizeTextarea(textarea);
-        renderFullPreview();
-        jpMdScheduleCommit(textarea);
-    });
-    textarea.addEventListener('keydown', e => handleMarkdownShortcut(e, textarea));
-
-    document.querySelectorAll('.jp-md-btn').forEach(btn => {
-        btn.addEventListener('click', function () {
-            if (btn.dataset.md === 'link') { openLinkModal(textarea); return; }
-            const action = JP_MD_ACTIONS[btn.dataset.md];
-            if (action) applyMarkdownAction(textarea, action);
-        });
-        // Same hover tooltip component used app-wide (e.g. the table
-        // action icons) -- title already carries the label + shortcut,
-        // e.g. "Bold (Ctrl+B)".
-        if (btn.title && window.bootstrap && window.bootstrap.Tooltip) {
-            btn.setAttribute('data-bs-toggle', 'tooltip');
-            new window.bootstrap.Tooltip(btn, { trigger: 'hover focus', placement: 'top' });
-        }
-    });
-
-    document.getElementById('jpMdUndoBtn')?.addEventListener('click', () => jpMdUndo(textarea));
-    document.getElementById('jpMdRedoBtn')?.addEventListener('click', () => jpMdRedo(textarea));
-
-    document.getElementById('jpLinkLabel')?.addEventListener('input', updateLinkPreview);
-    document.getElementById('jpLinkUrl')?.addEventListener('input', updateLinkPreview);
-    document.getElementById('jpLinkInsertBtn')?.addEventListener('click', insertLinkFromModal);
-
-    // Live preview panel (permanent split, not a tab): re-render on every
-    // field that feeds it, so it always reflects unsaved edits as you type.
-    ['postingTitle', 'postingDepartment', 'postingLocation', 'postingSlots', 'postingOpenUntil'].forEach(id => {
-        document.getElementById(id)?.addEventListener('input', renderFullPreview);
-        document.getElementById(id)?.addEventListener('change', renderFullPreview);
-    });
-}
-
-function renderFullPreview() {
-    const container = document.getElementById('postingFullPreview');
-    if (!container) return;
-
-    const title = document.getElementById('postingTitle').value.trim();
-    const department = document.getElementById('postingDepartment').value.trim();
-    const location = document.getElementById('postingLocation').value.trim();
-    const slots = document.getElementById('postingSlots').value.trim();
-    const description = document.getElementById('postingDescription').value.trim();
-    const openUntil = document.getElementById('postingOpenUntil').value;
-
-    const badges = [];
-    if (department) badges.push(`<span class="jp-preview-badge"><i class="bi bi-briefcase"></i> ${jpEscapeHtml(department)}</span>`);
-    if (location) badges.push(`<span class="jp-preview-badge"><i class="bi bi-geo-alt"></i> ${jpEscapeHtml(location)}</span>`);
-    if (slots) badges.push(`<span class="jp-preview-badge"><i class="bi bi-people"></i> ${jpEscapeHtml(slots)} slot${slots == 1 ? '' : 's'}</span>`);
-
-    const descriptionHtml = description
-        ? window.mdToHtml(description)
-        : '<p class="text-muted fst-italic mb-0">No description written yet.</p>';
-
-    const closingHtml = openUntil
-        ? `<p class="mb-0"><i class="bi bi-calendar-event"></i> Applications close <strong>${jpEscapeHtml(new Date(openUntil + 'T00:00:00').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }))}</strong></p>`
-        : '<p class="text-muted fst-italic mb-0">No closing date set yet.</p>';
-
-    container.innerHTML = `
-        <h4 class="jp-preview-title">${title ? jpEscapeHtml(title) : '<span class="text-muted fst-italic">Untitled position</span>'}</h4>
-        <div class="jp-preview-badges">${badges.join('') || '<span class="text-muted small fst-italic">No department/location/slots set yet.</span>'}</div>
-        <div class="jp-preview-section">
-            <h6><i class="bi bi-file-text"></i> Job Description</h6>
-            <div class="jp-preview-description">${descriptionHtml}</div>
-        </div>
-        <div class="jp-preview-section jp-preview-section-last">
-            ${closingHtml}
-        </div>
-    `;
-}
-
-function openFormModal(posting) {
-    const form = document.getElementById('postingForm');
-    form.reset();
-    document.getElementById('postingFormAlert').innerHTML = '';
-    document.getElementById('postingId').value = posting ? posting.id : '';
-    document.getElementById('postingFormTitle').textContent = posting ? 'Edit Job Posting' : 'New Job Posting';
-    document.getElementById('postingTitle').value = posting ? posting.title : '';
-    document.getElementById('postingDepartmentGroup').value = posting ? (posting.department_group || '') : '';
-    window.refreshSearchableSelect && window.refreshSearchableSelect('postingDepartmentGroup');
-    populatePositionOptions(posting ? (posting.department_group || '') : '', posting ? posting.department : null);
-    document.getElementById('postingLocation').value = posting ? (posting.location || '') : '';
-    document.getElementById('postingSlots').value = posting && posting.slots !== null ? posting.slots : '';
-    const descriptionTextarea = document.getElementById('postingDescription');
-    descriptionTextarea.value = posting ? posting.description : '';
-    descriptionTextarea.style.height = '';
-    jpMdResetHistory(descriptionTextarea);
-
-    const openUntilInput = document.getElementById('postingOpenUntil');
-    const today = new Date();
-    const maxDate = new Date();
-    maxDate.setMonth(maxDate.getMonth() + 6);
-    const toIso = d => d.toISOString().slice(0, 10);
-    openUntilInput.min = toIso(today);
-    openUntilInput.max = toIso(maxDate);
-    openUntilInput.value = posting ? posting.open_until : '';
-
-    renderFullPreview();
-
-    bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
-    const formModalEl = document.getElementById('postingFormModal');
-    // scrollHeight reads 0 while the modal is still display:none, so the
-    // initial autosize (for an existing description on Edit) has to wait
-    // until Bootstrap has actually shown it.
-    formModalEl.addEventListener('shown.bs.modal', () => autosizeTextarea(descriptionTextarea), { once: true });
-    new bootstrap.Modal(formModalEl).show();
-}
-
-// job_postings.role has no user-facing meaning anymore (the form no longer
-// asks for it) -- it only still exists in the DB as a NOT NULL, unique-among-
-// active-postings internal key. Slugify the title for new postings so it
-// still gets a sane, differentiated value; the id suffix keeps two postings
-// with the same title from colliding on the uniqueness check.
-function slugifyForRoleKey(title, id) {
-    const slug = (title || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-    return (slug || 'posting') + '-' + id;
-}
-
-function collectFormPayload() {
-    const id = document.getElementById('postingId').value || undefined;
-    const title = document.getElementById('postingTitle').value.trim();
-    const payload = {
-        id,
-        title,
-        department_group: document.getElementById('postingDepartmentGroup').value.trim(),
-        department: document.getElementById('postingDepartment').value.trim(),
-        location: document.getElementById('postingLocation').value.trim(),
-        slots: document.getElementById('postingSlots').value,
-        description: document.getElementById('postingDescription').value.trim(),
-        open_until: document.getElementById('postingOpenUntil').value
-    };
-    // Editing an existing posting: leave `role` out entirely so the backend
-    // keeps whatever value it already has (see update_job_posting.php).
-    if (!id) {
-        payload.role = slugifyForRoleKey(title, Date.now());
-    }
-    return payload;
-}
-
-function submitForm(alsoSubmit) {
-    if (jpBusy) return;
-    jpBusy = true;
-    const payload = collectFormPayload();
-    const isEdit = !!payload.id;
-    const alertBox = document.getElementById('postingFormAlert');
-    alertBox.innerHTML = '';
-
-    const url = isEdit ? '?page=api_hr_update_job_posting' : '?page=api_hr_create_job_posting';
-    if (!isEdit) payload.submit = false;
-
-    fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    })
+    fetch('?page=api_hr_get_job_postings&status=draft&mine=1&limit=50')
         .then(r => r.json())
         .then(data => {
-            jpBusy = false;
-            if (!data.success) {
-                const errs = data.errors ? Object.values(data.errors).join(' ') : '';
-                alertBox.innerHTML = `<div class="alert alert-danger small">${jpEscapeHtml(data.message)} ${jpEscapeHtml(errs)}</div>`;
-                return;
-            }
-            const id = isEdit ? payload.id : data.data.id;
-            if (alsoSubmit) {
-                submitForApproval(id, true);
-            } else {
-                bootstrap.Modal.getInstance(document.getElementById('postingFormModal'))?.hide();
-                Swal.fire({ icon: 'success', title: 'Saved', text: data.message, timer: 2000, showConfirmButton: false });
-                loadPostings(jpPage);
-            }
+            if (!data.success) { body.innerHTML = `<div class="text-danger">${jpEscapeHtml(data.message)}</div>`; return; }
+            renderMyDrafts(data.data.postings);
         })
-        .catch(() => { jpBusy = false; alertBox.innerHTML = `<div class="alert alert-danger small">Something went wrong.</div>`; });
+        .catch(() => { body.innerHTML = `<div class="text-danger">Could not load your drafts. Please try again.</div>`; });
 }
 
-function submitForApproval(id, fromForm) {
-    fetch('?page=api_hr_submit_job_posting', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
-    })
-        .then(r => r.json())
-        .then(data => {
-            if (fromForm) bootstrap.Modal.getInstance(document.getElementById('postingFormModal'))?.hide();
-            if (data.success) {
-                Swal.fire({ icon: 'success', title: 'Submitted', text: data.message, timer: 2000, showConfirmButton: false });
-            } else {
-                Swal.fire({ icon: 'error', title: 'Error', text: data.message });
-            }
-            loadPostings(jpPage);
+function renderMyDrafts(drafts) {
+    const body = document.getElementById('myDraftsBody');
+    const selectBtn = document.getElementById('jpDraftsSelectBtn');
+    if (selectBtn) selectBtn.style.display = (drafts && drafts.length > 0) ? '' : 'none';
+
+    if (!drafts || drafts.length === 0) {
+        body.innerHTML = `
+            <div class="text-center text-muted py-5">
+                <i class="bi bi-inbox fs-2 d-block mb-2"></i>
+                You don't have any drafts right now.
+                <div class="mt-3"><a href="?page=hr_job_posting_form" class="btn btn-yellow-primary btn-sm"><i class="bi bi-plus-circle"></i> New Job Posting</a></div>
+            </div>
+        `;
+        return;
+    }
+
+    body.innerHTML = drafts.map(p => `
+        <div class="jp-draft-card" data-id="${p.id}">
+            <input type="checkbox" class="jp-draft-checkbox form-check-input" data-id="${p.id}" ${jpDraftsSelectedIds.has(p.id) ? 'checked' : ''}>
+            <div class="jp-draft-icon"><i class="bi bi-megaphone"></i></div>
+            <div class="jp-draft-info">
+                <div class="jp-draft-title">${jpEscapeHtml(p.title || 'Untitled position')} <span class="badge bg-secondary">Draft</span></div>
+                <div class="jp-draft-subtitle">${jpEscapeHtml(p.department_group || p.department || 'No department set yet')}</div>
+            </div>
+            <div class="jp-draft-meta"><i class="bi bi-clock-history"></i> Updated ${jpFormatDate(p.updated_at)}</div>
+            <a href="?page=hr_job_posting_form&id=${p.id}" class="jp-draft-edit-btn" title="Edit draft"><i class="bi bi-pencil"></i></a>
+            <button type="button" class="jp-draft-delete-btn" data-id="${p.id}" data-title="${jpEscapeHtml(p.title || 'Untitled position')}" title="Delete draft"><i class="bi bi-trash"></i></button>
+        </div>
+    `).join('');
+
+    body.querySelectorAll('.jp-draft-delete-btn').forEach(btn => {
+        btn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            deleteDraft(parseInt(btn.dataset.id), btn.dataset.title);
         });
+    });
+    body.querySelectorAll('.jp-draft-checkbox').forEach(cb => {
+        cb.addEventListener('change', function () {
+            jpDraftsToggleSelected(parseInt(cb.dataset.id), cb.checked);
+        });
+    });
+    body.querySelectorAll('.jp-draft-card').forEach(card => {
+        card.addEventListener('click', function (e) {
+            if (!jpDraftsSelecting) return;
+            if (e.target.closest('.jp-draft-checkbox')) return;
+            e.preventDefault();
+            const cb = card.querySelector('.jp-draft-checkbox');
+            cb.checked = !cb.checked;
+            jpDraftsToggleSelected(parseInt(card.dataset.id), cb.checked);
+        });
+    });
+    body.classList.toggle('jp-drafts-selecting', jpDraftsSelecting);
+    jpInitIconTooltips(body);
+}
+
+function jpDraftsToggleSelected(id, selected) {
+    if (selected) jpDraftsSelectedIds.add(id); else jpDraftsSelectedIds.delete(id);
+    const count = jpDraftsSelectedIds.size;
+    document.getElementById('jpDraftsBulkCount').textContent = `${count} selected`;
+    document.getElementById('jpDraftsDeleteSelectedBtn').disabled = count === 0;
+}
+
+function jpDraftsEnterSelectMode() {
+    jpDraftsSelecting = true;
+    jpDraftsSelectedIds.clear();
+    document.getElementById('myDraftsBody').classList.add('jp-drafts-selecting');
+    document.getElementById('jpDraftsSelectBtn')?.classList.add('active');
+    document.getElementById('jpDraftsBulkFooter').style.display = 'flex';
+    document.getElementById('jpDraftsBulkCount').textContent = '0 selected';
+    document.getElementById('jpDraftsDeleteSelectedBtn').disabled = true;
+    document.querySelectorAll('.jp-draft-checkbox').forEach(cb => { cb.checked = false; });
+}
+
+function jpDraftsExitSelectMode() {
+    jpDraftsSelecting = false;
+    jpDraftsSelectedIds.clear();
+    const body = document.getElementById('myDraftsBody');
+    if (body) body.classList.remove('jp-drafts-selecting');
+    document.getElementById('jpDraftsSelectBtn')?.classList.remove('active');
+    const footer = document.getElementById('jpDraftsBulkFooter');
+    if (footer) footer.style.display = 'none';
+}
+
+function jpDraftsDeleteSelected() {
+    const ids = Array.from(jpDraftsSelectedIds);
+    if (ids.length === 0) return;
+    Swal.fire({
+        icon: 'error',
+        title: `Delete ${ids.length} draft${ids.length === 1 ? '' : 's'}?`,
+        html: `You are about to permanently delete <strong>${ids.length}</strong> draft${ids.length === 1 ? '' : 's'}.<br>This action cannot be undone.`,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash"></i> Yes, delete them',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc3545',
+        reverseButtons: true,
+        focusCancel: true,
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        Promise.all(ids.map(id => fetch('?page=api_hr_delete_job_posting', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
+        }).then(r => r.json())))
+            .then(results => {
+                const failed = results.filter(r => !r.success).length;
+                if (failed > 0) {
+                    Swal.fire({ icon: 'warning', title: 'Some deletions failed', text: `${ids.length - failed} of ${ids.length} drafts were deleted.` });
+                } else {
+                    Swal.fire({ icon: 'success', title: 'Deleted', text: `${ids.length} draft${ids.length === 1 ? '' : 's'} permanently deleted.`, timer: 1800, showConfirmButton: false });
+                }
+                jpDraftsExitSelectMode();
+                openMyDrafts();
+                loadPostings(jpPage);
+            })
+            .catch(() => { Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong.' }); });
+    });
+}
+
+function deleteDraft(id, title) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Delete this draft?',
+        html: `You are about to permanently delete <strong>${jpEscapeHtml(title || 'this draft')}</strong>.<br>This action cannot be undone.`,
+        showCancelButton: true,
+        confirmButtonText: '<i class="bi bi-trash"></i> Yes, delete it',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#dc3545',
+        reverseButtons: true,
+        focusCancel: true,
+    }).then(result => {
+        if (!result.isConfirmed) return;
+        fetch('?page=api_hr_delete_job_posting', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
+        })
+            .then(r => r.json())
+            .then(data => {
+                if (!data.success) { Swal.fire({ icon: 'error', title: 'Error', text: data.message }); return; }
+                Swal.fire({ icon: 'success', title: 'Deleted', text: data.message, timer: 1500, showConfirmButton: false });
+                openMyDrafts();
+                loadPostings(jpPage);
+            })
+            .catch(() => { Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong.' }); });
+    });
 }
 
 // ============================================
@@ -684,7 +397,8 @@ function renderDetail(p) {
             </div>
         </div>
         <p><strong>Description:</strong><br>${jpEscapeHtml(p.description).replace(/\n/g, '<br>')}</p>
-        ${p.requirements ? `<p><strong>Requirements:</strong><br>${jpEscapeHtml(p.requirements).replace(/\n/g, '<br>')}</p>` : ''}
+        ${p.requirements ? `<div class="mb-2"><strong>Qualifications:</strong>${jpLinesToList(p.requirements)}</div>` : ''}
+        ${p.responsibilities ? `<div class="mb-2"><strong>Key Responsibilities:</strong>${jpLinesToList(p.responsibilities)}</div>` : ''}
         <hr>
         <p class="small text-muted mb-1">Created by ${jpEscapeHtml(p.creator_first)} ${jpEscapeHtml(p.creator_last)} on ${jpFormatDate(p.created_at, true)}</p>
         ${p.submitted_at ? `<p class="small text-muted mb-1">Submitted for approval: ${jpFormatDate(p.submitted_at, true)}</p>` : ''}
@@ -717,13 +431,29 @@ function renderDetail(p) {
     }
 
     footer.innerHTML = actions;
-    document.getElementById('editFromDetailBtn')?.addEventListener('click', () => openFormModal(p));
-    document.getElementById('submitFromDetailBtn')?.addEventListener('click', () => submitForApproval(p.id, false));
+    document.getElementById('editFromDetailBtn')?.addEventListener('click', () => { window.location.href = `?page=hr_job_posting_form&id=${p.id}`; });
+    document.getElementById('submitFromDetailBtn')?.addEventListener('click', () => submitForApprovalFromDetail(p.id));
     document.getElementById('approveBtn')?.addEventListener('click', () => reviewPosting(p.id, 'approve'));
     document.getElementById('rejectBtn')?.addEventListener('click', openRejectModal);
     document.getElementById('closeBtn')?.addEventListener('click', () => archivePosting(p.id, 'close'));
     document.getElementById('archiveBtn')?.addEventListener('click', () => archivePosting(p.id, 'archive'));
     document.getElementById('reuseBtn')?.addEventListener('click', () => reusePosting(p.id));
+}
+
+function submitForApprovalFromDetail(id) {
+    fetch('?page=api_hr_submit_job_posting', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
+                Swal.fire({ icon: 'success', title: 'Submitted', text: data.message, timer: 2000, showConfirmButton: false });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Error', text: data.message });
+            }
+            loadPostings(jpPage);
+        });
 }
 
 function reviewPosting(id, action, reason) {

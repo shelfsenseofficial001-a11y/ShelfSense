@@ -176,6 +176,17 @@ class JobPosting
     }
 
     /**
+     * Hard-delete -- callers must restrict this to draft/rejected postings
+     * (never anything that's been live or has applicants attached to it).
+     * See delete_job_posting.php for the actual status/ownership gate.
+     */
+    public function delete($id)
+    {
+        $stmt = $this->db->prepare("DELETE FROM job_postings WHERE id = ?");
+        return $stmt->execute([$id]);
+    }
+
+    /**
      * Public, real, currently-hiring postings only -- approved, not past
      * their closing date, and with at least one remaining slot (a NULL
      * slots value means unlimited openings). This is the single source of

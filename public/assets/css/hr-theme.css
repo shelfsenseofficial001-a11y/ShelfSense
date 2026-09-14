@@ -91,6 +91,22 @@ body.hr-theme .btn-yellow-primary:hover {
     box-shadow: none;
 }
 
+body.hr-theme .btn-yellow-primary:disabled,
+body.hr-theme .btn-yellow-primary.disabled,
+body.hr-theme .btn-yellow-primary.jp-btn-dimmed {
+    background: #6c7278;
+    border-color: #6c7278;
+    color: rgba(255, 255, 255, 0.75) !important;
+    opacity: 1;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+body.hr-theme .btn-yellow-primary.jp-btn-dimmed:hover {
+    background: #6c7278;
+    border-color: #6c7278;
+    color: rgba(255, 255, 255, 0.75) !important;
+}
+
 body.hr-theme .btn-yellow-outline {
     background: var(--bg-card);
     color: var(--text-main);
@@ -416,31 +432,44 @@ body.hr-theme .modal-footer {
     background: var(--bg-card-subtle);
 }
 
-/* Job Posting form modal: grouped sections instead of one flat stack of
+/* Job Posting form page: grouped sections instead of one flat stack of
    fields, so it reads as a designed form rather than an auto-generated one.
    The form and its preview sit in a permanent side-by-side split (not a
-   tab you have to click) -- each half scrolls independently so a long
-   description doesn't force the whole modal to jump around. */
+   tab you have to click) -- the preview column stays pinned in view via
+   position:sticky while the (usually taller) form scrolls the page under
+   it, instead of each half getting its own capped-height scrollbar. */
 body.hr-theme .jp-split {
     display: flex;
-    align-items: stretch;
-    min-height: 0;
+    align-items: flex-start;
+    gap: 20px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    /* No overflow:hidden here -- it would clip child corners cleanly, but
+       any ancestor with overflow != visible becomes the containing block
+       for a sticky descendant's positioning, which breaks .jp-split-preview's
+       position:sticky below (it would only ever "stick" within this box's
+       own bounds instead of the actual scrolling viewport). The preview's
+       own corners are rounded to match instead -- see .jp-split-preview. */
 }
 body.hr-theme .jp-split-form {
     flex: 1 1 55%;
     min-width: 0;
-    max-height: 72vh;
-    overflow-y: auto;
-    padding: 20px;
+    padding: 24px;
 }
 body.hr-theme .jp-split-preview {
     flex: 1 1 45%;
     min-width: 0;
-    max-height: 72vh;
-    overflow-y: auto;
-    padding: 20px;
+    padding: 24px;
     background: var(--bg-card-subtle);
     border-left: 1px solid var(--border-color);
+    border-top-right-radius: 16px;
+    border-bottom-right-radius: 16px;
+    align-self: stretch;
+    position: sticky;
+    top: 88px;
+    max-height: calc(100vh - 110px);
+    overflow-y: auto;
 }
 body.hr-theme .jp-preview-heading {
     display: flex;
@@ -457,13 +486,13 @@ body.hr-theme .jp-preview-heading {
     body.hr-theme .jp-split {
         flex-direction: column;
     }
-    body.hr-theme .jp-split-form,
-    body.hr-theme .jp-split-preview {
-        max-height: none;
-    }
     body.hr-theme .jp-split-preview {
         border-left: none;
         border-top: 1px solid var(--border-color);
+        border-top-right-radius: 0;
+        border-bottom-left-radius: 16px;
+        position: static;
+        max-height: none;
     }
 }
 
@@ -535,6 +564,17 @@ body.hr-theme .jp-preview-description ul,
 body.hr-theme .jp-preview-description ol {
     margin: 0 0 10px;
     padding-left: 20px;
+}
+
+/* Qualifications / Key Responsibilities, rendered as one bullet per line
+   -- used both in the create-form live preview and the Job Postings list's
+   detail drawer, so it's not scoped under .jp-preview-description alone. */
+.jp-bullet-list {
+    margin: 4px 0 0;
+    padding-left: 20px;
+}
+.jp-bullet-list li {
+    margin-bottom: 2px;
 }
 body.hr-theme .jp-preview-description code {
     background: var(--bg-card-subtle);
@@ -1051,6 +1091,527 @@ body.hr-theme .attendance-grid-table .employee-name-cell .employee-complete-badg
 body.hr-theme .attendance-cell {
     border: 1px solid transparent;
     font-weight: 600;
+}
+
+/* ==========================================================================
+   11. JOB POSTING FORM PAGE (views/pages/hr/job_posting_form.php) --
+   standalone page (not a modal): header, publishing checklist, field
+   tags, and the danger zone.
+   ========================================================================== */
+
+body.hr-theme .jp-page-header {
+    margin-bottom: 20px;
+}
+body.hr-theme .jp-page-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+body.hr-theme .jp-page-header h4 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+}
+/* Round icon-only back button, sitting beside the page title instead of
+   as its own line above it. */
+body.hr-theme .jp-back-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 1rem;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+body.hr-theme .jp-back-link:hover {
+    background: var(--bg-card);
+    border-color: var(--brand-yellow);
+    color: var(--brand-yellow);
+}
+
+/* Publishing checklist -- only unmet items ever render as cards; each one
+   disappears the moment its field is filled in, and the whole bar
+   collapses into a single "all clear" line once nothing is left. */
+body.hr-theme .jp-checklist {
+    /* .hr-page-content is a column flex container, which makes this a flex
+       item -- flex items default to min-width:auto, so the checklist row's
+       non-wrapping cards would otherwise force this (and the whole page)
+       wider instead of clipping/scrolling internally as intended.
+       overflow:hidden is a second, independent guard against the same
+       bug (a non-visible overflow value also resets a flex item's
+       automatic minimum size to 0, per spec) -- and it's what actually
+       keeps the scrollable card row from ever drawing past this card's
+       own rounded corners, however far someone scrolls it. */
+    min-width: 0;
+    overflow: hidden;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin-bottom: 20px;
+}
+body.hr-theme .jp-checklist-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    cursor: pointer;
+    user-select: none;
+}
+body.hr-theme .jp-checklist-header h6 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+body.hr-theme .jp-checklist-legend {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex: 1 1 auto;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+}
+body.hr-theme .jp-checklist-legend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+body.hr-theme .jp-checklist-legend span:not(:last-child)::after {
+    content: '';
+    display: inline-block;
+    width: 1px;
+    height: 12px;
+    margin-left: 14px;
+    background: var(--border-color);
+}
+body.hr-theme .jp-checklist-collapse-btn {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: 8px;
+    transition: transform 0.2s ease, background 0.15s ease, color 0.15s ease;
+}
+body.hr-theme .jp-checklist-collapse-btn:hover {
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+}
+
+/* Scroll wrapper: houses the card row plus a right-edge fade that only
+   shows while there's actually more to scroll to (toggled in JS). */
+body.hr-theme .jp-checklist-cards-wrap {
+    position: relative;
+    margin-top: 16px;
+}
+body.hr-theme .jp-checklist-fade {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 8px;
+    width: 56px;
+    pointer-events: none;
+    background: linear-gradient(to right, transparent, var(--bg-card) 85%);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+body.hr-theme .jp-checklist-fade-visible {
+    opacity: 1;
+}
+body.hr-theme .jp-checklist-cards {
+    display: flex;
+    position: relative;
+    /* Per-card margin instead of `gap` -- lets a card that's leaving the
+       flex flow (position:absolute, see .jp-checklist-card-leaving) be
+       measured/positioned in coordinates relative to this element. */
+    overflow-x: auto;
+    padding-bottom: 10px;
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-color) transparent;
+}
+body.hr-theme .jp-checklist-cards::-webkit-scrollbar {
+    height: 6px;
+}
+body.hr-theme .jp-checklist-cards::-webkit-scrollbar-track {
+    background: transparent;
+}
+body.hr-theme .jp-checklist-cards::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 999px;
+}
+body.hr-theme .jp-checklist-cards::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+}
+body.hr-theme .jp-checklist-collapsed .jp-checklist-cards-wrap,
+body.hr-theme .jp-checklist-collapsed .jp-checklist-clear {
+    display: none !important;
+}
+/* Publishing-checklist card animation (job_posting_form.js):
+   -- A card whose field just got filled in is pulled OUT of the flex flow
+      (position:absolute, pinned to its last on-screen spot) and just
+      fades via opacity. Taking it out of flow makes the other cards
+      reflow to their final positions on the very next layout, instead of
+      needing its own width/flex-basis to visibly animate down to 0 --
+      animating those "flex sizing" properties turned out to be unreliable
+      across engines/situations, opacity never is.
+   -- The other cards then FLIP: measured at their old position, snapped
+      there instantly via `transform`, then transitioned to
+      `translateX(0)` -- a transform transition is the one animation
+      primitive that's essentially always GPU-accelerated and reliable. */
+body.hr-theme .jp-checklist-card {
+    flex: 0 0 250px;
+    width: 250px;
+    margin-right: 14px;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 14px 16px;
+    transition: border-color 0.15s ease, opacity 0.25s ease;
+}
+body.hr-theme .jp-checklist-card:last-child {
+    margin-right: 0;
+}
+body.hr-theme .jp-checklist-card-leaving {
+    position: absolute;
+    top: 0;
+    margin: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+/* Message lengths vary card to card, so the "Edit X >" link would
+   otherwise sit at a different height on each one -- pin it to the
+   bottom of every card instead so the row of links lines up. Also
+   overrides the browser's default centered <button> text, which only
+   became visible once the button started stretching full-width as a
+   flex child. */
+body.hr-theme .jp-checklist-card-link {
+    margin-top: auto;
+    align-self: flex-start;
+    text-align: left;
+}
+body.hr-theme .jp-checklist-card:hover {
+    border-color: var(--text-muted);
+}
+body.hr-theme .jp-checklist-card-icon {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text-main);
+    margin-bottom: 6px;
+}
+body.hr-theme .jp-checklist-card-required .jp-checklist-card-icon i { color: #dc3545; }
+body.hr-theme .jp-checklist-card-warning .jp-checklist-card-icon i { color: #e6b64c; }
+body.hr-theme .jp-checklist-card-suggestion .jp-checklist-card-icon i { color: #0dcaf0; }
+
+/* Subtle background/border tint per type, on top of the shared card look,
+   so the required/warning/suggestion split reads at a glance without
+   having to read each icon individually. */
+body.hr-theme .jp-checklist-card-required {
+    background: rgba(220, 53, 69, 0.04);
+    border-color: rgba(220, 53, 69, 0.18);
+}
+body.hr-theme .jp-checklist-card-required:hover {
+    border-color: rgba(220, 53, 69, 0.45);
+}
+body.hr-theme .jp-checklist-card-warning {
+    background: rgba(230, 182, 76, 0.05);
+    border-color: rgba(230, 182, 76, 0.2);
+}
+body.hr-theme .jp-checklist-card-warning:hover {
+    border-color: rgba(230, 182, 76, 0.5);
+}
+body.hr-theme .jp-checklist-card-suggestion {
+    background: rgba(13, 202, 240, 0.04);
+    border-color: rgba(13, 202, 240, 0.18);
+}
+body.hr-theme .jp-checklist-card-suggestion:hover {
+    border-color: rgba(13, 202, 240, 0.45);
+}
+body.hr-theme .jp-checklist-card-msg {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin: 0 0 10px;
+    line-height: 1.45;
+}
+body.hr-theme .jp-checklist-card-link {
+    border: none;
+    background: transparent;
+    color: var(--brand-yellow);
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0;
+}
+body.hr-theme .jp-checklist-card-link:hover {
+    text-decoration: underline;
+}
+body.hr-theme .jp-checklist-clear {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+    color: var(--success, #198754);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+/* Field tags (Suggested / Required) next to a label, driven live by
+   whether the selected position makes that field mandatory. */
+body.hr-theme .jp-field-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--bg-card-subtle);
+    color: var(--text-muted);
+    vertical-align: middle;
+}
+body.hr-theme .jp-field-tag-required {
+    background: rgba(220, 53, 69, 0.12);
+    color: #dc3545;
+}
+
+body.hr-theme .jp-page-header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 4px;
+}
+body.hr-theme .jp-page-header-top .jp-page-title-row {
+    margin-bottom: 0;
+}
+body.hr-theme .jp-page-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+body.hr-theme .jp-page-header-actions .btn {
+    padding: 10px 20px;
+    font-size: 0.95rem;
+    font-weight: 600;
+}
+
+/* Danger Zone -- only rendered in edit mode */
+body.hr-theme .jp-danger-zone {
+    margin-top: 20px;
+    padding: 16px 20px;
+    border: 1px solid rgba(220, 53, 69, 0.35);
+    border-radius: 14px;
+    background: rgba(220, 53, 69, 0.04);
+}
+body.hr-theme .jp-danger-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #dc3545;
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+body.hr-theme .jp-danger-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+/* ==========================================================================
+   12. MY DRAFTS MODAL
+   ========================================================================== */
+
+/* Round "+" button in the modal header, next to the close (X) button --
+   shortcut straight into a new posting without leaving the drafts list. */
+body.hr-theme .jp-drafts-new-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--brand-yellow);
+    color: #fff;
+    font-size: 0.9rem;
+    text-decoration: none;
+    transition: background 0.15s ease;
+}
+body.hr-theme .jp-drafts-new-btn:hover {
+    background: var(--brand-yellow-hover);
+    color: #fff;
+}
+
+/* "Select multiple" toggle -- same round-icon-button treatment as the
+   "+" button beside it, just neutral instead of brand-colored until it's
+   turned on (highlighted so it's obvious selection mode is active). */
+body.hr-theme .jp-drafts-select-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+body.hr-theme .jp-drafts-select-btn:hover {
+    background: var(--light-yellow-subtle);
+    color: var(--text-main);
+}
+body.hr-theme .jp-drafts-select-btn.active {
+    background: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+    color: #fff;
+}
+
+body.hr-theme .jp-draft-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 16px;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    color: inherit;
+}
+body.hr-theme .jp-draft-card + .jp-draft-card {
+    margin-top: 10px;
+}
+
+/* Selection mode: each card gets a checkbox on the left and the
+   per-card edit/delete buttons step aside to make room -- bulk actions
+   (see .jp-drafts-bulk-footer) take over instead while it's active. */
+body.hr-theme .jp-draft-checkbox {
+    display: none;
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin: 0;
+    cursor: pointer;
+}
+body.hr-theme #myDraftsBody.jp-drafts-selecting .jp-draft-checkbox {
+    display: block;
+}
+body.hr-theme #myDraftsBody.jp-drafts-selecting .jp-draft-edit-btn,
+body.hr-theme #myDraftsBody.jp-drafts-selecting .jp-draft-delete-btn {
+    display: none;
+}
+body.hr-theme #myDraftsBody.jp-drafts-selecting .jp-draft-card {
+    cursor: pointer;
+}
+body.hr-theme #myDraftsBody.jp-drafts-selecting .jp-draft-card:hover {
+    border-color: var(--brand-yellow);
+}
+
+body.hr-theme .jp-drafts-bulk-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+body.hr-theme .jp-drafts-bulk-count {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    margin-right: auto;
+}
+body.hr-theme .jp-draft-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    font-size: 1.3rem;
+}
+body.hr-theme .jp-draft-info {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+body.hr-theme .jp-draft-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: var(--text-main);
+}
+body.hr-theme .jp-draft-subtitle {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+body.hr-theme .jp-draft-meta {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+body.hr-theme .jp-draft-edit-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-card);
+    color: var(--text-muted);
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+body.hr-theme .jp-draft-edit-btn:hover {
+    background: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+    color: #fff;
+    transform: scale(1.05);
+}
+body.hr-theme .jp-draft-delete-btn {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    border: 1px solid rgba(220, 53, 69, 0.25);
+    background: rgba(220, 53, 69, 0.08);
+    color: #dc3545;
+    font-size: 0.95rem;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+body.hr-theme .jp-draft-delete-btn:hover {
+    background: #dc3545;
+    border-color: #dc3545;
+    color: #fff;
+    transform: scale(1.05);
 }
 
 

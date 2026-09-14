@@ -61,20 +61,26 @@ $requirements = array_key_exists('requirements', $input) ? trim((string)$input['
 $responsibilities = array_key_exists('responsibilities', $input) ? trim((string)$input['responsibilities']) : ($posting['responsibilities'] ?? '');
 $salaryMin = array_key_exists('salary_range_min', $input) ? $input['salary_range_min'] : $posting['salary_range_min'];
 $salaryMax = array_key_exists('salary_range_max', $input) ? $input['salary_range_max'] : $posting['salary_range_max'];
-$openUntil = isset($input['open_until']) ? trim($input['open_until']) : $posting['open_until'];
+$openUntil = isset($input['open_until']) ? trim($input['open_until']) : (string)($posting['open_until'] ?? '');
 
+// Same relaxed rule as create_job_posting.php: only the title is strictly
+// required to save; presence of everything else is enforced at submit
+// time instead (submit_job_posting.php), driven client-side by the
+// Publishing Checklist.
 $errors = [];
 if ($title === '' || mb_strlen($title) > 100) $errors['title'] = 'Title is required (max 100 characters).';
-if (!in_array($departmentGroup, JOB_POSTING_DEPARTMENT_GROUPS, true)) $errors['department_group'] = 'Please select a valid department.';
-if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) {
-    $errors['department'] = 'Please select a valid position.';
-} elseif (!empty($departmentGroup) && !in_array($department, JOB_POSTING_GROUP_POSITIONS[$departmentGroup] ?? [], true)) {
-    $errors['department'] = 'This position does not belong to the selected department.';
+if ($departmentGroup !== '' && !in_array($departmentGroup, JOB_POSTING_DEPARTMENT_GROUPS, true)) $errors['department_group'] = 'Please select a valid department.';
+if ($department !== '') {
+    if (!in_array($department, JOB_POSTING_DEPARTMENTS, true)) {
+        $errors['department'] = 'Please select a valid position.';
+    } elseif (!empty($departmentGroup) && !in_array($department, JOB_POSTING_GROUP_POSITIONS[$departmentGroup] ?? [], true)) {
+        $errors['department'] = 'This position does not belong to the selected department.';
+    }
 }
-if ($role === '' || mb_strlen($role) > 50) $errors['role'] = 'Role is required (max 50 characters).';
+if ($role !== '' && mb_strlen($role) > 50) $errors['role'] = 'Role cannot exceed 50 characters.';
 if (mb_strlen($location) > 150) $errors['location'] = 'Location cannot exceed 150 characters.';
 if ($slots !== '' && (!ctype_digit($slots) || (int)$slots < 1 || (int)$slots > 299)) $errors['slots'] = 'Slots must be a whole number between 1 and 299, or left blank for unlimited.';
-if ($description === '' || mb_strlen($description) > 5000) $errors['description'] = 'Description is required (max 5000 characters).';
+if (mb_strlen($description) > 5000) $errors['description'] = 'Description cannot exceed 5000 characters.';
 if ($requirements !== '' && mb_strlen($requirements) > 5000) $errors['requirements'] = 'Requirements cannot exceed 5000 characters.';
 if ($responsibilities !== '' && mb_strlen($responsibilities) > 5000) $errors['responsibilities'] = 'Responsibilities cannot exceed 5000 characters.';
 if ($salaryMin !== null && $salaryMin !== '' && (!is_numeric($salaryMin) || $salaryMin < 0)) $errors['salary_range_min'] = 'Minimum salary must be a non-negative number.';
@@ -82,12 +88,14 @@ if ($salaryMax !== null && $salaryMax !== '' && (!is_numeric($salaryMax) || $sal
 if ($salaryMin !== null && $salaryMin !== '' && $salaryMax !== null && $salaryMax !== '' && (float)$salaryMax < (float)$salaryMin) {
     $errors['salary_range_max'] = 'Maximum salary cannot be less than minimum salary.';
 }
-if ($openUntil === '' || !validateDate($openUntil)) {
-    $errors['open_until'] = 'A valid closing date (YYYY-MM-DD) is required.';
-} elseif ($openUntil < date('Y-m-d')) {
-    $errors['open_until'] = 'Closing date cannot be in the past.';
-} elseif ($openUntil > date('Y-m-d', strtotime('+6 months'))) {
-    $errors['open_until'] = 'Closing date cannot be more than 6 months out.';
+if ($openUntil !== '') {
+    if (!validateDate($openUntil)) {
+        $errors['open_until'] = 'Closing date must be a valid date (YYYY-MM-DD).';
+    } elseif ($openUntil < date('Y-m-d')) {
+        $errors['open_until'] = 'Closing date cannot be in the past.';
+    } elseif ($openUntil > date('Y-m-d', strtotime('+6 months'))) {
+        $errors['open_until'] = 'Closing date cannot be more than 6 months out.';
+    }
 }
 
 if (empty($errors)) {
@@ -119,7 +127,7 @@ try {
         'responsibilities' => $responsibilities !== '' ? $responsibilities : null,
         'salary_range_min' => $salaryMin !== '' ? $salaryMin : null,
         'salary_range_max' => $salaryMax !== '' ? $salaryMax : null,
-        'open_until' => $openUntil
+        'open_until' => $openUntil !== '' ? $openUntil : null
     ]);
 
     if (!$result) {

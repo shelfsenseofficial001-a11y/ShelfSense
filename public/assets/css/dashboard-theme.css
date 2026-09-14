@@ -426,6 +426,14 @@ body.dashboard-theme .trainee-content {
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    /* This is a flex item of the sidebar+content row (.dashboard-shell
+       .d-flex), so it defaults to min-width:auto -- refusing to shrink
+       below its widest descendant's natural content width instead of
+       respecting the space actually available next to the sidebar. Any
+       wide, non-wrapping content anywhere on the page (e.g. a horizontally
+       scrolling card row) would otherwise blow out the entire page's
+       width instead of scrolling within its own bounds. */
+    min-width: 0;
 }
 
 body.dashboard-theme .hr-page-content,

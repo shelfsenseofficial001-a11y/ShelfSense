@@ -722,7 +722,7 @@ CREATE TABLE `job_postings` (
   `salary_range_min` decimal(10,2) DEFAULT NULL,
   `salary_range_max` decimal(10,2) DEFAULT NULL,
   `slots` int(11) DEFAULT NULL,
-  `open_until` date NOT NULL,
+  `open_until` date DEFAULT NULL,
   `status` enum('draft','pending_approval','approved','rejected','closed','archived') DEFAULT 'draft',
   `created_by` int(11) NOT NULL,
   `submitted_at` datetime DEFAULT NULL,
