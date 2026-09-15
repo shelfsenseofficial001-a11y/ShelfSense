@@ -192,8 +192,8 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260908600000"></script>
-<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260905310000"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard.js?v=20260915100000"></script>
+<script src="/ShelfSense/public/assets/js/hr/dashboard-layout.js?v=20260915140000"></script>
 <script>
 window.dashboardTourSteps = [
     {

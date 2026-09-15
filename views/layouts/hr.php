@@ -26,7 +26,7 @@ use App\Core\Auth;
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260913920000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260914050000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260914330000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260915130000">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -139,7 +139,7 @@ use App\Core\Auth;
         </div>
 
         <!-- Main Content -->
-        <div class="hr-content flex-grow-1">
+        <div class="hr-content flex-grow-1<?php echo $activePage === 'dashboard' ? ' hr-content-fit' : ''; ?>">
             <!-- Top Bar -->
             <div class="hr-topbar d-flex justify-content-between align-items-center">
                 <div>
@@ -153,6 +153,9 @@ use App\Core\Auth;
                 <div class="d-flex align-items-center gap-3">
                     <?php if ($activePage === 'dashboard'): ?>
                     <!-- Dashboard Edit Mode -->
+                    <span class="dash-edit-hint" id="dashEditHint">
+                        Press <kbd class="dash-kbd dash-kbd-enter">Enter&nbsp;&#9166;</kbd> to save, <kbd class="dash-kbd">Esc</kbd> to close
+                    </span>
                     <button class="dash-edit-btn" id="dashEditModeBtn" aria-label="Rearrange dashboard widgets" type="button">
                         <i class="bi bi-pencil-fill"></i>
                         <span class="dash-edit-label">Edit UI</span>
@@ -186,7 +189,7 @@ use App\Core\Auth;
             </div>
 
             <!-- Page Content -->
-            <div class="hr-page-content">
+            <div class="hr-page-content<?php echo $activePage === 'dashboard' ? ' hr-page-content-fit' : ''; ?>">
                 <?php echo $content ?? ''; ?>
             </div>
         </div>

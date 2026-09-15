@@ -906,6 +906,45 @@ body.hr-theme .hr-topbar .topbar-subtitle .topbar-dot {
     opacity: 0.5;
 }
 
+/* Keyboard-shortcut hint shown next to the dashboard edit-mode button
+   only while actively editing (see dashboard-layout.js, which toggles
+   body.dash-edit-mode and wires Enter/Esc to the same actions). */
+body.hr-theme .dash-edit-hint {
+    display: none;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+}
+body.dashboard-theme.dash-edit-mode .dash-edit-hint {
+    display: inline-flex;
+}
+
+/* Styled to actually look like a physical keycap -- monospace label,
+   slightly raised (light top edge, darker "pressed" bottom edge via the
+   border color split) rather than just a plain rounded chip. */
+body.hr-theme .dash-kbd {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--text-main);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    padding: 4px 6px;
+    box-shadow: 0 1px 0 var(--border-color);
+}
+body.hr-theme .dash-kbd-enter {
+    color: var(--brand-yellow-hover);
+    border-color: var(--brand-yellow);
+}
+
 body.hr-theme .notification-dropdown {
     background: var(--bg-card);
     border-color: var(--border-color);
@@ -951,10 +990,42 @@ body.hr-theme #dashCanvasTables .dash-widget .modern-card {
    Scoped to the lg breakpoint and up -- below that, Bootstrap's own
    .col-lg-* fallback (stacked, full width) is exactly what we want and
    a 12-column grid would just cramp everything sideways. */
+/* Fits the whole dashboard into the viewport with no page scroll, instead
+   of the topbar + stat cards + two 340px-tall card rows just running past
+   the bottom of the screen. Scoped to >=992px, matching the grid takeover
+   below -- on a stacked mobile/tablet layout there's no sane way to fit
+   5 full-width cards on one screen, so that fallback keeps its normal
+   fixed card height and lets the page scroll instead. */
 @media (min-width: 992px) {
+    body.hr-theme .hr-content-fit {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        overflow: hidden;
+    }
+    body.hr-theme .hr-content-fit .hr-topbar {
+        flex: 0 0 auto;
+    }
+    body.hr-theme .hr-page-content-fit {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+    body.hr-theme .hr-page-content-fit #dashCanvasStats {
+        flex: 0 0 auto;
+    }
+    body.hr-theme .hr-page-content-fit #dashCanvasTables {
+        flex: 1 1 auto;
+        min-height: 0;
+        margin-bottom: 0 !important;
+    }
+
     body.hr-theme #dashCanvasTables {
         display: grid;
         grid-template-columns: repeat(12, 1fr);
+        grid-template-rows: 1fr 1fr;
         grid-auto-flow: dense;
         gap: 1rem;
     }
@@ -964,10 +1035,21 @@ body.hr-theme #dashCanvasTables .dash-widget .modern-card {
         flex: none;
         min-width: 0;
         margin: 0;
+        /* .dash-widget still carries Bootstrap's col-lg-4 class (needed
+           for the <992px fallback), which sets its own 8px-each-side
+           gutter padding -- left alone that stacks with this grid's own
+           `gap: 1rem` above, doubling the visible space between cards. */
+        padding: 0;
         grid-column: span 4;
     }
     body.hr-theme #dashCanvasTables > .dash-widget[data-widget-id="chart_monthly"] {
         grid-column: span 8;
+    }
+    /* The two grid rows now come from the container's own (flex-derived)
+       height rather than each card dictating a fixed 340px -- let every
+       card stretch to fill its row instead. */
+    body.hr-theme #dashCanvasTables .dash-widget .modern-card {
+        height: 100% !important;
     }
 }
 
@@ -997,6 +1079,19 @@ body.hr-theme .mini-table-scroll {
     flex: 1 1 auto;
     min-height: 0;
     overflow-y: auto;
+    overflow-x: auto;
+}
+
+/* table-sm's default 0.25rem cell padding reads as cramped in these mini
+   dashboard tables -- give cells a bit more breathing room, and keep the
+   first column (name) from wrapping onto two lines the moment the Status
+   badge next to it needs the space (e.g. "Maya Cruz" -> "Maya" / "Cruz"). */
+body.hr-theme .mini-table-scroll td,
+body.hr-theme .mini-table-scroll th {
+    padding: 8px 10px;
+}
+body.hr-theme .mini-table-scroll td:first-child {
+    white-space: nowrap;
 }
 
 body.hr-theme .card-title-badge {

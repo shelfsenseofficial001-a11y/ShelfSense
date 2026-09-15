@@ -64,8 +64,8 @@ $content = <<<'EOT'
     min-height: 92px;
     border-radius: 8px;
     padding: 6px 8px;
-    background: var(--card-bg, #fff);
-    border: 1px solid var(--border-color, #e9ecef);
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     gap: 3px;
@@ -103,6 +103,15 @@ $content = <<<'EOT'
     opacity: 0.75;
     font-size: 0.62rem;
 }
+
+/* The tinted pill colors above are tuned for light cards -- their dark
+   text reads fine there, but the same text goes low-contrast once the
+   pill sits on a dark card background, so brighten both the tint and
+   the text for dark mode instead of reusing the light-mode pairing. */
+[data-bs-theme="dark"] .rc-event-initial { background: rgba(25,135,84,0.22); color: #4ade80; }
+[data-bs-theme="dark"] .rc-event-final { background: rgba(217,119,6,0.24); color: #fbbf24; }
+[data-bs-theme="dark"] .rc-event-opened { background: rgba(13,110,253,0.22); color: #60a5fa; }
+[data-bs-theme="dark"] .rc-event-closes { background: rgba(220,53,69,0.22); color: #f87171; }
 </style>
 
 <div class="modern-card p-3">

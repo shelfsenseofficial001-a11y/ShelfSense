@@ -261,6 +261,13 @@ function renderMonthlyChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // The canvas already sits inset from the card edges via
+            // .chart-wrap/the card's own padding, but Chart.js itself adds
+            // no further breathing room inside that -- without this, tall
+            // bars and the bottom axis labels render right up against the
+            // canvas's own edge, reading as if the card had no padding
+            // there at all.
+            layout: { padding: { top: 12, right: 12, bottom: 4, left: 4 } },
             plugins: {
                 legend: { display: false }
             },
@@ -303,6 +310,7 @@ function renderPipelineChart(data) {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            layout: { padding: 8 },
             plugins: {
                 legend: {
                     position: 'right',

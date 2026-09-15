@@ -20,14 +20,16 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<EOT
 <div class="jp-page-header">
     <div class="jp-page-header-top">
-        <h4 class="mb-0"><i class="bi bi-megaphone"></i> Recruitment Dashboard</h4>
+        <div>
+            <h4 class="mb-0"><i class="bi bi-megaphone"></i> Recruitment Dashboard</h4>
+            <p class="text-muted small mb-0">Manage every job posting from draft to hired -- create, review, and track recruitment activity here.</p>
+        </div>
         <div class="jp-page-header-actions">
             <button class="btn btn-yellow-outline" id="refreshBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
             <button class="btn btn-yellow-outline" id="myDraftsBtn"><i class="bi bi-file-earmark-text"></i> My Drafts</button>
             <a href="?page=hr_job_posting_form" class="btn btn-yellow-primary"><i class="bi bi-plus-circle"></i> New Job Posting</a>
         </div>
     </div>
-    <p class="text-muted small mb-0">Manage every job posting from draft to hired -- create, review, and track recruitment activity here.</p>
 </div>
 
 <div class="row g-2 mb-3">

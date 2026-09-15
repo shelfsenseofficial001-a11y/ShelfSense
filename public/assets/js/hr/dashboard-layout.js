@@ -94,11 +94,30 @@
         }
     }
 
+    // Which toast copy to show on exit -- 'save' (default: the pencil
+    // button, or Enter) vs 'close' (Esc specifically). Reset back to the
+    // default after every exit so a later plain click doesn't inherit a
+    // stale reason from an earlier keyboard exit.
+    var exitToastReason = 'save';
+    var EXIT_TOAST_COPY = {
+        save: { icon: 'bi-check-circle-fill', text: 'Saved!' },
+        'save-nochange': { icon: 'bi-check-circle-fill', text: 'Saved, no changes made.' },
+        close: { icon: 'bi-x-circle-fill', text: 'Closed UI Editor' },
+    };
+
+    function ordersEqual(a, b) {
+        return JSON.stringify(a) === JSON.stringify(b);
+    }
+
     // Shown top-left when the user turns edit mode back off, confirming
     // any rearranging they did during this session is persisted.
     function showSavedToast() {
         var toastEl = document.getElementById('dashSavedToast');
         if (!toastEl || !window.bootstrap || !window.bootstrap.Toast) return;
+        var copy = EXIT_TOAST_COPY[exitToastReason] || EXIT_TOAST_COPY.save;
+        var bodyEl = toastEl.querySelector('.toast-body');
+        if (bodyEl) bodyEl.innerHTML = '<i class="bi ' + copy.icon + ' me-2"></i>' + copy.text;
+        exitToastReason = 'save';
         var toast = window.bootstrap.Toast.getOrCreateInstance(toastEl);
         toast.show();
     }
@@ -113,6 +132,18 @@
     function showRevertConfirm() {
         var panel = document.getElementById('dashRevertConfirm');
         var editBtn = document.getElementById('dashEditModeBtn');
+
+        // Nothing was actually rearranged this session -- there's nothing
+        // to revert, so skip the confirm panel entirely instead of asking
+        // the user to confirm a no-op.
+        if (preEditSnapshot && ordersEqual(collectAllOrders(), preEditSnapshot)) {
+            if (exitToastReason === 'save') exitToastReason = 'save-nochange';
+            preEditSnapshot = null;
+            saveLayout();
+            showSavedToast();
+            return;
+        }
+
         if (!panel || !preEditSnapshot) {
             saveLayout();
             showSavedToast();
@@ -138,6 +169,11 @@
             if (!keep) {
                 applyOrder(document.getElementById('dashCanvasStats'), preEditSnapshot.stats);
                 applyOrder(document.getElementById('dashCanvasTables'), preEditSnapshot.content);
+            }
+            // Only relevant to the "save" copy -- Esc always reads as
+            // "Closed UI Editor" regardless of whether anything moved.
+            if (exitToastReason === 'save' && ordersEqual(collectAllOrders(), preEditSnapshot)) {
+                exitToastReason = 'save-nochange';
             }
             preEditSnapshot = null;
             saveLayout();
@@ -281,6 +317,33 @@
         draggedRow = null;
     }
 
+    // Enter/Esc while actively editing -- both exit edit mode and confirm
+    // "Keep" immediately (skipping the 5s countdown) rather than just
+    // opening the revert-confirm panel and leaving the user to click it
+    // anyway; every drag already auto-saves, so there's nothing for
+    // either key to meaningfully discard. See the .dash-edit-hint markup
+    // in views/layouts/hr.php for the on-screen reminder these match.
+    function handleEditModeKeydown(e) {
+        if (e.key !== 'Enter' && e.key !== 'Escape') return;
+        if (!document.body.classList.contains(EDIT_MODE_CLASS)) return;
+        var tag = (e.target && e.target.tagName || '').toLowerCase();
+        if (tag === 'input' || tag === 'textarea' || (e.target && e.target.isContentEditable)) return;
+
+        e.preventDefault();
+        exitToastReason = e.key === 'Escape' ? 'close' : 'save';
+        var panel = document.getElementById('dashRevertConfirm');
+        if (panel && panel.classList.contains('show')) {
+            panel.querySelector('.dash-revert-keep').click();
+            return;
+        }
+        var editBtn = document.getElementById('dashEditModeBtn');
+        if (editBtn) editBtn.click();
+        panel = document.getElementById('dashRevertConfirm');
+        if (panel && panel.classList.contains('show')) {
+            panel.querySelector('.dash-revert-keep').click();
+        }
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         loadLayout();
 
@@ -290,6 +353,7 @@
                 setEditMode(!document.body.classList.contains(EDIT_MODE_CLASS));
             });
         }
+        document.addEventListener('keydown', handleEditModeKeydown);
 
         Array.prototype.forEach.call(document.querySelectorAll('.dash-canvas-row'), function (row) {
             row.addEventListener('dragover', handleDragOver);
