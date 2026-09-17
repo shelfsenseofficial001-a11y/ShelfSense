@@ -120,6 +120,50 @@ class Order
         ];
     }
 
+    /**
+     * Total/completed/voided counts and completed sales across every
+     * matching order, not just the current page -- the Order History
+     * stat cards need the true totals regardless of how many rows fit
+     * on one page. Deliberately ignores the 'status' filter (unlike
+     * getForCashier's WHERE) so the cards keep showing all three
+     * categories' counts no matter which status chip is selected;
+     * search/date still narrow the set.
+     */
+    public function getStatsForCashier($cashierId, $filters = [])
+    {
+        $where = "cashier_id = ?";
+        $params = [$cashierId];
+
+        if (!empty($filters['date'])) {
+            $where .= " AND DATE(created_at) = ?";
+            $params[] = $filters['date'];
+        }
+
+        if (!empty($filters['search'])) {
+            $where .= " AND order_number LIKE ?";
+            $params[] = "%" . $filters['search'] . "%";
+        }
+
+        $stmt = $this->db->prepare("
+            SELECT
+                COUNT(*) as total,
+                SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                SUM(CASE WHEN status = 'voided' THEN 1 ELSE 0 END) as voided,
+                SUM(CASE WHEN status = 'completed' THEN total ELSE 0 END) as total_sales
+            FROM orders
+            WHERE $where
+        ");
+        $stmt->execute($params);
+        $row = $stmt->fetch();
+
+        return [
+            'total' => (int)($row['total'] ?? 0),
+            'completed' => (int)($row['completed'] ?? 0),
+            'voided' => (int)($row['voided'] ?? 0),
+            'total_sales' => (float)($row['total_sales'] ?? 0),
+        ];
+    }
+
     public function getTodaySales($cashierId)
     {
         $stmt = $this->db->prepare("

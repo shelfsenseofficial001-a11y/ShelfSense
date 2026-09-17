@@ -5,9 +5,11 @@
 console.log('✅ pos.js loaded');
 
 let cart = [];
+let dealCart = [];
 let currentPage = 1;
 let currentSearch = '';
 let activeCategory = 0;
+let viewingDeals = false;
 let selectedPaymentMethod = 'cash';
 let currentOrderId = null;
 
@@ -23,6 +25,16 @@ document.addEventListener('DOMContentLoaded', function() {
         renderProducts(data.products);
         renderPagination(data.pagination);
         if (window.ShelfSplash) window.ShelfSplash.ready();
+        // First paint is server-rendered without deals -- fetch them right
+        // after so the default "All" view still surfaces active bundles.
+        fetch('?page=api_get_deals')
+            .then(r => r.json())
+            .then(dealsData => {
+                if (dealsData.success && activeCategory === 0 && !viewingDeals && currentPage === 1) {
+                    renderProducts(lastRenderedProducts, dealsData.data.deals || []);
+                }
+            })
+            .catch(() => {});
     } else {
         loadCategories();
         loadProducts();
@@ -38,6 +50,7 @@ function renderCategoryChips(categories) {
     const row = document.getElementById('categoryRow');
     if (!row) return;
     let html = `<button class="pos-category-chip active" data-category="0"><i class="bi bi-grid-fill"></i> All</button>`;
+    html += `<button class="pos-category-chip" data-category="deals"><i class="bi bi-tags-fill"></i> Deals</button>`;
     categories.forEach(cat => {
         html += `<button class="pos-category-chip" data-category="${cat.id}">${escapeHtml(cat.name)}</button>`;
     });
@@ -46,8 +59,14 @@ function renderCategoryChips(categories) {
         chip.addEventListener('click', function() {
             row.querySelectorAll('.pos-category-chip').forEach(c => c.classList.remove('active'));
             this.classList.add('active');
-            activeCategory = parseInt(this.dataset.category) || 0;
-            loadProducts(currentSearch, 1);
+            if (this.dataset.category === 'deals') {
+                viewingDeals = true;
+                loadDeals();
+            } else {
+                viewingDeals = false;
+                activeCategory = parseInt(this.dataset.category) || 0;
+                loadProducts(currentSearch, 1);
+            }
         });
     });
 }
@@ -210,11 +229,11 @@ function setupEventListeners() {
 
     // Cancel payment (void order) - Shows confirmation
     document.getElementById('cancelPaymentBtn')?.addEventListener('click', function() {
-        if (cart.length === 0) {
+        if (cart.length === 0 && dealCart.length === 0) {
             bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
             return;
         }
-        
+
         Swal.fire({
             title: 'Void Transaction?',
             text: 'This will clear your cart and cancel the transaction. This cannot be undone.',
@@ -226,9 +245,10 @@ function setupEventListeners() {
         }).then(result => {
             if (result.isConfirmed) {
                 bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
+                const itemCount = cart.length + dealCart.length;
                 window.PosNotify?.push({
                     title: 'Order voided',
-                    message: `Cart with ${cart.length} item${cart.length === 1 ? '' : 's'} was voided before payment.`,
+                    message: `Cart with ${itemCount} item${itemCount === 1 ? '' : 's'} was voided before payment.`,
                     icon: 'bi-x-circle-fill'
                 });
                 clearCart();
@@ -388,11 +408,22 @@ function loadProducts(search = '', page = 1) {
     if (search) params.append('search', search);
     if (activeCategory > 0) params.append('category', activeCategory);
 
-    fetch(`?page=api_get_products&${params}`)
-        .then(response => response.json())
-        .then(data => {
+    // The default "All" landing view also surfaces active bundle deals
+    // alongside regular products, so a cashier doesn't have to know a
+    // separate "Deals" tab exists just to find them.
+    const showDealsHere = activeCategory === 0 && !search && page === 1;
+    const dealsPromise = showDealsHere
+        ? fetch('?page=api_get_deals').then(r => r.json()).catch(() => ({ success: false }))
+        : Promise.resolve(null);
+
+    Promise.all([
+        fetch(`?page=api_get_products&${params}`).then(response => response.json()),
+        dealsPromise
+    ])
+        .then(([data, dealsData]) => {
             if (data.success) {
-                renderProducts(data.data.products);
+                const deals = (dealsData && dealsData.success) ? (dealsData.data.deals || []) : [];
+                renderProducts(data.data.products, deals);
                 renderPagination(data.data.pagination);
             } else {
                 grid.innerHTML = `
@@ -419,13 +450,14 @@ function loadProducts(search = '', page = 1) {
 let lastRenderedProducts = [];
 let productViewMode = localStorage.getItem('pos_product_view') || 'grid';
 
-function renderProducts(products) {
+function renderProducts(products, deals = []) {
     const grid = document.getElementById('productGrid');
     const info = document.getElementById('productInfo');
 
     lastRenderedProducts = products || [];
+    lastRenderedDeals = deals || [];
 
-    if (!products || products.length === 0) {
+    if ((!products || products.length === 0) && lastRenderedDeals.length === 0) {
         grid.innerHTML = `
             <div class="text-center text-muted py-4">
                 <i class="bi bi-box-seam fs-3 d-block mb-2"></i>
@@ -436,8 +468,16 @@ function renderProducts(products) {
         return;
     }
 
-    info.textContent = `${products.length} products loaded`;
-    grid.innerHTML = productViewMode === 'list' ? renderProductsAsList(products) : renderProductsAsGrid(products);
+    const productsHtml = products && products.length > 0
+        ? (productViewMode === 'list' ? renderProductsAsList(products) : renderProductsAsGrid(products))
+        : '';
+    const dealsHtml = lastRenderedDeals.length > 0
+        ? `<div class="pos-deals-heading"><i class="bi bi-tags-fill me-1"></i>Deals</div>` +
+          (productViewMode === 'list' ? renderDealsAsList(lastRenderedDeals) : renderDealsAsGrid(lastRenderedDeals))
+        : '';
+
+    grid.innerHTML = dealsHtml + productsHtml;
+    info.textContent = `${(products || []).length} products loaded`;
     notifyLowStock(products);
 }
 
@@ -456,6 +496,214 @@ function notifyLowStock(products) {
                 dedupeKey: `low_stock_${product.id}`
             });
         }
+    });
+}
+
+// ============================================
+// DEALS (bundle deals -- own line item, see create_order.php)
+// ============================================
+
+let lastRenderedDeals = [];
+
+function loadDeals() {
+    const grid = document.getElementById('productGrid');
+    const info = document.getElementById('productInfo');
+    grid.innerHTML = `
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2 text-muted">Loading deals...</p>
+        </div>
+    `;
+
+    fetch('?page=api_get_deals')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderDeals(data.data.deals || []);
+            } else {
+                grid.innerHTML = `<div class="text-center text-danger py-4">${data.message || 'Failed to load deals'}</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error loading deals:', error);
+            grid.innerHTML = `<div class="text-center text-danger py-4">An error occurred. Please try again.</div>`;
+        });
+
+    // Deals aren't paginated -- there's typically only a handful active
+    // at once -- so just hide the pager instead of wiring it up.
+    renderPagination(null);
+    if (info) info.textContent = '';
+}
+
+function renderDeals(deals) {
+    const grid = document.getElementById('productGrid');
+    const info = document.getElementById('productInfo');
+    lastRenderedDeals = deals || [];
+
+    if (!deals || deals.length === 0) {
+        grid.innerHTML = `
+            <div class="text-center text-muted py-4">
+                <i class="bi bi-tags fs-3 d-block mb-2"></i>
+                No deals available right now
+            </div>
+        `;
+        if (info) info.textContent = '0 deals';
+        return;
+    }
+
+    if (info) info.textContent = `${deals.length} deal${deals.length === 1 ? '' : 's'} available`;
+    grid.innerHTML = productViewMode === 'list' ? renderDealsAsList(deals) : renderDealsAsGrid(deals);
+}
+
+function dealComponentsLabel(deal) {
+    return (deal.items || []).map(i => `${i.quantity}x ${escapeHtml(i.name)}`).join(', ');
+}
+
+function renderDealsAsGrid(deals) {
+    let html = '<div class="pos-product-tiles">';
+    deals.forEach(deal => {
+        const isOutOfStock = deal.available <= 0;
+        const qty = getDealCartQty(deal.id);
+        html += `
+            <div class="pos-product-tile modern-card p-0 ${isOutOfStock ? 'out-of-stock' : ''}" data-deal-id="${deal.id}">
+                <div class="pos-product-tile-img">
+                    ${deal.image_url
+                        ? `<img src="${deal.image_url}" alt="${escapeHtml(deal.name)}">`
+                        : `<div class="placeholder-image"><i class="bi bi-tags-fill"></i></div>`
+                    }
+                </div>
+                <div class="pos-product-tile-body">
+                    <div class="pos-product-tile-name" title="${escapeHtml(deal.name)}">${escapeHtml(deal.name)}</div>
+                    <span class="pos-product-category-chip pos-tile-category-chip" title="${dealComponentsLabel(deal)}">${dealComponentsLabel(deal)}</span>
+                    <div class="pos-product-tile-price">₱${parseFloat(deal.price).toFixed(2)}</div>
+                    ${isOutOfStock ? '' : `<div class="pos-product-tile-stock">${deal.available} available</div>`}
+                </div>
+                ${isOutOfStock ? `
+                    <div class="pos-product-tile-oos">Out of Stock</div>
+                ` : `
+                    <div class="pos-product-tile-qty">
+                        <button class="qty-minus" ${qty === 0 ? 'disabled' : ''} onclick="stepDealQty(${deal.id}, -1)">−</button>
+                        <input type="number" class="qty-value" min="0" max="${deal.available}" value="${qty}" onchange="setDealQty(${deal.id}, this.value)">
+                        <button class="qty-plus" ${qty >= deal.available ? 'disabled' : ''} onclick="stepDealQty(${deal.id}, 1)">+</button>
+                    </div>
+                `}
+            </div>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+function renderDealsAsList(deals) {
+    let html = '<div class="pos-product-list">';
+    deals.forEach(deal => {
+        const isOutOfStock = deal.available <= 0;
+        const qty = getDealCartQty(deal.id);
+        html += `
+            <div class="pos-product-list-row ${isOutOfStock ? 'out-of-stock' : ''}" data-deal-id="${deal.id}">
+                <div class="pos-product-list-img">
+                    ${deal.image_url
+                        ? `<img src="${deal.image_url}" alt="${escapeHtml(deal.name)}">`
+                        : `<div class="placeholder-image"><i class="bi bi-tags-fill"></i></div>`
+                    }
+                </div>
+                <div class="pos-product-list-info">
+                    <div class="pos-product-list-name" title="${escapeHtml(deal.name)}">${escapeHtml(deal.name)}</div>
+                    <div class="pos-product-list-meta">
+                        <span class="pos-product-category-chip" title="${dealComponentsLabel(deal)}">${dealComponentsLabel(deal)}</span>
+                        <span class="pos-product-list-stock">${isOutOfStock ? 'Out of Stock' : deal.available + ' available'}</span>
+                    </div>
+                </div>
+                <div class="pos-product-list-price">₱${parseFloat(deal.price).toFixed(2)}</div>
+                ${isOutOfStock ? '' : `
+                    <div class="pos-product-tile-qty pos-product-list-qty">
+                        <button class="qty-minus" ${qty === 0 ? 'disabled' : ''} onclick="stepDealQty(${deal.id}, -1)">−</button>
+                        <input type="number" class="qty-value" min="0" max="${deal.available}" value="${qty}" onchange="setDealQty(${deal.id}, this.value)">
+                        <button class="qty-plus" ${qty >= deal.available ? 'disabled' : ''} onclick="stepDealQty(${deal.id}, 1)">+</button>
+                    </div>
+                `}
+            </div>
+        `;
+    });
+    html += '</div>';
+    return html;
+}
+
+function getDealCartQty(dealId) {
+    const item = dealCart.find(i => i.deal_id === dealId);
+    return item ? item.quantity : 0;
+}
+
+function addDealToCart(dealId, name, price) {
+    const existing = dealCart.find(item => item.deal_id === dealId);
+    if (existing) {
+        existing.quantity += 1;
+    } else {
+        dealCart.push({ deal_id: dealId, name: name, price: price, quantity: 1 });
+    }
+    updateCart();
+    showToast(`${name} added to cart`, 'success');
+}
+
+function stepDealQty(dealId, delta) {
+    const deal = lastRenderedDeals.find(d => d.id === dealId);
+    if (!deal) return;
+    if (delta > 0) {
+        if (getDealCartQty(dealId) >= deal.available) {
+            showToast(`Only ${deal.available} ${deal.name} available`, 'warning');
+            return;
+        }
+        addDealToCart(deal.id, deal.name, parseFloat(deal.price));
+    } else {
+        const index = dealCart.findIndex(i => i.deal_id === dealId);
+        if (index >= 0) updateDealQuantity(index, -1);
+    }
+}
+
+function setDealQty(dealId, value) {
+    const deal = lastRenderedDeals.find(d => d.id === dealId);
+    if (!deal) return;
+    let qty = Math.floor(Number(value));
+    const index = dealCart.findIndex(i => i.deal_id === dealId);
+
+    if (Number.isFinite(qty) && qty > deal.available) {
+        qty = deal.available;
+        showToast(`Only ${deal.available} ${deal.name} available`, 'warning');
+    }
+
+    if (!Number.isFinite(qty) || qty <= 0) {
+        if (index >= 0) dealCart.splice(index, 1);
+    } else if (index >= 0) {
+        dealCart[index].quantity = qty;
+    } else {
+        dealCart.push({ deal_id: deal.id, name: deal.name, price: parseFloat(deal.price), quantity: qty });
+    }
+    updateCart();
+}
+
+function updateDealQuantity(index, delta) {
+    if (index < 0 || index >= dealCart.length) return;
+    dealCart[index].quantity += delta;
+    if (dealCart[index].quantity <= 0) {
+        dealCart.splice(index, 1);
+    }
+    updateCart();
+}
+
+function removeDealFromCart(index) {
+    if (index < 0 || index >= dealCart.length) return;
+    dealCart.splice(index, 1);
+    updateCart();
+}
+
+function syncDealTiles() {
+    document.querySelectorAll('#productGrid [data-deal-id]').forEach(tile => {
+        const dealId = parseInt(tile.dataset.dealId);
+        const qty = getDealCartQty(dealId);
+        const valueEl = tile.querySelector('.qty-value');
+        const minusBtn = tile.querySelector('.qty-minus');
+        if (valueEl) valueEl.value = qty;
+        if (minusBtn) minusBtn.disabled = qty === 0;
     });
 }
 
@@ -546,7 +794,11 @@ function setProductViewMode(mode) {
     document.querySelectorAll('#productViewToggle button').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.view === mode);
     });
-    renderProducts(lastRenderedProducts);
+    if (viewingDeals) {
+        renderDeals(lastRenderedDeals);
+    } else {
+        renderProducts(lastRenderedProducts, lastRenderedDeals);
+    }
 }
 
 function getCartQty(productId) {
@@ -722,7 +974,7 @@ function updateCart() {
     const savingsDisplay = document.getElementById('cartSavings');
     const checkoutBtn = document.getElementById('checkoutBtn');
 
-    if (cart.length === 0) {
+    if (cart.length === 0 && dealCart.length === 0) {
         container.style.display = 'none';
         emptyMessage.style.display = 'block';
         countBadge.textContent = '0';
@@ -731,6 +983,7 @@ function updateCart() {
         if (savingsRow) savingsRow.style.display = 'none';
         checkoutBtn.disabled = true;
         syncProductTiles();
+        syncDealTiles();
         return;
     }
 
@@ -767,6 +1020,28 @@ function updateCart() {
         `;
     });
 
+    dealCart.forEach((item, index) => {
+        const subtotal = item.price * item.quantity;
+        total += subtotal;
+        itemCount += item.quantity;
+
+        html += `
+            <div class="cart-item">
+                <div class="cart-item-top">
+                    <div class="item-name"><i class="bi bi-tags-fill me-1"></i>${escapeHtml(item.name)}</div>
+                    <button class="cart-item-remove" onclick="removeDealFromCart(${index})" title="Remove">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="cart-item-bottom">
+                    <div class="item-price">₱${item.price.toFixed(2)} each</div>
+                    <div class="cart-item-qty">${item.quantity}</div>
+                    <div class="cart-item-subtotal">₱${subtotal.toFixed(2)}</div>
+                </div>
+            </div>
+        `;
+    });
+
     container.innerHTML = html;
     countBadge.textContent = itemCount;
     totalDisplay.textContent = '₱' + total.toFixed(2);
@@ -782,6 +1057,7 @@ function updateCart() {
     }
     checkoutBtn.disabled = false;
     syncProductTiles();
+    syncDealTiles();
 }
 
 function updateQuantity(index, delta) {
@@ -802,6 +1078,7 @@ function removeFromCart(index) {
 
 function clearCart() {
     cart = [];
+    dealCart = [];
     updateCart();
     document.getElementById('barcodeInput')?.focus();
 }
@@ -849,6 +1126,13 @@ function getPaymentTotal() {
         subtotal += original * item.quantity;
         total += price * item.quantity;
     });
+    // Bundle deals are a flat price -- no discount stacking, PWD/Senior
+    // included, per "item discount does not affect the bundle".
+    dealCart.forEach(item => {
+        const lineTotal = item.price * item.quantity;
+        subtotal += lineTotal;
+        total += lineTotal;
+    });
     // Round to cents once at the end -- summing already-rounded per-item
     // amounts can still land a fraction of a centavo off in floating point
     // (e.g. 23.770000000000003), which made a tendered amount that matches
@@ -859,7 +1143,7 @@ function getPaymentTotal() {
 }
 
 function openPaymentModal() {
-    if (cart.length === 0) {
+    if (cart.length === 0 && dealCart.length === 0) {
         Swal.fire({ icon: 'warning', title: 'Cart Empty', text: 'Add items to the cart first.' });
         return;
     }
@@ -962,6 +1246,10 @@ function submitOrder(paymentReference) {
             product_id: item.product_id,
             quantity: item.quantity
         })),
+        deal_items: dealCart.map(item => ({
+            deal_id: item.deal_id,
+            quantity: item.quantity
+        })),
         payment_method: selectedPaymentMethod,
         amount_paid: selectedPaymentMethod === 'cash' ? amountTendered : total,
         pwd_senior_discount: pwdSeniorDiscount,
@@ -995,11 +1283,16 @@ function submitOrder(paymentReference) {
             playPrintAnimation(() => window.print());
             notifyLargeSale(order);
             cart = [];
+            dealCart = [];
             updateCart();
-            
-            // Refresh product grid to reflect updated stock counts.
-            const search = document.getElementById('searchInput').value.trim();
-            loadProducts(search, currentPage);
+
+            // Refresh the grid to reflect updated stock counts.
+            if (viewingDeals) {
+                loadDeals();
+            } else {
+                const search = document.getElementById('searchInput').value.trim();
+                loadProducts(search, currentPage);
+            }
 
         } else {
             Swal.fire({
@@ -1162,6 +1455,16 @@ function showReceipt(order) {
             itemsHtml += `
                 <div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:2px 0;">
                     <span>${parseInt(item.quantity)}x ${item.name}</span>
+                    <span>₱${parseFloat(item.subtotal).toFixed(2)}</span>
+                </div>
+            `;
+        });
+    }
+    if (order.deal_items && order.deal_items.length > 0) {
+        order.deal_items.forEach(item => {
+            itemsHtml += `
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem;padding:2px 0;">
+                    <span><i class="bi bi-tags-fill me-1"></i>${parseInt(item.quantity)}x ${item.deal_name}</span>
                     <span>₱${parseFloat(item.subtotal).toFixed(2)}</span>
                 </div>
             `;

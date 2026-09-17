@@ -6,7 +6,9 @@ require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../models/OrderItem.php';
+require_once __DIR__ . '/../../models/OrderDealItem.php';
 require_once __DIR__ . '/../../models/Product.php';
+require_once __DIR__ . '/../../models/Deal.php';
 require_once __DIR__ . '/../../models/Register.php';
 
 use App\Core\Auth;
@@ -14,7 +16,9 @@ use App\Core\Database;
 use App\Core\Response;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderDealItem;
 use App\Models\Product;
+use App\Models\Deal;
 use App\Models\Register;
 
 header('Content-Type: application/json');
@@ -38,6 +42,7 @@ if (!$input) {
 }
 
 $items = $input['items'] ?? [];
+$dealItems = $input['deal_items'] ?? [];
 $paymentMethod = $input['payment_method'] ?? '';
 $amountPaid = isset($input['amount_paid']) ? floatval($input['amount_paid']) : 0;
 $notes = isset($input['notes']) ? trim($input['notes']) : '';
@@ -49,7 +54,7 @@ $pwdSeniorDiscount = !empty($input['pwd_senior_discount']);
 const VAT_RATE = 0.12;
 const PWD_SENIOR_DISCOUNT_RATE = 0.20;
 
-if (empty($items) || !is_array($items)) {
+if ((empty($items) || !is_array($items)) && (empty($dealItems) || !is_array($dealItems))) {
     Response::error('Cart is empty', 400);
 }
 
@@ -154,6 +159,57 @@ try {
         }
     }
 
+    // Bundle deals are their own line item, not split into their component
+    // products' order_items -- a per-product discount never applies to a
+    // bundle (it's already a fixed promotional price), and neither does
+    // PWD/Senior, consistent with "discounts don't stack" elsewhere here.
+    $dealModel = new Deal();
+    $orderDealItems = [];
+
+    foreach ($dealItems as $dealItem) {
+        $dealId = intval($dealItem['deal_id'] ?? 0);
+        $quantity = intval($dealItem['quantity'] ?? 0);
+
+        if ($dealId <= 0 || $quantity <= 0) {
+            throw new \Exception('Invalid deal or quantity');
+        }
+        if ($quantity > 999) {
+            throw new \Exception('Quantity exceeds maximum allowed (999)');
+        }
+
+        $deal = $dealModel->getById($dealId);
+        if (!$deal || !$deal['is_active']) {
+            throw new \Exception('This deal is no longer available');
+        }
+
+        foreach ($deal['items'] as $component) {
+            $neededQty = (int)$component['quantity'] * $quantity;
+            if ((int)$component['stock_quantity'] < $neededQty) {
+                throw new \Exception('Insufficient stock for ' . $deal['name'] . ' (' . $component['name'] . ')');
+            }
+        }
+
+        $dealPrice = (float)$deal['price'];
+        $dealSubtotal = round($dealPrice * $quantity, 2);
+
+        $orderDealItems[] = [
+            'deal_id' => $dealId,
+            'deal_name' => $deal['name'],
+            'quantity' => $quantity,
+            'price' => $dealPrice,
+            'subtotal' => $dealSubtotal
+        ];
+
+        $subtotal += $dealSubtotal;
+
+        foreach ($deal['items'] as $component) {
+            $neededQty = (int)$component['quantity'] * $quantity;
+            if (!$productModel->reduceStock($component['product_id'], $neededQty)) {
+                throw new \Exception('Insufficient stock for ' . $deal['name'] . ' (' . $component['name'] . ')');
+            }
+        }
+    }
+
     $subtotal = round($subtotal, 2);
     $discountAmount = round($discountAmount, 2);
     $total = round($subtotal - $discountAmount, 2);
@@ -193,10 +249,17 @@ try {
         $orderItemModel->create($item);
     }
 
+    $orderDealItemModel = new OrderDealItem();
+    foreach ($orderDealItems as $dealItem) {
+        $dealItem['order_id'] = $orderId;
+        $orderDealItemModel->create($dealItem);
+    }
+
     $db->commit();
 
     $order = $orderModel->getById($orderId);
     $order['items'] = $orderItemModel->getByOrderId($orderId);
+    $order['deal_items'] = $orderDealItemModel->getByOrderId($orderId);
 
     if ($cashierId) {
         createNotification(

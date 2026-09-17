@@ -19,17 +19,24 @@ if (!function_exists('pos_orders_build_data')) {
 function pos_orders_build_data(PDO $db, int $cashierId, int $page, int $limit, array $filters): array {
     $orderModel = new Order();
     $result = $orderModel->getForCashier($cashierId, $page, $limit, $filters);
+    $stats = $orderModel->getStatsForCashier($cashierId, $filters);
 
     foreach ($result['orders'] as &$order) {
         $stmt = $db->prepare("SELECT COUNT(*) as count FROM order_items WHERE order_id = ?");
         $stmt->execute([$order['id']]);
         $count = $stmt->fetch();
-        $order['item_count'] = (int)($count['count'] ?? 0);
+
+        $stmt = $db->prepare("SELECT COUNT(*) as count FROM order_deal_items WHERE order_id = ?");
+        $stmt->execute([$order['id']]);
+        $dealCount = $stmt->fetch();
+
+        $order['item_count'] = (int)($count['count'] ?? 0) + (int)($dealCount['count'] ?? 0);
     }
 
     return [
         'orders' => $result['orders'],
-        'pagination' => $result['pagination']
+        'pagination' => $result['pagination'],
+        'stats' => $stats
     ];
 }
 }

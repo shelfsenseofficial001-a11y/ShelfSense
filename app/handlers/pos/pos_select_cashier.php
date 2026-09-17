@@ -6,10 +6,12 @@
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../models/Attendance.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Models\Attendance;
 
 header('Content-Type: application/json');
 
@@ -32,7 +34,7 @@ if ($password === '') {
 try {
     $db = Database::getInstance()->getConnection();
     $stmt = $db->prepare("
-        SELECT u.user_id, u.first_name, u.last_name, u.password
+        SELECT u.user_id, u.first_name, u.last_name, u.password, u.role
         FROM users u
         LEFT JOIN trainees t ON t.user_id = u.user_id AND t.status = 'active' AND t.target_role = 'Cashier'
         WHERE u.user_id = ? AND u.is_active = 1
@@ -50,6 +52,22 @@ try {
     }
 
     $fullName = $cashier['first_name'] . ' ' . $cashier['last_name'];
+
+    // Face ID is temporarily off for cashiers (see app/config/features.php)
+    // -- password alone confirms identity and clocks them in directly,
+    // skipping the face-verify step entirely.
+    $features = require __DIR__ . '/../../config/features.php';
+    if ($cashier['role'] === 'employee' && !$features['face_id_required_for_cashier']) {
+        $attendanceModel = new Attendance();
+        $action = $attendanceModel->recordPasswordClock((int)$cashier['user_id']);
+        Auth::posSetCashier((int)$cashier['user_id'], $fullName);
+
+        Response::success([
+            'action' => $action,
+            'cashier_name' => $fullName,
+            'redirect' => '?page=pos_checkout'
+        ], 'Attendance recorded');
+    }
 
     // Password only confirms identity for register attribution -- actual
     // clock-in still requires a face-verified attendance scan, done right

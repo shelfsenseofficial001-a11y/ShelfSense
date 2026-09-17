@@ -5,14 +5,19 @@ use App\Core\Database;
 define('SHELFSENSE_INTERNAL_INCLUDE', true);
 require_once __DIR__ . '/../../../app/handlers/pos/get_orders.php';
 $cashierId = Auth::posCheck() ? Auth::posCashierId() : Auth::userId();
-$initialData = pos_orders_build_data(Database::getInstance()->getConnection(), $cashierId, 1, 20, []);
+// The date filter defaults to today in the UI (see orders.js), so the
+// first paint has to match that default too -- otherwise page 1 shows
+// every date while paging forward silently starts applying "today only"
+// (whatever the date input already holds), landing on a now-out-of-range,
+// unexpectedly empty page.
+$initialData = pos_orders_build_data(Database::getInstance()->getConnection(), $cashierId, 1, 20, ['date' => date('Y-m-d')]);
 $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 
 $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
 $additional_js = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>'
-    . '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260908600000"></script>';
+    . '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260917310000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [
@@ -83,6 +88,19 @@ $content = <<<'EOT'
 </div>
 
 <div class="active-filter-chips" id="activeFilterChips"></div>
+
+<!-- Category quick-filters -->
+<div class="pos-category-row mb-3" id="orderCategoryRow">
+    <button type="button" class="pos-category-chip active" data-status="">
+        <i class="bi bi-grid-fill"></i> All Transactions
+    </button>
+    <button type="button" class="pos-category-chip" data-status="completed">
+        <i class="bi bi-check-circle-fill"></i> Completed
+    </button>
+    <button type="button" class="pos-category-chip" data-status="voided">
+        <i class="bi bi-x-circle-fill"></i> Voided Transactions
+    </button>
+</div>
 
 <!-- Stats -->
 <div class="row g-2 mb-3" id="posOrdersStatsRow">

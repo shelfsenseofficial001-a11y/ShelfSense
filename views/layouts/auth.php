@@ -113,6 +113,14 @@
         /* Auth Container & Card */
         .auth-container {
             min-height: 100vh;
+            /* On mobile browsers, 100vh is measured against the viewport
+               with the address bar collapsed, so it's taller than what's
+               actually visible on load -- the card ends up looking
+               top-aligned with dead space below rather than centered.
+               100dvh tracks the real, current visible viewport instead;
+               kept after the 100vh fallback for browsers that don't
+               support dvh yet. */
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;

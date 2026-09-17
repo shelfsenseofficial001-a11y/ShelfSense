@@ -28,11 +28,11 @@ if ($isPosSession && !Auth::posCashierId()) {
     Response::forbidden('Select which cashier is ringing up sales first.');
 }
 
-$cashierId = $isPosSession ? Auth::posCashierId() : Auth::userId();
-
 $input = json_decode(file_get_contents('php://input'), true);
 $orderId = isset($input['order_id']) ? intval($input['order_id']) : 0;
 $reason = isset($input['reason']) ? trim($input['reason']) : '';
+$managerIdentifier = isset($input['manager_employee_number']) ? trim($input['manager_employee_number']) : '';
+$managerPassword = isset($input['manager_password']) ? (string)$input['manager_password'] : '';
 
 if ($orderId <= 0) {
     Response::error('Order ID required', 400);
@@ -46,8 +46,25 @@ if (strlen($reason) > 255) {
     Response::error('Reason cannot exceed 255 characters', 400);
 }
 
+if ($managerIdentifier === '' || $managerPassword === '') {
+    Response::error('Store Manager approval is required to void an order.', 400);
+}
+
 try {
     $db = Database::getInstance()->getConnection();
+
+    // Voiding always requires a Store Manager to authorize it -- verified
+    // fresh here against their own login, independent of whoever is
+    // currently ringing up sales on this register (a POS terminal session
+    // has no manager account of its own to check against).
+    $stmt = $db->prepare("SELECT user_id, password FROM users WHERE (employee_number = ? OR email = ?) AND role = 'store_manager' AND is_active = 1");
+    $stmt->execute([$managerIdentifier, $managerIdentifier]);
+    $manager = $stmt->fetch();
+
+    if (!$manager || !password_verify($managerPassword, $manager['password'])) {
+        Response::error('Invalid Store Manager credentials.', 401);
+    }
+
     $db->beginTransaction();
 
     $orderModel = new Order();
@@ -57,11 +74,6 @@ try {
     $order = $orderModel->getById($orderId);
     if (!$order) {
         Response::notFound('Order not found');
-    }
-
-    // Check if this employee owns the order
-    if ($order['cashier_id'] != $cashierId && !Auth::isStoreManager() && !Auth::isSuperAdmin()) {
-        Response::forbidden('You can only void your own orders');
     }
 
     if ($order['status'] === 'voided') {
@@ -74,7 +86,7 @@ try {
         $productModel->increaseStock($item['product_id'], $item['quantity']);
     }
 
-    $orderModel->updateStatus($orderId, 'voided', $reason, $cashierId);
+    $orderModel->updateStatus($orderId, 'voided', $reason, (int)$manager['user_id']);
 
     $db->commit();
 

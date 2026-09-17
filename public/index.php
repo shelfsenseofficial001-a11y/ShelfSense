@@ -939,6 +939,10 @@ if ($page === 'api_get_products') {
     require_once __DIR__ . '/../app/handlers/pos/get_products.php';
     exit;
 }
+if ($page === 'api_get_deals') {
+    require_once __DIR__ . '/../app/handlers/pos/get_deals.php';
+    exit;
+}
 if ($page === 'api_get_product_by_barcode') {
     require_once __DIR__ . '/../app/handlers/pos/get_product_by_barcode.php';
     exit;
@@ -1131,13 +1135,55 @@ if ($page === 'api_store_manager_inventory') {
     exit;
 }
 
-if ($page === 'api_store_manager_update_product') {
-    require_once __DIR__ . '/../app/handlers/store_manager/update_product.php';
+// ============================================
+// STORE MANAGER - CATALOG & DEALS
+// ============================================
+
+if ($page === 'store_manager_catalog') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/store_manager/catalog.php';
     exit;
 }
 
-if ($page === 'api_store_manager_upload_product_image') {
-    require_once __DIR__ . '/../app/handlers/store_manager/upload_product_image.php';
+if ($page === 'api_store_manager_catalog') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_catalog.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_update_catalog_product') {
+    require_once __DIR__ . '/../app/handlers/store_manager/update_catalog_product.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_upload_catalog_product_image') {
+    require_once __DIR__ . '/../app/handlers/store_manager/upload_catalog_product_image.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_deals') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_deals.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_create_deal') {
+    require_once __DIR__ . '/../app/handlers/store_manager/create_deal.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_delete_deal') {
+    require_once __DIR__ . '/../app/handlers/store_manager/delete_deal.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_toggle_deal') {
+    require_once __DIR__ . '/../app/handlers/store_manager/toggle_deal.php';
     exit;
 }
 

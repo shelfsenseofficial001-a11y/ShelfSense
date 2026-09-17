@@ -96,6 +96,28 @@ class Attendance
      */
     public function recordFaceClock($userId, $photoPath, $distance)
     {
+        return $this->recordClock($userId, 'face', $photoPath, $distance);
+    }
+
+    /**
+     * Same auto-clock-in/out behavior as recordFaceClock, but for when
+     * Face ID isn't required (see app/config/features.php) and identity
+     * was already confirmed by password alone -- 'manual' is an honest
+     * label for that, not a face match pretending to be one.
+     */
+    public function recordPasswordClock($userId)
+    {
+        return $this->recordClock($userId, 'manual', null, null);
+    }
+
+    /**
+     * Auto-records a verified attendance punch: time-in if the employee
+     * hasn't clocked in today, time-out if they have but haven't clocked
+     * out yet, or 'already_recorded' if both are already set. Bypasses
+     * manual HR entry entirely -- used by the POS clock-in flow.
+     */
+    private function recordClock($userId, $method, $photoPath, $distance)
+    {
         $today = date('Y-m-d');
         $now = date('H:i:s');
 
@@ -106,27 +128,27 @@ class Attendance
         if (!$existing || !$existing['time_in']) {
             $stmt = $this->db->prepare("
                 INSERT INTO attendance (user_id, date, time_in, status, verification_method, verification_photo, match_distance, verified_by)
-                VALUES (?, ?, ?, 'present', 'face', ?, ?, ?)
+                VALUES (?, ?, ?, 'present', ?, ?, ?, ?)
                 ON DUPLICATE KEY UPDATE
                     time_in = VALUES(time_in),
                     status = VALUES(status),
-                    verification_method = 'face',
+                    verification_method = VALUES(verification_method),
                     verification_photo = VALUES(verification_photo),
                     match_distance = VALUES(match_distance),
                     verified_by = VALUES(verified_by),
                     updated_at = NOW()
             ");
-            $stmt->execute([$userId, $today, $now, $photoPath, $distance, $userId]);
+            $stmt->execute([$userId, $today, $now, $method, $photoPath, $distance, $userId]);
             return 'time_in';
         }
 
         if (!$existing['time_out']) {
             $stmt = $this->db->prepare("
                 UPDATE attendance
-                SET time_out = ?, verification_method = 'face', verification_photo = ?, match_distance = ?, verified_by = ?, updated_at = NOW()
+                SET time_out = ?, verification_method = ?, verification_photo = ?, match_distance = ?, verified_by = ?, updated_at = NOW()
                 WHERE id = ?
             ");
-            $stmt->execute([$now, $photoPath, $distance, $userId, $existing['id']]);
+            $stmt->execute([$now, $method, $photoPath, $distance, $userId, $existing['id']]);
             return 'time_out';
         }
 

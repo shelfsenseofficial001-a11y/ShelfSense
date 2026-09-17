@@ -7,6 +7,36 @@ class Product
 {
     private $db;
 
+    // Shared by every read method below -- COALESCEs a Catalog & Deals
+    // override over the base product row for anything sellable (name,
+    // description, category, price, cost, discount, image). Inventory
+    // reads products directly with its own query (see
+    // app/handlers/store_manager/get_inventory.php) and never sees this,
+    // by design: Catalog & Deals edits are never supposed to change what
+    // Inventory shows.
+    private const SELECT_WITH_OVERRIDES = "
+        SELECT
+            p.id,
+            p.barcode,
+            COALESCE(co.name, p.name) AS name,
+            COALESCE(co.description, p.description) AS description,
+            COALESCE(co.category_id, p.category_id) AS category_id,
+            COALESCE(co.price, p.price) AS price,
+            COALESCE(co.cost, p.cost) AS cost,
+            COALESCE(co.discount_value, p.discount_value) AS discount_value,
+            COALESCE(co.discount_type, p.discount_type) AS discount_type,
+            COALESCE(co.image_path, p.image_path) AS image_path,
+            p.stock_quantity,
+            p.reorder_level,
+            p.is_active,
+            p.created_at,
+            p.updated_at,
+            c.name AS category_name
+        FROM products p
+        LEFT JOIN catalog_overrides co ON co.product_id = p.id
+        LEFT JOIN categories c ON c.id = COALESCE(co.category_id, p.category_id)
+    ";
+
     public function __construct()
     {
         $this->db = Database::getInstance()->getConnection();
@@ -19,29 +49,27 @@ class Product
         $params = [];
 
         if (!empty($filters['category_id'])) {
-            $where .= " AND p.category_id = ?";
+            $where .= " AND COALESCE(co.category_id, p.category_id) = ?";
             $params[] = $filters['category_id'];
         }
 
         if (!empty($filters['search'])) {
-            $where .= " AND (p.name LIKE ? OR p.barcode LIKE ?)";
+            $where .= " AND (COALESCE(co.name, p.name) LIKE ? OR p.barcode LIKE ?)";
             $search = "%" . $filters['search'] . "%";
             $params[] = $search;
             $params[] = $search;
         }
 
         // Count
-        $countSql = "SELECT COUNT(*) as total FROM products p WHERE $where";
+        $countSql = "SELECT COUNT(*) as total FROM products p LEFT JOIN catalog_overrides co ON co.product_id = p.id WHERE $where";
         $stmt = $this->db->prepare($countSql);
         $stmt->execute($params);
         $total = $stmt->fetch()['total'];
 
         // Data
-        $sql = "SELECT p.*, c.name as category_name 
-                FROM products p
-                LEFT JOIN categories c ON p.category_id = c.id
+        $sql = self::SELECT_WITH_OVERRIDES . "
                 WHERE $where
-                ORDER BY p.name
+                ORDER BY COALESCE(co.name, p.name)
                 LIMIT ? OFFSET ?";
         $params[] = $limit;
         $params[] = $offset;
@@ -62,20 +90,14 @@ class Product
 
     public function getByBarcode($barcode)
     {
-        $stmt = $this->db->prepare("SELECT p.*, c.name as category_name 
-                                    FROM products p
-                                    LEFT JOIN categories c ON p.category_id = c.id
-                                    WHERE p.barcode = ? AND p.is_active = 1");
+        $stmt = $this->db->prepare(self::SELECT_WITH_OVERRIDES . " WHERE p.barcode = ? AND p.is_active = 1");
         $stmt->execute([$barcode]);
         return $stmt->fetch();
     }
 
     public function getById($id)
     {
-        $stmt = $this->db->prepare("SELECT p.*, c.name as category_name 
-                                    FROM products p
-                                    LEFT JOIN categories c ON p.category_id = c.id
-                                    WHERE p.id = ?");
+        $stmt = $this->db->prepare(self::SELECT_WITH_OVERRIDES . " WHERE p.id = ?");
         $stmt->execute([$id]);
         return $stmt->fetch();
     }
@@ -83,12 +105,9 @@ class Product
     public function search($query, $limit = 20)
     {
         $search = "%" . $query . "%";
-        $stmt = $this->db->prepare("
-            SELECT p.*, c.name as category_name 
-            FROM products p
-            LEFT JOIN categories c ON p.category_id = c.id
-            WHERE p.is_active = 1 AND (p.name LIKE ? OR p.barcode LIKE ?)
-            ORDER BY p.name
+        $stmt = $this->db->prepare(self::SELECT_WITH_OVERRIDES . "
+            WHERE p.is_active = 1 AND (COALESCE(co.name, p.name) LIKE ? OR p.barcode LIKE ?)
+            ORDER BY COALESCE(co.name, p.name)
             LIMIT ?
         ");
         $stmt->execute([$search, $search, $limit]);
@@ -147,23 +166,5 @@ class Product
         $product['price'] = round($product['original_price'] - $discountAmount, 2);
         $product['has_discount'] = $discountAmount > 0;
         return $product;
-    }
-
-    public function update($id, $data)
-    {
-        $fields = [];
-        $params = [];
-        $allowed = ['barcode','name','description','category_id','price','cost','discount_value','discount_type','stock_quantity','reorder_level','image_path','is_active'];
-        foreach ($allowed as $field) {
-            if (array_key_exists($field, $data)) {
-                $fields[] = "$field = ?";
-                $params[] = $data[$field];
-            }
-        }
-        if (empty($fields)) return false;
-        $params[] = $id;
-        $sql = "UPDATE products SET " . implode(', ', $fields) . " WHERE id = ?";
-        $stmt = $this->db->prepare($sql);
-        return $stmt->execute($params);
     }
 }

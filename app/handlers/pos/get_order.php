@@ -6,11 +6,13 @@ require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../models/OrderItem.php';
+require_once __DIR__ . '/../../models/OrderDealItem.php';
 
 use App\Core\Auth;
 use App\Core\Response;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\OrderDealItem;
 
 header('Content-Type: application/json');
 
@@ -37,6 +39,7 @@ if ($orderId <= 0 && empty($orderNumber)) {
 try {
     $orderModel = new Order();
     $orderItemModel = new OrderItem();
+    $orderDealItemModel = new OrderDealItem();
 
     if ($orderId > 0) {
         $order = $orderModel->getById($orderId);
@@ -54,7 +57,8 @@ try {
     }
 
     $order['items'] = $orderItemModel->getByOrderId($order['id']);
-    $order['item_count'] = count($order['items']);
+    $order['deal_items'] = $orderDealItemModel->getByOrderId($order['id']);
+    $order['item_count'] = count($order['items']) + count($order['deal_items']);
 
     $order['subtotal'] = (float)$order['subtotal'];
     $order['total'] = (float)$order['total'];

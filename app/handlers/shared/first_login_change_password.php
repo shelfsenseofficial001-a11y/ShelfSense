@@ -57,8 +57,10 @@ $db->prepare("UPDATE users SET password = ? WHERE user_id = ?")->execute([$hash,
 // Only cashier-facing roles need Face ID, and only if they don't already
 // have one enrolled (e.g. a promotion or an admin password reset
 // shouldn't force someone to re-enroll a face they already registered).
+$features = require __DIR__ . '/../../config/features.php';
+$roleNeedsFace = $user['role'] === 'trainee' || ($user['role'] === 'employee' && $features['face_id_required_for_cashier']);
 $requiresFace = false;
-if (in_array($user['role'], ['employee', 'trainee'], true)) {
+if ($roleNeedsFace) {
     $stmt = $db->prepare("SELECT 1 FROM face_enrollments WHERE user_id = ?");
     $stmt->execute([$userId]);
     $requiresFace = !$stmt->fetch();

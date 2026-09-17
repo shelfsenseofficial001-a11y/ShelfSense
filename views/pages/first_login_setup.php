@@ -12,10 +12,12 @@ use App\Core\Database;
 require_once __DIR__ . '/../../app/core/Database.php';
 
 $db = Database::getInstance()->getConnection();
+$features = require __DIR__ . '/../../app/config/features.php';
 
 $role = Auth::role();
+$roleNeedsFace = $role === 'trainee' || ($role === 'employee' && $features['face_id_required_for_cashier']);
 $needsFaceStep = false;
-if (in_array($role, ['employee', 'trainee'], true)) {
+if ($roleNeedsFace) {
     $stmt = $db->prepare("SELECT 1 FROM face_enrollments WHERE user_id = ?");
     $stmt->execute([Auth::userId()]);
     $needsFaceStep = !$stmt->fetch();

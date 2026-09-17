@@ -1279,6 +1279,18 @@ body.swal2-shown > .modal-backdrop {
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     gap: 16px;
 }
+.pos-deals-heading {
+    grid-column: 1 / -1;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: var(--brand-yellow-hover);
+    margin: 4px 0 10px;
+}
+.pos-deals-heading:not(:first-child) {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px dashed var(--border-color);
+}
 .pos-product-tile {
     border: 2px solid transparent;
     border-radius: 12px;

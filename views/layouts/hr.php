@@ -41,7 +41,7 @@ use App\Core\Auth;
                     <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
                 </span>
                 <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
-                <span class="badge bg-primary ms-2">HR</span>
+                <span class="badge bg-primary ms-2"><?php echo Auth::isOwner() ? 'Owner' : 'HR'; ?></span>
             </div>
 
             <!-- Standalone collapse toggle — its own row, like a nav item -->
@@ -52,7 +52,7 @@ use App\Core\Auth;
 
             <nav class="sidebar-nav">
                 <div class="sidebar-divider sidebar-divider-first"><span class="sidebar-divider-label">Main</span></div>
-                <a href="?page=hr_dashboard" class="nav-item <?php echo $activePage === 'dashboard' ? 'active' : ''; ?>" title="Dashboard">
+                <a href="<?php echo Auth::isOwner() ? '?page=owner_dashboard' : '?page=hr_dashboard'; ?>" class="nav-item <?php echo $activePage === 'dashboard' ? 'active' : ''; ?>" title="Dashboard">
                     <span class="nav-icon-wrap"><i class="bi bi-grid-1x2-fill"></i></span> <span class="nav-label">Dashboard</span>
                 </a>
                 <a href="?page=hr_applicants" class="nav-item <?php echo $activePage === 'applicants' ? 'active' : ''; ?>" title="Applicants">
@@ -113,8 +113,8 @@ use App\Core\Auth;
                         <?php endif; ?>
                     </div>
                     <div class="user-info">
-                        <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'HR Staff'); ?></div>
-                        <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? 'hr_staff'); ?></small>
+                        <div class="fw-semibold"><?php echo htmlspecialchars($_SESSION['fullname'] ?? 'Staff'); ?></div>
+                        <small class="text-muted"><?php echo getRoleName($_SESSION['role'] ?? (Auth::isOwner() ? 'owner' : 'hr_staff')); ?></small>
                     </div>
                 </a>
                 <button type="button" class="user-menu-toggle" id="sidebarUserMenuToggle" title="More">

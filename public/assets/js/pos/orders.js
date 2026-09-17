@@ -8,7 +8,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (window.__INITIAL_DATA__) {
         renderOrders(window.__INITIAL_DATA__.orders);
         renderPagination(window.__INITIAL_DATA__.pagination);
-        renderStats(window.__INITIAL_DATA__.orders);
+        renderStats(window.__INITIAL_DATA__.stats);
         if (window.ShelfSplash) window.ShelfSplash.ready();
     } else {
         loadOrders();
@@ -40,9 +40,31 @@ document.addEventListener("DOMContentLoaded", function() {
         document.getElementById("searchOrderInput").value = "";
         document.getElementById("filterStatus").value = "";
         document.getElementById("filterDate").value = new Date().toISOString().split("T")[0];
+        setActiveCategoryChip("");
         loadOrders();
     });
+
+    document.querySelectorAll("#orderCategoryRow .pos-category-chip").forEach(function(chip) {
+        chip.addEventListener("click", function() {
+            const status = this.dataset.status;
+            setActiveCategoryChip(status);
+            const statusSelect = document.getElementById("filterStatus");
+            statusSelect.value = status;
+            window.refreshSearchableSelect?.(statusSelect);
+            loadOrders(1);
+        });
+    });
+
+    document.getElementById("filterStatus").addEventListener("change", function() {
+        setActiveCategoryChip(this.value);
+    });
 });
+
+function setActiveCategoryChip(status) {
+    document.querySelectorAll("#orderCategoryRow .pos-category-chip").forEach(function(chip) {
+        chip.classList.toggle("active", chip.dataset.status === status);
+    });
+}
 
 let currentPage = 1;
 
@@ -81,7 +103,7 @@ function loadOrders(page = 1) {
             if (data.success) {
                 renderOrders(data.data.orders);
                 renderPagination(data.data.pagination);
-                renderStats(data.data.orders);
+                renderStats(data.data.stats);
             } else {
                 tbody.innerHTML = `
                     <tr>
@@ -228,18 +250,13 @@ function renderPagination(pagination) {
     });
 }
 
-function renderStats(orders) {
-    const total = orders.length;
-    const completed = orders.filter(o => o.status === "completed").length;
-    const voided = orders.filter(o => o.status === "voided").length;
-    const totalSales = orders
-        .filter(o => o.status === "completed")
-        .reduce((sum, o) => sum + parseFloat(o.total), 0);
-    
-    document.getElementById("statTotal").textContent = total;
-    document.getElementById("statCompleted").textContent = completed;
-    document.getElementById("statVoided").textContent = voided;
-    document.getElementById("statTotalSales").textContent = "₱" + totalSales.toFixed(2);
+function renderStats(stats) {
+    stats = stats || { total: 0, completed: 0, voided: 0, total_sales: 0 };
+
+    document.getElementById("statTotal").textContent = stats.total;
+    document.getElementById("statCompleted").textContent = stats.completed;
+    document.getElementById("statVoided").textContent = stats.voided;
+    document.getElementById("statTotalSales").textContent = "₱" + parseFloat(stats.total_sales).toFixed(2);
 }
 
 function viewOrder(orderId) {
@@ -309,6 +326,18 @@ function renderOrderDetail(order) {
                     <td>${item.quantity}</td>
                     <td>₱${parseFloat(item.price).toFixed(2)}</td>
                     <td class="item-subtotal">₱${parseFloat(item.subtotal).toFixed(2)}</td>
+                </tr>
+            `;
+        });
+    }
+    if (order.deal_items && order.deal_items.length > 0) {
+        order.deal_items.forEach(deal => {
+            itemsHtml += `
+                <tr>
+                    <td class="item-name"><i class="bi bi-tags-fill text-yellow me-1"></i>${escapeOrderHtml(deal.deal_name)} <span class="badge bg-secondary">Bundle</span></td>
+                    <td>${deal.quantity}</td>
+                    <td>₱${parseFloat(deal.price).toFixed(2)}</td>
+                    <td class="item-subtotal">₱${parseFloat(deal.subtotal).toFixed(2)}</td>
                 </tr>
             `;
         });
@@ -396,30 +425,79 @@ function escapeOrderHtml(text) {
     return div.innerHTML;
 }
 
+const VOID_REASONS = [
+    "Customer changed their mind",
+    "Wrong item(s) rung up",
+    "Wrong price/discount applied",
+    "Duplicate transaction",
+    "Payment issue",
+    "Other"
+];
+
 function voidOrder(orderId) {
     Swal.fire({
         title: "Void Order?",
-        text: "This will cancel the order and refund the stock. This action cannot be undone.",
+        html: `
+            <div class="text-start">
+                <p class="text-muted small mb-3">This will cancel the order and refund the stock. This action cannot be undone.</p>
+                <label class="form-label fw-semibold small mb-1">Reason for voiding</label>
+                <select id="voidReasonSelect" class="form-select form-select-sm mb-2">
+                    <option value="">Select a reason...</option>
+                    ${VOID_REASONS.map(r => `<option value="${r}">${r}</option>`).join("")}
+                </select>
+                <input type="text" id="voidReasonOther" class="form-control form-control-sm mb-3" placeholder="Please specify..." style="display:none;" maxlength="255">
+                <label class="form-label fw-semibold small mb-1">Store Manager Approval</label>
+                <input type="text" id="voidManagerId" class="form-control form-control-sm mb-2" placeholder="Store Manager employee number or email" autocomplete="off">
+                <input type="password" id="voidManagerPassword" class="form-control form-control-sm" placeholder="Store Manager password" autocomplete="off">
+            </div>
+        `,
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#dc3545",
         confirmButtonText: "Yes, Void Order",
         cancelButtonText: "Cancel",
-        input: "textarea",
-        inputPlaceholder: "Reason for voiding...",
-        inputAttributes: { rows: 3, maxlength: 255 }
+        focusConfirm: false,
+        didOpen: () => {
+            document.getElementById("voidReasonSelect").addEventListener("change", function() {
+                document.getElementById("voidReasonOther").style.display = this.value === "Other" ? "block" : "none";
+            });
+        },
+        preConfirm: () => {
+            const reasonSelect = document.getElementById("voidReasonSelect").value;
+            const otherText = document.getElementById("voidReasonOther").value.trim();
+            const managerId = document.getElementById("voidManagerId").value.trim();
+            const managerPassword = document.getElementById("voidManagerPassword").value;
+
+            if (!reasonSelect) {
+                Swal.showValidationMessage("Please select a reason for voiding.");
+                return false;
+            }
+            if (reasonSelect === "Other" && !otherText) {
+                Swal.showValidationMessage("Please specify the reason.");
+                return false;
+            }
+            if (!managerId || !managerPassword) {
+                Swal.showValidationMessage("Store Manager approval is required to void an order.");
+                return false;
+            }
+
+            return {
+                reason: reasonSelect === "Other" ? otherText : reasonSelect,
+                managerId: managerId,
+                managerPassword: managerPassword
+            };
+        }
     }).then(result => {
         if (result.isConfirmed && result.value) {
-            const reason = result.value.trim();
-            if (!reason) {
-                Swal.fire({ icon: "warning", title: "Reason Required", text: "Please provide a reason for voiding." });
-                return;
-            }
-            
             fetch("?page=api_void_order", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ order_id: orderId, reason: reason })
+                body: JSON.stringify({
+                    order_id: orderId,
+                    reason: result.value.reason,
+                    manager_employee_number: result.value.managerId,
+                    manager_password: result.value.managerPassword
+                })
             })
             .then(response => response.json())
             .then(data => {
@@ -431,13 +509,21 @@ function voidOrder(orderId) {
                         timer: 2000,
                         showConfirmButton: false
                     });
-                    bootstrap.Offcanvas.getInstance(document.getElementById("orderDetailModal")).hide();
+                    // The void confirmation dialog sits on top of the still-open
+                    // detail drawer; if the drawer already got dismissed in the
+                    // meantime (e.g. a backdrop click), Bootstrap has already
+                    // disposed its instance and getInstance() returns null --
+                    // calling .hide() on that would throw and get mistaken for
+                    // the void itself failing, when it already succeeded.
+                    const offcanvasInstance = bootstrap.Offcanvas.getInstance(document.getElementById("orderDetailModal"));
+                    if (offcanvasInstance) offcanvasInstance.hide();
                     loadOrders(currentPage);
                 } else {
                     Swal.fire({ icon: "error", title: "Void Failed", text: data.message || "Please try again." });
                 }
             })
             .catch(error => {
+                console.error("Error voiding order:", error);
                 Swal.fire({ icon: "error", title: "Error", text: "Something went wrong." });
             });
         }

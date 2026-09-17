@@ -186,7 +186,13 @@ function submitCashierPassword() {
             confirmBtn.disabled = false;
             if (res.success) {
                 passwordModal.hide();
-                openAttendanceFaceModal(res.data.cashier_name);
+                if (res.data.redirect) {
+                    // Face ID is temporarily off for cashiers -- password
+                    // alone already clocked them in, nothing left to do.
+                    window.location.href = res.data.redirect;
+                } else {
+                    openAttendanceFaceModal(res.data.cashier_name);
+                }
             } else {
                 passwordError.textContent = res.message || "Incorrect password.";
                 passwordError.style.display = "block";

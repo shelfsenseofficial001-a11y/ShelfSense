@@ -1,5 +1,8 @@
 <?php
-// app/handlers/store_manager/upload_product_image.php
+// app/handlers/store_manager/upload_catalog_product_image.php
+// Uploads a Catalog & Deals-only image override -- stored in
+// catalog_overrides, never touches products.image_path (Inventory keeps
+// showing the original image regardless of what Catalog sets here).
 
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Auth.php';
@@ -56,33 +59,46 @@ if (!in_array($mime, ['image/jpeg', 'image/png', 'image/webp'])) {
     Response::error('Invalid image file', 400);
 }
 
-$baseDir = __DIR__ . '/../../../public/uploads/products/';
+$baseDir = __DIR__ . '/../../../public/uploads/catalog/';
 if (!is_dir($baseDir)) {
     mkdir($baseDir, 0777, true);
 }
 
-$filename = 'product_' . $productId . '_' . time() . '.' . $ext;
+$filename = 'catalog_' . $productId . '_' . time() . '.' . $ext;
 $dest = $baseDir . $filename;
 
 if (!move_uploaded_file($file['tmp_name'], $dest)) {
     Response::error('Failed to save image. Check permissions.', 500);
 }
 
-$relativePath = 'uploads/products/' . $filename;
+$relativePath = 'uploads/catalog/' . $filename;
 
-$db = Database::getInstance()->getConnection();
-$stmt = $db->prepare("UPDATE products SET image_path = ? WHERE id = ?");
-if (!$stmt->execute([$relativePath, $productId])) {
-    unlink($dest);
-    Response::error('Database update failed', 500);
-}
+try {
+    $db = Database::getInstance()->getConnection();
 
-$oldPath = $existing['image_path'] ?? null;
-if ($oldPath && $oldPath !== $relativePath) {
-    $oldFile = __DIR__ . '/../../../public/' . $oldPath;
-    if (is_file($oldFile)) {
-        @unlink($oldFile);
+    $stmt = $db->prepare("SELECT image_path FROM catalog_overrides WHERE product_id = ?");
+    $stmt->execute([$productId]);
+    $oldOverridePath = $stmt->fetchColumn();
+
+    $stmt = $db->prepare("
+        INSERT INTO catalog_overrides (product_id, image_path) VALUES (?, ?)
+        ON DUPLICATE KEY UPDATE image_path = VALUES(image_path)
+    ");
+    if (!$stmt->execute([$productId, $relativePath])) {
+        unlink($dest);
+        Response::error('Database update failed', 500);
     }
-}
 
-Response::success(['image_path' => $relativePath], 'Product image updated');
+    if ($oldOverridePath && $oldOverridePath !== $relativePath) {
+        $oldFile = __DIR__ . '/../../../public/' . $oldOverridePath;
+        if (is_file($oldFile)) {
+            @unlink($oldFile);
+        }
+    }
+
+    Response::success(['image_path' => $relativePath], 'Catalog image updated');
+} catch (Exception $e) {
+    error_log('upload_catalog_product_image.php error: ' . $e->getMessage());
+    @unlink($dest);
+    Response::error('Error: ' . $e->getMessage());
+}

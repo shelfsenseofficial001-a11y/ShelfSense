@@ -71,6 +71,9 @@ use App\Core\Auth;
                 <a href="?page=store_manager_inventory" class="nav-item <?= $activePage === 'inventory' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-box-seam"></i></span> <span class="nav-label">Inventory</span>
                 </a>
+                <a href="?page=store_manager_catalog" class="nav-item <?= $activePage === 'catalog' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-tags-fill"></i></span> <span class="nav-label">Catalog & Deals</span>
+                </a>
                 <a href="?page=store_manager_budget" class="nav-item <?= $activePage === 'budget' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-cash-stack"></i></span> <span class="nav-label">Budget</span>
                 </a>
