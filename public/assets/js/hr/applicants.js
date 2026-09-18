@@ -146,6 +146,14 @@ document.addEventListener('DOMContentLoaded', function() {
         loadApplicants();
     }
 
+    // Deep link from a "New application from ..." notification
+    // (?page=hr_applicants&applicant_id=123) straight into that
+    // applicant's detail drawer, instead of just landing on the list.
+    const deepLinkApplicantId = new URLSearchParams(window.location.search).get('applicant_id');
+    if (deepLinkApplicantId) {
+        viewApplicant(parseInt(deepLinkApplicantId, 10));
+    }
+
     // ============================================
     // FILTER EVENT LISTENERS
     // ============================================

@@ -708,7 +708,7 @@ body.dashboard-theme .detail-drawer.applicant-drawer {
 }
 </style>
 
-<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260908600000"></script>
+<script src="/ShelfSense/public/assets/js/hr/applicants.js?v=20260918170000"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

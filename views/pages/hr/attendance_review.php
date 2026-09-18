@@ -2,7 +2,7 @@
 $title = 'Attendance Review - ShelfSense HR';
 $pageTitle = 'Attendance Review';
 $activePage = 'attendance_review';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance_review.js"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance_review.js?v=20260918230000"></script>';
 
 $content = <<<HTML
 <style>
@@ -95,6 +95,29 @@ $content = <<<HTML
         margin-bottom: 16px;
         opacity: 0.5;
     }
+    .edt-week-strip {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    .edt-week-chip {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        border-radius: 8px;
+        background: var(--bg-card-subtle);
+        border: 1px solid var(--border-color);
+        font-size: 0.8rem;
+    }
+    .edt-week-chip .edt-week-actions button {
+        font-size: 0.65rem;
+        padding: 1px 5px;
+    }
+    .hr-timecard-table tr.is-rest-day {
+        opacity: 0.55;
+    }
 </style>
 
 <!-- Month Selector -->
@@ -133,6 +156,50 @@ $content = <<<HTML
     </div>
     <div class="col-md-4 text-end d-flex align-items-end justify-content-end">
         <span class="text-muted small" id="reviewStatusDisplay">Select a month to review</span>
+    </div>
+</div>
+
+<!-- Employee Drill-Down Picker -->
+<div class="row g-2 mb-3">
+    <div class="col-md-4">
+        <label class="form-label fw-semibold">View Employee Timecard</label>
+        <select id="employeePicker" class="form-select searchable-select" data-placeholder="Select an employee...">
+            <option value="">Select an employee...</option>
+        </select>
+    </div>
+</div>
+
+<!-- Employee Drill-Down Modal -->
+<div class="modal fade" id="employeeDrillDownModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-person-badge"></i> Employee Timecard</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="employeeDrillDownBody">
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Day Note View Modal -->
+<div class="modal fade" id="hrTimecardNoteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clipboard-fill"></i> Day Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-muted small mb-2" id="hrTimecardNoteMeta">-</div>
+                <p class="mb-0" id="hrTimecardNoteText">-</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
     </div>
 </div>
 

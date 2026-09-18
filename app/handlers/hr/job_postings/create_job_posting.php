@@ -141,7 +141,7 @@ try {
         $stmt = \App\Core\Database::getInstance()->getConnection()->prepare("SELECT user_id FROM users WHERE role = 'hr_head' AND is_active = 1");
         $stmt->execute();
         foreach ($stmt->fetchAll() as $head) {
-            createNotification($head['user_id'], 'job_posting_submitted', "A new job posting \"{$title}\" is awaiting your review.", "?page=hr_job_postings");
+            createNotification($head['user_id'], 'job_posting_submitted', "A new job posting \"{$title}\" is awaiting your review.", "?page=hr_job_postings&posting_id={$id}");
         }
     }
 

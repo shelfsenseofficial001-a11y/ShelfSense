@@ -170,6 +170,11 @@ if ($page === 'api_apply') {
     exit;
 }
 
+if ($page === 'api_check_applicant_email') {
+    require_once __DIR__ . '/../app/handlers/api_check_applicant_email.php';
+    exit;
+}
+
 if ($page === 'api_ph_locations') {
     require_once __DIR__ . '/../app/handlers/api_ph_locations.php';
     exit;
@@ -659,6 +664,16 @@ if ($page === 'api_approve_week') {
 
 if ($page === 'api_get_month_attendance') {
     require_once __DIR__ . '/../app/handlers/hr/get_month_attendance.php';
+    exit;
+}
+
+if ($page === 'api_get_month_employees') {
+    require_once __DIR__ . '/../app/handlers/hr/get_month_employees.php';
+    exit;
+}
+
+if ($page === 'api_get_employee_month_attendance') {
+    require_once __DIR__ . '/../app/handlers/hr/get_employee_month_attendance.php';
     exit;
 }
 

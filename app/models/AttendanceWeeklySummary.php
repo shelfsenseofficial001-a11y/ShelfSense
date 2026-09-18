@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use App\Core\Database;
+use App\Core\CutoffPeriod;
 
 class AttendanceWeeklySummary
 {
@@ -14,40 +15,96 @@ class AttendanceWeeklySummary
 
     public function generateForUser($userId, $weekStart, $weekEnd, $weekNumber, $monthYear)
     {
-        // Get attendance stats for this user for this week
-        $stmt = $this->db->prepare("
-            SELECT 
-                COUNT(*) as total_days,
-                SUM(CASE WHEN status IN ('present','late','leave_paid','holiday_work') THEN 1 ELSE 0 END) as attended,
-                SUM(CASE WHEN status IN ('absent','leave_unpaid') THEN 1 ELSE 0 END) as absent,
-                SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late,
-                SUM(CASE WHEN status = 'leave_paid' THEN 1 ELSE 0 END) as leave_paid,
-                SUM(CASE WHEN status = 'leave_unpaid' THEN 1 ELSE 0 END) as leave_unpaid,
-                SUM(CASE WHEN status = 'holiday_no_work' THEN 1 ELSE 0 END) as holiday,
-                SUM(overtime_hours) as overtime
+        // Per-day categorization, mirroring the same schedule_overrides > schedules
+        // precedence used by app/handlers/hr/get_week_attendance.php, so a day is
+        // counted in exactly one bucket -- never both "present" (via a combined
+        // "attended" total) and its own late/leave/holiday column, and a day
+        // manually marked status='rest_day' on the Attendance page is recognized
+        // here too instead of only schedule-driven rest days.
+        $attStmt = $this->db->prepare("
+            SELECT date, status, overtime_hours
             FROM attendance
             WHERE user_id = ? AND date BETWEEN ? AND ?
         ");
-        $stmt->execute([$userId, $weekStart, $weekEnd]);
-        $data = $stmt->fetch();
+        $attStmt->execute([$userId, $weekStart, $weekEnd]);
+        $attendanceByDate = [];
+        while ($row = $attStmt->fetch()) {
+            $attendanceByDate[$row['date']] = $row;
+        }
 
-        // Get rest days from schedule
-        $stmt = $this->db->prepare("
-            SELECT COUNT(*) as rest_days
+        $scheduleStmt = $this->db->prepare("
+            SELECT day_of_week, is_rest_day
             FROM schedules
-            WHERE user_id = ? AND is_rest_day = 1
-              AND day_of_week IN (
-                  SELECT LOWER(DAYNAME(date)) FROM (
-                      SELECT DATE_ADD(?, INTERVAL n DAY) as date
-                      FROM (SELECT 0 as n UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6) nums
-                      WHERE DATE_ADD(?, INTERVAL n DAY) <= ?
-                  ) dates
-              )
+            WHERE user_id = ?
         ");
-        $stmt->execute([$userId, $weekStart, $weekStart, $weekEnd]);
-        $restDays = $stmt->fetchColumn();
+        $scheduleStmt->execute([$userId]);
+        $scheduleByDay = [];
+        while ($row = $scheduleStmt->fetch()) {
+            $scheduleByDay[$row['day_of_week']] = $row;
+        }
 
-        $totalDays = ($data['total_days'] ?? 0) + $restDays;
+        $days = [];
+        $cursor = new \DateTime($weekStart);
+        $end = new \DateTime($weekEnd);
+        while ($cursor <= $end) {
+            $days[] = $cursor->format('Y-m-d');
+            $cursor->modify('+1 day');
+        }
+
+        $periodKeys = array_unique(array_map(function ($d) {
+            return CutoffPeriod::getKeyForDate($d);
+        }, $days));
+        $overridesByPeriodDay = [];
+        if (!empty($periodKeys)) {
+            $placeholders = implode(',', array_fill(0, count($periodKeys), '?'));
+            $overrideStmt = $this->db->prepare("
+                SELECT period_key, day_of_week, is_rest_day
+                FROM schedule_overrides
+                WHERE user_id = ? AND period_key IN ($placeholders)
+            ");
+            $overrideStmt->execute(array_merge([$userId], $periodKeys));
+            while ($row = $overrideStmt->fetch()) {
+                $overridesByPeriodDay[$row['period_key']][$row['day_of_week']] = $row;
+            }
+        }
+
+        $totalDays = 0;
+        $presentDays = 0;
+        $lateDays = 0;
+        $absentDays = 0;
+        $leavePaidDays = 0;
+        $leaveUnpaidDays = 0;
+        $restDays = 0;
+        $holidayDays = 0;
+        $overtimeHours = 0.0;
+
+        foreach ($days as $date) {
+            $totalDays++;
+            $record = $attendanceByDate[$date] ?? null;
+            $status = $record['status'] ?? null;
+            $overtimeHours += $record ? (float)$record['overtime_hours'] : 0.0;
+
+            $dayOfWeek = strtolower(date('l', strtotime($date)));
+            $periodKey = CutoffPeriod::getKeyForDate($date);
+            $schedule = $overridesByPeriodDay[$periodKey][$dayOfWeek] ?? ($scheduleByDay[$dayOfWeek] ?? null);
+            $scheduledRestDay = $schedule ? (bool)$schedule['is_rest_day'] : false;
+
+            if ($status === 'rest_day' || (!$record && $scheduledRestDay)) {
+                $restDays++;
+            } elseif ($status === 'present' || $status === 'holiday_work') {
+                $presentDays++;
+            } elseif ($status === 'late') {
+                $lateDays++;
+            } elseif ($status === 'leave_paid') {
+                $leavePaidDays++;
+            } elseif ($status === 'leave_unpaid') {
+                $leaveUnpaidDays++;
+            } elseif ($status === 'holiday_no_work') {
+                $holidayDays++;
+            } elseif ($status === 'absent' || !$record) {
+                $absentDays++;
+            }
+        }
 
         // Insert or update — default status is now 'draft'
         $stmt = $this->db->prepare("
@@ -77,14 +134,14 @@ class AttendanceWeeklySummary
             $weekNumber,
             $monthYear,
             $totalDays,
-            $data['attended'] ?? 0,
-            $data['late'] ?? 0,
-            $data['absent'] ?? 0,
-            $data['leave_paid'] ?? 0,
-            $data['leave_unpaid'] ?? 0,
+            $presentDays,
+            $lateDays,
+            $absentDays,
+            $leavePaidDays,
+            $leaveUnpaidDays,
             $restDays,
-            $data['holiday'] ?? 0,
-            $data['overtime'] ?? 0
+            $holidayDays,
+            $overtimeHours
         ]);
     }
 

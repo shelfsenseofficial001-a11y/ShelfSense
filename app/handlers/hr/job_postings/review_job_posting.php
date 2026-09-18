@@ -60,13 +60,13 @@ try {
     if ($action === 'approve') {
         $model->approve($id, Auth::userId());
         logRecruitmentEvent('job_posting', $id, 'approved', ['previous_status' => 'pending_approval', 'new_status' => 'approved']);
-        createNotification($posting['created_by'], 'job_posting_approved', "Your job posting \"{$posting['title']}\" was approved and is now public.", "?page=hr_job_postings");
+        createNotification($posting['created_by'], 'job_posting_approved', "Your job posting \"{$posting['title']}\" was approved and is now public.", "?page=hr_job_postings&posting_id={$id}");
         $db->commit();
         Response::success(['id' => $id, 'status' => 'approved'], 'Job posting approved and now publicly visible.');
     } else {
         $model->reject($id, Auth::userId(), $reason);
         logRecruitmentEvent('job_posting', $id, 'rejected', ['previous_status' => 'pending_approval', 'new_status' => 'rejected', 'reason' => $reason]);
-        createNotification($posting['created_by'], 'job_posting_rejected', "Your job posting \"{$posting['title']}\" was rejected. Reason: {$reason}", "?page=hr_job_postings");
+        createNotification($posting['created_by'], 'job_posting_rejected', "Your job posting \"{$posting['title']}\" was rejected. Reason: {$reason}", "?page=hr_job_postings&posting_id={$id}");
         $db->commit();
         Response::success(['id' => $id, 'status' => 'rejected'], 'Job posting rejected.');
     }

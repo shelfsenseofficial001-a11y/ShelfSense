@@ -114,6 +114,22 @@ h1, h2, h3, h4, h5, .font-heading {
 .text-yellow { color: var(--brand-yellow-hover) !important; }
 [data-bs-theme="dark"] .text-yellow { color: var(--brand-yellow) !important; }
 
+/* Bootstrap's .btn-close is a dark-stroke SVG with no built-in dark-mode
+   variant -- on a dark modal/offcanvas header it renders as an invisible X
+   (just a blank clickable circle). Applied globally (every modal/offcanvas
+   close button, every role/module) rather than swapping in .btn-close-white
+   per instance, since this is every single .btn-close in the app. This is
+   the same filter Bootstrap's own .btn-close-white class uses. */
+[data-bs-theme="dark"] .btn-close {
+    /* Something elsewhere gives buttons an opaque background -- filter
+       inverts the whole element as one bitmap, so an opaque background
+       would invert to near-white right along with the icon and erase the
+       contrast between them. Force it transparent first so only the X
+       glyph itself gets inverted. */
+    background-color: transparent !important;
+    filter: invert(1) grayscale(100%) brightness(200%);
+}
+
 .bg-light-yellow { background-color: var(--light-yellow-accent) !important; }
 .bg-subtle-yellow { background-color: var(--light-yellow-subtle) !important; }
 

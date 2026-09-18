@@ -864,6 +864,20 @@ $content = '
         to { opacity: 1; transform: translateY(0); }
     }
 
+    /* Same shake-on-invalid-input pattern used on the Job Posting forms
+       Open Slots field, for a field-level error (e.g. email already taken)
+       instead of a generic Swal popup. */
+    @keyframes applyInputShake {
+        10%, 90% { transform: translateX(-1px); }
+        20%, 80% { transform: translateX(2px); }
+        30%, 50%, 70% { transform: translateX(-4px); }
+        40%, 60% { transform: translateX(4px); }
+    }
+    .apply-input-shake {
+        animation: applyInputShake 0.4s ease;
+        border-color: #dc3545 !important;
+    }
+
     .step-actions {
         display: flex;
         justify-content: space-between;
@@ -1134,7 +1148,8 @@ $content = '
                     <div class="col-md-6">
                         <label class="form-label fw-semibold" for="applyEmail">Email <span class="required-asterisk">*</span></label>
                         <input type="email" id="applyEmail" name="email" class="form-control" required maxlength="100">
-                        <small class="text-muted d-block mt-1">We will reach out to you at this email about your application.</small>
+                        <small class="text-muted d-block mt-1" id="applyEmailHint">We will reach out to you at this email about your application.</small>
+                        <small class="d-block mt-1 text-danger" id="applyEmailError" style="display:none;"></small>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold" for="applyPhone">Phone Number <span class="required-asterisk">*</span></label>
@@ -1626,7 +1641,12 @@ $content = '
     function setSelectPlaceholder(select, placeholder) {
         select.setAttribute("data-placeholder", placeholder);
         var instance = select.searchableSelectInstance;
-        if (instance && instance.input && !instance.currentValue) {
+        // instance.currentValue defaults to the string "all" (a filter-widget
+        // leftover) rather than empty when nothing is selected, so "!instance.
+        // currentValue" is always false and never updates the visible input --
+        // checking the visible input own (empty when nothing is picked or
+        // typed) value instead is what actually reflects "no selection yet".
+        if (instance && instance.input && !instance.input.value) {
             instance.input.placeholder = placeholder;
         }
     }
@@ -1743,6 +1763,8 @@ $content = '
         var fileSizeEl = document.getElementById("resumeFileSize");
         var removeBtn = document.getElementById("resumeRemoveBtn");
 
+        var MAX_RESUME_BYTES = 5 * 1024 * 1024;
+
         function formatFileSize(bytes) {
             if (bytes < 1024) return bytes + " B";
             if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
@@ -1751,6 +1773,18 @@ $content = '
 
         function refresh() {
             var file = input.files && input.files[0];
+            if (file && file.size > MAX_RESUME_BYTES) {
+                // Reject it outright rather than letting an oversized file sit
+                // in the dropzone until the user clicks Next -- the size limit
+                // is enforced the moment a file is picked or dropped.
+                input.value = "";
+                Swal.fire({
+                    icon: "warning",
+                    title: "File Too Large",
+                    text: "\"" + file.name + "\" is " + formatFileSize(file.size) + ". Resumes must be 5MB or smaller."
+                });
+                file = null;
+            }
             if (file) {
                 fileNameEl.textContent = file.name;
                 fileSizeEl.textContent = formatFileSize(file.size);
@@ -1791,7 +1825,14 @@ $content = '
             var files = e.dataTransfer.files;
             if (files && files.length) {
                 input.files = files;
-                refresh();
+                // Dispatch a real "change" instead of calling refresh()
+                // directly -- a browsed (click-to-upload) file fires this
+                // natively, which is what the stepper listens for to
+                // re-check whether Next should be enabled; setting .files
+                // programmatically does not fire it on its own, so a
+                // dropped file was updating the dropzone preview but never
+                // re-evaluating the Next button.
+                input.dispatchEvent(new Event("change", { bubbles: true }));
             }
         });
 
@@ -1808,6 +1849,8 @@ $content = '
         var navSteps = Array.prototype.slice.call(document.querySelectorAll(".apply-timeline-step"));
         if (!steps.length) return;
         var current = 1;
+        var emailIsTaken = false;
+        var emailCheckToken = 0;
 
         function updateUI() {
             steps.forEach(function (el) {
@@ -1824,10 +1867,52 @@ $content = '
         // display:none, and hidden form controls are exempt from the native
         // HTML5 required check -- so those need a manual value check instead
         // of relying on checkValidity()/reportValidity().
+        //
+        // isStepValid() is the silent check (used to enable/disable Next as
+        // the user types); validateStep() wraps it with the user-facing
+        // Swal/focus feedback for when Next is clicked directly.
+        function isStepValid(stepIndex) {
+            var stepEl = document.querySelector(\'.form-step[data-step="\' + stepIndex + \'"]\');
+            if (!stepEl) return true;
+
+            var resumeInput = stepEl.querySelector("#applyResume");
+            if (resumeInput) {
+                var resumeFile = resumeInput.files && resumeInput.files[0];
+                if (!resumeFile || resumeFile.size > 5 * 1024 * 1024) return false;
+            }
+
+            if (stepEl.querySelector("#applyEmail") && emailIsTaken) return false;
+
+            var fields = Array.prototype.slice.call(stepEl.querySelectorAll("[required]"));
+            for (var i = 0; i < fields.length; i++) {
+                var el = fields[i];
+                if (el.tagName === "SELECT") {
+                    if (!el.value) return false;
+                } else if (!el.checkValidity()) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
         function validateStep(stepIndex) {
             if (stepIndex === 4) return validateSkillsStep();
             var stepEl = document.querySelector(\'.form-step[data-step="\' + stepIndex + \'"]\');
             if (!stepEl) return true;
+
+            // Backstop for the resume dropzone -- it already rejects an
+            // oversized file the moment it\'s picked/dropped, but Next is
+            // guarded too so there is no path (e.g. a future change to the
+            // dropzone logic) that lets an oversized file slip through.
+            var resumeInput = stepEl.querySelector("#applyResume");
+            if (resumeInput) {
+                var resumeFile = resumeInput.files && resumeInput.files[0];
+                if (resumeFile && resumeFile.size > 5 * 1024 * 1024) {
+                    Swal.fire({ icon: "warning", title: "File Too Large", text: "Your resume must be 5MB or smaller. Please choose a smaller file." });
+                    return false;
+                }
+            }
+
             var fields = Array.prototype.slice.call(stepEl.querySelectorAll("[required]"));
             for (var i = 0; i < fields.length; i++) {
                 var el = fields[i];
@@ -1846,10 +1931,22 @@ $content = '
             return true;
         }
 
+        // Steps 1-3 use isStepValid() to keep their own Next button
+        // disabled until every required field in that step is filled;
+        // step 4\'s Next-equivalent is guarded by validateSkillsStep()
+        // elsewhere and isn\'t a plain [required]-field step.
+        function updateNextButtonState() {
+            if (current === 4) return;
+            var stepEl = document.querySelector(\'.form-step[data-step="\' + current + \'"]\');
+            var btn = stepEl ? stepEl.querySelector(".step-next-btn") : null;
+            if (btn) btn.disabled = !isStepValid(current);
+        }
+
         function goToStep(n) {
             current = n;
             updateUI();
             setPositionLocked(n !== 1);
+            updateNextButtonState();
         }
 
         document.querySelectorAll(".step-next-btn").forEach(function (btn) {
@@ -1857,6 +1954,83 @@ $content = '
                 if (!validateStep(current)) return;
                 goToStep(parseInt(btn.dataset.goto, 10));
             });
+        });
+
+        // Re-check as the user fills in the current step -- covers plain
+        // inputs (native "input"/"change") and the searchable-select
+        // widget, which dispatches its own bubbling "change" on the real
+        // (hidden) <select> when a value is picked.
+        document.querySelectorAll(".form-step").forEach(function (stepEl) {
+            stepEl.addEventListener("input", updateNextButtonState);
+            stepEl.addEventListener("change", updateNextButtonState);
+        });
+
+        // Duplicate-email check -- runs right after the applicant leaves
+        // the field (not only at final submission), so a taken email is
+        // caught before they fill in address/resume/skills and would
+        // otherwise have to restart the whole form.
+        var emailInput = document.getElementById("applyEmail");
+        var emailHint = document.getElementById("applyEmailHint");
+        var emailError = document.getElementById("applyEmailError");
+
+        function showEmailError(message) {
+            emailIsTaken = true;
+            emailError.textContent = message;
+            emailError.style.display = "block";
+            // emailHint carries the Bootstrap "d-block" utility, which sets
+            // display:block !important -- a plain inline style cannot win
+            // against that, so it has to be overridden the same way.
+            emailHint.style.setProperty("display", "none", "important");
+            emailInput.classList.add("is-invalid");
+            emailInput.classList.remove("apply-input-shake");
+            void emailInput.offsetWidth;
+            emailInput.classList.add("apply-input-shake");
+            updateNextButtonState();
+        }
+
+        function clearEmailError() {
+            emailIsTaken = false;
+            // emailError also carries "d-block" (so it is a real block
+            // element while shown), which forces display:block !important
+            // just like emailHint above -- same override needed to hide it.
+            emailError.style.setProperty("display", "none", "important");
+            emailHint.style.removeProperty("display");
+            emailInput.classList.remove("is-invalid");
+            updateNextButtonState();
+        }
+
+        emailInput.addEventListener("animationend", function () {
+            emailInput.classList.remove("apply-input-shake");
+        });
+
+        emailInput.addEventListener("input", function () {
+            // Typing again after a flagged duplicate clears the error
+            // immediately rather than leaving a stale message up while
+            // they correct it; the blur check below re-flags it if the
+            // new address is still taken.
+            if (emailIsTaken) clearEmailError();
+        });
+
+        emailInput.addEventListener("blur", function () {
+            var value = emailInput.value.trim();
+            if (!value || !emailInput.checkValidity()) return;
+            var token = ++emailCheckToken;
+            fetch("?page=api_check_applicant_email&email=" + encodeURIComponent(value))
+                .then(function (r) { return r.json(); })
+                .then(function (res) {
+                    if (token !== emailCheckToken) return; // a newer check superseded this one
+                    if (res.success && res.data && res.data.exists) {
+                        showEmailError("An application with this email already exists.");
+                    } else {
+                        clearEmailError();
+                    }
+                })
+                .catch(function () {
+                    if (token !== emailCheckToken) return;
+                    // Silent on network failure -- final submit still
+                    // re-checks server-side, so this is a nice-to-have,
+                    // not the only safety net.
+                });
         });
 
         document.querySelectorAll(".step-back-btn").forEach(function (btn) {
@@ -1873,6 +2047,7 @@ $content = '
         });
 
         updateUI();
+        updateNextButtonState();
     }
 
     document.addEventListener("DOMContentLoaded", function () {

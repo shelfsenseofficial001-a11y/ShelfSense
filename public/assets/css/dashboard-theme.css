@@ -939,7 +939,7 @@ body.dashboard-theme .sidebar-nav .nav-item:hover {
 
 body.dashboard-theme .sidebar-brand {
     display: flex;
-    align-items: stretch;
+    align-items: center;
 }
 
 /* Sidebar group separators — thin and light, but still perceivable

@@ -313,7 +313,7 @@ try {
             $hr['user_id'],
             'new_application',
             "New application from {$firstName} {$lastName} for {$job['title']} position",
-            "?page=hr_applicants"
+            "?page=hr_applicants&applicant_id={$applicantId}"
         );
     }
 

@@ -48,7 +48,7 @@ try {
     $weekEnd = $week['end_date'];
 
     $summaryModel = new AttendanceWeeklySummary();
-    $stmt = $db->prepare("SELECT user_id FROM users WHERE is_active = 1 AND role != 'trainee'");
+    $stmt = $db->prepare("SELECT user_id FROM users WHERE is_active = 1 AND role NOT IN ('trainee', 'supplier')");
     $stmt->execute();
     $employees = $stmt->fetchAll(PDO::FETCH_COLUMN);
 

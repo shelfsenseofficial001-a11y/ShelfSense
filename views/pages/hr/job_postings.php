@@ -21,7 +21,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <div class="jp-page-header">
     <div class="jp-page-header-top">
         <div>
-            <h4 class="mb-0"><i class="bi bi-megaphone"></i> Recruitment Dashboard</h4>
+            <h2 class="mb-0"><i class="bi bi-megaphone"></i> Recruitment Dashboard</h2>
             <p class="text-muted small mb-0">Manage every job posting from draft to hired -- create, review, and track recruitment activity here.</p>
         </div>
         <div class="jp-page-header-actions">
@@ -95,7 +95,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 </div>
 
 <!-- Detail / Review Modal -->
-<div class="offcanvas offcanvas-end detail-drawer" id="postingDetailModal" tabindex="-1">
+<div class="offcanvas offcanvas-end detail-drawer" id="postingDetailModal" tabindex="-1" style="--bs-offcanvas-width: 640px;">
     <div class="offcanvas-header">
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
@@ -151,7 +151,8 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 </div>
 
 <script>const HR_IS_HEAD = {$isHRHeadJs};</script>
-<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260914240000"></script>
+<script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260918180000"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

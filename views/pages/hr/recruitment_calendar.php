@@ -120,7 +120,7 @@ $content = <<<'EOT'
             <button class="btn btn-sm btn-outline-secondary" id="rcPrevMonth"><i class="bi bi-chevron-left"></i></button>
             <h5 id="rcMonthLabel">-</h5>
             <button class="btn btn-sm btn-outline-secondary" id="rcNextMonth"><i class="bi bi-chevron-right"></i></button>
-            <button class="btn btn-sm btn-yellow-outline ms-2" id="rcTodayBtn">This month</button>
+            <button class="btn btn-sm btn-yellow-primary ms-2" id="rcTodayBtn">View Current Month</button>
         </div>
         <div class="rc-legend">
             <span><span class="rc-dot rc-dot-initial"></span> Initial interview</span>

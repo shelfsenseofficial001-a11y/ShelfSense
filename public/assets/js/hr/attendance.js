@@ -15,15 +15,21 @@ var weekStatus = 'draft';
 var isFetchingStatus = false;
 var currentDtrUserId = null;
 var currentDtrWeekStart = null;
+var selectedEmployeeUserId = null;
+var atmDraggedUserId = null;
 
 // ===== UTILITY =====
 function formatTime(t){ if(!t)return '-'; let p=t.split(':'); return p[0]+':'+p[1]; }
 function formatDate(d){ if(!d)return '-'; let dt=new Date(d); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
 function getRoleDisplayName(r){ let m={owner:'Owner',hr_head:'HR Head',hr_staff:'HR Staff',cashier:'Cashier',finance_head:'Finance Head',finance_staff:'Finance Staff',trainee:'Trainee'}; return m[r]||r; }
-function getStatusClass(s,rd){ if(rd)return 'status-rest-day'; let m={present:'status-present',late:'status-late',absent:'status-absent',leave_paid:'status-leave',leave_unpaid:'status-leave',holiday_no_work:'status-holiday',holiday_work:'status-present'}; return m[s]||'status-absent'; }
-function getStatusIcon(s,rd,re){ if(rd)return '⛔'; if(!re)return '⏳'; let m={present:'✅',late:'⚠️',absent:'❌',leave_paid:'📋',leave_unpaid:'📋',holiday_no_work:'🎉',holiday_work:'🎉'}; return m[s]||'❓'; }
-function getStatusLabel(s,rd,re){ if(rd)return 'Rest Day'; if(!re)return 'No Record'; let m={present:'Present',late:'Late',absent:'Absent',leave_paid:'Leave (Paid)',leave_unpaid:'Leave (Unpaid)',holiday_no_work:'Holiday (No Work)',holiday_work:'Holiday (Work)'}; return m[s]||'Unknown'; }
+function getStatusClass(s,rd){ if(rd||s==='rest_day')return 'status-rest-day'; let m={present:'status-present',late:'status-late',absent:'status-absent',leave_paid:'status-leave',leave_unpaid:'status-leave',holiday_no_work:'status-holiday',holiday_work:'status-present'}; return m[s]||'status-absent'; }
+function getStatusIconClass(s,rd,re){ if(rd||s==='rest_day')return 'bi-moon-stars-fill'; if(!re)return 'bi-hourglass-split'; let m={present:'bi-check-circle-fill',late:'bi-exclamation-triangle-fill',absent:'bi-x-circle-fill',leave_paid:'bi-clipboard-check-fill',leave_unpaid:'bi-clipboard-fill',holiday_no_work:'bi-stars',holiday_work:'bi-stars'}; return m[s]||'bi-question-circle'; }
+function getStatusLabel(s,rd,re){ if(rd||s==='rest_day')return 'Rest Day'; if(!re)return 'No Record'; let m={present:'Present',late:'Late',absent:'Absent',leave_paid:'Leave (Paid)',leave_unpaid:'Leave (Unpaid)',holiday_no_work:'Holiday (No Work)',holiday_work:'Holiday (Work)'}; return m[s]||'Unknown'; }
 function escapeHtml(t){ if(!t)return ''; let d=document.createElement('div'); d.textContent=t; return d.innerHTML; }
+function ordinalSuffix(n){ let s=['th','st','nd','rd'], v=n%100; return n+(s[(v-20)%10]||s[v]||s[0]); }
+function formatOrdinalDate(dateStr){ let d=new Date(dateStr+'T00:00:00'); return `${ordinalSuffix(d.getDate())} ${d.toLocaleDateString('en-US',{month:'short'})} ${d.getFullYear()}`; }
+function getDayAbbr(dateStr){ let d=new Date(dateStr+'T00:00:00'); return d.toLocaleDateString('en-US',{weekday:'short'}); }
+function hoursBetween(t1,t2){ if(!t1||!t2)return 0; let [h1,m1]=t1.split(':').map(Number), [h2,m2]=t2.split(':').map(Number); let start=h1*60+m1, end=h2*60+m2; if(end<start)end+=24*60; return Math.max(0,(end-start)/60); }
 
 function isComplete(days){
     if(!days || Object.keys(days).length === 0) return false;
@@ -36,7 +42,13 @@ function isComplete(days){
 }
 
 // ===== LOAD WEEKS =====
-function loadWeeksForMonth(year, month){
+function updateWeekNavLabel(){
+    let labelText=document.getElementById('weekNavLabelText');
+    if(!labelText || !currentWeekStart || !currentWeekEnd) return;
+    labelText.textContent=`${formatDate(currentWeekStart)} - ${formatDate(currentWeekEnd)}`;
+}
+
+function loadWeeksForMonth(year, month, selectMode){
     let weekSelect=document.getElementById('weekSelect'); if(!weekSelect)return;
     weekSelect.innerHTML='<option value="">Loading weeks...</option>';
     fetch(`?page=api_get_weeks_of_month&year=${year}&month=${month}`)
@@ -53,11 +65,19 @@ function loadWeeksForMonth(year, month){
                 let start=new Date(week.start_date), end=new Date(week.end_date);
                 let label=`Week ${week.week_number} (${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} - ${end.toLocaleDateString('en-US',{month:'short',day:'numeric'})})`;
                 opt.textContent=label;
-                if(index===0)opt.selected=true;
                 weekSelect.appendChild(opt);
             });
-            let first=weekSelect.options[0];
-            currentWeekStart=first.value; currentWeekEnd=first.dataset.endDate; currentWeekNumber=parseInt(first.dataset.weekNumber); currentMonthYear=`${year}-${month}`;
+            let target=null;
+            if(selectMode==='today'){
+                let todayStr=new Date().toISOString().split('T')[0];
+                target=Array.from(weekSelect.options).find(o=>o.value<=todayStr && o.dataset.endDate>=todayStr);
+            }
+            if(!target){
+                target=(selectMode==='last') ? weekSelect.options[weekSelect.options.length-1] : weekSelect.options[0];
+            }
+            target.selected=true;
+            currentWeekStart=target.value; currentWeekEnd=target.dataset.endDate; currentWeekNumber=parseInt(target.dataset.weekNumber); currentMonthYear=`${year}-${month}`;
+            updateWeekNavLabel();
 
             // First time weeks ever load for this page view, the selects
             // are showing today's month/year/week -- that is the "default"
@@ -72,7 +92,6 @@ function loadWeeksForMonth(year, month){
                     { key: 'year', type: 'select', elementId: 'yearSelect', defaultValue: document.getElementById('yearSelect').value },
                     { key: 'week', type: 'select', elementId: 'weekSelect', defaultValue: weekSelect.value },
                     { key: 'department', type: 'select', elementId: 'filterDepartment', defaultValue: 'all' },
-                    { key: 'role', type: 'select', elementId: 'attendanceRoleFilter', defaultValue: 'all' },
                     { key: 'search', type: 'search', elementId: 'attendanceSearch' },
                 ]);
             } else if (attendanceChipsApi) {
@@ -103,12 +122,12 @@ function fetchWeekStatus(monthYear, weekNum, callback){
             weekStatus = status;
             let badge = document.getElementById('weekStatusBadge');
             if(badge){
-                if(status === 'locked' || status === 'approved') badge.textContent = '🔒 Locked';
-                else if(status === 'sent') badge.textContent = '📨 Sent';
-                else badge.textContent = '📝 Draft';
+                if(status === 'locked' || status === 'approved') badge.innerHTML = '<i class="bi bi-lock-fill"></i> Locked';
+                else if(status === 'sent') badge.innerHTML = '<i class="bi bi-send-fill"></i> Sent';
+                else badge.innerHTML = '<i class="bi bi-pencil-square"></i> Draft';
             }
             if(attendanceEmployees.length > 0){
-                renderAttendanceGrid(getFilteredEmployees());
+                renderEmployeeList(getFilteredEmployees());
                 checkSendToHeadHR(attendanceEmployees);
             }
             if(callback) callback();
@@ -128,9 +147,10 @@ function loadAttendance(){
         let sel=weekSelect.options[weekSelect.selectedIndex];
         currentWeekStart=sel.value; currentWeekEnd=sel.dataset.endDate||getEndOfWeek(currentWeekStart); currentWeekNumber=parseInt(sel.dataset.weekNumber)||1;
     } else { let today=new Date(); currentWeekStart=today.toISOString().split('T')[0]; currentWeekEnd=getEndOfWeek(currentWeekStart); }
+    updateWeekNavLabel();
     let department=document.getElementById('filterDepartment')?.value||'all';
-    let tbody=document.getElementById('attendanceGridBody'); if(!tbody)return;
-    tbody.innerHTML=`<tr><td colspan="10" class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted">Loading attendance...</p></td></tr>`;
+    let listPanel=document.getElementById('employeeListPanel'); if(!listPanel)return;
+    listPanel.innerHTML=`<div class="text-center py-4"><div class="spinner-border text-primary"></div><p class="mt-2 text-muted small">Loading attendance...</p></div>`;
     fetchWeekStatus(currentMonthYear, currentWeekNumber, function(){
         fetch(`?page=api_get_week_attendance&week_start=${currentWeekStart}&week_end=${currentWeekEnd}&department=${department}`)
         .then(r=>r.json())
@@ -138,15 +158,15 @@ function loadAttendance(){
             if(data.success){
                 attendanceEmployees=data.data.employees||[];
                 buildWeekDays();
-                renderAttendanceGrid(getFilteredEmployees());
+                renderEmployeeList(getFilteredEmployees());
                 renderStats(attendanceEmployees);
                 updateProgress(attendanceEmployees);
                 checkSendToHeadHR(attendanceEmployees);
                 document.getElementById('weekRangeDisplay').textContent=`${formatDate(currentWeekStart)} - ${formatDate(currentWeekEnd)}`;
                 fetchWeekStatus(currentMonthYear, currentWeekNumber);
-            } else { tbody.innerHTML=`<tr><td colspan="10" class="text-center text-danger py-4">${data.message||'Failed to load'}</td></tr>`; }
+            } else { listPanel.innerHTML=`<div class="text-center text-danger py-4">${data.message||'Failed to load'}</div>`; }
         })
-        .catch(e=>{ console.error(e); tbody.innerHTML=`<tr><td colspan="10" class="text-center text-danger py-4">An error occurred.</td></tr>`; });
+        .catch(e=>{ console.error(e); listPanel.innerHTML=`<div class="text-center text-danger py-4">An error occurred.</div>`; });
     });
 }
 
@@ -160,12 +180,10 @@ function buildWeekDays(){
     }
 }
 
-// ===== SEARCH / ROLE FILTER (client-side, over the loaded week's employees) =====
+// ===== SEARCH FILTER (client-side, over the loaded week's employees) =====
 function getFilteredEmployees(){
     let term = (document.getElementById('attendanceSearch')?.value || '').trim().toLowerCase();
-    let role = document.getElementById('attendanceRoleFilter')?.value || 'all';
     return attendanceEmployees.filter(emp => {
-        if (role !== 'all' && emp.role !== role) return false;
         if (!term) return true;
         let name = `${emp.first_name} ${emp.last_name}`.toLowerCase();
         let empNum = (emp.employee_number || '').toLowerCase();
@@ -174,138 +192,247 @@ function getFilteredEmployees(){
 }
 
 function applyAttendanceFilters(){
-    renderAttendanceGrid(getFilteredEmployees());
+    renderEmployeeList(getFilteredEmployees());
 }
 
-// ===== RENDER GRID =====
-function renderAttendanceGrid(employees){
-    let thead=document.getElementById('attendanceGridHead'), tbody=document.getElementById('attendanceGridBody');
-    if(!employees||employees.length===0){ tbody.innerHTML=`<tr><td colspan="10" class="text-center text-muted py-4">No employees found.</td></tr>`; return; }
-    let isLocked = (weekStatus === 'locked' || weekStatus === 'approved');
-    let headerHtml=`<tr><th style="min-width:160px;text-align:left;">Employee</th><th style="min-width:70px;">Role</th><th style="min-width:100px;">DTR</th>`;
-    weekDays.forEach(day=>{ let dt=new Date(day.date); headerHtml+=`<th><div class="day-header">${dt.toLocaleDateString('en-US',{weekday:'short'})}<br><span class="day-number">${day.day_number}</span></div></th>`; });
-    headerHtml+='</tr>'; thead.innerHTML=headerHtml;
-    let bodyHtml='';
+// Drag-and-drop reorder of the employee list -- purely a display-order
+// preference for this loaded week (not persisted server-side); reordering
+// the underlying array is safe since nothing downstream (stats, filters)
+// depends on list order.
+function reorderEmployeeList(draggedUserId, targetUserId){
+    let fromIdx=attendanceEmployees.findIndex(e=>String(e.user_id)===String(draggedUserId));
+    let toIdx=attendanceEmployees.findIndex(e=>String(e.user_id)===String(targetUserId));
+    if(fromIdx===-1 || toIdx===-1) return;
+    let [moved]=attendanceEmployees.splice(fromIdx,1);
+    attendanceEmployees.splice(toIdx,0,moved);
+    renderEmployeeList(getFilteredEmployees());
+}
+
+// ===== RENDER EMPLOYEE LIST (left pane) =====
+function renderEmployeeList(employees){
+    let panel=document.getElementById('employeeListPanel');
+    if(!panel)return;
+    if(!employees||employees.length===0){
+        panel.innerHTML=`<div class="text-center text-muted py-4">No employees found.</div>`;
+        renderEmployeeTimecard(null);
+        return;
+    }
+    let html='';
     employees.forEach(emp=>{
         let complete=isComplete(emp.days);
-        let statusIcon=complete?'✅':'⏳';
-        let dtrHtml = '';
-        if (emp.dtr_image_path) {
-            dtrHtml = `<button class="btn btn-sm btn-outline-primary dtr-view-btn" data-user-id="${emp.user_id}" data-week-start="${currentWeekStart}" data-image-path="${emp.dtr_image_path}"><i class="bi bi-eye"></i> View</button>`;
-        } else {
-            if (!isLocked) {
-                dtrHtml = `
-                    <input type="file" class="dtr-upload-input" data-user-id="${emp.user_id}" data-week-start="${currentWeekStart}" accept=".jpg,.jpeg,.png,.pdf" style="display:none;">
-                    <button class="btn btn-sm btn-outline-primary dtr-upload-btn" data-user-id="${emp.user_id}" data-week-start="${currentWeekStart}"><i class="bi bi-upload"></i></button>
-                `;
-            } else {
-                dtrHtml = `<span class="text-muted">—</span>`;
-            }
-        }
-        bodyHtml+=`<tr><td class="employee-name-cell"><span class="employee-complete-badge ${complete?'bg-success text-white':'bg-warning'}">${statusIcon}</span> ${escapeHtml(emp.first_name)} ${escapeHtml(emp.last_name)}<br><small class="employee-role-cell">${escapeHtml(emp.employee_number||'')}</small></td>
-            <td><span class="badge bg-info">${getRoleDisplayName(emp.role)}</span></td>
-            <td>${dtrHtml}</td>`;
-        weekDays.forEach(day=>{
-            let dayData=emp.days[day.date]||{};
-            let recordExists=dayData.record_exists||false;
-            let status=dayData.status||null;
-            let timeIn=dayData.time_in?formatTime(dayData.time_in):'-';
-            let timeOut=dayData.time_out?formatTime(dayData.time_out):'-';
-            let overtime=dayData.overtime_hours||0;
-            let isRestDay=dayData.is_rest_day||false;
-            let displayText='', icon='', cellClass='';
-            if(isRestDay){ displayText='⛔ REST'; icon='⛔'; cellClass='status-rest-day'; }
-            else if(!recordExists){ displayText='⏳ No Record'; icon='⏳'; cellClass='status-absent'; }
-            else {
-                switch(status){
-                    case 'holiday_no_work': displayText='🎉 Holiday'; icon='🎉'; cellClass='status-holiday'; break;
-                    case 'holiday_work': if(timeIn!=='-'&&timeOut!=='-'){ displayText=`${timeIn}-${timeOut}${overtime>0?' +'+overtime+'h':''}`; } else { displayText='🎉 Holiday'; } icon='🎉'; cellClass='status-present'; break;
-                    case 'leave_paid': case 'leave_unpaid': displayText='📋 Leave'; icon='📋'; cellClass='status-leave'; break;
-                    case 'absent': displayText='❌ Absent'; icon='❌'; cellClass='status-absent'; break;
-                    case 'present': displayText=`${timeIn}-${timeOut}${overtime>0?' +'+overtime+'h':''}`; icon='✅'; cellClass='status-present'; break;
-                    case 'late': displayText=`${timeIn}-${timeOut}${overtime>0?' +'+overtime+'h':''}`; icon='⚠️'; cellClass='status-late'; break;
-                    default: displayText=`${timeIn}-${timeOut}`; icon='✅'; cellClass='status-present'; break;
-                }
-            }
-            let lockIcon = '';
-            let extraAttrs = '';
-            if (isLocked) {
-                lockIcon = '🔒 ';
-                extraAttrs = `class="attendance-cell ${cellClass} locked-cell" data-locked="true" style="cursor:not-allowed; opacity:0.8;"`;
-            } else {
-                extraAttrs = `class="attendance-cell ${cellClass} edit-attendance-cell" data-user-id="${emp.user_id}" data-date="${day.date}" data-name="${escapeHtml(emp.first_name)} ${escapeHtml(emp.last_name)}"`;
-            }
-            bodyHtml+=`<td><div ${extraAttrs} title="${getStatusLabel(status,isRestDay,recordExists)}: ${displayText}"><div class="status-icon">${lockIcon}${icon}</div><div class="time-display">${displayText}</div></div></td>`;
-        });
-        bodyHtml+='</tr>';
+        let initials=((emp.first_name||'')[0]||'')+((emp.last_name||'')[0]||'');
+        let isActive=(selectedEmployeeUserId && String(emp.user_id)===selectedEmployeeUserId);
+        html+=`
+            <div class="atm-emp-item ${isActive?'active':''}" data-user-id="${emp.user_id}" draggable="true">
+                <i class="bi bi-grip-vertical atm-emp-grip"></i>
+                <div class="atm-emp-avatar">${escapeHtml(initials.toUpperCase())}</div>
+                <div>
+                    <div class="atm-emp-name">${escapeHtml(emp.first_name)} ${escapeHtml(emp.last_name)}</div>
+                    <div class="atm-emp-role">${escapeHtml(emp.employee_number||'')} &middot; ${getRoleDisplayName(emp.role)}</div>
+                </div>
+                <span class="atm-emp-badge ${complete?'bg-success text-white':'bg-warning'}"><i class="bi ${complete?'bi-check-lg':'bi-hourglass-split'}"></i></span>
+            </div>
+        `;
     });
-    tbody.innerHTML=bodyHtml;
+    panel.innerHTML=html;
+    panel.querySelectorAll('.atm-emp-item').forEach(item=>{
+        item.addEventListener('click', function(){ selectEmployee(this.dataset.userId); });
+        item.addEventListener('dragstart', function(){
+            atmDraggedUserId=this.dataset.userId;
+            this.classList.add('dragging');
+        });
+        item.addEventListener('dragend', function(){
+            this.classList.remove('dragging');
+            atmDraggedUserId=null;
+        });
+        item.addEventListener('dragover', function(e){ e.preventDefault(); });
+        item.addEventListener('drop', function(e){
+            e.preventDefault();
+            let targetUserId=this.dataset.userId;
+            if(!atmDraggedUserId || atmDraggedUserId===targetUserId) return;
+            reorderEmployeeList(atmDraggedUserId, targetUserId);
+        });
+    });
 
-    if (!isLocked) {
-        document.querySelectorAll('.edit-attendance-cell').forEach(cell=>{
-            cell.addEventListener('click', function(){ openEditModal(this.dataset.userId, this.dataset.date, this.dataset.name); });
-        });
-        document.querySelectorAll('.dtr-upload-btn').forEach(btn => {
-            btn.addEventListener('click', function() {
-                const input = this.parentElement.querySelector('.dtr-upload-input');
-                if (input) input.click();
-            });
-        });
-        document.querySelectorAll('.dtr-upload-input').forEach(input => {
-            input.addEventListener('change', function() {
-                const file = this.files[0];
-                if (!file) return;
-                const userId = this.dataset.userId;
-                const weekStart = this.dataset.weekStart;
-                const formData = new FormData();
-                formData.append('dtr_image', file);
-                formData.append('user_id', userId);
-                formData.append('week_start', weekStart);
-                const btn = this.parentElement.querySelector('.dtr-upload-btn');
-                btn.disabled = true;
-                btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
-                fetch('?page=api_upload_dtr_image', {
-                    method: 'POST',
-                    body: formData
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        return response.text().then(text => { throw new Error(text) });
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-upload"></i>';
-                    if (data.success) {
-                        loadAttendance();
-                    } else {
-                        Swal.fire({ icon: 'error', title: 'Upload Failed', text: data.message });
-                    }
-                })
-                .catch(error => {
-                    btn.disabled = false;
-                    btn.innerHTML = '<i class="bi bi-upload"></i>';
-                    console.error('Upload error:', error);
-                    Swal.fire({ icon: 'error', title: 'Upload Error', text: error.message || 'Something went wrong.' });
-                });
-                this.value = '';
-            });
+    // Keep the timecard panel in sync whenever the list is rebuilt (e.g.
+    // after a save/upload triggers loadAttendance()), so the same employee
+    // stays open instead of resetting to the placeholder.
+    if(selectedEmployeeUserId){
+        let emp=employees.find(e=>String(e.user_id)===selectedEmployeeUserId);
+        renderEmployeeTimecard(emp||null);
+    }
+}
+
+function selectEmployee(userId){
+    selectedEmployeeUserId=String(userId);
+    renderEmployeeList(getFilteredEmployees());
+}
+
+// ===== RENDER TIMECARD (right pane) =====
+function renderEmployeeTimecard(employee){
+    let panel=document.getElementById('employeeTimecardPanel');
+    if(!panel)return;
+    if(!employee){
+        panel.innerHTML=`<div class="hr-timecard-placeholder"><i class="bi bi-person-lines-fill"></i>Select an employee to view their timecard.</div>`;
+        return;
+    }
+    let isLocked=(weekStatus==='locked'||weekStatus==='approved');
+    let initials=((employee.first_name||'')[0]||'')+((employee.last_name||'')[0]||'');
+
+    let present=0,late=0,absent=0,leave=0,restDay=0,holiday=0,overtimeTotal=0,regularHoursTotal=0;
+    weekDays.forEach(day=>{
+        let d=employee.days[day.date]||{};
+        if(d.is_rest_day||d.status==='rest_day') restDay++;
+        else if(!d.record_exists) { /* no record */ }
+        else if(d.status==='leave_paid'||d.status==='leave_unpaid') leave++;
+        else if(d.status==='late') late++;
+        else if(d.status==='present'||d.status==='holiday_work') present++;
+        else if(d.status==='holiday_no_work') holiday++;
+        else if(d.status==='absent') absent++;
+        let ot=Number(d.overtime_hours)||0;
+        overtimeTotal+=ot;
+        if(d.time_in && d.time_out){
+            regularHoursTotal+=Math.max(0, hoursBetween(d.time_in,d.time_out)-ot);
+        }
+    });
+    let totalHoursTracked=regularHoursTotal+overtimeTotal;
+    let regularPct=totalHoursTracked>0?(regularHoursTotal/totalHoursTracked*100):0;
+    let overtimePct=totalHoursTracked>0?(overtimeTotal/totalHoursTracked*100):0;
+
+    let dtrHtml='';
+    if(employee.dtr_image_path){
+        dtrHtml=`<button class="btn btn-sm btn-outline-primary dtr-view-btn" data-user-id="${employee.user_id}" data-week-start="${currentWeekStart}" data-image-path="${employee.dtr_image_path}"><i class="bi bi-eye"></i> View DTR</button>`;
+    } else if(!isLocked){
+        dtrHtml=`
+            <input type="file" class="dtr-upload-input" data-user-id="${employee.user_id}" data-week-start="${currentWeekStart}" accept=".jpg,.jpeg,.png,.pdf" style="display:none;">
+            <button class="btn btn-sm btn-outline-primary dtr-upload-btn" data-user-id="${employee.user_id}" data-week-start="${currentWeekStart}"><i class="bi bi-upload"></i> Upload DTR</button>
+        `;
+    } else {
+        dtrHtml=`<span class="text-muted small">No DTR</span>`;
+    }
+
+    let rowsHtml='';
+    weekDays.forEach(day=>{
+        let d=employee.days[day.date]||{};
+        let recordExists=d.record_exists||false;
+        let status=d.status||null;
+        let isRestDay=d.is_rest_day||false;
+        let cellClass=getStatusClass(status,isRestDay);
+        let label=getStatusLabel(status,isRestDay,recordExists);
+        let iconClass=getStatusIconClass(status,isRestDay,recordExists);
+        let lockIcon=isLocked?'<i class="bi bi-lock-fill me-1"></i>':'';
+        let timeRangeHtml=(d.time_in && d.time_out)
+            ? `<span class="hr-timecard-time-range"><span>${formatTime(d.time_in)}</span><span class="hr-timecard-time-line"></span><span>${formatTime(d.time_out)}</span></span>`
+            : `<span class="hr-timecard-time-range is-empty">-</span>`;
+        let hasNote=!!(d.notes && d.notes.trim());
+        let noteBtn=`<button class="hr-timecard-note-btn ${hasNote?'has-note':''}" ${hasNote?'':'disabled'} data-note="${escapeHtml(d.notes||'')}" data-date="${day.date}" title="${hasNote?'View note':'No note'}"><i class="bi bi-clipboard${hasNote?'-fill':''}"></i></button>`;
+        let workHours=(d.time_in && d.time_out) ? Math.max(0, hoursBetween(d.time_in,d.time_out)-(Number(d.overtime_hours)||0)) : 0;
+        rowsHtml+=`
+            <tr>
+                <td class="hr-timecard-date-cell"><span class="hr-timecard-date-pill"><span class="hr-timecard-day-abbr">${getDayAbbr(day.date)}</span>${formatOrdinalDate(day.date)}</span></td>
+                <td>${timeRangeHtml}</td>
+                <td>${workHours.toFixed(2)}</td>
+                <td>${d.overtime_hours||0}</td>
+                <td><span class="hr-timecard-status-pill ${cellClass}">${lockIcon}<i class="bi ${iconClass} me-1"></i>${escapeHtml(label)}</span></td>
+                <td>${noteBtn}</td>
+                <td><button class="hr-timecard-edit-btn" data-user-id="${employee.user_id}" data-date="${day.date}" data-name="${escapeHtml(employee.first_name)} ${escapeHtml(employee.last_name)}" title="Edit"><i class="bi bi-pencil"></i></button></td>
+            </tr>
+        `;
+    });
+
+    panel.innerHTML=`
+        <div class="hr-timecard-profile">
+            <div class="hr-timecard-avatar">${escapeHtml(initials.toUpperCase())}</div>
+            <div>
+                <div class="hr-timecard-name">${escapeHtml(employee.first_name)} ${escapeHtml(employee.last_name)}</div>
+                <div class="hr-timecard-meta">${escapeHtml(employee.employee_number||'')} &middot; ${getRoleDisplayName(employee.role)}</div>
+            </div>
+            <div class="hr-timecard-profile-actions">${dtrHtml}</div>
+        </div>
+        <div class="hr-timecard-hours-summary">
+            <div class="hr-timecard-hours-header">
+                <span class="hr-timecard-hours-label">Hour breakdown</span>
+                <span class="hr-timecard-hours-total">${totalHoursTracked.toFixed(2)} hrs</span>
+                <span class="hr-timecard-hours-legend">
+                    <span><span class="legend-dot regular"></span>Regular: ${regularHoursTotal.toFixed(2)} hrs</span>
+                    <span><span class="legend-dot overtime"></span>Overtime: ${overtimeTotal.toFixed(2)} hrs</span>
+                </span>
+            </div>
+            <div class="hr-timecard-hours-bar">
+                <div class="hr-timecard-hours-segment regular" style="width:${regularPct}%"></div>
+                <div class="hr-timecard-hours-segment overtime" style="width:${overtimePct}%"></div>
+            </div>
+        </div>
+        <div class="hr-timecard-stats">
+            <div class="hr-timecard-stat"><div class="hr-timecard-stat-value">${present}</div><div class="hr-timecard-stat-label">Present</div></div>
+            <div class="hr-timecard-stat"><div class="hr-timecard-stat-value">${late}</div><div class="hr-timecard-stat-label">Late</div></div>
+            <div class="hr-timecard-stat"><div class="hr-timecard-stat-value">${absent}</div><div class="hr-timecard-stat-label">Absent</div></div>
+            <div class="hr-timecard-stat"><div class="hr-timecard-stat-value">${leave}</div><div class="hr-timecard-stat-label">Leave</div></div>
+            <div class="hr-timecard-stat"><div class="hr-timecard-stat-value">${restDay}</div><div class="hr-timecard-stat-label">Rest</div></div>
+            <div class="hr-timecard-stat"><div class="hr-timecard-stat-value">${holiday}</div><div class="hr-timecard-stat-label">Holiday</div></div>
+            <div class="hr-timecard-stat"><div class="hr-timecard-stat-value">${overtimeTotal}</div><div class="hr-timecard-stat-label">OT hrs</div></div>
+        </div>
+        <div class="table-scroll-wrapper">
+            <table class="hr-timecard-table">
+                <thead><tr><th>Date</th><th>Time</th><th>Work Hours</th><th>OT (hrs)</th><th>Status</th><th>Note</th><th></th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+        </div>
+    `;
+
+    panel.querySelectorAll('.hr-timecard-edit-btn').forEach(btn=>{
+        btn.addEventListener('click', function(){ openEditModal(this.dataset.userId, this.dataset.date, this.dataset.name); });
+    });
+    panel.querySelectorAll('.hr-timecard-note-btn.has-note').forEach(btn=>{
+        btn.addEventListener('click', function(){ openNoteModal(this.dataset.date, this.dataset.note); });
+    });
+    let dtrViewBtn=panel.querySelector('.dtr-view-btn');
+    if(dtrViewBtn){
+        dtrViewBtn.addEventListener('click', function(){
+            openDtrModal(this.dataset.userId, this.dataset.weekStart, this.dataset.imagePath);
         });
     }
-    document.querySelectorAll('.locked-cell').forEach(cell => {
-        cell.addEventListener('click', function() {
-            Swal.fire({ icon: 'info', title: '🔒 Locked', text: 'This week is already approved or locked. Edits are not allowed.', confirmButtonText: 'OK' });
+    let dtrUploadBtn=panel.querySelector('.dtr-upload-btn');
+    let dtrUploadInput=panel.querySelector('.dtr-upload-input');
+    if(dtrUploadBtn && dtrUploadInput){
+        dtrUploadBtn.addEventListener('click', function(){ dtrUploadInput.click(); });
+        dtrUploadInput.addEventListener('change', function(){
+            const file=this.files[0];
+            if(!file)return;
+            const userId=this.dataset.userId, weekStart=this.dataset.weekStart;
+            const formData=new FormData();
+            formData.append('dtr_image', file);
+            formData.append('user_id', userId);
+            formData.append('week_start', weekStart);
+            dtrUploadBtn.disabled=true;
+            dtrUploadBtn.innerHTML='<span class="spinner-border spinner-border-sm"></span>';
+            fetch('?page=api_upload_dtr_image', { method:'POST', body:formData })
+            .then(response=>{
+                if(!response.ok) return response.text().then(text=>{ throw new Error(text) });
+                return response.json();
+            })
+            .then(data=>{
+                if(data.success){ loadAttendance(); }
+                else {
+                    dtrUploadBtn.disabled=false; dtrUploadBtn.innerHTML='<i class="bi bi-upload"></i> Upload DTR';
+                    Swal.fire({ icon:'error', title:'Upload Failed', text:data.message });
+                }
+            })
+            .catch(error=>{
+                dtrUploadBtn.disabled=false; dtrUploadBtn.innerHTML='<i class="bi bi-upload"></i> Upload DTR';
+                console.error('Upload error:', error);
+                Swal.fire({ icon:'error', title:'Upload Error', text:error.message||'Something went wrong.' });
+            });
+            this.value='';
         });
-    });
-    document.querySelectorAll('.dtr-view-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const userId = this.dataset.userId;
-            const weekStart = this.dataset.weekStart;
-            const imagePath = this.dataset.imagePath;
-            openDtrModal(userId, weekStart, imagePath);
-        });
-    });
+    }
+}
+
+// ===== NOTE MODAL =====
+function openNoteModal(date, note) {
+    document.getElementById('hrTimecardNoteMeta').textContent = formatDate(date);
+    document.getElementById('hrTimecardNoteText').textContent = note || '-';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('hrTimecardNoteModal')).show();
 }
 
 // ===== DTR MODAL =====
@@ -366,66 +493,24 @@ document.getElementById('dtrDeleteBtn').addEventListener('click', function() {
     });
 });
 
-// ===== SEND STATUS MESSAGE (FIXED) =====
+// ===== SEND BUTTON VISIBILITY =====
+// No banner is rendered here -- completeness/DTR gaps are visible per
+// employee in the left-panel badges and each employee's own timecard, so
+// the Send button simply doesn't appear until every employee is ready.
 function updateSendStatusMessage(employees) {
     const container = document.getElementById('sendStatusMessage');
-    if (!container) return;
+    if (container) container.style.display = 'none';
 
     if (weekStatus !== 'draft') {
-        container.style.display = 'none';
         document.getElementById('sendToHeadHrBtn').style.display = 'none';
         return;
     }
 
-    let allComplete = true;
-    let allDtr = true;
-    let incompleteList = [];
-    let missingDtrList = [];
+    let allComplete = employees.every(emp => isComplete(emp.days));
+    let allDtr = employees.every(emp => !!emp.dtr_image_path);
 
-    employees.forEach(emp => {
-        const complete = isComplete(emp.days);
-        if (!complete) {
-            allComplete = false;
-            incompleteList.push(emp.first_name + ' ' + emp.last_name);
-        }
-        if (!emp.dtr_image_path) {
-            allDtr = false;
-            missingDtrList.push(emp.first_name + ' ' + emp.last_name);
-        }
-    });
-
-    // Only hide if everything is perfect
-    if (allComplete && allDtr && employees.length > 0) {
-        container.style.display = 'none';
-        document.getElementById('sendToHeadHrBtn').style.display = 'inline-block';
-        return;
-    }
-
-    // Otherwise, show a detailed message
-    let messages = [];
-    if (!allComplete && incompleteList.length > 0) {
-        messages.push(`⚠️ Incomplete attendance for: <strong>${incompleteList.join(', ')}</strong>`);
-    }
-    if (!allDtr && missingDtrList.length > 0) {
-        messages.push(`📎 Missing DTR image for: <strong>${missingDtrList.join(', ')}</strong>`);
-    }
-    if (employees.length === 0) {
-        messages.push('No employees found for this week.');
-    }
-
-    // Ensure container is visible and has the message
-    container.style.display = 'block';
-    container.innerHTML = `
-        <div class="alert alert-warning alert-sm mb-0">
-            <i class="bi bi-info-circle me-1"></i>
-            <strong>Cannot send to Head HR yet:</strong>
-            <ul class="mb-0 mt-1" style="padding-left:18px;">
-                ${messages.map(m => `<li>${m}</li>`).join('')}
-            </ul>
-            <small class="text-muted">Please fix these issues before sending.</small>
-        </div>
-    `;
-    document.getElementById('sendToHeadHrBtn').style.display = 'none';
+    document.getElementById('sendToHeadHrBtn').style.display =
+        (allComplete && allDtr && employees.length > 0) ? 'inline-block' : 'none';
 }
 
 function checkSendToHeadHR(employees) {
@@ -446,7 +531,7 @@ function renderStats(employees){
     employees.forEach(emp=>{
         Object.values(emp.days).forEach(day=>{
             if(!day)return;
-            if(day.is_rest_day) restDay++;
+            if(day.is_rest_day||day.status==='rest_day') restDay++;
             else if(!day.record_exists) { /* noRecord */ }
             else if(day.status==='leave_paid'||day.status==='leave_unpaid') leave++;
             else if(day.status==='late') late++;
@@ -496,7 +581,7 @@ document.getElementById('sendToHeadHrBtn')?.addEventListener('click', function()
                 if(data.success){
                     Swal.fire({icon:'success',title:'Sent!',text:`Week ${weekNumber} sent.`,timer:2000,showConfirmButton:false});
                     btn.style.display='none';
-                    document.getElementById('weekStatusBadge').textContent='Sent 📨';
+                    document.getElementById('weekStatusBadge').innerHTML='<i class="bi bi-send-fill"></i> Sent';
                     loadAttendance();
                 } else {
                     Swal.fire({icon:'error',title:'Failed',text:data.message||'Try again.'});
@@ -680,9 +765,19 @@ document.addEventListener('DOMContentLoaded', function(){
         let sel=this.options[this.selectedIndex];
         if(sel && sel.value){
             currentWeekStart=sel.value; currentWeekEnd=sel.dataset.endDate||getEndOfWeek(currentWeekStart); currentWeekNumber=parseInt(sel.dataset.weekNumber)||1;
+            updateWeekNavLabel();
             loadAttendance();
         }
     });
+
+    // Compact week navigator (replaces the inline Month/Year/Week row) --
+    // prev/next step through the week <select>'s own options, crossing a
+    // month boundary by reloading the adjacent month and landing on its
+    // first/last week; the label button opens the Week Picker modal that
+    // still holds the real Month/Year/Week selects.
+    document.getElementById('weekNavPrev')?.addEventListener('click', function(){ navigateWeek(-1); });
+    document.getElementById('weekNavNext')?.addEventListener('click', function(){ navigateWeek(1); });
+
     document.getElementById('loadAttendanceBtn').addEventListener('click', function(){
         let weekSelect=document.getElementById('weekSelect');
         if(weekSelect && weekSelect.value){
@@ -693,10 +788,66 @@ document.addEventListener('DOMContentLoaded', function(){
     });
     document.getElementById('filterDepartment').addEventListener('change', loadAttendance);
     document.getElementById('attendanceSearch')?.addEventListener('input', applyAttendanceFilters);
-    document.getElementById('attendanceRoleFilter')?.addEventListener('change', applyAttendanceFilters);
+
+    // Department chip row -- drives the same hidden <select> so
+    // loadAttendance() and the active-filter-chips widget (which expects a
+    // real <select>) keep working unchanged; a 'change' listener on the
+    // select syncs the chips back if something else resets its value
+    // (e.g. the "Clear all filters" chip).
+    const deptSelect = document.getElementById('filterDepartment');
+    const deptChipRow = document.getElementById('filterDepartmentChips');
+    deptChipRow?.querySelectorAll('.atm-chip').forEach(chip => {
+        chip.addEventListener('click', function(){
+            deptSelect.value = this.dataset.value;
+            deptSelect.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+    });
+    deptSelect.addEventListener('change', function(){
+        deptChipRow?.querySelectorAll('.atm-chip').forEach(chip => {
+            chip.classList.toggle('active', chip.dataset.value === deptSelect.value);
+        });
+    });
 
     let month=document.getElementById('monthSelect').value, year=document.getElementById('yearSelect').value;
-    loadWeeksForMonth(year, month);
+    loadWeeksForMonth(year, month, 'today');
+
+    updateAtmPageSubtitle();
+    setInterval(updateAtmPageSubtitle, 60000);
 });
 
+function updateAtmPageSubtitle(){
+    let el=document.getElementById('atmPageSubtitle');
+    if(!el) return;
+    let now=new Date();
+    let weekday=now.toLocaleDateString('en-US',{weekday:'long'});
+    let month=now.toLocaleDateString('en-US',{month:'long'});
+    let hh=String(now.getHours()).padStart(2,'0'), mm=String(now.getMinutes()).padStart(2,'0');
+    el.textContent=`${weekday}, ${now.getDate()} ${month} · ${hh}:${mm}`;
+}
+
 function getEndOfWeek(start){ let d=new Date(start); d.setDate(d.getDate()+6); return d.toISOString().split('T')[0]; }
+
+function navigateWeek(delta){
+    let weekSelect=document.getElementById('weekSelect');
+    if(!weekSelect) return;
+    let newIndex=weekSelect.selectedIndex+delta;
+    if(newIndex>=0 && newIndex<weekSelect.options.length){
+        weekSelect.selectedIndex=newIndex;
+        weekSelect.dispatchEvent(new Event('change',{bubbles:true}));
+        return;
+    }
+    let month=parseInt(document.getElementById('monthSelect').value);
+    let year=parseInt(document.getElementById('yearSelect').value);
+    if(delta<0){ month-=1; if(month<1){ month=12; year-=1; } }
+    else { month+=1; if(month>12){ month=1; year+=1; } }
+    let yearSelect=document.getElementById('yearSelect');
+    let yearStr=String(year);
+    if(!Array.from(yearSelect.options).some(o=>o.value===yearStr)){
+        Swal.fire({ icon:'info', title:'Out of Range', text:'That year is outside the selectable range.' });
+        return;
+    }
+    yearSelect.value=yearStr;
+    let monthStr=String(month).padStart(2,'0');
+    document.getElementById('monthSelect').value=monthStr;
+    loadWeeksForMonth(yearStr, monthStr, delta<0 ? 'last' : 'first');
+}

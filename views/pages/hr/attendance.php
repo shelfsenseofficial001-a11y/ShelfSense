@@ -2,7 +2,7 @@
 $title = 'Attendance - ShelfSense HR';
 $pageTitle = 'Attendance Management';
 $activePage = 'attendance';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260831061347"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260918320000"></script>';
 
 // Month/year options
 $currentMonth = date('m');
@@ -22,47 +22,9 @@ for ($y = $currentYear-1; $y <= $currentYear+1; $y++) {
 
 $content = <<<HTML
 <style>
-    .attendance-grid-table {
-        border-collapse: separate;
-        border-spacing: 0;
-    }
-    .attendance-grid-table th, .attendance-grid-table td {
-        text-align: center;
-        vertical-align: middle;
-        padding: 8px 6px;
-        font-size: 0.85rem;
-        border: none;
-    }
-    .attendance-grid-table tbody tr td {
-        box-shadow: inset 0 -1px 0 var(--border-color);
-    }
-    .attendance-grid-table tbody tr:last-child td {
-        box-shadow: none;
-    }
-    .attendance-grid-table .employee-name-cell { text-align: left; font-weight: 500; white-space: nowrap; }
-    .attendance-grid-table .employee-role-cell { font-size: 0.7rem; color: var(--text-muted); }
-    .attendance-cell { cursor: pointer; border-radius: 4px; padding: 4px 8px; transition: filter 0.15s ease; min-width: 60px; display: inline-block; }
-    .attendance-cell:hover { filter: brightness(0.96); }
-    .attendance-cell.status-present { background: #d1fae5; color: #065f46; }
-    .attendance-cell.status-late { background: #fef3c7; color: #92400e; }
-    .attendance-cell.status-absent { background: #fecaca; color: #991b1b; }
-    .attendance-cell.status-leave { background: #dbeafe; color: #1e40af; }
-    .attendance-cell.status-rest-day { background: #e5e7eb; color: #4b5563; }
-    .attendance-cell.status-holiday { background: #f3e8ff; color: #6d28d9; }
-    .attendance-cell .time-display { font-size: 0.7rem; font-weight: 500; }
-    .attendance-cell .status-icon { font-size: 0.85rem; }
-    [data-bs-theme="dark"] .attendance-cell.status-present { background: #064e3b; color: #6ee7b7; }
-    [data-bs-theme="dark"] .attendance-cell.status-late { background: #78350f; color: #fcd34d; }
-    [data-bs-theme="dark"] .attendance-cell.status-absent { background: #7f1d1d; color: #fca5a5; }
-    [data-bs-theme="dark"] .attendance-cell.status-leave { background: #1e3a5f; color: #93c5fd; }
-    [data-bs-theme="dark"] .attendance-cell.status-rest-day { background: #374151; color: #9ca3af; }
-    [data-bs-theme="dark"] .attendance-cell.status-holiday { background: #3b1e5f; color: #c4b5fd; }
-    .day-header { font-weight: 600; font-size: 0.75rem; }
-    .day-header .day-number { font-weight: 400; font-size: 0.65rem; color: var(--text-muted); }
     .table-scroll-wrapper { overflow-x: auto; }
     .week-progress { height: 4px; background: var(--border-color); border-radius: 2px; overflow: hidden; }
     .week-progress .progress-fill { height: 100%; background: var(--brand-yellow); transition: width 0.3s ease; }
-    .employee-complete-badge { font-size: 0.6rem; padding: 1px 6px; border-radius: 10px; }
 
     /* Edit Attendance modal */
     .edit-attendance-modal .modal-subtitle { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
@@ -120,59 +82,167 @@ $content = <<<HTML
         border-radius: 10px !important;
         box-shadow: none !important;
     }
+
+    /* Employee list (left pane) — page-specific, not shared with Review */
+    .atm-employee-list { max-height: 680px; overflow-y: auto; }
+    .atm-emp-item {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-radius: 10px; cursor: pointer;
+        transition: background-color 0.15s ease, border-color 0.15s ease;
+        border: 1px solid transparent;
+    }
+    .atm-emp-item:hover { background: var(--bg-card-subtle); }
+    .atm-emp-item.active { background: var(--light-yellow-subtle); border-color: var(--brand-yellow); }
+    .atm-emp-item.dragging { opacity: 0.4; }
+    .atm-emp-grip { color: var(--text-muted); font-size: 0.9rem; cursor: grab; flex-shrink: 0; }
+    .atm-emp-grip:active { cursor: grabbing; }
+    .atm-emp-avatar {
+        width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+        background: var(--light-yellow-accent); color: var(--brand-yellow);
+        display: flex; align-items: center; justify-content: center;
+        font-weight: 700; font-size: 0.8rem;
+    }
+    .atm-emp-name { font-weight: 600; font-size: 0.85rem; }
+    .atm-emp-role { font-size: 0.7rem; color: var(--text-muted); }
+    .atm-emp-badge { font-size: 0.6rem; padding: 1px 6px; border-radius: 10px; margin-left: auto; flex-shrink: 0; }
+    /* Below Bootstrap's md breakpoint the list and timecard already stack
+       (col-md-4/col-md-8 default to full width), but the list's fixed
+       680px max-height still ate most of a phone screen before a timecard
+       was even selected -- cap it shorter there. */
+    @media (max-width: 767.98px) {
+        .atm-employee-list { max-height: 320px; }
+    }
+
+    #employeeTimecardPanel { padding: 24px; }
+
+    /* Department chip row -- replaces a click-to-open <select> with
+       always-visible, one-click filter pills. */
+    .atm-chip-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .atm-chip {
+        border: 1px solid var(--border-color);
+        background: var(--bg-card-subtle);
+        color: var(--text-muted);
+        border-radius: 999px;
+        padding: 7px 18px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+    }
+    .atm-chip:hover { border-color: var(--brand-yellow); color: var(--text-main); }
+    .atm-chip.active { background: var(--brand-yellow); border-color: var(--brand-yellow); color: #fff; }
+
+    /* Compact week navigator -- replaces the inline Month/Year/Week selects;
+       the selects still exist (in the Week Picker modal) so all existing
+       load logic is untouched. */
+    .atm-week-nav { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+    .atm-week-nav-arrow {
+        width: 38px; height: 38px; border-radius: 10px;
+        border: 1px solid var(--border-color); background: var(--bg-card-subtle);
+        color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease;
+    }
+    .atm-week-nav-arrow:hover { border-color: var(--brand-yellow); color: var(--text-main); }
+    .atm-week-nav-arrow:disabled { opacity: 0.4; cursor: not-allowed; }
+    .atm-week-nav-label {
+        display: flex; align-items: center; gap: 8px;
+        height: 38px; padding: 0 16px; border-radius: 10px;
+        border: 1px solid var(--border-color); background: var(--bg-card-subtle);
+        color: var(--text-main); font-weight: 600; font-size: 0.85rem;
+        cursor: pointer; white-space: nowrap; transition: border-color 0.15s ease;
+    }
+    .atm-week-nav-label:hover { border-color: var(--brand-yellow); }
+    .atm-week-nav-label i { color: var(--brand-yellow); }
+
+    .atm-page-header { margin-bottom: 10px; display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+    .atm-page-header .atm-page-title { font-weight: 700; margin: 0; line-height: 1.1; }
+    .atm-page-header .atm-page-title i { color: var(--brand-yellow); margin-right: 8px; font-size: 0.85em; }
+    .atm-page-header .atm-page-subtitle { color: var(--text-muted); font-size: 0.82rem; line-height: 1.1; margin-top: 0; }
 </style>
 
+<!-- Page header -->
+<div class="atm-page-header">
+    <h2 class="atm-page-title"><i class="bi bi-calendar-check-fill"></i> Attendance</h2>
+    <div class="atm-page-subtitle" id="atmPageSubtitle">-</div>
+</div>
+
 <!-- Filters -->
-<!-- Search + Load -->
+<!-- Search + manual Refresh (all filters below already auto-reload; this is only for re-pulling data without changing a filter) -->
 <div class="attendance-toolbar mb-3">
     <div class="attendance-search">
         <i class="bi bi-search"></i>
         <input type="text" id="attendanceSearch" class="form-control" placeholder="Search employee by name or employee #...">
     </div>
-    <button class="btn btn-yellow-primary attendance-load-btn" id="loadAttendanceBtn"><i class="bi bi-refresh"></i> Load</button>
+    <button class="btn btn-yellow-outline attendance-load-btn" id="loadAttendanceBtn" title="Refresh without changing filters"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
 </div>
 
-<div class="row g-2 mb-3">
-    <div class="col-md-2">
-        <label class="form-label fw-semibold">Month</label>
-        <select id="monthSelect" class="form-select">$monthOptions</select>
-    </div>
-    <div class="col-md-2">
-        <label class="form-label fw-semibold">Year</label>
-        <select id="yearSelect" class="form-select">$yearOptions</select>
-    </div>
-    <div class="col-md-3">
-        <label class="form-label fw-semibold">Week</label>
-        <select id="weekSelect" class="form-select"><option value="">Loading weeks...</option></select>
-    </div>
-    <div class="col-md-3">
-        <label class="form-label fw-semibold">Department</label>
-        <select id="filterDepartment" class="form-select">
+<div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
+    <div>
+        <label class="form-label fw-semibold d-block">Department</label>
+        <select id="filterDepartment" class="form-select d-none">
             <option value="all">All Departments</option>
-            <option value="cashier">Cashier</option>
+            <option value="employee">Cashier</option>
             <option value="hr_staff">HR Staff</option>
             <option value="finance_staff">Finance Staff</option>
             <option value="hr_head">Head HR</option>
             <option value="finance_head">Head Finance</option>
         </select>
+        <div class="atm-chip-row" id="filterDepartmentChips">
+            <button type="button" class="atm-chip active" data-value="all">All Departments</button>
+            <button type="button" class="atm-chip" data-value="employee">Cashier</button>
+            <button type="button" class="atm-chip" data-value="hr_staff">HR Staff</button>
+            <button type="button" class="atm-chip" data-value="finance_staff">Finance Staff</button>
+            <button type="button" class="atm-chip" data-value="hr_head">Head HR</button>
+            <button type="button" class="atm-chip" data-value="finance_head">Head Finance</button>
+        </div>
     </div>
-    <div class="col-md-2">
-        <label class="form-label fw-semibold">Role</label>
-        <select id="attendanceRoleFilter" class="form-select">
-            <option value="all">All Roles</option>
-            <option value="owner">Owner</option>
-            <option value="hr_head">HR Head</option>
-            <option value="hr_staff">HR Staff</option>
-            <option value="store_manager">Store Manager</option>
-            <option value="finance_head">Finance Head</option>
-            <option value="finance_staff">Finance Staff</option>
-            <option value="employee">Cashier</option>
-            <option value="trainee">Trainee</option>
-        </select>
+    <div class="atm-week-nav">
+        <button type="button" class="atm-week-nav-arrow" id="weekNavPrev" title="Previous week"><i class="bi bi-chevron-left"></i></button>
+        <button type="button" class="atm-week-nav-label" id="weekNavLabel" data-bs-toggle="modal" data-bs-target="#weekPickerModal" title="Jump to a specific week">
+            <i class="bi bi-calendar3"></i><span id="weekNavLabelText">Loading week...</span>
+        </button>
+        <button type="button" class="atm-week-nav-arrow" id="weekNavNext" title="Next week"><i class="bi bi-chevron-right"></i></button>
+        <span class="badge bg-secondary d-none" id="weekStatusBadge">Draft</span>
+        <button class="btn btn-sm btn-success" id="sendToHeadHrBtn" style="display:none;">
+            <i class="bi bi-send"></i> Send to Head HR
+        </button>
     </div>
 </div>
 
 <div class="active-filter-chips" id="activeFilterChips"></div>
+
+<!-- Week Picker Modal (Month/Year/Week selects live here, driven by the
+     nav bar above; kept as real <select>s so all existing load/filter-chip
+     logic keeps working unchanged) -->
+<div class="modal fade" id="weekPickerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-calendar3"></i> Jump to Week</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-2">
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Month</label>
+                        <select id="monthSelect" class="form-select">$monthOptions</select>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label fw-semibold">Year</label>
+                        <select id="yearSelect" class="form-select">$yearOptions</select>
+                    </div>
+                </div>
+                <div class="mt-2">
+                    <label class="form-label fw-semibold">Week</label>
+                    <select id="weekSelect" class="form-select"><option value="">Loading weeks...</option></select>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-yellow-primary btn-sm" data-bs-dismiss="modal">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- Stats Row -->
 <div class="row g-2 mb-3">
@@ -187,33 +257,35 @@ $content = <<<HTML
 <!-- Send status message (dynamically shown/hidden) -->
 <div id="sendStatusMessage" style="display:none;"></div>
 
-<!-- Week Info & Progress -->
-<div class="modern-card p-2 mb-3">
-    <div class="row align-items-center">
-        <div class="col-md-6">
-            <strong id="weekRangeDisplay">Loading week...</strong>
-            <span class="badge bg-secondary ms-2" id="weekStatusBadge">Draft</span>
-        </div>
-        <div class="col-md-6">
-            <div class="d-flex justify-content-end align-items-center gap-3">
-                <span class="text-muted small" id="progressText">0 of 0 employees complete</span>
-                <div class="week-progress" style="width:120px;"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
-                <button class="btn btn-sm btn-success" id="sendToHeadHrBtn" style="display:none;">
-                    <i class="bi bi-send"></i> Send to Head HR
-                </button>
+<!-- Week range/progress text still drives the active-filter-chips default
+     comparison and per-employee completeness math elsewhere -- kept in the
+     DOM but out of view now that the week nav bar + per-employee badges
+     already show this information. -->
+<div class="d-none">
+    <strong id="weekRangeDisplay">Loading week...</strong>
+    <span id="progressText">0 of 0 employees complete</span>
+    <div class="week-progress"><div class="progress-fill" id="progressFill" style="width:0%;"></div></div>
+</div>
+
+<!-- Employee List + Timecard -->
+<div class="row g-3">
+    <div class="col-md-4">
+        <div class="modern-card">
+            <div class="card-body p-2">
+                <div class="atm-employee-list" id="employeeListPanel">
+                    <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted small">Loading attendance...</p></div>
+                </div>
             </div>
         </div>
     </div>
-</div>
-
-<!-- Attendance Grid -->
-<div class="modern-card">
-    <div class="card-body p-0">
-        <div class="table-scroll-wrapper">
-            <table class="table table-hover mb-0 attendance-grid-table" id="attendanceGridTable">
-                <thead id="attendanceGridHead"><tr><th style="min-width:160px; text-align:left;">Employee</th><th style="min-width:70px;">Role</th></tr></thead>
-                <tbody id="attendanceGridBody"><tr><td colspan="9" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><p class="mt-2 text-muted">Loading attendance...</p></td></tr></tbody>
-            </table>
+    <div class="col-md-8">
+        <div class="modern-card">
+            <div class="card-body" id="employeeTimecardPanel">
+                <div class="hr-timecard-placeholder">
+                    <i class="bi bi-person-lines-fill"></i>
+                    Select an employee to view their timecard.
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -307,7 +379,24 @@ $content = <<<HTML
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260831061347"></script>
+<!-- Day Note View Modal -->
+<div class="modal fade" id="hrTimecardNoteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-clipboard-fill"></i> Day Note</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-muted small mb-2" id="hrTimecardNoteMeta">-</div>
+                <p class="mb-0" id="hrTimecardNoteText">-</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 HTML;
 
 require_once __DIR__ . '/../../layouts/hr.php';

@@ -24,8 +24,8 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260917210000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260914050000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260918250000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -75,9 +75,6 @@ use App\Core\Auth;
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <a href="?page=my_leaves" class="nav-item <?= $activePage === 'my_leaves' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
-                </a>
-                <a href="?page=my_payslip" class="nav-item <?= $activePage === 'payslip' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-wallet2"></i></span> <span class="nav-label">My Payslip</span>
                 </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Account</span></div>
                 <a href="?page=logout" class="nav-item text-danger">

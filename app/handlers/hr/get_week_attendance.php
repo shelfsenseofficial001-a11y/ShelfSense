@@ -28,9 +28,9 @@ $department = isset($_GET['department']) ? trim($_GET['department']) : 'all';
 try {
     $db = Database::getInstance()->getConnection();
 
-    $sql = "SELECT user_id, first_name, last_name, employee_number, role 
-            FROM users 
-            WHERE is_active = 1 AND role != 'trainee'";
+    $sql = "SELECT user_id, first_name, last_name, employee_number, role
+            FROM users
+            WHERE is_active = 1 AND role NOT IN ('trainee', 'supplier')";
     if ($department !== 'all') {
         $sql .= " AND role = ?";
         $stmt = $db->prepare($sql);
@@ -50,6 +50,73 @@ try {
     }
 
     $result = [];
+    if (empty($employees)) {
+        Response::success([
+            'employees' => [],
+            'week_start' => $weekStart,
+            'week_end' => $weekEnd,
+            'total_employees' => 0
+        ], 'Week attendance fetched successfully');
+    }
+
+    // Batch-fetch every table once for the whole employee list instead of
+    // 3 queries per employee (was 3N round trips for N employees) -- the
+    // same data, grouped by user_id in PHP instead of re-querying per row.
+    $userIds = array_column($employees, 'user_id');
+    $placeholders = implode(',', array_fill(0, count($userIds), '?'));
+
+    $attStmt = $db->prepare("
+        SELECT user_id, date, time_in, time_out, overtime_hours, status, notes
+        FROM attendance
+        WHERE user_id IN ($placeholders) AND date BETWEEN ? AND ?
+    ");
+    $attStmt->execute(array_merge($userIds, [$weekStart, $weekEnd]));
+    $attendanceByUser = [];
+    while ($row = $attStmt->fetch()) {
+        $attendanceByUser[$row['user_id']][$row['date']] = $row;
+    }
+
+    $scheduleStmt = $db->prepare("
+        SELECT user_id, day_of_week, time_in, time_out, is_rest_day
+        FROM schedules
+        WHERE user_id IN ($placeholders)
+    ");
+    $scheduleStmt->execute($userIds);
+    $scheduleByUser = [];
+    while ($row = $scheduleStmt->fetch()) {
+        $scheduleByUser[$row['user_id']][$row['day_of_week']] = $row;
+    }
+
+    // Per-cutoff overrides on top of the standing schedule above -- a
+    // date range can span more than one H1/H2 period, so index by
+    // period_key + day_of_week rather than assuming one period.
+    $periodKeys = array_unique(array_map(function ($d) {
+        return CutoffPeriod::getKeyForDate($d);
+    }, $days));
+    $overridesByUserPeriodDay = [];
+    if (!empty($periodKeys)) {
+        $periodPlaceholders = implode(',', array_fill(0, count($periodKeys), '?'));
+        $overrideStmt = $db->prepare("
+            SELECT user_id, period_key, day_of_week, time_in, time_out, is_rest_day
+            FROM schedule_overrides
+            WHERE user_id IN ($placeholders) AND period_key IN ($periodPlaceholders)
+        ");
+        $overrideStmt->execute(array_merge($userIds, $periodKeys));
+        while ($row = $overrideStmt->fetch()) {
+            $overridesByUserPeriodDay[$row['user_id']][$row['period_key']][$row['day_of_week']] = $row;
+        }
+    }
+
+    $dtrStmt = $db->prepare("
+        SELECT user_id, dtr_image_path FROM attendance_weekly_summaries
+        WHERE user_id IN ($placeholders) AND week_start_date = ?
+    ");
+    $dtrStmt->execute(array_merge($userIds, [$weekStart]));
+    $dtrByUser = [];
+    while ($row = $dtrStmt->fetch()) {
+        $dtrByUser[$row['user_id']] = $row['dtr_image_path'];
+    }
+
     foreach ($employees as $employee) {
         $userId = $employee['user_id'];
         $userData = [
@@ -59,60 +126,12 @@ try {
             'employee_number' => $employee['employee_number'],
             'role' => $employee['role'],
             'days' => [],
-            'dtr_image_path' => null
+            'dtr_image_path' => $dtrByUser[$userId] ?? null
         ];
 
-        $attStmt = $db->prepare("
-            SELECT date, time_in, time_out, overtime_hours, status, notes
-            FROM attendance
-            WHERE user_id = ? AND date BETWEEN ? AND ?
-        ");
-        $attStmt->execute([$userId, $weekStart, $weekEnd]);
-        $attendanceRecords = [];
-        while ($row = $attStmt->fetch()) {
-            $attendanceRecords[$row['date']] = $row;
-        }
-
-        $scheduleStmt = $db->prepare("
-            SELECT day_of_week, time_in, time_out, is_rest_day
-            FROM schedules
-            WHERE user_id = ?
-        ");
-        $scheduleStmt->execute([$userId]);
-        $scheduleRecords = [];
-        while ($row = $scheduleStmt->fetch()) {
-            $scheduleRecords[$row['day_of_week']] = $row;
-        }
-
-        // Per-cutoff overrides on top of the standing schedule above -- a
-        // date range can span more than one H1/H2 period, so index by
-        // period_key + day_of_week rather than assuming one period.
-        $periodKeys = array_unique(array_map(function ($d) {
-            return CutoffPeriod::getKeyForDate($d);
-        }, $days));
-        $overridesByPeriodDay = [];
-        if (!empty($periodKeys)) {
-            $placeholders = implode(',', array_fill(0, count($periodKeys), '?'));
-            $overrideStmt = $db->prepare("
-                SELECT period_key, day_of_week, time_in, time_out, is_rest_day
-                FROM schedule_overrides
-                WHERE user_id = ? AND period_key IN ($placeholders)
-            ");
-            $overrideStmt->execute(array_merge([$userId], $periodKeys));
-            while ($row = $overrideStmt->fetch()) {
-                $overridesByPeriodDay[$row['period_key']][$row['day_of_week']] = $row;
-            }
-        }
-
-        $dtrStmt = $db->prepare("
-            SELECT dtr_image_path FROM attendance_weekly_summaries
-            WHERE user_id = ? AND week_start_date = ?
-        ");
-        $dtrStmt->execute([$userId, $weekStart]);
-        $dtrRow = $dtrStmt->fetch();
-        if ($dtrRow) {
-            $userData['dtr_image_path'] = $dtrRow['dtr_image_path'];
-        }
+        $attendanceRecords = $attendanceByUser[$userId] ?? [];
+        $scheduleRecords = $scheduleByUser[$userId] ?? [];
+        $overridesByPeriodDay = $overridesByUserPeriodDay[$userId] ?? [];
 
         foreach ($days as $date) {
             $dayOfWeek = strtolower(date('l', strtotime($date)));

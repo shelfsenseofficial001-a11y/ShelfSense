@@ -24,9 +24,9 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
 
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260913920000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260914050000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260915130000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260918250000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260918280000">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -123,9 +123,6 @@ use App\Core\Auth;
                 <div class="sidebar-user-menu" id="sidebarUserMenu">
                     <a href="?page=my_leaves" class="sidebar-user-menu-item <?php echo $activePage === 'my_leaves' ? 'active' : ''; ?>">
                         <i class="bi bi-calendar2-week"></i> My Leaves
-                    </a>
-                    <a href="?page=my_payslip" class="sidebar-user-menu-item <?php echo $activePage === 'payslip' ? 'active' : ''; ?>">
-                        <i class="bi bi-wallet2"></i> My Payslip
                     </a>
                     <a href="?page=profile" class="sidebar-user-menu-item">
                         <i class="bi bi-pencil-square"></i> Edit Profile

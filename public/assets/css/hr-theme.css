@@ -560,10 +560,28 @@ body.hr-theme .jp-preview-description h3:first-child {
 body.hr-theme .jp-preview-description p {
     margin: 0 0 10px;
 }
-body.hr-theme .jp-preview-description ul,
 body.hr-theme .jp-preview-description ol {
     margin: 0 0 10px;
     padding-left: 20px;
+}
+/* Bulleted lines inside the free-form Description markdown (e.g. a "###
+   Key Responsibilities" section the user typed) get the same orange
+   checkmark treatment as the dedicated Qualifications/Responsibilities
+   fields' .jp-check-list, instead of a plain browser bullet dot. */
+body.hr-theme .jp-preview-description ul {
+    margin: 0 0 10px;
+    padding-left: 22px;
+    list-style: none;
+}
+body.hr-theme .jp-preview-description ul li {
+    position: relative;
+}
+body.hr-theme .jp-preview-description ul li::before {
+    content: "\2713";
+    position: absolute;
+    left: -22px;
+    color: var(--brand-yellow, #f2632b);
+    font-weight: 700;
 }
 
 /* Qualifications / Key Responsibilities, rendered as one bullet per line
@@ -576,12 +594,105 @@ body.hr-theme .jp-preview-description ol {
 .jp-bullet-list li {
     margin-bottom: 2px;
 }
+/* Qualifications and Key Responsibilities both get a checkmark instead
+   of a plain dot -- "you meet/will do this" reads more naturally as a
+   checklist than a generic bullet. */
+.jp-check-list {
+    list-style: none;
+    padding-left: 22px;
+}
+.jp-check-list li {
+    position: relative;
+}
+.jp-check-list li::before {
+    content: "\2713";
+    position: absolute;
+    left: -22px;
+    color: var(--brand-yellow, #f2632b);
+    font-weight: 700;
+}
 body.hr-theme .jp-preview-description code {
     background: var(--bg-card-subtle);
     padding: 1px 5px;
     border-radius: 4px;
     font-size: 0.85em;
 }
+
+/* Job posting detail drawer: title + field grid + action buttons -- gives
+   the Title/Status/Department/etc block real typographic hierarchy (the
+   posting's own title reads as the biggest thing on the card, secondary
+   fields stay small and muted) instead of everything at one uniform size,
+   and gives the footer actions deliberate sizing/shape instead of default
+   Bootstrap btn-sm. */
+.jp-detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 18px;
+}
+.jp-detail-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--text-main);
+}
+.jp-detail-field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 28px;
+    margin-bottom: 20px;
+}
+.jp-detail-field-label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+}
+.jp-detail-field-value {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-main);
+}
+
+.jp-detail-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+.jp-detail-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: filter 0.15s ease, border-color 0.15s ease, background-color 0.15s ease;
+}
+.jp-detail-btn:hover { filter: brightness(0.95); }
+.jp-detail-btn-neutral {
+    background: var(--bg-card-subtle);
+    border-color: var(--border-color);
+    color: var(--text-main);
+    margin-right: auto;
+}
+.jp-detail-btn-outline {
+    background: transparent;
+    border-color: var(--border-color);
+    color: var(--text-muted);
+}
+.jp-detail-btn-outline:hover { border-color: var(--brand-yellow); color: var(--text-main); }
+.jp-detail-btn-danger { background: #ef4444; color: #fff; }
+.jp-detail-btn-success { background: #16a34a; color: #fff; }
+.jp-detail-btn-dark { background: var(--brand-dark, #1f2937); color: #fff; }
+.jp-detail-btn-primary { background: var(--brand-yellow); color: #fff; box-shadow: 0 4px 14px rgba(244, 91, 53, 0.3); }
 
 body.hr-theme .jp-form-section {
     padding-bottom: 20px;
@@ -1142,7 +1253,10 @@ body.hr-theme .mini-table-scroll td {
 }
 
 /* ==========================================================================
-   10. ATTENDANCE GRID — visual pass (see attendance.php for markup)
+   10. ATTENDANCE — shared toolbar + timecard component
+   Used by both attendance.php (per-week entry) and attendance_review.php
+   (per-month approval drill-down) so the profile card / stat tiles / day
+   table only exist in one place instead of two copy-pasted implementations.
    ========================================================================== */
 
 body.hr-theme .attendance-toolbar {
@@ -1170,23 +1284,155 @@ body.hr-theme .attendance-toolbar .attendance-search input {
     padding-left: 34px;
 }
 
-body.hr-theme .attendance-grid-table thead th {
+.hr-timecard-profile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+    padding: 14px;
+    border-radius: 12px;
+    background: var(--light-yellow-subtle);
+    margin-bottom: 16px;
+}
+.hr-timecard-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--brand-yellow);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+}
+.hr-timecard-name { font-weight: 700; font-size: 1.05rem; }
+.hr-timecard-meta { font-size: 0.8rem; color: var(--text-muted); }
+.hr-timecard-profile-actions { margin-left: auto; }
+
+.hr-timecard-stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 8px;
+    margin-bottom: 16px;
+}
+.hr-timecard-stat {
+    text-align: center;
+    padding: 8px 4px;
+    border-radius: 10px;
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+}
+.hr-timecard-stat .hr-timecard-stat-value { font-size: 1.1rem; font-weight: 700; }
+.hr-timecard-stat .hr-timecard-stat-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; }
+
+.hr-timecard-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.hr-timecard-table th, .hr-timecard-table td { padding: 6px 8px; text-align: center; border-bottom: 1px solid var(--border-color); }
+.hr-timecard-table th { background: var(--bg-card-subtle); font-weight: 600; font-size: 0.75rem; }
+.hr-timecard-table td.hr-timecard-date-cell { text-align: center; font-weight: 500; }
+
+.hr-timecard-date-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+.hr-timecard-date-pill .hr-timecard-day-abbr {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 999px;
+    border: 1px solid rgba(244, 91, 53, 0.35);
+    background: var(--light-yellow-subtle);
+    color: var(--brand-yellow);
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.hr-timecard-time-range {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.hr-timecard-time-range .hr-timecard-time-line {
+    flex: 1 1 20px;
+    max-width: 36px;
+    height: 0;
+    border-top: 1px dashed rgba(244, 91, 53, 0.5);
+}
+.hr-timecard-time-range.is-empty { color: var(--text-muted); font-weight: 400; }
+
+.hr-timecard-note-btn {
+    border: none;
     background: var(--bg-card-subtle);
     color: var(--text-muted);
-    font-size: 0.72rem;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-    border-bottom: 1px solid var(--border-color);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
 }
+.hr-timecard-note-btn:hover { color: var(--brand-yellow); background: var(--light-yellow-subtle); }
+.hr-timecard-note-btn.has-note { color: var(--brand-yellow); }
+.hr-timecard-note-btn:disabled { opacity: 0.4; cursor: not-allowed; }
 
-body.hr-theme .attendance-grid-table .employee-name-cell .employee-complete-badge {
-    margin-right: 8px;
+/* Hour breakdown summary bar -- real computed hours (time_in/time_out span
+   minus overtime = regular, overtime_hours = overtime), not the mockup's
+   Approved/Rejected/Pending split, since this app has no per-day approval
+   state to report honestly. */
+.hr-timecard-hours-summary { margin-bottom: 16px; }
+.hr-timecard-hours-header {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 8px;
 }
+.hr-timecard-hours-label { font-size: 0.85rem; color: var(--text-muted); }
+.hr-timecard-hours-total { font-size: 1.3rem; font-weight: 700; }
+.hr-timecard-hours-legend { margin-left: auto; display: flex; gap: 14px; font-size: 0.78rem; color: var(--text-muted); }
+.hr-timecard-hours-legend .legend-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.hr-timecard-hours-legend .legend-dot.regular { background: #22c55e; }
+.hr-timecard-hours-legend .legend-dot.overtime { background: #f59e0b; }
+.hr-timecard-hours-bar {
+    display: flex;
+    width: 100%;
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--bg-card-subtle);
+}
+.hr-timecard-hours-segment.regular { background: #22c55e; }
+.hr-timecard-hours-segment.overtime { background: #f59e0b; }
 
-body.hr-theme .attendance-cell {
-    border: 1px solid transparent;
-    font-weight: 600;
-}
+.hr-timecard-status-pill { padding: 2px 8px; border-radius: 10px; font-size: 0.72rem; font-weight: 600; display: inline-block; }
+.hr-timecard-status-pill.status-present { background: #d1fae5; color: #065f46; }
+.hr-timecard-status-pill.status-late { background: #fef3c7; color: #92400e; }
+.hr-timecard-status-pill.status-absent { background: #fecaca; color: #991b1b; }
+.hr-timecard-status-pill.status-leave { background: #dbeafe; color: #1e40af; }
+.hr-timecard-status-pill.status-rest-day { background: #e5e7eb; color: #4b5563; }
+.hr-timecard-status-pill.status-holiday { background: #f3e8ff; color: #6d28d9; }
+[data-bs-theme="dark"] .hr-timecard-status-pill.status-present { background: #064e3b; color: #6ee7b7; }
+[data-bs-theme="dark"] .hr-timecard-status-pill.status-late { background: #78350f; color: #fcd34d; }
+[data-bs-theme="dark"] .hr-timecard-status-pill.status-absent { background: #7f1d1d; color: #fca5a5; }
+[data-bs-theme="dark"] .hr-timecard-status-pill.status-leave { background: #1e3a5f; color: #93c5fd; }
+[data-bs-theme="dark"] .hr-timecard-status-pill.status-rest-day { background: #374151; color: #9ca3af; }
+[data-bs-theme="dark"] .hr-timecard-status-pill.status-holiday { background: #3b1e5f; color: #c4b5fd; }
+
+.hr-timecard-edit-btn { border: none; background: none; color: var(--text-muted); cursor: pointer; padding: 2px 6px; }
+.hr-timecard-edit-btn:hover { color: var(--brand-yellow); }
+
+.hr-timecard-placeholder { padding: 60px 0; text-align: center; color: var(--text-muted); }
+.hr-timecard-placeholder i { font-size: 3rem; display: block; margin-bottom: 16px; opacity: 0.5; }
 
 /* ==========================================================================
    11. JOB POSTING FORM PAGE (views/pages/hr/job_posting_form.php) --
@@ -1203,12 +1449,17 @@ body.hr-theme .jp-page-title-row {
     gap: 12px;
     margin-bottom: 4px;
 }
+body.hr-theme .jp-page-header h2,
 body.hr-theme .jp-page-header h4 {
     display: flex;
     align-items: center;
     gap: 10px;
     font-family: 'Space Grotesk', sans-serif;
     font-weight: 700;
+}
+body.hr-theme .jp-page-header h2 i,
+body.hr-theme .jp-page-header h4 i {
+    color: var(--brand-yellow);
 }
 /* Round icon-only back button, sitting beside the page title instead of
    as its own line above it. */
@@ -1473,13 +1724,44 @@ body.hr-theme .jp-field-tag {
     letter-spacing: 0.03em;
     padding: 2px 8px;
     border-radius: 999px;
-    background: var(--bg-card-subtle);
-    color: var(--text-muted);
+    /* Every "Suggested" tag currently uses this base style (only
+       Qualifications ever swaps to the -required variant below) --
+       sky blue matches the Publishing Checklist's own "Suggestion" type
+       color (.jp-checklist-card-suggestion / text-info) so the two read
+       as the same category at a glance. */
+    background: rgba(13, 202, 240, 0.12);
+    color: #0dcaf0;
     vertical-align: middle;
 }
 body.hr-theme .jp-field-tag-required {
     background: rgba(220, 53, 69, 0.12);
     color: #dc3545;
+}
+
+/* Shake feedback for a rejected keystroke (see setupSlotsGuard in
+   job_posting_form.js) -- a quick side-to-side wiggle plus a momentary
+   red border, distinct from the field's normal focus state. */
+@keyframes jp-input-shake {
+    10%, 90% { transform: translateX(-1px); }
+    20%, 80% { transform: translateX(2px); }
+    30%, 50%, 70% { transform: translateX(-4px); }
+    40%, 60% { transform: translateX(4px); }
+}
+body.hr-theme .jp-input-shake {
+    animation: jp-input-shake 0.4s ease;
+    border-color: #dc3545 !important;
+}
+
+/* Outline flash for whichever field a Publishing Checklist card's
+   "Edit X" link jumps to -- a brief glow around the field draws the eye
+   to it immediately, rather than relying on the scroll motion and blinking
+   caret alone to show where focus landed. */
+@keyframes jp-field-flash {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(242, 99, 43, 0); }
+    15%, 55% { box-shadow: 0 0 0 3px rgba(242, 99, 43, 0.55); }
+}
+body.hr-theme .jp-field-flash {
+    animation: jp-field-flash 1s ease;
 }
 
 body.hr-theme .jp-page-header-top {

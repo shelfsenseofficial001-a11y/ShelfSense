@@ -36,10 +36,11 @@ function jpEscapeHtml(text) {
 // their textarea placeholders) -- render each non-empty line as its own
 // bullet instead of just <br>-joining them, so the preview actually looks
 // like the list it's meant to be.
-function jpLinesToList(text) {
+function jpLinesToList(text, extraClass) {
     const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return '';
-    return '<ul class="jp-bullet-list">' + lines.map(l => `<li>${jpEscapeHtml(l)}</li>`).join('') + '</ul>';
+    const cls = 'jp-bullet-list' + (extraClass ? ' ' + extraClass : '');
+    return `<ul class="${cls}">` + lines.map(l => `<li>${jpEscapeHtml(l)}</li>`).join('') + '</ul>';
 }
 
 function isQualificationsRequired() {
@@ -169,8 +170,23 @@ function jpChecklistBuildCard(item, type) {
         if (!field) return;
         field.scrollIntoView({ behavior: 'smooth', block: 'center' });
         field.focus({ preventScroll: true });
+        jpFlashField(field);
     });
     return el;
+}
+
+// Flashes an outline glow around the field a checklist card's "Edit X"
+// link jumps to, so it's obvious which one just got focused/scrolled to
+// even before the user looks for the blinking caret. Searchable-select
+// fields hide the real <select> and show a wrapper div in its place (see
+// components/searchable-select.js), so the flash has to land on THAT,
+// not on an invisible element.
+function jpFlashField(field) {
+    const target = field.closest('.searchable-select-wrapper') || field;
+    target.classList.remove('jp-field-flash');
+    void target.offsetWidth; // restart the animation even on repeated clicks
+    target.classList.add('jp-field-flash');
+    target.addEventListener('animationend', () => target.classList.remove('jp-field-flash'), { once: true });
 }
 
 function jpChecklistUpdateCard(el, item, type) {
@@ -431,10 +447,16 @@ function prefillForm(posting) {
     populatePositionOptions(posting ? (posting.department_group || '') : '', posting ? posting.department : null);
     document.getElementById('postingLocation').value = posting ? (posting.location || '') : '';
     document.getElementById('postingSlots').value = posting && posting.slots !== null ? posting.slots : '';
-    document.getElementById('postingRequirements').value = posting ? (posting.requirements || '') : '';
+    const requirementsTextarea = document.getElementById('postingRequirements');
+    requirementsTextarea.value = posting ? (posting.requirements || '') : '';
+    requirementsTextarea.style.height = '';
+    autosizeTextarea(requirementsTextarea);
     document.getElementById('postingSalaryMin').value = posting && posting.salary_range_min !== null ? posting.salary_range_min : '';
     document.getElementById('postingSalaryMax').value = posting && posting.salary_range_max !== null ? posting.salary_range_max : '';
-    document.getElementById('postingResponsibilities').value = posting ? (posting.responsibilities || '') : '';
+    const responsibilitiesTextarea = document.getElementById('postingResponsibilities');
+    responsibilitiesTextarea.value = posting ? (posting.responsibilities || '') : '';
+    responsibilitiesTextarea.style.height = '';
+    autosizeTextarea(responsibilitiesTextarea);
 
     const descriptionTextarea = document.getElementById('postingDescription');
     descriptionTextarea.value = posting ? (posting.description || '') : '';
@@ -460,25 +482,123 @@ function populatePositionOptions(group, selectedPosition) {
     jpRecompute();
 }
 
+// Recomputed fresh from "now" every call instead of trusting the input's
+// own min/max attributes -- Chromium's native date-picker POPUP lets you
+// navigate to and click a day far outside min/max (it only flags the
+// input :invalid for form submission, it doesn't stop you from picking
+// one), and that same interaction was observed re-asserting the clicked
+// (out-of-range) value a moment after this handler already snapped it
+// back, as if the popup's own internal state overwrote it once more on
+// close. Not relying on input.min/max sidesteps any chance those
+// attributes are themselves the problem, and the deferred re-check below
+// specifically guards against that late overwrite.
+function jpDateBounds() {
+    const min = new Date();
+    min.setHours(0, 0, 0, 0);
+    const max = new Date(min);
+    max.setMonth(max.getMonth() + 6);
+    return { min, max };
+}
+function jpDateToInputValue(date) {
+    return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+}
+
 // Snaps an out-of-range closing date to the nearest allowed bound instead of
 // silently clearing it, so a typed/invalid date never gets past validation.
 function validatePostingDate(input) {
     const value = input.value;
     if (!value) return;
     const selected = new Date(value + 'T00:00:00');
-    const min = new Date(input.min + 'T00:00:00');
-    const max = new Date(input.max + 'T00:00:00');
     if (isNaN(selected.getTime())) {
         input.value = '';
         return;
     }
+    const { min, max } = jpDateBounds();
     if (selected < min) {
-        input.value = input.min;
+        input.value = jpDateToInputValue(min);
         Swal.fire({ icon: 'warning', title: 'Date Too Early', text: 'Closing date cannot be in the past. Snapped to today.', timer: 2500, timerProgressBar: true });
     } else if (selected > max) {
-        input.value = input.max;
+        input.value = jpDateToInputValue(max);
         Swal.fire({ icon: 'warning', title: 'Date Too Far', text: 'Closing date cannot exceed 6 months out. Snapped to the latest allowed date.', timer: 2500, timerProgressBar: true });
+    } else {
+        return;
     }
+    // Setting .value directly doesn't fire 'input'/'change' on its own, so
+    // the checklist/live preview need an explicit nudge to reflect the
+    // corrected date rather than looking stale until some other field's
+    // event happens to trigger a re-render.
+    jpRecompute();
+    // The native picker popup (if still open) can re-assert the exact date
+    // the user clicked a beat after we've already corrected it -- re-run
+    // once more shortly after to catch and re-correct that.
+    setTimeout(() => validatePostingDate(input), 50);
+}
+
+// Open Slots only ever makes sense as a positive whole number -- blocks
+// typing/pasting letters, minus, decimal points, or scientific notation
+// ("e") instead of relying on type="number"/min="1" alone, which only
+// affects constraint validation (the field still happily accepts "-3" or
+// "12e5" as typed text) rather than what can actually be entered. Swaps
+// the hint text to explain why for a moment, worded for whichever kind
+// of character got blocked.
+let jpSlotsHintTimer = null;
+function setupSlotsGuard() {
+    const input = document.getElementById('postingSlots');
+    const hint = document.getElementById('postingSlotsHint');
+    if (!input || !hint) return;
+    const defaultHint = hint.textContent;
+    // Keys allowed through besides digits -- editing/navigation, not characters.
+    const ALLOWED_KEYS = ['Backspace', 'Delete', 'Tab', 'ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End', 'Enter'];
+
+    function showWarning(message) {
+        hint.textContent = message;
+        hint.classList.add('text-danger');
+        clearTimeout(jpSlotsHintTimer);
+        jpSlotsHintTimer = setTimeout(() => {
+            hint.textContent = defaultHint;
+            hint.classList.remove('text-danger');
+        }, 2500);
+        // Restart the shake even on back-to-back rejected keystrokes --
+        // removing the class then forcing a reflow before re-adding it is
+        // what lets the same CSS animation replay from frame 0 each time,
+        // instead of a second rapid keystroke landing mid-animation and
+        // doing nothing visible.
+        input.classList.remove('jp-input-shake');
+        void input.offsetWidth;
+        input.classList.add('jp-input-shake');
+    }
+
+    input.addEventListener('animationend', () => input.classList.remove('jp-input-shake'));
+    input.addEventListener('keydown', e => {
+        if (e.ctrlKey || e.metaKey || ALLOWED_KEYS.includes(e.key)) return;
+        if (/^[0-9]$/.test(e.key)) return;
+        e.preventDefault();
+        showWarning(e.key === '-' ? "Negative numbers aren't allowed." : 'Only numbers are allowed.');
+    });
+    input.addEventListener('input', () => {
+        const digitsOnly = input.value.replace(/[^0-9]/g, '');
+        if (digitsOnly !== input.value) {
+            const hadLetter = /[a-zA-Z]/.test(input.value);
+            input.value = digitsOnly;
+            showWarning(hadLetter ? 'Only numbers are allowed.' : "Negative numbers aren't allowed.");
+            return;
+        }
+        if (digitsOnly !== '' && parseInt(digitsOnly, 10) > 299) {
+            input.value = '299';
+            showWarning('Cannot exceed 299.');
+        }
+    });
+}
+
+// Closing-date bounds also get a JS-attached 'change' listener (on top of
+// the oninput/onblur attributes on the element itself) -- the native date
+// picker POPUP's final "commit" on clicking a day doesn't reliably behave
+// like a normal blur/input in every engine, so this is a second, more
+// robust hook on the one event that's guaranteed to fire once the picker
+// actually closes with a value.
+function setupDateGuard() {
+    const input = document.getElementById('postingOpenUntil');
+    input?.addEventListener('change', () => validatePostingDate(input));
 }
 
 // ============================================
@@ -493,6 +613,17 @@ function setupForm() {
         submitForm(true);
     });
     setupMarkdownEditor();
+    setupSlotsGuard();
+    setupDateGuard();
+
+    // Qualifications/Key Responsibilities grow with their content just
+    // like the Description editor -- one line per item, so a new bullet
+    // typed in should never end up scrolled out of view in a boxed-in
+    // 3-row textarea.
+    ['postingRequirements', 'postingResponsibilities'].forEach(id => {
+        const el = document.getElementById(id);
+        el?.addEventListener('input', () => autosizeTextarea(el));
+    });
 
     ['postingTitle', 'postingDepartmentGroup', 'postingDepartment', 'postingLocation', 'postingSlots',
         'postingRequirements', 'postingSalaryMin', 'postingSalaryMax', 'postingResponsibilities', 'postingOpenUntil'].forEach(id => {
@@ -768,8 +899,8 @@ function renderFullPreview() {
             <h6><i class="bi bi-file-text"></i> Job Description</h6>
             <div class="jp-preview-description">${descriptionHtml}</div>
         </div>
-        ${qualifications ? `<div class="jp-preview-section"><h6><i class="bi bi-check2-square"></i> Qualifications</h6><div class="jp-preview-description">${jpLinesToList(qualifications)}</div></div>` : ''}
-        ${responsibilities ? `<div class="jp-preview-section"><h6><i class="bi bi-list-check"></i> Key Responsibilities</h6><div class="jp-preview-description">${jpLinesToList(responsibilities)}</div></div>` : ''}
+        ${qualifications ? `<div class="jp-preview-section"><h6><i class="bi bi-check2-square"></i> Qualifications</h6><div class="jp-preview-description">${jpLinesToList(qualifications, 'jp-check-list')}</div></div>` : ''}
+        ${responsibilities ? `<div class="jp-preview-section"><h6><i class="bi bi-list-check"></i> Key Responsibilities</h6><div class="jp-preview-description">${jpLinesToList(responsibilities, 'jp-check-list')}</div></div>` : ''}
         <div class="jp-preview-section jp-preview-section-last">
             ${closingHtml}
         </div>

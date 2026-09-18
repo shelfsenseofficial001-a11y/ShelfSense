@@ -141,7 +141,7 @@ $content = '<script>window.__POSTING__ = ' . $postingJson . ';</script>' . <<<EO
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Open Slots</label>
                         <input type="number" id="postingSlots" class="form-control" min="1" max="299" step="1" placeholder="Unlimited">
-                        <div class="form-text">1&ndash;299, or blank for unlimited.</div>
+                        <div class="form-text" id="postingSlotsHint">1&ndash;299, or blank for unlimited.</div>
                     </div>
                     <div class="col-12">
                         <label class="form-label fw-semibold">Qualifications <span class="jp-field-tag" id="postingRequirementsTag">Suggested</span></label>
@@ -278,7 +278,7 @@ $content .= <<<EOT
 <script>const HR_IS_HEAD = {$isHRHeadJs};</script>
 <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
-<script src="/ShelfSense/public/assets/js/hr/job_posting_form.js?v=20260914330000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_posting_form.js?v=20260918160000"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

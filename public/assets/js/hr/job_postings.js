@@ -36,6 +36,14 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('jpDraftsCancelSelectBtn')?.addEventListener('click', jpDraftsExitSelectMode);
     document.getElementById('jpDraftsDeleteSelectedBtn')?.addEventListener('click', jpDraftsDeleteSelected);
     jpInitIconTooltips(document);
+
+    // Deep link from a job-posting notification (approved/rejected/etc,
+    // ?page=hr_job_postings&posting_id=123) straight into that posting's
+    // preview drawer, instead of just landing on the list.
+    const deepLinkPostingId = new URLSearchParams(window.location.search).get('posting_id');
+    if (deepLinkPostingId) {
+        viewPosting(parseInt(deepLinkPostingId, 10));
+    }
 });
 
 // Bootstrap tooltip (dark bubble + arrow) for any icon-only control with a
@@ -60,10 +68,11 @@ function jpEscapeHtml(text) {
 
 // Qualifications and Key Responsibilities are entered "one per line" --
 // render each non-empty line as its own bullet instead of just <br>-joining.
-function jpLinesToList(text) {
+function jpLinesToList(text, extraClass) {
     const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean);
     if (lines.length === 0) return '';
-    return '<ul class="jp-bullet-list">' + lines.map(l => `<li>${jpEscapeHtml(l)}</li>`).join('') + '</ul>';
+    const cls = 'jp-bullet-list' + (extraClass ? ' ' + extraClass : '');
+    return `<ul class="${cls}">` + lines.map(l => `<li>${jpEscapeHtml(l)}</li>`).join('') + '</ul>';
 }
 
 function jpCurrency(v) {
@@ -193,7 +202,12 @@ function openMyDrafts() {
     const body = document.getElementById('myDraftsBody');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
     jpDraftsExitSelectMode();
-    new bootstrap.Modal(document.getElementById('myDraftsModal')).show();
+    // getOrCreateInstance (not `new Modal(...)`) -- this is called again
+    // every time a draft gets deleted while the modal is already open, and
+    // creating a second Modal instance for the same element makes Bootstrap
+    // add a second .modal-backdrop on top of the first instead of no-oping
+    // on an already-shown modal, which is what actually darkens the page.
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('myDraftsModal')).show();
 
     fetch('?page=api_hr_get_job_postings&status=draft&mine=1&limit=50')
         .then(r => r.json())
@@ -260,6 +274,25 @@ function renderMyDrafts(drafts) {
     jpInitIconTooltips(body);
 }
 
+// Removes just the deleted card(s) from the already-open My Drafts modal
+// instead of re-running openMyDrafts() (spinner -> refetch -> re-render
+// the whole list). That full reload was firing in the same instant as the
+// success toast -- replacing the modal body and re-touching the (already
+// open, no-op) modal instance right as the toast's own overlay animates in
+// is what read as the backdrop flickering. Removing only the affected
+// card(s) is both smoother and cheaper.
+function jpDraftsRemoveCards(ids) {
+    const body = document.getElementById('myDraftsBody');
+    if (!body) return;
+    ids.forEach(id => {
+        const card = body.querySelector(`.jp-draft-card[data-id="${id}"]`);
+        if (card) card.remove();
+    });
+    if (!body.querySelector('.jp-draft-card')) {
+        renderMyDrafts([]);
+    }
+}
+
 function jpDraftsToggleSelected(id, selected) {
     if (selected) jpDraftsSelectedIds.add(id); else jpDraftsSelectedIds.delete(id);
     const count = jpDraftsSelectedIds.size;
@@ -288,6 +321,17 @@ function jpDraftsExitSelectMode() {
     if (footer) footer.style.display = 'none';
 }
 
+// Bottom-right popup toast for post-delete feedback -- deliberately NOT a
+// plain Swal.fire() modal, since that adds its own backdrop on top of the
+// My Drafts Bootstrap modal (still open/being re-shown right after), and
+// the two stacked backdrops are what was darkening the page.
+function jpDraftsToast(icon, title, text) {
+    Swal.fire({
+        toast: true, position: 'bottom-end', icon, title, text,
+        showConfirmButton: false, showCloseButton: true, timer: 2500, timerProgressBar: true,
+    });
+}
+
 function jpDraftsDeleteSelected() {
     const ids = Array.from(jpDraftsSelectedIds);
     if (ids.length === 0) return;
@@ -307,17 +351,18 @@ function jpDraftsDeleteSelected() {
             method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
         }).then(r => r.json())))
             .then(results => {
-                const failed = results.filter(r => !r.success).length;
+                const succeededIds = ids.filter((id, i) => results[i].success);
+                const failed = ids.length - succeededIds.length;
                 if (failed > 0) {
-                    Swal.fire({ icon: 'warning', title: 'Some deletions failed', text: `${ids.length - failed} of ${ids.length} drafts were deleted.` });
+                    jpDraftsToast('warning', 'Some deletions failed', `${succeededIds.length} of ${ids.length} drafts were deleted.`);
                 } else {
-                    Swal.fire({ icon: 'success', title: 'Deleted', text: `${ids.length} draft${ids.length === 1 ? '' : 's'} permanently deleted.`, timer: 1800, showConfirmButton: false });
+                    jpDraftsToast('success', 'Deleted', `${ids.length} draft${ids.length === 1 ? '' : 's'} permanently deleted.`);
                 }
                 jpDraftsExitSelectMode();
-                openMyDrafts();
+                jpDraftsRemoveCards(succeededIds);
                 loadPostings(jpPage);
             })
-            .catch(() => { Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong.' }); });
+            .catch(() => { jpDraftsToast('error', 'Error', 'Something went wrong.'); });
     });
 }
 
@@ -339,12 +384,12 @@ function deleteDraft(id, title) {
         })
             .then(r => r.json())
             .then(data => {
-                if (!data.success) { Swal.fire({ icon: 'error', title: 'Error', text: data.message }); return; }
-                Swal.fire({ icon: 'success', title: 'Deleted', text: data.message, timer: 1500, showConfirmButton: false });
-                openMyDrafts();
+                if (!data.success) { jpDraftsToast('error', 'Error', data.message); return; }
+                jpDraftsToast('success', 'Deleted', data.message);
+                jpDraftsRemoveCards([id]);
                 loadPostings(jpPage);
             })
-            .catch(() => { Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong.' }); });
+            .catch(() => { jpDraftsToast('error', 'Error', 'Something went wrong.'); });
     });
 }
 
@@ -383,22 +428,20 @@ function renderDetail(p) {
     }
 
     body.innerHTML = `
-        <div class="row mb-2">
-            <div class="col-md-6">
-                <p class="mb-1"><strong>Title:</strong> ${jpEscapeHtml(p.title)}</p>
-                <p class="mb-1"><strong>Department:</strong> ${jpEscapeHtml(p.department_group || '—')}</p>
-                <p class="mb-0"><strong>Position:</strong> ${jpEscapeHtml(p.department)}</p>
-                ${p.shares_location_count > 0 ? `<p class="mb-0 mt-1"><span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-geo-alt"></i> Shares location "${jpEscapeHtml(p.location || '')}" with ${p.shares_location_count} other active posting(s)</span></p>` : ''}
-            </div>
-            <div class="col-md-6">
-                <p class="mb-1"><strong>Status:</strong> ${jpStatusBadge(p.status)}</p>
-                <p class="mb-1"><strong>Closing Date:</strong> ${jpFormatDate(p.open_until)}</p>
-                <p class="mb-0"><strong>Salary:</strong> ${jpCurrency(p.salary_range_min)} - ${jpCurrency(p.salary_range_max)}</p>
-            </div>
+        <div class="jp-detail-header">
+            <h3 class="jp-detail-title">${jpEscapeHtml(p.title)}</h3>
+            ${jpStatusBadge(p.status)}
         </div>
-        <p><strong>Description:</strong><br>${jpEscapeHtml(p.description).replace(/\n/g, '<br>')}</p>
-        ${p.requirements ? `<div class="mb-2"><strong>Qualifications:</strong>${jpLinesToList(p.requirements)}</div>` : ''}
-        ${p.responsibilities ? `<div class="mb-2"><strong>Key Responsibilities:</strong>${jpLinesToList(p.responsibilities)}</div>` : ''}
+        <div class="jp-detail-field-grid">
+            <div><span class="jp-detail-field-label">Department</span><div class="jp-detail-field-value">${jpEscapeHtml(p.department_group || '—')}</div></div>
+            <div><span class="jp-detail-field-label">Closing Date</span><div class="jp-detail-field-value">${jpFormatDate(p.open_until)}</div></div>
+            <div><span class="jp-detail-field-label">Position</span><div class="jp-detail-field-value">${jpEscapeHtml(p.department)}</div></div>
+            <div><span class="jp-detail-field-label">Salary</span><div class="jp-detail-field-value">${jpCurrency(p.salary_range_min)} - ${jpCurrency(p.salary_range_max)}</div></div>
+        </div>
+        ${p.shares_location_count > 0 ? `<p class="mb-3"><span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-geo-alt"></i> Shares location "${jpEscapeHtml(p.location || '')}" with ${p.shares_location_count} other active posting(s)</span></p>` : ''}
+        <div class="mb-2"><strong>Description:</strong><div class="jp-preview-description">${window.mdToHtml ? window.mdToHtml(p.description) : jpEscapeHtml(p.description).replace(/\n/g, '<br>')}</div></div>
+        ${p.requirements ? `<div class="mb-2"><strong>Qualifications:</strong>${jpLinesToList(p.requirements, 'jp-check-list')}</div>` : ''}
+        ${p.responsibilities ? `<div class="mb-2"><strong>Key Responsibilities:</strong>${jpLinesToList(p.responsibilities, 'jp-check-list')}</div>` : ''}
         <hr>
         <p class="small text-muted mb-1">Created by ${jpEscapeHtml(p.creator_first)} ${jpEscapeHtml(p.creator_last)} on ${jpFormatDate(p.created_at, true)}</p>
         ${p.submitted_at ? `<p class="small text-muted mb-1">Submitted for approval: ${jpFormatDate(p.submitted_at, true)}</p>` : ''}
@@ -408,27 +451,28 @@ function renderDetail(p) {
         ${lineageHtml}
     `;
 
-    let actions = `<button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>`;
+    let actions = `<div class="jp-detail-actions"><button type="button" class="jp-detail-btn jp-detail-btn-neutral" data-bs-dismiss="modal">Close</button>`;
 
     if (HR_IS_HEAD && p.status === 'pending_approval') {
-        actions += `<button type="button" class="btn btn-outline-secondary btn-sm" id="editFromDetailBtn"><i class="bi bi-pencil"></i> Edit</button>`;
-        actions += `<button type="button" class="btn btn-danger btn-sm" id="rejectBtn"><i class="bi bi-x-circle"></i> Reject</button>`;
-        actions += `<button type="button" class="btn btn-success btn-sm" id="approveBtn"><i class="bi bi-check-circle"></i> Approve</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="editFromDetailBtn"><i class="bi bi-pencil"></i> Edit</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-danger" id="rejectBtn"><i class="bi bi-x-circle"></i> Reject</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-success" id="approveBtn"><i class="bi bi-check-circle"></i> Approve</button>`;
     }
     if (['draft', 'rejected'].includes(p.status)) {
-        actions += `<button type="button" class="btn btn-outline-secondary btn-sm" id="editFromDetailBtn"><i class="bi bi-pencil"></i> Edit</button>`;
-        actions += `<button type="button" class="btn btn-yellow-primary btn-sm" id="submitFromDetailBtn"><i class="bi bi-send"></i> Submit for Approval</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="editFromDetailBtn"><i class="bi bi-pencil"></i> Edit</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-primary" id="submitFromDetailBtn"><i class="bi bi-send"></i> Submit for Approval</button>`;
     }
     if (p.status === 'approved') {
-        actions += `<button type="button" class="btn btn-outline-dark btn-sm" id="closeBtn"><i class="bi bi-lock"></i> Mark Not Hiring</button>`;
-        actions += `<button type="button" class="btn btn-outline-secondary btn-sm" id="archiveBtn"><i class="bi bi-archive"></i> Archive</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-dark" id="closeBtn"><i class="bi bi-lock"></i> Mark Not Hiring</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="archiveBtn"><i class="bi bi-archive"></i> Archive</button>`;
     }
     if (p.status === 'closed') {
-        actions += `<button type="button" class="btn btn-outline-secondary btn-sm" id="archiveBtn"><i class="bi bi-archive"></i> Archive</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="archiveBtn"><i class="bi bi-archive"></i> Archive</button>`;
     }
     if (['closed', 'archived'].includes(p.status)) {
-        actions += `<button type="button" class="btn btn-yellow-primary btn-sm" id="reuseBtn"><i class="bi bi-arrow-repeat"></i> Reuse for New Hiring</button>`;
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-primary" id="reuseBtn"><i class="bi bi-arrow-repeat"></i> Reuse for New Hiring</button>`;
     }
+    actions += `</div>`;
 
     footer.innerHTML = actions;
     document.getElementById('editFromDetailBtn')?.addEventListener('click', () => { window.location.href = `?page=hr_job_posting_form&id=${p.id}`; });
