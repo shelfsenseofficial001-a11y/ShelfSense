@@ -26,7 +26,7 @@ try {
         SELECT DISTINCT u.user_id, u.first_name, u.last_name, u.employee_number, u.role
         FROM attendance_weekly_summaries aws
         JOIN users u ON u.user_id = aws.user_id
-        WHERE aws.month_year = ? AND u.role NOT IN ('trainee', 'supplier')
+        WHERE aws.month_year = ? AND u.role NOT IN ('trainee', 'supplier', 'owner')
         ORDER BY u.first_name, u.last_name
     ");
     $stmt->execute([$monthYear]);
