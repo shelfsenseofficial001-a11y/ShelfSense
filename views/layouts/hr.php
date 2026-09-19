@@ -97,6 +97,9 @@ use App\Core\Auth;
                 <a href="?page=owner_pos_accounts" class="nav-item <?php echo $activePage === 'pos_accounts' ? 'active' : ''; ?>" title="POS Accounts">
                     <span class="nav-icon-wrap"><i class="bi bi-credit-card-2-front"></i></span> <span class="nav-label">POS Accounts</span>
                 </a>
+                <a href="?page=owner_product_proposals" class="nav-item <?php echo $activePage === 'product_proposals' ? 'active' : ''; ?>" title="Product Proposals">
+                    <span class="nav-icon-wrap"><i class="bi bi-lightbulb"></i></span> <span class="nav-label">Product Proposals</span>
+                </a>
                 <?php endif; ?>
             </nav>
 

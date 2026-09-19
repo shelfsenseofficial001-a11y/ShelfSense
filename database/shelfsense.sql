@@ -1368,7 +1368,7 @@ CREATE TABLE `notifications` (
   PRIMARY KEY (`id`),
   KEY `user_id` (`user_id`),
   CONSTRAINT `notifications_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=114 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=121 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -1943,6 +1943,62 @@ LOCK TABLES `pos_override_requests` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `product_proposals`
+--
+
+DROP TABLE IF EXISTS `product_proposals`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `product_proposals` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `proposed_by` int(11) NOT NULL,
+  `supplier_id` int(11) NOT NULL,
+  `proposed_name` varchar(100) NOT NULL,
+  `proposed_barcode` varchar(50) NOT NULL,
+  `category_id` int(11) DEFAULT NULL,
+  `proposed_price` decimal(10,2) NOT NULL,
+  `description` text DEFAULT NULL,
+  `status` enum('pending_supplier','pending_owner','approved','rejected') NOT NULL DEFAULT 'pending_supplier',
+  `supplier_product_name` varchar(100) DEFAULT NULL,
+  `supplier_price` decimal(10,2) DEFAULT NULL,
+  `supplier_quantity` int(11) DEFAULT NULL,
+  `supplier_responded_by` int(11) DEFAULT NULL,
+  `supplier_responded_at` timestamp NULL DEFAULT NULL,
+  `supplier_decline_reason` text DEFAULT NULL,
+  `owner_decided_by` int(11) DEFAULT NULL,
+  `owner_decided_at` timestamp NULL DEFAULT NULL,
+  `owner_reject_reason` text DEFAULT NULL,
+  `resulting_product_id` int(11) DEFAULT NULL,
+  `resulting_supplier_product_id` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `proposed_by` (`proposed_by`),
+  KEY `supplier_id` (`supplier_id`),
+  KEY `category_id` (`category_id`),
+  KEY `supplier_responded_by` (`supplier_responded_by`),
+  KEY `owner_decided_by` (`owner_decided_by`),
+  KEY `resulting_product_id` (`resulting_product_id`),
+  KEY `status` (`status`),
+  CONSTRAINT `pp_category_fk` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `pp_owner_decided_by_fk` FOREIGN KEY (`owner_decided_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `pp_proposed_by_fk` FOREIGN KEY (`proposed_by`) REFERENCES `users` (`user_id`),
+  CONSTRAINT `pp_resulting_product_fk` FOREIGN KEY (`resulting_product_id`) REFERENCES `products` (`id`) ON DELETE SET NULL,
+  CONSTRAINT `pp_supplier_fk` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`),
+  CONSTRAINT `pp_supplier_responded_by_fk` FOREIGN KEY (`supplier_responded_by`) REFERENCES `users` (`user_id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `product_proposals`
+--
+
+LOCK TABLES `product_proposals` WRITE;
+/*!40000 ALTER TABLE `product_proposals` DISABLE KEYS */;
+/*!40000 ALTER TABLE `product_proposals` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `products`
 --
 
@@ -1969,7 +2025,7 @@ CREATE TABLE `products` (
   UNIQUE KEY `barcode` (`barcode`),
   KEY `category_id` (`category_id`),
   CONSTRAINT `products_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2487,7 +2543,7 @@ CREATE TABLE `supplier_products` (
   KEY `idx_sp_store_product` (`store_product_id`),
   CONSTRAINT `fk_sp_store_product` FOREIGN KEY (`store_product_id`) REFERENCES `products` (`id`),
   CONSTRAINT `supplier_products_ibfk_1` FOREIGN KEY (`supplier_id`) REFERENCES `suppliers` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=13 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2520,7 +2576,7 @@ CREATE TABLE `suppliers` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2783,7 +2839,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `employee_number` (`employee_number`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=22 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2839,4 +2895,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-19 16:44:37
+-- Dump completed on 2026-09-19 19:57:59
