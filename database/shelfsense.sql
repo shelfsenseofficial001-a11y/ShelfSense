@@ -127,7 +127,7 @@ CREATE TABLE `attendance` (
   CONSTRAINT `attendance_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`) ON DELETE CASCADE,
   CONSTRAINT `attendance_ibfk_2` FOREIGN KEY (`recorded_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL,
   CONSTRAINT `attendance_ibfk_3` FOREIGN KEY (`verified_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -284,7 +284,7 @@ CREATE TABLE `budgets` (
   UNIQUE KEY `unique_department_period` (`department_id`,`period_key`),
   KEY `idx_period_key` (`period_key`),
   CONSTRAINT `fk_budgets_department` FOREIGN KEY (`department_id`) REFERENCES `departments` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -326,6 +326,40 @@ CREATE TABLE `cash_reconciliation` (
 LOCK TABLES `cash_reconciliation` WRITE;
 /*!40000 ALTER TABLE `cash_reconciliation` DISABLE KEYS */;
 /*!40000 ALTER TABLE `cash_reconciliation` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `catalog_overrides`
+--
+
+DROP TABLE IF EXISTS `catalog_overrides`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `catalog_overrides` (
+  `product_id` int(11) NOT NULL,
+  `name` varchar(100) DEFAULT NULL,
+  `description` text DEFAULT NULL,
+  `category_id` int(11) DEFAULT NULL,
+  `price` decimal(10,2) DEFAULT NULL,
+  `cost` decimal(10,2) DEFAULT NULL,
+  `discount_value` decimal(10,2) DEFAULT NULL,
+  `discount_type` enum('percent','fixed') DEFAULT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`product_id`),
+  KEY `category_id` (`category_id`),
+  CONSTRAINT `catalog_overrides_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `catalog_overrides_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `catalog_overrides`
+--
+
+LOCK TABLES `catalog_overrides` WRITE;
+/*!40000 ALTER TABLE `catalog_overrides` DISABLE KEYS */;
+/*!40000 ALTER TABLE `catalog_overrides` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -401,6 +435,67 @@ CREATE TABLE `contracts` (
 LOCK TABLES `contracts` WRITE;
 /*!40000 ALTER TABLE `contracts` DISABLE KEYS */;
 /*!40000 ALTER TABLE `contracts` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `deal_items`
+--
+
+DROP TABLE IF EXISTS `deal_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `deal_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `deal_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `quantity` int(11) NOT NULL DEFAULT 1,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_deal_product` (`deal_id`,`product_id`),
+  KEY `product_id` (`product_id`),
+  CONSTRAINT `deal_items_ibfk_1` FOREIGN KEY (`deal_id`) REFERENCES `deals` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `deal_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `deal_items`
+--
+
+LOCK TABLES `deal_items` WRITE;
+/*!40000 ALTER TABLE `deal_items` DISABLE KEYS */;
+/*!40000 ALTER TABLE `deal_items` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `deals`
+--
+
+DROP TABLE IF EXISTS `deals`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `deals` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(150) NOT NULL,
+  `description` text DEFAULT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `image_path` varchar(255) DEFAULT NULL,
+  `is_active` tinyint(1) NOT NULL DEFAULT 1,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `created_by` (`created_by`),
+  CONSTRAINT `deals_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
+) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `deals`
+--
+
+LOCK TABLES `deals` WRITE;
+/*!40000 ALTER TABLE `deals` DISABLE KEYS */;
+/*!40000 ALTER TABLE `deals` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -743,7 +838,7 @@ CREATE TABLE `job_postings` (
   CONSTRAINT `fk_job_postings_reused_from` FOREIGN KEY (`reused_from_id`) REFERENCES `job_postings` (`id`),
   CONSTRAINT `job_postings_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`),
   CONSTRAINT `job_postings_ibfk_2` FOREIGN KEY (`approved_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -752,7 +847,7 @@ CREATE TABLE `job_postings` (
 
 LOCK TABLES `job_postings` WRITE;
 /*!40000 ALTER TABLE `job_postings` DISABLE KEYS */;
-INSERT INTO `job_postings` VALUES (1,NULL,'TestJob','Cashier','Front Department','asdasd','Cashier','Full-Time','test','test','test',123213.00,123321.00,3,'2026-09-03','approved',2,'2026-08-30 17:43:36',2,'2026-08-30 17:43:40',NULL,NULL,NULL,NULL,'2026-08-30 09:43:36','2026-08-30 09:43:40'),(2,NULL,'TestJob2','HR Staff','Human Resources Department','asdasd1','Cashier','Full-Time','test','test','test',123213.00,123321.00,32,'2026-09-04','approved',2,'2026-08-30 17:44:57',2,'2026-08-30 17:45:00',NULL,NULL,NULL,NULL,'2026-08-30 09:44:57','2026-08-30 11:30:57');
+INSERT INTO `job_postings` VALUES (1,NULL,'TestJob','Cashier','Front Department','asdasd','Cashier','Full-Time','test','test','test',123213.00,123321.00,3,'2026-09-03','approved',2,'2026-08-30 17:43:36',2,'2026-08-30 17:43:40',NULL,NULL,NULL,NULL,'2026-08-30 09:43:36','2026-08-30 09:43:40'),(2,NULL,'TestJob2','HR Staff','Human Resources Department','asdasd1','Cashier','Full-Time','test','test','test',123213.00,123321.00,32,'2026-09-04','approved',2,'2026-08-30 17:44:57',2,'2026-08-30 17:45:00',NULL,NULL,NULL,NULL,'2026-08-30 09:44:57','2026-08-30 11:30:57'),(3,NULL,'Test Cashier Position','','Front Department',NULL,'test-cashier-position-1789797520547','Full-Time','',NULL,NULL,NULL,NULL,NULL,NULL,'draft',18,NULL,NULL,NULL,NULL,NULL,NULL,NULL,'2026-09-19 05:58:40','2026-09-19 05:58:40');
 /*!40000 ALTER TABLE `job_postings` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -1284,6 +1379,39 @@ LOCK TABLES `notifications` WRITE;
 /*!40000 ALTER TABLE `notifications` DISABLE KEYS */;
 INSERT INTO `notifications` VALUES (2,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(3,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0002 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 17:05:18'),(5,6,'payment_request_pending','Payment request for requisition #REQ-2026-0002 is pending approval. Amount: ₱28.68','?page=finance_head_payment_requests',0,'2026-08-23 17:33:29'),(6,12,'payment_completed','Payment for requisition #REQ-2026-0002 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-23 17:34:35'),(7,7,'payment_request_approved','Payment request for requisition #REQ-2026-0002 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-23 17:34:35'),(10,7,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:10'),(11,8,'invoice_forwarded','Invoice for requisition #REQ-2026-0003 has been forwarded. Supplier: Sample Supplier Inc.','?page=finance_staff_requisitions',0,'2026-08-23 19:11:11'),(13,6,'payment_request_pending','Payment request for requisition #REQ-2026-0003 is pending approval. Amount: ₱35.85','?page=finance_head_payment_requests',0,'2026-08-23 19:11:55'),(14,12,'payment_completed','Payment for requisition #REQ-2026-0003 has been completed. Please ship the goods.','?page=supplier_requisitions',0,'2026-08-24 17:22:48'),(15,7,'payment_request_approved','Payment request for requisition #REQ-2026-0003 has been approved and recorded.','?page=finance_staff_payment_requests',0,'2026-08-24 17:22:48'),(34,3,'new_application','New application from test test for TestJob position','?page=hr_applicants',0,'2026-08-30 09:55:47'),(35,4,'new_application','New application from test test for TestJob position','?page=hr_applicants',0,'2026-08-30 09:55:47'),(36,3,'interview_scheduled','initial interview scheduled for test test',NULL,0,'2026-08-30 10:01:00'),(51,7,'po_pending_budget_check','New Purchase Order PO-2026-0001 (₱12.78) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 11:37:16'),(52,8,'po_pending_budget_check','New Purchase Order PO-2026-0001 (₱12.78) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 11:37:16'),(53,6,'po_pending_approval','Purchase Order PO-2026-0001 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-06 11:38:38'),(54,7,'po_pending_dispatch','Purchase Order PO-2026-0001 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 11:39:40'),(55,8,'po_pending_dispatch','Purchase Order PO-2026-0001 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 11:39:40'),(56,5,'po_approved','Purchase Order PO-2026-0001 (requisition #REQ-2026-0001) was approved by Finance Head.','?page=store_manager_requisitions',0,'2026-09-06 11:39:40'),(57,12,'po_received','New Purchase Order PO-2026-0001 has been sent to you. Please review and confirm.','?page=supplier_requisitions',0,'2026-09-06 11:40:44'),(58,5,'po_confirmed','Supplier confirmed Purchase Order PO-2026-0001 for requisition #REQ-2026-0001.','?page=store_manager_requisitions',0,'2026-09-06 11:41:51'),(59,5,'po_shipped','PO PO-2026-0001 has been shipped by the supplier.','?page=store_manager_requisitions',0,'2026-09-06 11:43:17'),(60,7,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_payment_requests',0,'2026-09-06 11:45:29'),(61,8,'goods_received','Goods fully received for PO PO-2026-0001 (requisition #REQ-2026-0001).','?page=finance_staff_payment_requests',0,'2026-09-06 11:45:29'),(62,7,'invoice_reconciled','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 11:46:42'),(63,8,'invoice_reconciled','Invoice INV-2026-0001 for PO PO-2026-0001 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 11:46:42'),(64,6,'po_payment_requested','Payment requested for PO PO-2026-0001 (₱12.78).','?page=finance_head_payment_requests',0,'2026-09-06 11:48:47'),(65,12,'po_payment_received','Payment for PO PO-2026-0001 has been sent.','?page=supplier_requisitions',0,'2026-09-06 11:50:14'),(66,7,'po_payment_approved','Payment request for PO PO-2026-0001 was approved and disbursed.','?page=finance_staff_payment_requests',0,'2026-09-06 11:50:14'),(67,7,'po_pending_budget_check','New Purchase Order PO-2026-0002 (₱3.98) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 11:54:53'),(68,8,'po_pending_budget_check','New Purchase Order PO-2026-0002 (₱3.98) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 11:54:53'),(69,6,'po_pending_approval','Purchase Order PO-2026-0002 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-06 11:56:19'),(70,5,'po_rejected','Purchase Order PO-2026-0002 was rejected by Finance Head. Reason: Testing the reject path for the report','?page=store_manager_requisitions',0,'2026-09-06 11:58:05'),(71,7,'po_pending_budget_check','New Purchase Order PO-2026-0003 (₱31.17) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 12:00:05'),(72,8,'po_pending_budget_check','New Purchase Order PO-2026-0003 (₱31.17) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 12:00:05'),(73,6,'po_pending_approval','Purchase Order PO-2026-0003 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-06 12:01:35'),(74,7,'po_pending_dispatch','Purchase Order PO-2026-0003 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 12:03:28'),(75,8,'po_pending_dispatch','Purchase Order PO-2026-0003 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 12:03:28'),(76,5,'po_approved','Purchase Order PO-2026-0003 (requisition #REQ-2026-0003) was approved by Finance Head.','?page=store_manager_requisitions',0,'2026-09-06 12:03:28'),(77,12,'po_received','New Purchase Order PO-2026-0003 has been sent to you. Please review and confirm.','?page=supplier_requisitions',0,'2026-09-06 12:04:53'),(78,5,'po_counter_proposed','Supplier proposed changes to Purchase Order PO-2026-0003 for requisition #REQ-2026-0003.','?page=store_manager_requisitions',0,'2026-09-06 12:06:44'),(79,12,'po_counter_accepted','Your counter-proposal for PO PO-2026-0003 was accepted.','?page=supplier_requisitions',0,'2026-09-06 12:09:29'),(80,5,'po_shipped','PO PO-2026-0003 has been shipped by the supplier.','?page=store_manager_requisitions',0,'2026-09-06 12:11:32'),(81,7,'goods_received','Goods partially received for PO PO-2026-0003 (requisition #REQ-2026-0003).','?page=finance_staff_payment_requests',0,'2026-09-06 12:13:52'),(82,8,'goods_received','Goods partially received for PO PO-2026-0003 (requisition #REQ-2026-0003).','?page=finance_staff_payment_requests',0,'2026-09-06 12:13:52'),(83,7,'goods_received','Goods fully received for PO PO-2026-0003 (requisition #REQ-2026-0003).','?page=finance_staff_payment_requests',0,'2026-09-06 12:14:37'),(84,8,'goods_received','Goods fully received for PO PO-2026-0003 (requisition #REQ-2026-0003).','?page=finance_staff_payment_requests',0,'2026-09-06 12:14:37'),(85,7,'invoice_reconciled','Invoice INV-2026-0002 for PO PO-2026-0003 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 12:16:29'),(86,8,'invoice_reconciled','Invoice INV-2026-0002 for PO PO-2026-0003 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 12:16:29'),(87,6,'po_payment_requested','Payment requested for PO PO-2026-0003 (₱20.78).','?page=finance_head_payment_requests',0,'2026-09-06 12:18:35'),(88,12,'po_payment_received','Payment for PO PO-2026-0003 has been sent.','?page=supplier_requisitions',0,'2026-09-06 12:20:31'),(89,7,'po_payment_approved','Payment request for PO PO-2026-0003 was approved and disbursed.','?page=finance_staff_payment_requests',0,'2026-09-06 12:20:31'),(90,7,'po_pending_budget_check','New Purchase Order PO-2026-0004 (₱9.95) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 14:41:42'),(91,8,'po_pending_budget_check','New Purchase Order PO-2026-0004 (₱9.95) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 14:41:42'),(92,6,'po_pending_approval','Purchase Order PO-2026-0004 passed budget check and needs your approval.','?page=finance_head_requisitions',0,'2026-09-06 14:48:46'),(93,7,'po_pending_dispatch','Purchase Order PO-2026-0004 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 14:49:07'),(94,8,'po_pending_dispatch','Purchase Order PO-2026-0004 was approved and is ready to dispatch to the supplier.','?page=finance_staff_payment_requests',0,'2026-09-06 14:49:07'),(95,5,'po_approved','Purchase Order PO-2026-0004 (requisition #REQ-2026-0004) was approved by Finance Head.','?page=store_manager_requisitions',0,'2026-09-06 14:49:07'),(96,12,'po_received','New Purchase Order PO-2026-0004 has been sent to you. Please review and confirm.','?page=supplier_requisitions',0,'2026-09-06 14:50:15'),(97,5,'po_confirmed','Supplier confirmed Purchase Order PO-2026-0004 for requisition #REQ-2026-0004.','?page=store_manager_requisitions',0,'2026-09-06 15:01:49'),(98,5,'po_shipped','PO PO-2026-0004 has been shipped by the supplier.','?page=store_manager_requisitions',0,'2026-09-06 15:02:16'),(99,7,'goods_received','Goods fully received for PO PO-2026-0004 (requisition #REQ-2026-0004).','?page=finance_staff_payment_requests',0,'2026-09-06 15:07:42'),(100,8,'goods_received','Goods fully received for PO PO-2026-0004 (requisition #REQ-2026-0004).','?page=finance_staff_payment_requests',0,'2026-09-06 15:07:42'),(101,7,'invoice_reconciled','Invoice INV-2026-0003 for PO PO-2026-0004 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 15:12:35'),(102,8,'invoice_reconciled','Invoice INV-2026-0003 for PO PO-2026-0004 matched cleanly and is reconciled.','?page=finance_staff_payment_requests',0,'2026-09-06 15:12:35'),(103,6,'po_payment_requested','Payment requested for PO PO-2026-0004 (₱9.95).','?page=finance_head_payment_requests',1,'2026-09-06 15:13:13'),(104,12,'po_payment_received','Payment for PO PO-2026-0004 has been sent.','?page=supplier_requisitions',0,'2026-09-06 15:13:45'),(105,7,'po_payment_approved','Payment request for PO PO-2026-0004 was approved and disbursed.','?page=finance_staff_payment_requests',0,'2026-09-06 15:13:45'),(106,7,'po_pending_budget_check','New Purchase Order PO-2026-0005 (₱31.17) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 15:17:41'),(107,8,'po_pending_budget_check','New Purchase Order PO-2026-0005 (₱31.17) needs a budget check.','?page=finance_staff_requisitions',0,'2026-09-06 15:17:41'),(108,9,'order_completed','Order #POS-20260909-0001 completed. Total: ₱2.99','?page=pos_orders&view=1',0,'2026-09-09 16:36:23'),(109,12,'po_payment_received','Payment for PO PO-TEST-SIM has been sent.','?page=supplier_requisitions',0,'2026-09-09 17:07:35'),(110,6,'po_payment_approved','Payment request for PO PO-TEST-SIM was approved and disbursed.','?page=finance_staff_payment_requests',0,'2026-09-09 17:07:35'),(111,12,'po_payment_received','Payment for PO PO-TEST-SIM2 has been sent.','?page=supplier_requisitions',0,'2026-09-09 17:20:26'),(112,7,'po_payment_approved','Payment request for PO PO-TEST-SIM2 was approved and disbursed.','?page=finance_staff_payment_requests',0,'2026-09-09 17:20:26'),(113,7,'po_payment_rejected','Payment request for PO PO-TEST-SIM3 was rejected. Reason: Testing rejection visibility for Finance Staff','?page=finance_staff_payment_requests',0,'2026-09-09 17:21:03');
 /*!40000 ALTER TABLE `notifications` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `order_deal_items`
+--
+
+DROP TABLE IF EXISTS `order_deal_items`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `order_deal_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `order_id` int(11) NOT NULL,
+  `deal_id` int(11) DEFAULT NULL,
+  `deal_name` varchar(150) NOT NULL,
+  `quantity` int(11) NOT NULL,
+  `price` decimal(10,2) NOT NULL,
+  `subtotal` decimal(10,2) NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `order_id` (`order_id`),
+  KEY `deal_id` (`deal_id`),
+  CONSTRAINT `order_deal_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `order_deal_items_ibfk_2` FOREIGN KEY (`deal_id`) REFERENCES `deals` (`id`) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `order_deal_items`
+--
+
+LOCK TABLES `order_deal_items` WRITE;
+/*!40000 ALTER TABLE `order_deal_items` DISABLE KEYS */;
+/*!40000 ALTER TABLE `order_deal_items` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -1850,101 +1978,9 @@ CREATE TABLE `products` (
 
 LOCK TABLES `products` WRITE;
 /*!40000 ALTER TABLE `products` DISABLE KEYS */;
-INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,0.00,'percent',12,5,NULL,1,'2026-08-20 17:09:05','2026-09-06 12:13:51'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,0.00,'percent',38,5,NULL,1,'2026-08-20 17:09:05','2026-09-09 16:38:18');
+INSERT INTO `products` VALUES (1,'978-0-123-45678-9','Sample Book','A sample book for testing',1,12.99,8.00,0.00,'percent',12,5,NULL,1,'2026-08-20 17:09:05','2026-09-19 08:44:21'),(2,'BS-001','Sample Pen','A sample pen for testing',2,2.99,1.20,0.00,'percent',38,5,NULL,1,'2026-08-20 17:09:05','2026-09-09 16:38:18');
 /*!40000 ALTER TABLE `products` ENABLE KEYS */;
 UNLOCK TABLES;
-
---
--- Table structure for table `deals`
---
-
-DROP TABLE IF EXISTS `deals`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `deals` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(150) NOT NULL,
-  `description` text DEFAULT NULL,
-  `price` decimal(10,2) NOT NULL,
-  `image_path` varchar(255) DEFAULT NULL,
-  `is_active` tinyint(1) NOT NULL DEFAULT 1,
-  `created_by` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `created_by` (`created_by`),
-  CONSTRAINT `deals_ibfk_1` FOREIGN KEY (`created_by`) REFERENCES `users` (`user_id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `deal_items`
---
-
-DROP TABLE IF EXISTS `deal_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `deal_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `deal_id` int(11) NOT NULL,
-  `product_id` int(11) NOT NULL,
-  `quantity` int(11) NOT NULL DEFAULT 1,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uniq_deal_product` (`deal_id`,`product_id`),
-  KEY `product_id` (`product_id`),
-  CONSTRAINT `deal_items_ibfk_1` FOREIGN KEY (`deal_id`) REFERENCES `deals` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `deal_items_ibfk_2` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `order_deal_items`
---
-
-DROP TABLE IF EXISTS `order_deal_items`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `order_deal_items` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `order_id` int(11) NOT NULL,
-  `deal_id` int(11) DEFAULT NULL,
-  `deal_name` varchar(150) NOT NULL,
-  `quantity` int(11) NOT NULL,
-  `price` decimal(10,2) NOT NULL,
-  `subtotal` decimal(10,2) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  PRIMARY KEY (`id`),
-  KEY `order_id` (`order_id`),
-  KEY `deal_id` (`deal_id`),
-  CONSTRAINT `order_deal_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `order_deal_items_ibfk_2` FOREIGN KEY (`deal_id`) REFERENCES `deals` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
-
---
--- Table structure for table `catalog_overrides`
---
-
-DROP TABLE IF EXISTS `catalog_overrides`;
-/*!40101 SET @saved_cs_client     = @@character_set_client */;
-/*!40101 SET character_set_client = utf8 */;
-CREATE TABLE `catalog_overrides` (
-  `product_id` int(11) NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `description` text DEFAULT NULL,
-  `category_id` int(11) DEFAULT NULL,
-  `price` decimal(10,2) DEFAULT NULL,
-  `cost` decimal(10,2) DEFAULT NULL,
-  `discount_value` decimal(10,2) DEFAULT NULL,
-  `discount_type` enum('percent','fixed') DEFAULT NULL,
-  `image_path` varchar(255) DEFAULT NULL,
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
-  PRIMARY KEY (`product_id`),
-  KEY `category_id` (`category_id`),
-  CONSTRAINT `catalog_overrides_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `products` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `catalog_overrides_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-/*!40101 SET character_set_client = @saved_cs_client */;
 
 --
 -- Table structure for table `purchase_order_items`
@@ -2059,7 +2095,7 @@ CREATE TABLE `recruitment_logs` (
   KEY `idx_user` (`user_id`),
   KEY `idx_created_at` (`created_at`),
   CONSTRAINT `fk_recruitment_logs_user` FOREIGN KEY (`user_id`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=34 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=35 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2068,7 +2104,7 @@ CREATE TABLE `recruitment_logs` (
 
 LOCK TABLES `recruitment_logs` WRITE;
 /*!40000 ALTER TABLE `recruitment_logs` DISABLE KEYS */;
-INSERT INTO `recruitment_logs` VALUES (18,'job_posting',1,2,'hr_head','created',NULL,'draft',NULL,NULL,'2026-08-30 09:43:36'),(19,'job_posting',1,2,'hr_head','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-30 09:43:36'),(20,'job_posting',1,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-30 09:43:40'),(21,'job_posting',2,2,'hr_head','created',NULL,'draft',NULL,NULL,'2026-08-30 09:44:57'),(22,'job_posting',2,2,'hr_head','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-30 09:44:57'),(23,'job_posting',2,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-30 09:45:00'),(24,'applicant',1,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 1)','2026-08-30 09:55:47'),(25,'applicant',1,3,'hr_staff','initial_interview_scheduled','pending','initial_scheduled',NULL,NULL,'2026-08-30 10:01:00');
+INSERT INTO `recruitment_logs` VALUES (18,'job_posting',1,2,'hr_head','created',NULL,'draft',NULL,NULL,'2026-08-30 09:43:36'),(19,'job_posting',1,2,'hr_head','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-30 09:43:36'),(20,'job_posting',1,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-30 09:43:40'),(21,'job_posting',2,2,'hr_head','created',NULL,'draft',NULL,NULL,'2026-08-30 09:44:57'),(22,'job_posting',2,2,'hr_head','submitted_for_approval','draft','pending_approval',NULL,NULL,'2026-08-30 09:44:57'),(23,'job_posting',2,2,'hr_head','approved','pending_approval','approved',NULL,NULL,'2026-08-30 09:45:00'),(24,'applicant',1,NULL,NULL,'application_received',NULL,'pending',NULL,'source: public application form (job_posting_id 1)','2026-08-30 09:55:47'),(25,'applicant',1,3,'hr_staff','initial_interview_scheduled','pending','initial_scheduled',NULL,NULL,'2026-08-30 10:01:00'),(34,'job_posting',3,18,'hr_staff','created',NULL,'draft',NULL,NULL,'2026-09-19 05:58:41');
 /*!40000 ALTER TABLE `recruitment_logs` ENABLE KEYS */;
 UNLOCK TABLES;
 
@@ -2101,7 +2137,7 @@ CREATE TABLE `register_allocations` (
   CONSTRAINT `register_allocations_ibfk_1` FOREIGN KEY (`register_id`) REFERENCES `registers` (`id`),
   CONSTRAINT `register_allocations_ibfk_2` FOREIGN KEY (`cashier_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `register_allocations_ibfk_3` FOREIGN KEY (`allocated_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2137,7 +2173,7 @@ CREATE TABLE `registers` (
   KEY `idx_registers_store_manager_id` (`store_manager_id`),
   CONSTRAINT `registers_ibfk_1` FOREIGN KEY (`store_manager_id`) REFERENCES `users` (`user_id`),
   CONSTRAINT `registers_pos_created_by_fk` FOREIGN KEY (`pos_created_by`) REFERENCES `users` (`user_id`)
-) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2747,7 +2783,7 @@ CREATE TABLE `users` (
   PRIMARY KEY (`user_id`),
   UNIQUE KEY `employee_number` (`employee_number`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=InnoDB AUTO_INCREMENT=19 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+) ENGINE=InnoDB AUTO_INCREMENT=20 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 --
@@ -2803,4 +2839,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2026-09-13 13:34:58
+-- Dump completed on 2026-09-19 16:44:37

@@ -22,7 +22,7 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260918250000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260919100000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">

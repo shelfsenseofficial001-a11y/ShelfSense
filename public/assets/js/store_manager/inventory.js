@@ -233,6 +233,85 @@ function renderProducts(products) {
             </div>
         `;
     }).join('');
+
+    grid.querySelectorAll('.sm-product-card').forEach(card => {
+        card.addEventListener('click', () => openProductDetail(parseInt(card.dataset.id)));
+    });
+}
+
+// ============================================
+// PRODUCT DETAIL: base info + which suppliers carry it, under their own
+// name/price. The supplier connection only ever surfaces here -- never on
+// the card itself, and never at POS.
+// ============================================
+
+function openProductDetail(productId) {
+    const product = allProducts.find(p => p.id === productId);
+    const body = document.getElementById('productDetailBody');
+    body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('productDetailModal')).show();
+
+    if (!product) {
+        body.innerHTML = `<p class="text-danger small mb-0">Product not found.</p>`;
+        return;
+    }
+
+    fetch(`?page=api_store_manager_get_product_suppliers&product_id=${productId}`)
+        .then(r => r.json())
+        .then(data => {
+            const suppliers = data.success ? (data.data.suppliers || []) : [];
+            renderProductDetail(product, suppliers);
+        })
+        .catch(() => renderProductDetail(product, []));
+}
+
+function renderProductDetail(product, suppliers) {
+    const body = document.getElementById('productDetailBody');
+    const stock = parseInt(product.stock_quantity) || 0;
+    const reorder = parseInt(product.reorder_level) || 0;
+
+    const supplierRows = suppliers.length
+        ? suppliers.map(s => {
+            const sameName = (s.name || '').trim().toLowerCase() === (product.name || '').trim().toLowerCase();
+            return `
+                <div class="sm-detail-supplier-row">
+                    <div>
+                        <strong>${escapeHtmlSM(s.supplier_name)}</strong>
+                        ${!sameName ? `<div class="text-muted small">Listed as "${escapeHtmlSM(s.name)}"</div>` : ''}
+                    </div>
+                    <div class="text-end">
+                        <div>${smCurrency(s.price)}</div>
+                        <div class="text-muted small">${parseInt(s.quantity) || 0} available</div>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : `<p class="text-muted small mb-0">No supplier currently linked to this product.</p>`;
+
+    body.innerHTML = `
+        <div class="d-flex gap-3 mb-3">
+            <div class="sm-product-image" style="width:80px; height:80px; flex-shrink:0;">
+                ${product.image_path
+                    ? `<img src="/ShelfSense/public/${product.image_path}" alt="${escapeHtmlSM(product.name)}">`
+                    : `<i class="bi bi-box-seam"></i>`
+                }
+            </div>
+            <div>
+                <div class="sm-product-category">${escapeHtmlSM(product.category_name || 'Uncategorized')}</div>
+                <h5 class="mb-1">${escapeHtmlSM(product.name)}</h5>
+                <div class="text-muted small">${escapeHtmlSM(product.barcode || '')}</div>
+            </div>
+        </div>
+        <div class="row g-2 mb-3">
+            <div class="col-4"><div class="text-muted small">Price</div><div class="fw-semibold">${smCurrency(product.price)}</div></div>
+            <div class="col-4"><div class="text-muted small">Stock</div><div class="fw-semibold">${stock}</div></div>
+            <div class="col-4"><div class="text-muted small">Reorder At</div><div class="fw-semibold">${reorder}</div></div>
+        </div>
+        ${product.description ? `<p class="small mb-3">${escapeHtmlSM(product.description)}</p>` : ''}
+        <div class="sm-section-divider"></div>
+        <h6 class="sm-section-title"><i class="bi bi-truck"></i> Supplier${suppliers.length !== 1 ? 's' : ''}</h6>
+        ${supplierRows}
+    `;
 }
 
 function renderPagination(pagination) {

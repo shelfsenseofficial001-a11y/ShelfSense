@@ -25,7 +25,7 @@ use App\Core\Auth;
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260918250000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260919100000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">

@@ -1150,6 +1150,11 @@ if ($page === 'api_store_manager_inventory') {
     exit;
 }
 
+if ($page === 'api_store_manager_get_product_suppliers') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_product_suppliers.php';
+    exit;
+}
+
 // ============================================
 // STORE MANAGER - CATALOG & DEALS
 // ============================================

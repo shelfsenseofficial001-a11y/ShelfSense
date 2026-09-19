@@ -9,7 +9,7 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $title = 'Inventory - Store Manager';
 $pageTitle = 'Inventory Management';
 $activePage = 'inventory';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/inventory.js?v=20260917100000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/inventory.js?v=20260919100000"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<'EOT'
 <!-- Stats -->
@@ -104,6 +104,25 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     <span class="sm-fab-icon"><i class="bi bi-plus-lg"></i></span>
     <span class="sm-fab-label">Create Requisition</span>
 </a>
+
+<!-- Product Detail Modal: base product info + which suppliers carry it
+     (their own product name/price) -- click a card to open. -->
+<div class="modal fade" id="productDetailModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Product Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="productDetailBody">
+                <div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
 EOT;
 
 require_once __DIR__ . '/../../layouts/store_manager.php';
