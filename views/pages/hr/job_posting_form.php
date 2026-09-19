@@ -276,7 +276,6 @@ $content .= <<<EOT
 </div>
 
 <script>const HR_IS_HEAD = {$isHRHeadJs};</script>
-<script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
 <script src="/ShelfSense/public/assets/js/hr/job_posting_form.js?v=20260918160000"></script>
 EOT;
