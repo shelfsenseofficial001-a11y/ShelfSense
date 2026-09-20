@@ -131,7 +131,8 @@ use App\Core\Auth;
 
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
-    
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
+
     <?= $additional_js ?? '' ?>
     
     <style>

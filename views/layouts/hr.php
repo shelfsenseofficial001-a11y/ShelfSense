@@ -100,6 +100,9 @@ use App\Core\Auth;
                 <a href="?page=owner_product_proposals" class="nav-item <?php echo $activePage === 'product_proposals' ? 'active' : ''; ?>" title="Product Proposals">
                     <span class="nav-icon-wrap"><i class="bi bi-lightbulb"></i></span> <span class="nav-label">Product Proposals</span>
                 </a>
+                <a href="?page=owner_settings" class="nav-item <?php echo $activePage === 'owner_settings' ? 'active' : ''; ?>" title="System Settings">
+                    <span class="nav-icon-wrap"><i class="bi bi-gear-fill"></i></span> <span class="nav-label">Settings</span>
+                </a>
                 <?php endif; ?>
             </nav>
 
@@ -236,6 +239,9 @@ use App\Core\Auth;
 
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
+
+    <!-- Date Picker Modal Component -->
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
 
     <style>
         /* ============================================

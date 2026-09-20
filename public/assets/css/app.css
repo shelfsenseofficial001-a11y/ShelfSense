@@ -867,6 +867,130 @@ input.has-clear-btn {
 }
 
 /* ============================================
+   DATE PICKER MODAL (Year / Month / Day picker
+   that replaces native <input type="date"/"month">)
+   ============================================ */
+
+.date-picker-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.date-picker-wrapper .date-picker-display {
+    padding-right: 36px;
+    cursor: pointer;
+    background-color: var(--bg-card);
+}
+
+.date-picker-wrapper .date-picker-display.disabled,
+.date-picker-wrapper .date-picker-display:disabled {
+    cursor: not-allowed;
+}
+
+.date-picker-wrapper .date-picker-icon {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    pointer-events: none;
+    color: var(--text-muted);
+}
+
+.date-picker-modal-el .dp-year-select {
+    max-width: 110px;
+}
+
+.date-picker-modal-el .dp-day-headrow {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-bottom: 4px;
+}
+
+.date-picker-modal-el .dp-day-body {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+}
+
+.date-picker-modal-el .dp-day-cell {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+
+.date-picker-modal-el .dp-day-cell:not(.dp-day-cell-disabled):not(.dp-day-blank):hover {
+    background: var(--light-yellow-subtle);
+}
+
+.date-picker-modal-el .dp-day-cell-today {
+    border: 1px solid var(--brand-yellow);
+}
+
+.date-picker-modal-el .dp-day-cell-selected {
+    background: var(--brand-yellow) !important;
+    color: var(--brand-yellow-btn-text);
+}
+
+.date-picker-modal-el .dp-day-cell-disabled {
+    color: var(--text-muted);
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.date-picker-modal-el .dp-month-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+}
+
+.date-picker-modal-el .dp-month-cell {
+    padding: 10px 4px;
+    text-align: center;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border: 1px solid var(--border-color);
+    transition: background 0.15s;
+}
+
+.date-picker-modal-el .dp-month-cell:not(.dp-month-cell-disabled):hover {
+    background: var(--light-yellow-subtle);
+}
+
+.date-picker-modal-el .dp-month-cell-selected {
+    background: var(--brand-yellow) !important;
+    color: var(--brand-yellow-btn-text);
+    border-color: var(--brand-yellow);
+}
+
+.date-picker-modal-el .dp-month-cell-disabled {
+    color: var(--text-muted);
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+/* A date picker modal opened from inside another already-open modal (e.g.
+   a "Create X" form's own date field) needs to render above it -- Bootstrap
+   doesn't stack modal backdrops by default, so without this the second
+   backdrop paints over the new modal. See installModalStackFix() in
+   date-picker-modal.js. */
+.dp-stacked-modal {
+    z-index: 1080;
+}
+
+.dp-stacked-backdrop {
+    z-index: 1070;
+}
+
+/* ============================================
    FIX FOR SWAL2 + BOOTSTRAP MODAL OVERLAY
    ============================================ */
 

@@ -127,6 +127,7 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/ShelfSense/public/assets/js/app.js?v=20260910100000"></script>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
     <script src="/ShelfSense/public/assets/js/pos/pos-notifications.js?v=20260905070000"></script>
 
     <?= $additional_js ?? '' ?>
