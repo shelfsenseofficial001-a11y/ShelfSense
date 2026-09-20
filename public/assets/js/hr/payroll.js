@@ -758,13 +758,14 @@ function loadHolidaysList() {
                 tbody.innerHTML = `<tr><td colspan="4" class="text-center text-muted py-3">No holidays recorded.</td></tr>`;
                 return;
             }
+            const canEdit = !!window.__CAN_EDIT_HOLIDAYS__;
             tbody.innerHTML = holidays.map(h => `
                 <tr>
                     <td>${formatDate(h.holiday_date)}</td>
                     <td>${escapeHtml(h.name)}</td>
                     <td><span class="badge ${h.type === 'regular' ? 'bg-primary' : 'bg-secondary'}">${h.type === 'regular' ? 'Regular' : 'Special'}</span></td>
                     <td class="text-end">
-                        <button type="button" class="btn btn-sm btn-outline-danger delete-holiday-btn" data-id="${h.id}"><i class="bi bi-trash"></i></button>
+                        ${canEdit ? `<button type="button" class="btn btn-sm btn-outline-danger delete-holiday-btn" data-id="${h.id}"><i class="bi bi-trash"></i></button>` : ''}
                     </td>
                 </tr>
             `).join('');
