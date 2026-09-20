@@ -89,7 +89,7 @@ $firstLoginExemptPages = [
     'first_login_setup', 'api_first_login_change_password', 'api_enroll_face',
     'logout', 'privacy_policy'
 ];
-if (Auth::check() && Auth::isFirstLogin() && !in_array($page, $firstLoginExemptPages, true)) {
+if (!\App\Core\Settings::isTestMode() && Auth::check() && Auth::isFirstLogin() && !in_array($page, $firstLoginExemptPages, true)) {
     Response::redirect('?page=first_login_setup');
     exit;
 }
@@ -295,6 +295,29 @@ if ($page === 'api_owner_create_pos_account') {
 
 if ($page === 'api_owner_reset_pos_pin') {
     require_once __DIR__ . '/../app/handlers/owner/reset_pos_pin.php';
+    exit;
+}
+
+if ($page === 'owner_settings') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/owner/settings.php';
+    exit;
+}
+
+if ($page === 'api_owner_get_settings') {
+    require_once __DIR__ . '/../app/handlers/owner/get_settings.php';
+    exit;
+}
+
+if ($page === 'api_owner_update_setting') {
+    require_once __DIR__ . '/../app/handlers/owner/update_setting.php';
     exit;
 }
 
