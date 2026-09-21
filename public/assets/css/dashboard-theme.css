@@ -215,6 +215,35 @@ body.dashboard-theme .sm-supplier-price {
     color: var(--brand-yellow);
 }
 
+/* Per-item breakdown under each supplier option -- shows the supplier's
+   own product name alongside the store's when they differ, so the Store
+   Manager can cross-check they're ordering the right physical item. */
+body.dashboard-theme .sm-supplier-items {
+    list-style: none;
+    margin: -4px 0 12px;
+    padding: 0 14px 10px;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+}
+
+body.dashboard-theme .sm-supplier-items li {
+    padding: 2px 0;
+}
+
+/* Inventory product-detail modal's per-supplier row. */
+body.dashboard-theme .sm-detail-supplier-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+body.dashboard-theme .sm-detail-supplier-row:last-child {
+    border-bottom: none;
+}
+
 body.dashboard-theme .sm-requisition-summary {
     display: flex;
     align-items: center;

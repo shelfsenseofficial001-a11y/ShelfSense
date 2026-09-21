@@ -89,7 +89,7 @@ $firstLoginExemptPages = [
     'first_login_setup', 'api_first_login_change_password', 'api_enroll_face',
     'logout', 'privacy_policy'
 ];
-if (Auth::check() && Auth::isFirstLogin() && !in_array($page, $firstLoginExemptPages, true)) {
+if (!\App\Core\Settings::isTestMode() && Auth::check() && Auth::isFirstLogin() && !in_array($page, $firstLoginExemptPages, true)) {
     Response::redirect('?page=first_login_setup');
     exit;
 }
@@ -257,6 +257,19 @@ if ($page === 'api_owner_get_overview') {
     exit;
 }
 
+if ($page === 'owner_product_proposals') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/owner/product_proposals.php';
+    exit;
+}
+
 if ($page === 'owner_pos_accounts') {
     if (!Auth::check()) {
         Response::redirect('?page=login');
@@ -282,6 +295,29 @@ if ($page === 'api_owner_create_pos_account') {
 
 if ($page === 'api_owner_reset_pos_pin') {
     require_once __DIR__ . '/../app/handlers/owner/reset_pos_pin.php';
+    exit;
+}
+
+if ($page === 'owner_settings') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/owner/settings.php';
+    exit;
+}
+
+if ($page === 'api_owner_get_settings') {
+    require_once __DIR__ . '/../app/handlers/owner/get_settings.php';
+    exit;
+}
+
+if ($page === 'api_owner_update_setting') {
+    require_once __DIR__ . '/../app/handlers/owner/update_setting.php';
     exit;
 }
 
@@ -1132,6 +1168,19 @@ if ($page === 'api_departments') {
 // STORE MANAGER - INVENTORY
 // ============================================
 
+if ($page === 'store_manager_product_proposals') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/store_manager/product_proposals.php';
+    exit;
+}
+
 if ($page === 'store_manager_inventory') {
     if (!Auth::check()) {
         Response::redirect('?page=login');
@@ -1147,6 +1196,41 @@ if ($page === 'store_manager_inventory') {
 
 if ($page === 'api_store_manager_inventory') {
     require_once __DIR__ . '/../app/handlers/store_manager/get_inventory.php';
+    exit;
+}
+
+if ($page === 'api_store_manager_get_product_suppliers') {
+    require_once __DIR__ . '/../app/handlers/store_manager/get_product_suppliers.php';
+    exit;
+}
+
+// ============================================
+// PRODUCT PROPOSALS (new-product onboarding: propose -> supplier
+// confirms -> Owner approves, mirrors the Contract offer/accept pattern)
+// ============================================
+
+if ($page === 'api_get_active_suppliers') {
+    require_once __DIR__ . '/../app/handlers/shared/get_active_suppliers.php';
+    exit;
+}
+
+if ($page === 'api_create_product_proposal') {
+    require_once __DIR__ . '/../app/handlers/shared/product_proposals/create.php';
+    exit;
+}
+
+if ($page === 'api_get_product_proposals') {
+    require_once __DIR__ . '/../app/handlers/shared/product_proposals/get_list.php';
+    exit;
+}
+
+if ($page === 'api_supplier_respond_product_proposal') {
+    require_once __DIR__ . '/../app/handlers/supplier/product_proposals/respond.php';
+    exit;
+}
+
+if ($page === 'api_owner_decide_product_proposal') {
+    require_once __DIR__ . '/../app/handlers/owner/product_proposals/decide.php';
     exit;
 }
 
@@ -1274,6 +1358,19 @@ if ($page === 'supplier_invoices') {
         exit;
     }
     require_once __DIR__ . '/../views/pages/supplier/invoices.php';
+    exit;
+}
+
+if ($page === 'supplier_product_proposals') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isSupplier() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/supplier/product_proposals.php';
     exit;
 }
 

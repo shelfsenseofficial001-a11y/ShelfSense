@@ -22,73 +22,25 @@ if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
 try {
     $db = Database::getInstance()->getConnection();
 
-    // All active suppliers, for the supplier-selection dropdown
-    $stmt = $db->query("SELECT id, company_name FROM suppliers WHERE is_active = 1 ORDER BY company_name");
-    $suppliers = $stmt->fetchAll();
-
-    $requestedSupplierId = isset($_GET['supplier_id']) ? intval($_GET['supplier_id']) : 0;
-    $supplierId = null;
-
-    if ($requestedSupplierId > 0) {
-        foreach ($suppliers as $s) {
-            if ((int)$s['id'] === $requestedSupplierId) {
-                $supplierId = $requestedSupplierId;
-                break;
-            }
-        }
-    }
-    // Fall back to the first active supplier if none was requested (or the request was invalid)
-    if ($supplierId === null && !empty($suppliers)) {
-        $supplierId = (int)$suppliers[0]['id'];
-    }
-
-    if (!$supplierId) {
-        Response::success([
-            'products' => [],
-            'supplier' => null,
-            'suppliers' => $suppliers
-        ], 'No supplier found. Please add a supplier first.');
-        exit;
-    }
-
-    // Store products with THIS supplier's matching product info
-    // (name-based matching is the existing linkage used across the app between
-    // store products and supplier products — preserved as-is, just filtered by supplier now)
-    $stmt = $db->prepare("
-        SELECT
-            p.id as store_product_id,
-            p.name,
-            p.barcode,
-            p.stock_quantity,
-            p.reorder_level,
-            p.price as store_price,
-            p.image_path,
-            sp.id as supplier_product_id,
-            sp.price as supplier_price,
-            sp.supplier_id
-        FROM products p
-        LEFT JOIN supplier_products sp ON p.name = sp.name AND sp.supplier_id = ? AND sp.is_active = 1
-        WHERE p.is_active = 1
-        ORDER BY p.name
+    // Every active store product is requestable regardless of which
+    // supplier(s) carry it -- the actual supplier match/pricing happens
+    // afterward, per the picked items, via api_sm_list_eligible_suppliers
+    // (SupplierProduct::getEligibleSuppliers()). This used to also try to
+    // pre-filter by one supplier via a name match against
+    // supplier_products, which both duplicated that later step and broke
+    // outright once a store product's display name diverged from its
+    // linked supplier_products.name (see SupplierProduct::create()/
+    // update(), which link the two by store_product_id, not by name).
+    $stmt = $db->query("
+        SELECT id as store_product_id, name, barcode, stock_quantity, reorder_level, price as store_price, image_path
+        FROM products
+        WHERE is_active = 1
+        ORDER BY name
     ");
-    $stmt->execute([$supplierId]);
     $products = $stmt->fetchAll();
 
-    $supplierName = null;
-    foreach ($suppliers as $s) {
-        if ((int)$s['id'] === $supplierId) {
-            $supplierName = $s['company_name'];
-            break;
-        }
-    }
-
     Response::success([
-        'products' => $products,
-        'supplier' => [
-            'id' => $supplierId,
-            'company_name' => $supplierName
-        ],
-        'suppliers' => $suppliers
+        'products' => $products
     ], 'Products fetched successfully');
 
 } catch (Exception $e) {

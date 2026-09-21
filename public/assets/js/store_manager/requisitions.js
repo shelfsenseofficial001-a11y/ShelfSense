@@ -121,6 +121,13 @@ async function doRefreshEligibleSuppliers() {
                 <span class="sm-supplier-name">${prEscapeHtml(s.supplier_name)}</span>
                 <span class="sm-supplier-price">${prCurrency(s.total)}</span>
             </label>
+            <ul class="sm-supplier-items">
+                ${s.items.map(item => {
+                    const storeName = smProducts.find(p => p.store_product_id === item.store_product_id)?.name || '';
+                    const sameName = storeName.trim().toLowerCase() === (item.supplier_product_name || '').trim().toLowerCase();
+                    return `<li>${prEscapeHtml(storeName)}${!sameName && item.supplier_product_name ? ` <span class="text-muted">(${prEscapeHtml(item.supplier_product_name)} at ${prEscapeHtml(s.supplier_name)})</span>` : ''} &times; ${item.quantity}</li>`;
+                }).join('')}
+            </ul>
         `).join('');
     } catch (e) {
         panel.innerHTML = `<div class="alert alert-danger small mb-0">${prEscapeHtml(e.message)}</div>`;

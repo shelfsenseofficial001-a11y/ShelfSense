@@ -1,10 +1,11 @@
 <?php
+use App\Core\Auth;
 use App\Models\PayrollCycle;
 
 $title = 'Payroll - ShelfSense HR';
 $pageTitle = 'Payroll Management';
 $activePage = 'payroll';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260913100000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260920100000"></script>';
 
 $currentMonth = date('m');
 $currentYear = date('Y');
@@ -34,7 +35,31 @@ for ($y = $cy - 1; $y <= $cy + 1; $y++) {
     $yearOptions .= "<option value=\"$y\" $selected>$y</option>";
 }
 
-$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<HTML
+$canEditHolidays = Auth::isOwner() || Auth::isSuperAdmin();
+$holidayFormHtml = $canEditHolidays ? '
+                <form id="addHolidayForm" class="row g-2 align-items-end mb-3">
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Date</label>
+                        <input type="date" class="form-control form-control-sm" id="holidayDate" required>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small mb-1">Name</label>
+                        <input type="text" class="form-control form-control-sm" id="holidayName" placeholder="e.g. Chinese New Year" required>
+                    </div>
+                    <div class="col-3">
+                        <label class="form-label small mb-1">Type</label>
+                        <select class="form-select form-select-sm" id="holidayType">
+                            <option value="regular">Regular</option>
+                            <option value="special_non_working" selected>Special Non-Working</option>
+                        </select>
+                    </div>
+                    <div class="col-1">
+                        <button type="submit" class="btn btn-sm btn-success w-100"><i class="bi bi-plus-lg"></i></button>
+                    </div>
+                </form>' : '
+                <p class="text-muted small fst-italic"><i class="bi bi-lock-fill me-1"></i>Only the Owner can add, rename, or remove holidays. This list is read-only for you.</p>';
+
+$content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';window.__CAN_EDIT_HOLIDAYS__ = ' . ($canEditHolidays ? 'true' : 'false') . ';</script>' . <<<HTML
 <style>
     .payroll-stats-card { cursor: default; }
     .payroll-status-badge { font-size: 0.7rem; padding: 4px 10px; border-radius: 12px; }
@@ -242,26 +267,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
             </div>
             <div class="modal-body">
                 <p class="text-muted small">Used to flag a proposed payday that falls on a holiday. Seeded with fixed-date and computable PH holidays for 2026-2027 -- add movable/proclaimed ones (e.g. Chinese New Year) yourself once announced.</p>
-                <form id="addHolidayForm" class="row g-2 align-items-end mb-3">
-                    <div class="col-4">
-                        <label class="form-label small mb-1">Date</label>
-                        <input type="date" class="form-control form-control-sm" id="holidayDate" required>
-                    </div>
-                    <div class="col-4">
-                        <label class="form-label small mb-1">Name</label>
-                        <input type="text" class="form-control form-control-sm" id="holidayName" placeholder="e.g. Chinese New Year" required>
-                    </div>
-                    <div class="col-3">
-                        <label class="form-label small mb-1">Type</label>
-                        <select class="form-select form-select-sm" id="holidayType">
-                            <option value="regular">Regular</option>
-                            <option value="special_non_working" selected>Special Non-Working</option>
-                        </select>
-                    </div>
-                    <div class="col-1">
-                        <button type="submit" class="btn btn-sm btn-success w-100"><i class="bi bi-plus-lg"></i></button>
-                    </div>
-                </form>
+                {$holidayFormHtml}
                 <div class="table-responsive">
                     <table class="table table-sm table-hover mb-0">
                         <thead>

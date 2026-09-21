@@ -30,7 +30,7 @@ try {
 
     $sql = "SELECT user_id, first_name, last_name, employee_number, role
             FROM users
-            WHERE is_active = 1 AND role NOT IN ('trainee', 'supplier')";
+            WHERE is_active = 1 AND role NOT IN ('trainee', 'supplier', 'owner')";
     if ($department !== 'all') {
         $sql .= " AND role = ?";
         $stmt = $db->prepare($sql);

@@ -12,8 +12,10 @@ header('Content-Type: application/json');
 if (!Auth::check()) {
     Response::unauthorized('Please login to access this resource');
 }
-if (!Auth::canAccessModule('hr_head')) {
-    Response::forbidden('Access denied. HR role required.');
+// Holidays are a shared reference used by every HR user's payday-warning
+// check, but only Owner may decide what actually counts as a holiday.
+if (!Auth::isOwner() && !Auth::isSuperAdmin()) {
+    Response::forbidden('Access denied. Owner role required.');
 }
 
 $input = json_decode(file_get_contents('php://input'), true);

@@ -74,6 +74,9 @@ use App\Core\Auth;
                 <a href="?page=supplier_products" class="nav-item <?= $activePage === 'products' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-box-seam"></i></span> <span class="nav-label">Products</span>
                 </a>
+                <a href="?page=supplier_product_proposals" class="nav-item <?= $activePage === 'product_proposals' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-lightbulb"></i></span> <span class="nav-label">Product Proposals</span>
+                </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Account</span></div>
                 <a href="?page=logout" class="nav-item text-danger">
                     <span class="nav-icon-wrap"><i class="bi bi-box-arrow-right"></i></span> <span class="nav-label">Logout</span>
@@ -166,6 +169,7 @@ use App\Core\Auth;
     <script src="/ShelfSense/public/assets/js/supplier/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
 
     <style>
         .supplier-sidebar {

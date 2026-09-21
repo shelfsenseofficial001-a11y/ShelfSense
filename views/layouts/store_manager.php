@@ -71,6 +71,9 @@ use App\Core\Auth;
                 <a href="?page=store_manager_inventory" class="nav-item <?= $activePage === 'inventory' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-box-seam"></i></span> <span class="nav-label">Inventory</span>
                 </a>
+                <a href="?page=store_manager_product_proposals" class="nav-item <?= $activePage === 'product_proposals' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-lightbulb"></i></span> <span class="nav-label">Product Proposals</span>
+                </a>
                 <a href="?page=store_manager_catalog" class="nav-item <?= $activePage === 'catalog' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-tags-fill"></i></span> <span class="nav-label">Catalog & Deals</span>
                 </a>
@@ -185,6 +188,7 @@ use App\Core\Auth;
     <script src="/ShelfSense/public/assets/js/store_manager/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
 
     <style>
         .store-manager-sidebar {

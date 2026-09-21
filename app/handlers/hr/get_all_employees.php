@@ -9,15 +9,16 @@ use App\Core\Response;
 
 if (!function_exists('hr_all_employees_build_data')) {
 /**
- * Builds the active-employee list (excludes trainees). Shared by the API
- * endpoint (for refresh/department filter) and the Schedules page's first
- * paint.
+ * Builds the active-employee list (excludes trainees, and Owner/Supplier --
+ * neither is rank-and-file staff with a work schedule to set). Shared by
+ * the API endpoint (for refresh/department filter) and the Schedules
+ * page's first paint.
  */
 function hr_all_employees_build_data(PDO $db, string $department): array {
     $sql = "
         SELECT user_id, first_name, last_name, employee_number, role
         FROM users
-        WHERE is_active = 1 AND role != 'trainee'
+        WHERE is_active = 1 AND role NOT IN ('trainee', 'owner', 'supplier')
     ";
     if ($department !== 'all') {
         $sql .= " AND role = ?";

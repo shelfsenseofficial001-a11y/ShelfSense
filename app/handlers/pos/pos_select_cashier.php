@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../models/Attendance.php';
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\Settings;
 use App\Models\Attendance;
 
 header('Content-Type: application/json');
@@ -55,9 +56,10 @@ try {
 
     // Face ID is temporarily off for cashiers (see app/config/features.php)
     // -- password alone confirms identity and clocks them in directly,
-    // skipping the face-verify step entirely.
+    // skipping the face-verify step entirely. Test mode extends this to
+    // trainees too, for QA/dev use only.
     $features = require __DIR__ . '/../../config/features.php';
-    if ($cashier['role'] === 'employee' && !$features['face_id_required_for_cashier']) {
+    if (Settings::isTestMode() || ($cashier['role'] === 'employee' && !$features['face_id_required_for_cashier'])) {
         $attendanceModel = new Attendance();
         $action = $attendanceModel->recordPasswordClock((int)$cashier['user_id']);
         Auth::posSetCashier((int)$cashier['user_id'], $fullName);

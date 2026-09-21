@@ -63,12 +63,9 @@ class SupplierProduct
 
     public function getBySupplierAndProduct($supplierId, $storeProductId)
     {
-        // For 1-to-1 mapping: store product name matches supplier product name
         $stmt = $this->db->prepare("
-            SELECT sp.* 
-            FROM supplier_products sp
-            JOIN products p ON p.name = sp.name
-            WHERE sp.supplier_id = ? AND p.id = ?
+            SELECT * FROM supplier_products
+            WHERE supplier_id = ? AND store_product_id = ?
             LIMIT 1
         ");
         $stmt->execute([$supplierId, $storeProductId]);
@@ -166,6 +163,7 @@ class SupplierProduct
                 $lines[] = [
                     'store_product_id' => (int)$storeProductId,
                     'supplier_product_id' => (int)$sp['id'],
+                    'supplier_product_name' => $sp['name'],
                     'unit_price' => (float)$sp['price'],
                     'available_quantity' => (int)$sp['quantity'],
                     'quantity' => $needQty,
@@ -193,12 +191,9 @@ class SupplierProduct
 
     public function getSupplierIdFromProduct($productId)
     {
-        // Get supplier_id from supplier_products where name matches store product name
         $stmt = $this->db->prepare("
-            SELECT sp.supplier_id 
-            FROM supplier_products sp
-            JOIN products p ON p.name = sp.name
-            WHERE p.id = ?
+            SELECT supplier_id FROM supplier_products
+            WHERE store_product_id = ? AND is_active = 1
             LIMIT 1
         ");
         $stmt->execute([$productId]);
@@ -206,16 +201,21 @@ class SupplierProduct
         return $result ? $result['supplier_id'] : null;
     }
 
+    /**
+     * Every supplier's listing for one store product -- a product can be
+     * carried by more than one supplier, each under their own name/price,
+     * so this returns all of them rather than picking just one.
+     */
     public function getByStoreProductId($storeProductId)
     {
         $stmt = $this->db->prepare("
-            SELECT sp.* 
+            SELECT sp.*, s.company_name AS supplier_name
             FROM supplier_products sp
-            JOIN products p ON p.name = sp.name
-            WHERE p.id = ?
-            LIMIT 1
+            JOIN suppliers s ON s.id = sp.supplier_id
+            WHERE sp.store_product_id = ? AND sp.is_active = 1
+            ORDER BY s.company_name
         ");
         $stmt->execute([$storeProductId]);
-        return $stmt->fetch();
+        return $stmt->fetchAll();
     }
 }
