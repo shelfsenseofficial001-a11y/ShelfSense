@@ -20,8 +20,8 @@ header('Content-Type: application/json');
 if (!Auth::check()) {
     Response::unauthorized('Please login');
 }
-if (!Auth::isHR() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. HR role required.');
+if (!Auth::isHRStaff() && !Auth::isSuperAdmin()) {
+    Response::forbidden('Access denied. Only HR Staff can delete job postings.');
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -37,7 +37,7 @@ if (!$posting) {
 }
 
 $isOwner = (int)$posting['created_by'] === (int)Auth::userId();
-if (!$isOwner && !Auth::isHRHead() && !Auth::isSuperAdmin()) {
+if (!$isOwner && !Auth::isSuperAdmin()) {
     Response::forbidden('You may only delete job postings you created.');
 }
 if (!in_array($posting['status'], ['draft', 'rejected'], true)) {

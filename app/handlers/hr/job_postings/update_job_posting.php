@@ -1,7 +1,8 @@
 <?php
 // app/handlers/hr/job_postings/update_job_posting.php
-// HR Staff may edit their own draft/rejected posts. HR Head may edit/overwrite
-// any post that isn't archived (archived posts are historical and immutable).
+// HR Staff may edit their own draft/rejected posts. HR Head is a pure
+// reviewer (approve/reject + moderation message only) and cannot edit any
+// posting's content, including their own -- see review_job_posting.php.
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
@@ -18,8 +19,8 @@ header('Content-Type: application/json');
 if (!Auth::check()) {
     Response::unauthorized('Please login');
 }
-if (!Auth::isHR() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. HR role required.');
+if (!Auth::isHRStaff() && !Auth::isSuperAdmin()) {
+    Response::forbidden('Access denied. Only HR Staff can edit job postings.');
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -35,18 +36,15 @@ if (!$posting) {
 }
 
 $isOwner = (int)$posting['created_by'] === (int)Auth::userId();
-$isHead = Auth::isHRHead() || Auth::isSuperAdmin();
 
 if ($posting['status'] === 'archived') {
     Response::error('Archived job postings are historical and cannot be edited. Reuse it to create a new instance instead.', 400);
 }
-if (!$isHead) {
-    if (!$isOwner) {
-        Response::forbidden('You may only edit job postings you created.');
-    }
-    if (!in_array($posting['status'], ['draft', 'rejected'], true)) {
-        Response::error('This posting is under review or already active and can no longer be edited directly.', 400);
-    }
+if (!$isOwner && !Auth::isSuperAdmin()) {
+    Response::forbidden('You may only edit job postings you created.');
+}
+if (!Auth::isSuperAdmin() && !in_array($posting['status'], ['draft', 'rejected'], true)) {
+    Response::error('This posting is under review or already active and can no longer be edited directly.', 400);
 }
 
 $title = isset($input['title']) ? trim($input['title']) : $posting['title'];
@@ -134,7 +132,7 @@ try {
         Response::error('Failed to update job posting.', 500);
     }
 
-    logRecruitmentEvent('job_posting', $id, $isHead && !$isOwner ? 'hr_head_overwrite' : 'updated', [
+    logRecruitmentEvent('job_posting', $id, $isOwner ? 'updated' : 'superadmin_overwrite', [
         'previous_status' => $posting['status'],
         'new_status' => $posting['status']
     ]);

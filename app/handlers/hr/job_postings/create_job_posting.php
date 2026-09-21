@@ -16,8 +16,8 @@ header('Content-Type: application/json');
 if (!Auth::check()) {
     Response::unauthorized('Please login');
 }
-if (!Auth::isHR() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. HR role required.');
+if (!Auth::isHRStaff() && !Auth::isSuperAdmin()) {
+    Response::forbidden('Access denied. Only HR Staff can create job postings.');
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];

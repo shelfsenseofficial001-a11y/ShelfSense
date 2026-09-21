@@ -146,6 +146,11 @@ class Auth
         return self::role() === 'hr_head';
     }
 
+    public static function isHRStaff()
+    {
+        return self::role() === 'hr_staff';
+    }
+
     public static function isEmployee()
     {
         return self::role() === 'employee';

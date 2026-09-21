@@ -2,6 +2,14 @@
 use App\Core\Auth;
 use App\Models\JobPosting;
 
+// HR Head is a pure reviewer (approve/reject + moderation message only, see
+// job_posting_approvals.php) and never authors or edits a posting's content
+// -- Super Admin is the only role-based override left.
+if (Auth::isHRHead() && !Auth::isSuperAdmin()) {
+    http_response_code(403);
+    die('HR Head cannot create or edit job postings. Use the Approvals page to review a posting instead.');
+}
+
 $postingId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $posting = null;
 
@@ -12,12 +20,9 @@ if ($postingId > 0) {
         die('Job posting not found.');
     }
     $isOwner = (int)$posting['created_by'] === (int)Auth::userId();
-    $isHead = Auth::isHRHead() || Auth::isSuperAdmin();
     // Mirrors update_job_posting.php's own edit-ability rule exactly, so a
-    // direct link never lands on a page that then fails to save: HR Head
-    // may open anything that isn't archived; HR Staff only their own
-    // draft/rejected postings.
-    $canEdit = $isHead || ($isOwner && in_array($posting['status'], ['draft', 'rejected'], true));
+    // direct link never lands on a page that then fails to save.
+    $canEdit = Auth::isSuperAdmin() || ($isOwner && in_array($posting['status'], ['draft', 'rejected'], true));
     if ($posting['status'] === 'archived' || !$canEdit) {
         http_response_code(403);
         die('You do not have permission to edit this job posting.');
@@ -27,8 +32,6 @@ if ($postingId > 0) {
 $title = ($postingId ? 'Edit' : 'New') . ' Job Posting - ShelfSense HR';
 $pageTitle = 'Job Postings';
 $activePage = 'job_postings';
-$isHRHead = Auth::isHRHead() || Auth::isSuperAdmin();
-$isHRHeadJs = $isHRHead ? 'true' : 'false';
 $postingJson = $posting ? json_encode($posting, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null';
 
 $content = '<script>window.__POSTING__ = ' . $postingJson . ';</script>' . <<<EOT
@@ -275,9 +278,8 @@ $content .= <<<EOT
     </div>
 </div>
 
-<script>const HR_IS_HEAD = {$isHRHeadJs};</script>
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
-<script src="/ShelfSense/public/assets/js/hr/job_posting_form.js?v=20260918160000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_posting_form.js?v=20260918170000"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

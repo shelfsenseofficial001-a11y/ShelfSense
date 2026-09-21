@@ -699,6 +699,20 @@ body.hr-theme .jp-preview-description code {
 .jp-detail-btn-dark { background: var(--brand-dark, #1f2937); color: #fff; }
 .jp-detail-btn-primary { background: var(--brand-yellow); color: #fff; box-shadow: 0 4px 14px rgba(244, 91, 53, 0.3); }
 
+/* Small stateless Markdown toolbar shared by the Approve/Reject
+   moderation-message textareas (see setupMdToolbar in job_postings.js). */
+.jp-md-toolbar { display: flex; gap: 4px; margin-bottom: 4px; }
+.jp-md-btn {
+    width: 30px; height: 30px; border-radius: 6px;
+    border: 1px solid var(--border-color); background: var(--bg-card-subtle);
+    color: var(--text-muted); display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: border-color 0.15s ease, color 0.15s ease;
+}
+.jp-md-btn:hover { border-color: var(--brand-yellow); color: var(--text-main); }
+
+.jp-stat-clickable { cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease; }
+.jp-stat-clickable:hover { border-color: var(--brand-yellow); transform: translateY(-1px); }
+
 body.hr-theme .jp-form-section {
     padding-bottom: 20px;
     margin-bottom: 20px;

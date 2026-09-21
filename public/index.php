@@ -371,11 +371,24 @@ if ($page === 'hr_job_posting_form') {
         Response::redirect('?page=login');
         exit;
     }
-    if (!Auth::isHR() && !Auth::isSuperAdmin()) {
-        Response::redirect('?page=dashboard');
+    if (!Auth::isHRStaff() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=hr_job_posting_approvals');
         exit;
     }
     require_once __DIR__ . '/../views/pages/hr/job_posting_form.php';
+    exit;
+}
+
+if ($page === 'hr_job_posting_approvals') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isHRHead() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=hr_job_postings');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/hr/job_posting_approvals.php';
     exit;
 }
 

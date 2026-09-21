@@ -26,7 +26,7 @@ use App\Core\Auth;
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260921110000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260921100000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260921160000">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -70,6 +70,11 @@ use App\Core\Auth;
                 <a href="?page=hr_job_postings" class="nav-item <?php echo $activePage === 'job_postings' ? 'active' : ''; ?>" title="Job Postings">
                     <span class="nav-icon-wrap"><i class="bi bi-megaphone-fill"></i></span> <span class="nav-label">Job Postings</span>
                 </a>
+                <?php if (Auth::isHRHead() || Auth::isOwner()): ?>
+                <a href="?page=hr_job_posting_approvals" class="nav-item <?php echo $activePage === 'job_posting_approvals' ? 'active' : ''; ?>" title="Approvals">
+                    <span class="nav-icon-wrap"><i class="bi bi-patch-check-fill"></i></span> <span class="nav-label">Approvals</span>
+                </a>
+                <?php endif; ?>
                 <a href="?page=hr_recruitment_calendar" class="nav-item <?php echo $activePage === 'recruitment_calendar' ? 'active' : ''; ?>" title="Recruitment Calendar">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar3"></i></span> <span class="nav-label">Recruitment Calendar</span>
                 </a>

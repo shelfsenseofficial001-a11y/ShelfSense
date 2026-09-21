@@ -26,16 +26,19 @@ if (!Auth::isHRHead() && !Auth::isSuperAdmin()) {
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
 $id = isset($input['id']) ? intval($input['id']) : 0;
 $action = isset($input['action']) ? trim($input['action']) : '';
-$reason = isset($input['reason']) ? trim($input['reason']) : '';
+// The moderation message -- required when rejecting (goes to
+// rejection_reason), optional when approving (goes to approval_message).
+// Markdown-formatted (rendered client-side via the shared mdToHtml()).
+$message = isset($input['reason']) ? trim($input['reason']) : '';
 
 if ($id <= 0 || !in_array($action, ['approve', 'reject'], true)) {
     Response::error('Invalid request', 400);
 }
-if ($action === 'reject' && $reason === '') {
-    Response::error('A rejection reason is required.', 400);
+if ($action === 'reject' && $message === '') {
+    Response::error('A moderation message is required when rejecting.', 400);
 }
-if (strlen($reason) > 500) {
-    Response::error('Rejection reason cannot exceed 500 characters.', 400);
+if (strlen($message) > 500) {
+    Response::error('Moderation message cannot exceed 500 characters.', 400);
 }
 
 $db = Database::getInstance()->getConnection();
@@ -58,15 +61,18 @@ try {
 
     $model = new JobPosting();
     if ($action === 'approve') {
-        $model->approve($id, Auth::userId());
-        logRecruitmentEvent('job_posting', $id, 'approved', ['previous_status' => 'pending_approval', 'new_status' => 'approved']);
-        createNotification($posting['created_by'], 'job_posting_approved', "Your job posting \"{$posting['title']}\" was approved and is now public.", "?page=hr_job_postings&posting_id={$id}");
+        $model->approve($id, Auth::userId(), $message);
+        logRecruitmentEvent('job_posting', $id, 'approved', ['previous_status' => 'pending_approval', 'new_status' => 'approved', 'approval_message' => $message]);
+        $notifText = $message !== ''
+            ? "Your job posting \"{$posting['title']}\" was approved and is now public. HR Head left a moderation message."
+            : "Your job posting \"{$posting['title']}\" was approved and is now public.";
+        createNotification($posting['created_by'], 'job_posting_approved', $notifText, "?page=hr_job_postings&posting_id={$id}");
         $db->commit();
         Response::success(['id' => $id, 'status' => 'approved'], 'Job posting approved and now publicly visible.');
     } else {
-        $model->reject($id, Auth::userId(), $reason);
-        logRecruitmentEvent('job_posting', $id, 'rejected', ['previous_status' => 'pending_approval', 'new_status' => 'rejected', 'reason' => $reason]);
-        createNotification($posting['created_by'], 'job_posting_rejected', "Your job posting \"{$posting['title']}\" was rejected. Reason: {$reason}", "?page=hr_job_postings&posting_id={$id}");
+        $model->reject($id, Auth::userId(), $message);
+        logRecruitmentEvent('job_posting', $id, 'rejected', ['previous_status' => 'pending_approval', 'new_status' => 'rejected', 'reason' => $message]);
+        createNotification($posting['created_by'], 'job_posting_rejected', "Your job posting \"{$posting['title']}\" was rejected. Tap to view the moderation message.", "?page=hr_job_postings&posting_id={$id}");
         $db->commit();
         Response::success(['id' => $id, 'status' => 'rejected'], 'Job posting rejected.');
     }

@@ -24,11 +24,12 @@ document.addEventListener('DOMContentLoaded', function () {
         window.ShelfSenseFilterChips.init('activeFilterChips', [
             { key: 'status', type: 'select', elementId: 'filterStatus', defaultValue: 'all' },
             { key: 'search', type: 'search', elementId: 'searchInput' },
-            { key: 'mine', type: 'checkbox', elementId: 'mineOnly', label: 'My postings only' },
         ]);
     }
 
     document.getElementById('confirmRejectPostingBtn')?.addEventListener('click', submitReject);
+    document.getElementById('confirmApprovePostingBtn')?.addEventListener('click', submitApprove);
+    document.querySelectorAll('.jp-md-toolbar').forEach(setupMdToolbar);
     document.getElementById('myDraftsBtn')?.addEventListener('click', openMyDrafts);
     document.getElementById('jpDraftsSelectBtn')?.addEventListener('click', function () {
         if (jpDraftsSelecting) { jpDraftsExitSelectMode(); } else { jpDraftsEnterSelectMode(); }
@@ -109,22 +110,41 @@ function jpDebounce(fn, wait) {
 function setupFilters() {
     document.getElementById('filterStatus')?.addEventListener('change', () => loadPostings(1));
     document.getElementById('searchInput')?.addEventListener('input', jpDebounce(() => loadPostings(1), 400));
-    document.getElementById('mineOnly')?.addEventListener('change', () => loadPostings(1));
     document.getElementById('refreshBtn')?.addEventListener('click', () => loadPostings(jpPage));
+    document.getElementById('viewArchivedBtn')?.addEventListener('click', () => jpFilterByStatus('archived'));
+    document.getElementById('statsRow')?.addEventListener('click', (e) => {
+        const card = e.target.closest('.jp-stat-clickable');
+        if (card && card.dataset.status) jpFilterByStatus(card.dataset.status);
+    });
+}
+
+// Programmatically set the status filter (from a stat-card click or the
+// Archived shortcut) -- goes through the searchable-select instance so its
+// visible label and internal state stay in sync, not just the raw <select>.
+function jpFilterByStatus(status) {
+    const select = document.getElementById('filterStatus');
+    if (!select) return;
+    const label = select.querySelector(`option[value="${status}"]`)?.textContent || status;
+    if (select.searchableSelectInstance) {
+        select.searchableSelectInstance.selectOption(status, label);
+    } else {
+        select.value = status;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    select.scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
 function loadPostings(page) {
     jpPage = page;
-    const status = document.getElementById('filterStatus').value;
+    const isApprovalsMode = typeof JP_APPROVALS_MODE !== 'undefined' && JP_APPROVALS_MODE;
+    const status = isApprovalsMode ? 'pending_approval' : document.getElementById('filterStatus').value;
     const search = document.getElementById('searchInput').value.trim();
-    const mine = document.getElementById('mineOnly').checked;
 
     const tbody = document.getElementById('postingsTableBody');
     tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr>`;
 
     const params = new URLSearchParams({ p: page, limit: 10, status });
     if (search) params.append('search', search);
-    if (mine) params.append('mine', '1');
 
     fetch(`?page=api_hr_get_job_postings&${params}`)
         .then(r => r.json())
@@ -139,12 +159,15 @@ function loadPostings(page) {
 
 function renderStats(c) {
     if (!c) return;
-    document.getElementById('statDraft').textContent = c.draft ?? 0;
-    document.getElementById('statPending').textContent = c.pending_approval ?? 0;
-    document.getElementById('statApproved').textContent = c.approved ?? 0;
-    document.getElementById('statRejected').textContent = c.rejected ?? 0;
-    document.getElementById('statClosed').textContent = c.closed ?? 0;
-    document.getElementById('statArchived').textContent = c.archived ?? 0;
+    // Approvals mode has no stats row (the global all-status counts don't
+    // apply to a pending-only queue) -- these elements simply won't exist.
+    const el = id => document.getElementById(id);
+    if (el('statDraft')) el('statDraft').textContent = c.draft ?? 0;
+    if (el('statPending')) el('statPending').textContent = c.pending_approval ?? 0;
+    if (el('statApproved')) el('statApproved').textContent = c.approved ?? 0;
+    if (el('statRejected')) el('statRejected').textContent = c.rejected ?? 0;
+    if (el('statClosed')) el('statClosed').textContent = c.closed ?? 0;
+    if (el('statArchived')) el('statArchived').textContent = c.archived ?? 0;
 }
 
 function renderTable(postings) {
@@ -446,19 +469,24 @@ function renderDetail(p) {
         <p class="small text-muted mb-1">Created by ${jpEscapeHtml(p.creator_first)} ${jpEscapeHtml(p.creator_last)} on ${jpFormatDate(p.created_at, true)}</p>
         ${p.submitted_at ? `<p class="small text-muted mb-1">Submitted for approval: ${jpFormatDate(p.submitted_at, true)}</p>` : ''}
         ${p.approved_at ? `<p class="small text-success mb-1">Approved by ${jpEscapeHtml(p.approver_first)} ${jpEscapeHtml(p.approver_last)} on ${jpFormatDate(p.approved_at, true)}</p>` : ''}
-        ${p.rejected_at ? `<p class="small text-danger mb-1">Rejected by ${jpEscapeHtml(p.rejecter_first)} ${jpEscapeHtml(p.rejecter_last)} on ${jpFormatDate(p.rejected_at, true)}<br>Reason: ${jpEscapeHtml(p.rejection_reason)}</p>` : ''}
+        ${p.rejected_at ? `<p class="small text-danger mb-1">Rejected by ${jpEscapeHtml(p.rejecter_first)} ${jpEscapeHtml(p.rejecter_last)} on ${jpFormatDate(p.rejected_at, true)}</p>` : ''}
         ${p.archived_at ? `<p class="small text-muted mb-1">Archived: ${jpFormatDate(p.archived_at, true)}</p>` : ''}
         ${lineageHtml}
     `;
 
     let actions = `<div class="jp-detail-actions"><button type="button" class="jp-detail-btn jp-detail-btn-neutral" data-bs-dismiss="modal">Close</button>`;
 
-    if (HR_IS_HEAD && p.status === 'pending_approval') {
-        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="editFromDetailBtn"><i class="bi bi-pencil"></i> Edit</button>`;
+    const moderationMessage = p.status === 'rejected' ? p.rejection_reason : (p.status === 'approved' ? p.approval_message : (p.rejection_reason || p.approval_message));
+    if (moderationMessage) {
+        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="viewModerationMessageBtn"><i class="bi bi-chat-square-text"></i> Moderation Message</button>`;
+    }
+
+    const approvalsMode = typeof JP_APPROVALS_MODE !== 'undefined' && JP_APPROVALS_MODE;
+    if (HR_IS_HEAD && approvalsMode && p.status === 'pending_approval') {
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-danger" id="rejectBtn"><i class="bi bi-x-circle"></i> Reject</button>`;
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-success" id="approveBtn"><i class="bi bi-check-circle"></i> Approve</button>`;
     }
-    if (['draft', 'rejected'].includes(p.status)) {
+    if (!HR_IS_HEAD && ['draft', 'rejected'].includes(p.status)) {
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="editFromDetailBtn"><i class="bi bi-pencil"></i> Edit</button>`;
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-primary" id="submitFromDetailBtn"><i class="bi bi-send"></i> Submit for Approval</button>`;
     }
@@ -469,7 +497,7 @@ function renderDetail(p) {
     if (p.status === 'closed') {
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="archiveBtn"><i class="bi bi-archive"></i> Archive</button>`;
     }
-    if (['closed', 'archived'].includes(p.status)) {
+    if (!HR_IS_HEAD && ['closed', 'archived'].includes(p.status)) {
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-primary" id="reuseBtn"><i class="bi bi-arrow-repeat"></i> Reuse for New Hiring</button>`;
     }
     actions += `</div>`;
@@ -477,8 +505,9 @@ function renderDetail(p) {
     footer.innerHTML = actions;
     document.getElementById('editFromDetailBtn')?.addEventListener('click', () => { window.location.href = `?page=hr_job_posting_form&id=${p.id}`; });
     document.getElementById('submitFromDetailBtn')?.addEventListener('click', () => submitForApprovalFromDetail(p.id));
-    document.getElementById('approveBtn')?.addEventListener('click', () => reviewPosting(p.id, 'approve'));
+    document.getElementById('approveBtn')?.addEventListener('click', openApproveModal);
     document.getElementById('rejectBtn')?.addEventListener('click', openRejectModal);
+    document.getElementById('viewModerationMessageBtn')?.addEventListener('click', () => openViewModerationMessageModal(p));
     document.getElementById('closeBtn')?.addEventListener('click', () => archivePosting(p.id, 'close'));
     document.getElementById('archiveBtn')?.addEventListener('click', () => archivePosting(p.id, 'archive'));
     document.getElementById('reuseBtn')?.addEventListener('click', () => reusePosting(p.id));
@@ -513,6 +542,7 @@ function reviewPosting(id, action, reason) {
             if (data.success) {
                 bootstrap.Offcanvas.getInstance(document.getElementById('postingDetailModal'))?.hide();
                 bootstrap.Modal.getInstance(document.getElementById('rejectPostingModal'))?.hide();
+                bootstrap.Modal.getInstance(document.getElementById('approvePostingModal'))?.hide();
                 Swal.fire({ icon: 'success', title: action === 'approve' ? 'Approved' : 'Rejected', text: data.message, timer: 2000, showConfirmButton: false });
                 loadPostings(jpPage);
             } else {
@@ -525,7 +555,7 @@ function reviewPosting(id, action, reason) {
 function openRejectModal() {
     document.getElementById('rejectPostingReason').value = '';
     document.getElementById('rejectPostingReason').classList.remove('is-invalid');
-    new bootstrap.Modal(document.getElementById('rejectPostingModal')).show();
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('rejectPostingModal')).show();
 }
 
 function submitReject() {
@@ -535,6 +565,54 @@ function submitReject() {
         return;
     }
     reviewPosting(jpCurrentDetail.id, 'reject', reason);
+}
+
+function openApproveModal() {
+    document.getElementById('approvePostingMessage').value = '';
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('approvePostingModal')).show();
+}
+
+function submitApprove() {
+    const message = document.getElementById('approvePostingMessage').value.trim();
+    reviewPosting(jpCurrentDetail.id, 'approve', message);
+}
+
+function openViewModerationMessageModal(p) {
+    const isRejected = p.status === 'rejected';
+    const message = isRejected ? p.rejection_reason : (p.approval_message || p.rejection_reason);
+    const actorFirst = isRejected ? p.rejecter_first : p.approver_first;
+    const actorLast = isRejected ? p.rejecter_last : p.approver_last;
+    const when = isRejected ? p.rejected_at : p.approved_at;
+    document.getElementById('viewModerationMessageMeta').textContent =
+        actorFirst ? `${isRejected ? 'Rejected' : 'Approved'} by ${actorFirst} ${actorLast} on ${jpFormatDate(when, true)}` : '';
+    document.getElementById('viewModerationMessageBody').innerHTML = window.mdToHtml ? window.mdToHtml(message) : jpEscapeHtml(message || '');
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('viewModerationMessageModal')).show();
+}
+
+// Small, stateless Markdown toolbar (Bold/Italic/List) shared by the
+// Approve and Reject moderation-message textareas -- deliberately not the
+// Description field's jpMd* system, which keeps its undo/redo history in a
+// single module-level global and only supports one textarea at a time.
+function setupMdToolbar(toolbarEl) {
+    const targetId = toolbarEl.dataset.target;
+    const textarea = document.getElementById(targetId);
+    if (!textarea) return;
+    toolbarEl.querySelectorAll('.jp-md-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const kind = btn.dataset.md;
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const selected = textarea.value.slice(start, end);
+            let inserted;
+            if (kind === 'bold') inserted = `**${selected || 'bold text'}**`;
+            else if (kind === 'italic') inserted = `*${selected || 'italic text'}*`;
+            else inserted = (selected || 'list item').split('\n').map(line => `- ${line}`).join('\n');
+            textarea.value = textarea.value.slice(0, start) + inserted + textarea.value.slice(end);
+            textarea.focus();
+            textarea.selectionStart = start;
+            textarea.selectionEnd = start + inserted.length;
+        });
+    });
 }
 
 function archivePosting(id, action) {

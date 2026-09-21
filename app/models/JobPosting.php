@@ -151,15 +151,15 @@ class JobPosting
         return $stmt->execute([$id]);
     }
 
-    public function approve($id, $approvedBy)
+    public function approve($id, $approvedBy, $approvalMessage = null)
     {
-        $stmt = $this->db->prepare("UPDATE job_postings SET status = 'approved', approved_by = ?, approved_at = NOW(), rejection_reason = NULL, rejected_by = NULL, rejected_at = NULL WHERE id = ?");
-        return $stmt->execute([$approvedBy, $id]);
+        $stmt = $this->db->prepare("UPDATE job_postings SET status = 'approved', approved_by = ?, approved_at = NOW(), approval_message = ?, rejection_reason = NULL, rejected_by = NULL, rejected_at = NULL WHERE id = ?");
+        return $stmt->execute([$approvedBy, $approvalMessage !== '' ? $approvalMessage : null, $id]);
     }
 
     public function reject($id, $rejectedBy, $reason)
     {
-        $stmt = $this->db->prepare("UPDATE job_postings SET status = 'rejected', rejected_by = ?, rejected_at = NOW(), rejection_reason = ? WHERE id = ?");
+        $stmt = $this->db->prepare("UPDATE job_postings SET status = 'rejected', rejected_by = ?, rejected_at = NOW(), rejection_reason = ?, approval_message = NULL WHERE id = ?");
         return $stmt->execute([$rejectedBy, $reason, $id]);
     }
 
