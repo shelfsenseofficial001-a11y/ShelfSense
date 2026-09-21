@@ -17,6 +17,8 @@ var currentDtrUserId = null;
 var currentDtrWeekStart = null;
 var selectedEmployeeUserId = null;
 var atmDraggedUserId = null;
+var atmDraggedEl = null;
+var atmPlaceholderEl = null;
 
 // ===== UTILITY =====
 function formatTime(t){ if(!t)return '-'; let p=t.split(':'); return p[0]+':'+p[1]; }
@@ -198,14 +200,53 @@ function applyAttendanceFilters(){
 // Drag-and-drop reorder of the employee list -- purely a display-order
 // preference for this loaded week (not persisted server-side); reordering
 // the underlying array is safe since nothing downstream (stats, filters)
-// depends on list order.
-function reorderEmployeeList(draggedUserId, targetUserId){
+// depends on list order. beforeUserId is looked up AFTER the dragged item
+// is removed, so inserting before it lands in the right spot regardless of
+// whether the card moved up or down the list.
+function atmCommitReorder(draggedUserId, beforeUserId){
     let fromIdx=attendanceEmployees.findIndex(e=>String(e.user_id)===String(draggedUserId));
-    let toIdx=attendanceEmployees.findIndex(e=>String(e.user_id)===String(targetUserId));
-    if(fromIdx===-1 || toIdx===-1) return;
+    if(fromIdx===-1) return;
     let [moved]=attendanceEmployees.splice(fromIdx,1);
+    let toIdx=beforeUserId ? attendanceEmployees.findIndex(e=>String(e.user_id)===String(beforeUserId)) : -1;
+    if(toIdx===-1) toIdx=attendanceEmployees.length;
     attendanceEmployees.splice(toIdx,0,moved);
     renderEmployeeList(getFilteredEmployees());
+}
+
+// FLIP animation helper: records each item's position before a DOM change,
+// runs the change, then animates every item from its old position to its
+// new one -- so dragging one card visibly slides the others out of the way
+// instead of them silently jumping to their new spot.
+function atmAnimateReorder(container, mutate){
+    let items=[...container.querySelectorAll('.atm-emp-item, .atm-emp-placeholder')];
+    let firstRects=new Map();
+    items.forEach(el=>firstRects.set(el, el.getBoundingClientRect()));
+    mutate();
+    let after=[...container.querySelectorAll('.atm-emp-item, .atm-emp-placeholder')];
+    after.forEach(el=>{
+        let first=firstRects.get(el);
+        if(!first) return;
+        let last=el.getBoundingClientRect();
+        let deltaY=first.top-last.top;
+        if(Math.abs(deltaY)<1) return;
+        el.style.transition='none';
+        el.style.transform=`translateY(${deltaY}px)`;
+        requestAnimationFrame(()=>{
+            el.style.transition='transform 180ms ease';
+            el.style.transform='';
+        });
+    });
+}
+
+// Finds the sibling the dragged card should land in front of, based on
+// the cursor's Y position relative to each remaining card's midpoint.
+function atmFindDropTarget(container, y){
+    let items=[...container.querySelectorAll('.atm-emp-item:not(.dragging)')];
+    for(const item of items){
+        let rect=item.getBoundingClientRect();
+        if(y < rect.top + rect.height/2) return item;
+    }
+    return null;
 }
 
 // ===== RENDER EMPLOYEE LIST (left pane) =====
@@ -237,22 +278,61 @@ function renderEmployeeList(employees){
     panel.innerHTML=html;
     panel.querySelectorAll('.atm-emp-item').forEach(item=>{
         item.addEventListener('click', function(){ selectEmployee(this.dataset.userId); });
-        item.addEventListener('dragstart', function(){
+        item.addEventListener('dragstart', function(e){
             atmDraggedUserId=this.dataset.userId;
-            this.classList.add('dragging');
+            atmDraggedEl=this;
+            e.dataTransfer.effectAllowed='move';
+            try{ e.dataTransfer.setData('text/plain', this.dataset.userId); }catch(err){}
+            // Let the browser finish capturing its native drag-ghost image
+            // from the un-dimmed card before we visually mark it as dragging.
+            setTimeout(()=>{ item.classList.add('dragging'); }, 0);
         });
         item.addEventListener('dragend', function(){
             this.classList.remove('dragging');
+            atmPlaceholderEl?.remove();
+            atmPlaceholderEl=null;
             atmDraggedUserId=null;
-        });
-        item.addEventListener('dragover', function(e){ e.preventDefault(); });
-        item.addEventListener('drop', function(e){
-            e.preventDefault();
-            let targetUserId=this.dataset.userId;
-            if(!atmDraggedUserId || atmDraggedUserId===targetUserId) return;
-            reorderEmployeeList(atmDraggedUserId, targetUserId);
+            atmDraggedEl=null;
         });
     });
+
+    // Bound once on the container itself (its node survives re-renders --
+    // only its innerHTML is replaced), this tracks the cursor across the
+    // whole list rather than per-card, so the insertion point updates
+    // continuously as you drag over gaps between cards too.
+    if(!panel.dataset.dndBound){
+        panel.dataset.dndBound='1';
+        panel.addEventListener('dragover', function(e){
+            if(!atmDraggedEl) return;
+            e.preventDefault();
+            e.dataTransfer.dropEffect='move';
+            if(!atmPlaceholderEl){
+                atmPlaceholderEl=document.createElement('div');
+                atmPlaceholderEl.className='atm-emp-placeholder';
+                // Mirror the dragged card's own markup so the placeholder
+                // reads as "this is what lands here", not just an empty slot.
+                atmPlaceholderEl.innerHTML=atmDraggedEl.innerHTML;
+            }
+            let target=atmFindDropTarget(panel, e.clientY);
+            if(target===atmPlaceholderEl) return;
+            atmAnimateReorder(panel, function(){
+                if(target){
+                    panel.insertBefore(atmPlaceholderEl, target);
+                } else {
+                    panel.appendChild(atmPlaceholderEl);
+                }
+            });
+        });
+        panel.addEventListener('drop', function(e){
+            e.preventDefault();
+            if(!atmDraggedUserId || !atmPlaceholderEl) return;
+            let nextEl=atmPlaceholderEl.nextElementSibling;
+            let beforeUserId=(nextEl && nextEl.classList.contains('atm-emp-item')) ? nextEl.dataset.userId : null;
+            atmPlaceholderEl.remove();
+            atmPlaceholderEl=null;
+            atmCommitReorder(atmDraggedUserId, beforeUserId);
+        });
+    }
 
     // Keep the timecard panel in sync whenever the list is rebuilt (e.g.
     // after a save/upload triggers loadAttendance()), so the same employee

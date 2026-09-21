@@ -817,9 +817,24 @@ body.dashboard-theme .form-control:focus {
     box-shadow: 0 0 0 0.2rem rgba(244, 91, 53, 0.15);
 }
 
+/* Not --brand-dark/--on-dark here -- those intentionally flip
+   near-white in dark mode for CTA buttons, which turned this into a
+   washed-out, out-of-place pale badge among the other solid-colored status
+   pills (bg-success/warning/danger). A status badge needs a fixed identity
+   color that doesn't invert with the theme. */
+/* Bootstrap's .bg-dark (#212529) is nearly the same color as this app's
+   dark-mode card/body background (#201f1d/#161615), so a "Closed"-style
+   status badge using it was rendering as invisible white text with no
+   visible pill at all. Lighten it in dark mode only -- light mode's true
+   near-black already reads fine against a white page. */
+[data-bs-theme="dark"] .badge.bg-dark {
+    background-color: #495057 !important;
+    color: #fff !important;
+}
+
 body.dashboard-theme .badge.bg-primary {
-    background-color: var(--brand-dark) !important;
-    color: var(--on-dark) !important;
+    background-color: var(--brand-yellow) !important;
+    color: #fff !important;
 }
 body.dashboard-theme .nav-pills .nav-link.active {
     background: var(--brand-dark);

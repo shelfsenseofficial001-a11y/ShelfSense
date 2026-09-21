@@ -226,9 +226,14 @@ body.hr-theme .icon-box-sm {
     color: var(--brand-yellow);
 }
 
+/* Not --brand-dark/--on-dark here -- those intentionally flip
+   near-white in dark mode for CTA buttons (see dashboard-theme.css), which
+   turned this into a washed-out, out-of-place pale badge among the other
+   solid-colored status pills (bg-success/warning/danger). A status badge
+   needs a fixed identity color that doesn't invert with the theme. */
 body.hr-theme .badge.bg-primary {
-    background-color: var(--brand-dark) !important;
-    color: var(--on-dark) !important;
+    background-color: var(--brand-yellow) !important;
+    color: #fff !important;
 }
 
 body.hr-theme .spinner-border.text-primary {

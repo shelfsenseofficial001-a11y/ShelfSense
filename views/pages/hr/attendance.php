@@ -2,7 +2,7 @@
 $title = 'Attendance - ShelfSense HR';
 $pageTitle = 'Attendance Management';
 $activePage = 'attendance';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260918320000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260921120000"></script>';
 
 // Month/year options
 $currentMonth = date('m');
@@ -88,14 +88,26 @@ $content = <<<HTML
     .atm-emp-item {
         display: flex; align-items: center; gap: 10px;
         padding: 10px 12px; border-radius: 10px; cursor: pointer;
-        transition: background-color 0.15s ease, border-color 0.15s ease;
+        transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.18s ease;
         border: 1px solid transparent;
     }
     .atm-emp-item:hover { background: var(--bg-card-subtle); }
     .atm-emp-item.active { background: var(--light-yellow-subtle); border-color: var(--brand-yellow); }
-    .atm-emp-item.dragging { opacity: 0.4; }
+    .atm-emp-item.dragging { opacity: 0.35; }
     .atm-emp-grip { color: var(--text-muted); font-size: 0.9rem; cursor: grab; flex-shrink: 0; }
     .atm-emp-grip:active { cursor: grabbing; }
+    /* Ghost slot shown while dragging -- mirrors the dragged card's own
+       content (see attendance.js) so it previews where it will land,
+       instead of just an empty gap. */
+    .atm-emp-placeholder {
+        display: flex; align-items: center; gap: 10px;
+        padding: 10px 12px; border-radius: 10px;
+        border: 1.5px dashed var(--brand-yellow);
+        background: var(--light-yellow-subtle);
+        opacity: 0.6;
+        transition: transform 0.18s ease;
+        pointer-events: none;
+    }
     .atm-emp-avatar {
         width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
         background: var(--light-yellow-accent); color: var(--brand-yellow);
