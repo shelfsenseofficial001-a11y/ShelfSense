@@ -662,6 +662,16 @@ body.hr-theme .jp-preview-description code {
     font-weight: 500;
     color: var(--text-main);
 }
+.jp-detail-tabs .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.85rem;
+    padding: 6px 14px;
+}
+.jp-detail-tabs .nav-link .badge {
+    font-size: 0.65rem;
+}
 
 .jp-detail-actions {
     display: flex;

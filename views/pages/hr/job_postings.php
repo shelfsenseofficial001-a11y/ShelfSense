@@ -216,7 +216,7 @@ $content .= <<<EOT
 
 <script>const HR_IS_HEAD = {$isHRHeadJs}; const JP_APPROVALS_MODE = {$approvalsModeJs};</script>
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
-<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260923140000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260923160000"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

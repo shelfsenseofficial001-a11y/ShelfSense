@@ -424,7 +424,7 @@ function deleteDraft(id, title) {
 // DETAIL / REVIEW / ARCHIVE / REUSE
 // ============================================
 
-function viewPosting(id) {
+function viewPosting(id, activeTab) {
     const body = document.getElementById('postingDetailBody');
     const footer = document.getElementById('postingDetailFooter');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
@@ -437,6 +437,10 @@ function viewPosting(id) {
             if (!data.success) { body.innerHTML = `<div class="text-danger">${jpEscapeHtml(data.message)}</div>`; return; }
             jpCurrentDetail = data.data.posting;
             renderDetail(jpCurrentDetail);
+            if (activeTab) {
+                const tabBtn = body.querySelector(`[data-bs-target="${activeTab}"]`);
+                if (tabBtn) bootstrap.Tab.getOrCreateInstance(tabBtn).show();
+            }
         });
 }
 
@@ -454,29 +458,45 @@ function renderDetail(p) {
         `;
     }
 
+    const messageCount = (p.messages || []).length;
+
     body.innerHTML = `
         <div class="jp-detail-header">
             <h3 class="jp-detail-title">${jpEscapeHtml(p.title)}</h3>
             ${jpStatusBadge(p.status)}
         </div>
-        <div class="jp-detail-field-grid">
-            <div><span class="jp-detail-field-label">Department</span><div class="jp-detail-field-value">${jpEscapeHtml(p.department_group || '—')}</div></div>
-            <div><span class="jp-detail-field-label">Closing Date</span><div class="jp-detail-field-value">${jpFormatDate(p.open_until)}</div></div>
-            <div><span class="jp-detail-field-label">Position</span><div class="jp-detail-field-value">${jpEscapeHtml(p.department)}</div></div>
-            <div><span class="jp-detail-field-label">Salary</span><div class="jp-detail-field-value">${jpCurrency(p.salary_range_min)} - ${jpCurrency(p.salary_range_max)}</div></div>
+        <ul class="nav nav-pills jp-detail-tabs mb-3" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#jpTabDetails" type="button" role="tab">Details</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#jpTabMessages" type="button" role="tab">Messages${messageCount ? ` <span class="badge bg-secondary">${messageCount}</span>` : ''}</button>
+            </li>
+        </ul>
+        <div class="tab-content">
+            <div class="tab-pane fade show active" id="jpTabDetails" role="tabpanel">
+                <div class="jp-detail-field-grid">
+                    <div><span class="jp-detail-field-label">Department</span><div class="jp-detail-field-value">${jpEscapeHtml(p.department_group || '—')}</div></div>
+                    <div><span class="jp-detail-field-label">Closing Date</span><div class="jp-detail-field-value">${jpFormatDate(p.open_until)}</div></div>
+                    <div><span class="jp-detail-field-label">Position</span><div class="jp-detail-field-value">${jpEscapeHtml(p.department)}</div></div>
+                    <div><span class="jp-detail-field-label">Salary</span><div class="jp-detail-field-value">${jpCurrency(p.salary_range_min)} - ${jpCurrency(p.salary_range_max)}</div></div>
+                </div>
+                ${p.shares_location_count > 0 ? `<p class="mb-3"><span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-geo-alt"></i> Shares location "${jpEscapeHtml(p.location || '')}" with ${p.shares_location_count} other active posting(s)</span></p>` : ''}
+                <div class="mb-2"><strong>Description:</strong><div class="jp-preview-description">${window.mdToHtml ? window.mdToHtml(p.description) : jpEscapeHtml(p.description).replace(/\n/g, '<br>')}</div></div>
+                ${p.requirements ? `<div class="mb-2"><strong>Qualifications:</strong>${jpLinesToList(p.requirements, 'jp-check-list')}</div>` : ''}
+                ${p.responsibilities ? `<div class="mb-2"><strong>Key Responsibilities:</strong>${jpLinesToList(p.responsibilities, 'jp-check-list')}</div>` : ''}
+                <hr>
+                <p class="small text-muted mb-1">Created by ${jpEscapeHtml(p.creator_first)} ${jpEscapeHtml(p.creator_last)} on ${jpFormatDate(p.created_at, true)}</p>
+                ${p.submitted_at ? `<p class="small text-muted mb-1">Submitted for approval: ${jpFormatDate(p.submitted_at, true)}</p>` : ''}
+                ${p.approved_at ? `<p class="small text-success mb-1">Approved by ${jpEscapeHtml(p.approver_first)} ${jpEscapeHtml(p.approver_last)} on ${jpFormatDate(p.approved_at, true)}</p>` : ''}
+                ${p.rejected_at ? `<p class="small text-danger mb-1">Rejected by ${jpEscapeHtml(p.rejecter_first)} ${jpEscapeHtml(p.rejecter_last)} on ${jpFormatDate(p.rejected_at, true)}</p>` : ''}
+                ${p.archived_at ? `<p class="small text-muted mb-1">Archived: ${jpFormatDate(p.archived_at, true)}</p>` : ''}
+                ${lineageHtml}
+            </div>
+            <div class="tab-pane fade" id="jpTabMessages" role="tabpanel">
+                <div id="jpMessageThread"></div>
+            </div>
         </div>
-        ${p.shares_location_count > 0 ? `<p class="mb-3"><span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-geo-alt"></i> Shares location "${jpEscapeHtml(p.location || '')}" with ${p.shares_location_count} other active posting(s)</span></p>` : ''}
-        <div class="mb-2"><strong>Description:</strong><div class="jp-preview-description">${window.mdToHtml ? window.mdToHtml(p.description) : jpEscapeHtml(p.description).replace(/\n/g, '<br>')}</div></div>
-        ${p.requirements ? `<div class="mb-2"><strong>Qualifications:</strong>${jpLinesToList(p.requirements, 'jp-check-list')}</div>` : ''}
-        ${p.responsibilities ? `<div class="mb-2"><strong>Key Responsibilities:</strong>${jpLinesToList(p.responsibilities, 'jp-check-list')}</div>` : ''}
-        <hr>
-        <p class="small text-muted mb-1">Created by ${jpEscapeHtml(p.creator_first)} ${jpEscapeHtml(p.creator_last)} on ${jpFormatDate(p.created_at, true)}</p>
-        ${p.submitted_at ? `<p class="small text-muted mb-1">Submitted for approval: ${jpFormatDate(p.submitted_at, true)}</p>` : ''}
-        ${p.approved_at ? `<p class="small text-success mb-1">Approved by ${jpEscapeHtml(p.approver_first)} ${jpEscapeHtml(p.approver_last)} on ${jpFormatDate(p.approved_at, true)}</p>` : ''}
-        ${p.rejected_at ? `<p class="small text-danger mb-1">Rejected by ${jpEscapeHtml(p.rejecter_first)} ${jpEscapeHtml(p.rejecter_last)} on ${jpFormatDate(p.rejected_at, true)}</p>` : ''}
-        ${p.archived_at ? `<p class="small text-muted mb-1">Archived: ${jpFormatDate(p.archived_at, true)}</p>` : ''}
-        ${lineageHtml}
-        <div id="jpMessageThread"></div>
     `;
 
     renderMessageThread(p);
@@ -583,18 +603,16 @@ function submitApprove() {
 const JP_MSG_ACTION_LABEL = { approved: 'Approved', rejected: 'Rejected', comment: 'Message' };
 const JP_MSG_ACTION_CLASS = { approved: 'success', rejected: 'danger', comment: 'secondary' };
 
-// Moderation-message thread at the bottom of the detail drawer, mirroring a
-// running conversation log (submit -> reviewed -> follow-up messages)
-// rather than a single one-shot approve/reject note. HR Head (or Super
-// Admin) can drop a new message at any time via the composer at the bottom;
-// HR Staff can only read the thread.
+// Moderation-message thread, shown in its own "Messages" tab of the detail
+// drawer, mirroring a running conversation log (submit -> reviewed ->
+// follow-up messages) rather than a single one-shot approve/reject note.
+// HR Head (or Super Admin) can drop a new message at any time via the
+// composer at the bottom; HR Staff can only read the thread.
 function renderMessageThread(p) {
     const container = document.getElementById('jpMessageThread');
     if (!container) return;
     const messages = p.messages || [];
     const canPost = HR_IS_HEAD;
-
-    if (messages.length === 0 && !canPost) { container.innerHTML = ''; return; }
 
     const entriesHtml = messages.length
         ? messages.map(m => {
@@ -629,8 +647,6 @@ function renderMessageThread(p) {
     ` : '';
 
     container.innerHTML = `
-        <hr>
-        <h6 class="fw-bold mb-1">Moderation Messages</h6>
         <p class="text-muted small mb-2">A running conversation between HR Head and the HR Staff who submitted this posting.</p>
         <div class="jp-msg-thread">${entriesHtml}</div>
         ${composerHtml}
@@ -654,7 +670,7 @@ function postNewMessage(id) {
         .then(data => {
             jpBusy = false;
             if (!data.success) { Swal.fire({ icon: 'error', title: 'Error', text: data.message }); return; }
-            viewPosting(id);
+            viewPosting(id, '#jpTabMessages');
             loadPostings(jpPage);
         })
         .catch(() => { jpBusy = false; });
