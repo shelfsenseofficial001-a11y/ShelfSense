@@ -609,7 +609,7 @@ function setupForm() {
         e.preventDefault();
         submitForm(false);
     });
-    document.getElementById('saveAndSubmitBtn').addEventListener('click', function () {
+    document.getElementById('saveAndSubmitBtn')?.addEventListener('click', function () {
         submitForm(true);
     });
     setupMarkdownEditor();

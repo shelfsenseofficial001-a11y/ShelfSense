@@ -1,8 +1,8 @@
 <?php
 // app/handlers/hr/job_postings/update_job_posting.php
-// HR Staff may edit their own draft/rejected posts. HR Head is a pure
-// reviewer (approve/reject + moderation message only) and cannot edit any
-// posting's content, including their own -- see review_job_posting.php.
+// HR Staff may edit their own draft/rejected posts. HR Head may also edit
+// any HR Staff posting while it is still in an editable (non-public) state,
+// on top of approving/rejecting it -- see review_job_posting.php.
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
@@ -19,8 +19,8 @@ header('Content-Type: application/json');
 if (!Auth::check()) {
     Response::unauthorized('Please login');
 }
-if (!Auth::isHRStaff() && !Auth::isSuperAdmin()) {
-    Response::forbidden('Access denied. Only HR Staff can edit job postings.');
+if (!Auth::isHRStaff() && !Auth::isHRHead() && !Auth::isSuperAdmin()) {
+    Response::forbidden('Access denied. Only HR Staff or HR Head can edit job postings.');
 }
 
 $input = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -36,14 +36,20 @@ if (!$posting) {
 }
 
 $isOwner = (int)$posting['created_by'] === (int)Auth::userId();
+$isHRHeadEditor = Auth::isHRHead();
 
 if ($posting['status'] === 'archived') {
     Response::error('Archived job postings are historical and cannot be edited. Reuse it to create a new instance instead.', 400);
 }
-if (!$isOwner && !Auth::isSuperAdmin()) {
+if (!$isOwner && !$isHRHeadEditor && !Auth::isSuperAdmin()) {
     Response::forbidden('You may only edit job postings you created.');
 }
-if (!Auth::isSuperAdmin() && !in_array($posting['status'], ['draft', 'rejected'], true)) {
+// Staff may only touch their own draft/rejected postings; HR Head may also
+// step in while a posting is still awaiting their decision (their own or
+// any HR Staff's). Super Admin bypasses the status restriction entirely.
+$ownerEditable = $isOwner && in_array($posting['status'], ['draft', 'rejected'], true);
+$headEditable = $isHRHeadEditor && in_array($posting['status'], ['draft', 'rejected', 'pending_approval'], true);
+if (!Auth::isSuperAdmin() && !$ownerEditable && !$headEditable) {
     Response::error('This posting is under review or already active and can no longer be edited directly.', 400);
 }
 
@@ -132,7 +138,8 @@ try {
         Response::error('Failed to update job posting.', 500);
     }
 
-    logRecruitmentEvent('job_posting', $id, $isOwner ? 'updated' : 'superadmin_overwrite', [
+    $eventType = $isOwner ? 'updated' : ($isHRHeadEditor ? 'hr_head_edit' : 'superadmin_overwrite');
+    logRecruitmentEvent('job_posting', $id, $eventType, [
         'previous_status' => $posting['status'],
         'new_status' => $posting['status']
     ]);

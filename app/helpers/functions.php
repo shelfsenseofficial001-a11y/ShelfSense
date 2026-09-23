@@ -277,6 +277,24 @@ function mapDisplayRoleToDbRole($targetRole)
 }
 
 /**
+ * Whether the currently logged-in user may edit this job posting's content
+ * directly -- mirrors the exact rule enforced server-side in
+ * update_job_posting.php, so the Edit icon shown in a postings table only
+ * appears where clicking it would actually be allowed to save.
+ */
+function jobPostingCanEdit($posting)
+{
+    if (!\App\Core\Auth::check()) return false;
+    if (\App\Core\Auth::isSuperAdmin()) return true;
+    if ($posting['status'] === 'archived') return false;
+
+    $isOwner = (int)$posting['created_by'] === (int)\App\Core\Auth::userId();
+    $ownerEditable = $isOwner && in_array($posting['status'], ['draft', 'rejected'], true);
+    $headEditable = \App\Core\Auth::isHRHead() && in_array($posting['status'], ['draft', 'rejected', 'pending_approval'], true);
+    return $ownerEditable || $headEditable;
+}
+
+/**
  * Maps a job posting's controlled `department` value (JOB_POSTING_DEPARTMENTS
  * -- 'Cashier', 'HR Staff', 'Finance Staff') to the display-form target_role
  * an applicant record should carry, keeping it consistent with

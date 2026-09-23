@@ -371,7 +371,11 @@ if ($page === 'hr_job_posting_form') {
         Response::redirect('?page=login');
         exit;
     }
-    if (!Auth::isHRStaff() && !Auth::isSuperAdmin()) {
+    // HR Staff authors; HR Head is normally a reviewer but may also edit an
+    // existing HR Staff posting (job_posting_form.php enforces exactly which
+    // one/status), so only block Head from the bare create-new form.
+    $editingExisting = !empty($_GET['id']);
+    if (!Auth::isHRStaff() && !Auth::isSuperAdmin() && !(Auth::isHRHead() && $editingExisting)) {
         Response::redirect('?page=hr_job_posting_approvals');
         exit;
     }
@@ -436,6 +440,10 @@ if ($page === 'api_hr_submit_job_posting') {
 }
 if ($page === 'api_hr_review_job_posting') {
     require_once __DIR__ . '/../app/handlers/hr/job_postings/review_job_posting.php';
+    exit;
+}
+if ($page === 'api_hr_add_job_posting_message') {
+    require_once __DIR__ . '/../app/handlers/hr/job_postings/add_job_posting_message.php';
     exit;
 }
 if ($page === 'api_hr_archive_job_posting') {

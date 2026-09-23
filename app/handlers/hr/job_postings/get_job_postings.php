@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/JobPosting.php';
+require_once __DIR__ . '/../../../helpers/functions.php';
 
 use App\Core\Auth;
 use App\Core\Response;
@@ -34,6 +35,11 @@ try {
     $model = new JobPosting();
     $data = $model->getAll($page, $limit, $filters);
     $counts = $model->getStatusCounts();
+
+    foreach ($data['postings'] as &$posting) {
+        $posting['can_edit'] = jobPostingCanEdit($posting);
+    }
+    unset($posting);
 
     Response::success([
         'postings' => $data['postings'],

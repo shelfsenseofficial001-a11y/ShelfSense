@@ -163,6 +163,30 @@ class JobPosting
         return $stmt->execute([$rejectedBy, $reason, $id]);
     }
 
+    /** Full moderation-message thread for one posting, oldest first. */
+    public function getMessages($jobPostingId)
+    {
+        $stmt = $this->db->prepare("
+            SELECT m.*, u.first_name, u.last_name
+            FROM job_posting_messages m
+            LEFT JOIN users u ON m.author_id = u.user_id
+            WHERE m.job_posting_id = ?
+            ORDER BY m.created_at ASC, m.id ASC
+        ");
+        $stmt->execute([$jobPostingId]);
+        return $stmt->fetchAll();
+    }
+
+    public function addMessage($jobPostingId, $authorId, $message, $action = null)
+    {
+        $stmt = $this->db->prepare("
+            INSERT INTO job_posting_messages (job_posting_id, author_id, message, action)
+            VALUES (?, ?, ?, ?)
+        ");
+        $stmt->execute([$jobPostingId, $authorId, $message, $action]);
+        return (int)$this->db->lastInsertId();
+    }
+
     public function archive($id)
     {
         $stmt = $this->db->prepare("UPDATE job_postings SET status = 'archived', archived_at = NOW() WHERE id = ?");

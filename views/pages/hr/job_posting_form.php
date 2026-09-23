@@ -2,16 +2,17 @@
 use App\Core\Auth;
 use App\Models\JobPosting;
 
-// HR Head is a pure reviewer (approve/reject + moderation message only, see
-// job_posting_approvals.php) and never authors or edits a posting's content
-// -- Super Admin is the only role-based override left.
-if (Auth::isHRHead() && !Auth::isSuperAdmin()) {
+// HR Head never authors a brand-new posting -- only HR Staff creates. HR
+// Head may still land here to edit an existing HR Staff posting (on top of
+// approving/rejecting it), so only the no-id (create) case is blocked.
+if (Auth::isHRHead() && !Auth::isSuperAdmin() && empty($_GET['id'])) {
     http_response_code(403);
-    die('HR Head cannot create or edit job postings. Use the Approvals page to review a posting instead.');
+    die('HR Head cannot create new job postings. Only HR Staff can author a new posting.');
 }
 
 $postingId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 $posting = null;
+$isHRHeadEditor = false;
 
 if ($postingId > 0) {
     $posting = (new JobPosting())->getById($postingId);
@@ -20,9 +21,12 @@ if ($postingId > 0) {
         die('Job posting not found.');
     }
     $isOwner = (int)$posting['created_by'] === (int)Auth::userId();
+    $isHRHeadEditor = Auth::isHRHead();
     // Mirrors update_job_posting.php's own edit-ability rule exactly, so a
     // direct link never lands on a page that then fails to save.
-    $canEdit = Auth::isSuperAdmin() || ($isOwner && in_array($posting['status'], ['draft', 'rejected'], true));
+    $ownerEditable = $isOwner && in_array($posting['status'], ['draft', 'rejected'], true);
+    $headEditable = $isHRHeadEditor && in_array($posting['status'], ['draft', 'rejected', 'pending_approval'], true);
+    $canEdit = Auth::isSuperAdmin() || $ownerEditable || $headEditable;
     if ($posting['status'] === 'archived' || !$canEdit) {
         http_response_code(403);
         die('You do not have permission to edit this job posting.');
@@ -34,6 +38,20 @@ $pageTitle = 'Job Postings';
 $activePage = 'job_postings';
 $postingJson = $posting ? json_encode($posting, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null';
 
+// HR Head is editing someone else's posting, not authoring/resubmitting
+// their own -- offer a single "Save Changes" action instead of the
+// draft/submit choice that only makes sense for the posting's own author.
+$formHeaderActions = $isHRHeadEditor
+    ? <<<HTML
+            <a href="?page=hr_job_posting_approvals" class="btn btn-secondary" id="cancelFormBtn">Cancel</a>
+            <button type="submit" form="postingForm" class="btn btn-yellow-primary" id="saveDraftBtn">Save Changes</button>
+HTML
+    : <<<HTML
+            <a href="?page=hr_job_postings" class="btn btn-secondary" id="cancelFormBtn">Cancel</a>
+            <button type="submit" form="postingForm" class="btn btn-outline-secondary" id="saveDraftBtn">Save as Draft</button>
+            <button type="button" class="btn btn-yellow-primary" id="saveAndSubmitBtn">Save &amp; Submit for Approval</button>
+HTML;
+
 $content = '<script>window.__POSTING__ = ' . $postingJson . ';</script>' . <<<EOT
 <div class="jp-page-header">
     <div class="jp-page-header-top">
@@ -42,9 +60,7 @@ $content = '<script>window.__POSTING__ = ' . $postingJson . ';</script>' . <<<EO
             <h4 class="mb-0" id="jpFormPageTitle"><i class="bi bi-megaphone"></i> New Job Posting</h4>
         </div>
         <div class="jp-page-header-actions">
-            <a href="?page=hr_job_postings" class="btn btn-secondary" id="cancelFormBtn">Cancel</a>
-            <button type="submit" form="postingForm" class="btn btn-outline-secondary" id="saveDraftBtn">Save as Draft</button>
-            <button type="button" class="btn btn-yellow-primary" id="saveAndSubmitBtn">Save &amp; Submit for Approval</button>
+            {$formHeaderActions}
         </div>
     </div>
     <p class="text-muted small mb-0">Fill in the details below to open a new position for applicants.</p>
@@ -182,7 +198,7 @@ $content = '<script>window.__POSTING__ = ' . $postingJson . ';</script>' . <<<EO
 
 EOT;
 
-if ($postingId && in_array($posting['status'], ['draft', 'rejected'], true)) {
+if ($postingId && !$isHRHeadEditor && in_array($posting['status'], ['draft', 'rejected'], true)) {
     $content .= <<<EOT
             <div class="jp-danger-zone">
                 <h6 class="jp-danger-title"><i class="bi bi-exclamation-octagon-fill"></i> Danger Zone</h6>
@@ -196,7 +212,7 @@ if ($postingId && in_array($posting['status'], ['draft', 'rejected'], true)) {
             </div>
 
 EOT;
-} elseif ($postingId) {
+} elseif ($postingId && !$isHRHeadEditor) {
     $content .= <<<EOT
             <div class="jp-danger-zone">
                 <h6 class="jp-danger-title"><i class="bi bi-exclamation-octagon-fill"></i> Danger Zone</h6>
@@ -279,7 +295,7 @@ $content .= <<<EOT
 </div>
 
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
-<script src="/ShelfSense/public/assets/js/hr/job_posting_form.js?v=20260918170000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_posting_form.js?v=20260923120000"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

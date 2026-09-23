@@ -713,6 +713,17 @@ body.hr-theme .jp-preview-description code {
 .jp-stat-clickable { cursor: pointer; transition: border-color 0.15s ease, transform 0.1s ease; }
 .jp-stat-clickable:hover { border-color: var(--brand-yellow); transform: translateY(-1px); }
 
+.jp-msg-thread { display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px; }
+.jp-msg-entry { display: flex; gap: 10px; }
+.jp-msg-entry-icon { font-size: 1.6rem; color: var(--text-muted); line-height: 1; flex-shrink: 0; }
+.jp-msg-entry-body {
+    flex: 1; min-width: 0; background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color); border-radius: 8px; padding: 10px 12px;
+}
+.jp-msg-entry-meta { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; flex-wrap: wrap; }
+.jp-msg-entry-text { margin: 0; }
+.jp-msg-composer { border-top: 1px dashed var(--border-color); padding-top: 10px; }
+
 body.hr-theme .jp-form-section {
     padding-bottom: 20px;
     margin-bottom: 20px;

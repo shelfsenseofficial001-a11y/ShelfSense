@@ -19,6 +19,10 @@ $approvalsModeJs = $approvalsMode ? 'true' : 'false';
 $jpModel = new JobPosting();
 $initialFilters = $approvalsMode ? ['status' => 'pending_approval', 'search' => ''] : ['status' => 'all', 'search' => ''];
 $jpInitial = $jpModel->getAll(1, 10, $initialFilters);
+foreach ($jpInitial['postings'] as &$jpInitialPosting) {
+    $jpInitialPosting['can_edit'] = jobPostingCanEdit($jpInitialPosting);
+}
+unset($jpInitialPosting);
 $initialData = [
     'postings' => $jpInitial['postings'],
     'pagination' => $jpInitial['pagination'],
@@ -210,28 +214,9 @@ $content .= <<<EOT
     </div>
 </div>
 
-<!-- Moderation Message View Modal -->
-<div class="modal fade" id="viewModerationMessageModal" tabindex="-1">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="viewModerationMessageTitle"><i class="bi bi-chat-square-text"></i> Moderation Message</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <div class="text-muted small mb-2" id="viewModerationMessageMeta"></div>
-                <div class="jp-preview-description" id="viewModerationMessageBody"></div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <script>const HR_IS_HEAD = {$isHRHeadJs}; const JP_APPROVALS_MODE = {$approvalsModeJs};</script>
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
-<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260921160000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260923140000"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

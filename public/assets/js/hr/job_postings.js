@@ -185,12 +185,16 @@ function renderTable(postings) {
             <td>${jpStatusBadge(p.status)}</td>
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-primary view-posting-btn" data-id="${p.id}" title="View details"><i class="bi bi-eye"></i></button>
+                ${p.can_edit ? `<button class="btn btn-sm btn-outline-secondary edit-posting-btn" data-id="${p.id}" title="Edit job posting"><i class="bi bi-pencil"></i></button>` : ''}
             </td>
         </tr>
     `).join('');
 
     tbody.querySelectorAll('.view-posting-btn').forEach(btn => {
         btn.addEventListener('click', () => viewPosting(parseInt(btn.dataset.id)));
+    });
+    tbody.querySelectorAll('.edit-posting-btn').forEach(btn => {
+        btn.addEventListener('click', () => { window.location.href = `?page=hr_job_posting_form&id=${btn.dataset.id}`; });
     });
     jpInitIconTooltips(tbody);
 }
@@ -472,22 +476,22 @@ function renderDetail(p) {
         ${p.rejected_at ? `<p class="small text-danger mb-1">Rejected by ${jpEscapeHtml(p.rejecter_first)} ${jpEscapeHtml(p.rejecter_last)} on ${jpFormatDate(p.rejected_at, true)}</p>` : ''}
         ${p.archived_at ? `<p class="small text-muted mb-1">Archived: ${jpFormatDate(p.archived_at, true)}</p>` : ''}
         ${lineageHtml}
+        <div id="jpMessageThread"></div>
     `;
 
-    let actions = `<div class="jp-detail-actions"><button type="button" class="jp-detail-btn jp-detail-btn-neutral" data-bs-dismiss="modal">Close</button>`;
+    renderMessageThread(p);
 
-    const moderationMessage = p.status === 'rejected' ? p.rejection_reason : (p.status === 'approved' ? p.approval_message : (p.rejection_reason || p.approval_message));
-    if (moderationMessage) {
-        actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="viewModerationMessageBtn"><i class="bi bi-chat-square-text"></i> Moderation Message</button>`;
-    }
+    let actions = `<div class="jp-detail-actions"><button type="button" class="jp-detail-btn jp-detail-btn-neutral" data-bs-dismiss="modal">Close</button>`;
 
     const approvalsMode = typeof JP_APPROVALS_MODE !== 'undefined' && JP_APPROVALS_MODE;
     if (HR_IS_HEAD && approvalsMode && p.status === 'pending_approval') {
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-danger" id="rejectBtn"><i class="bi bi-x-circle"></i> Reject</button>`;
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-success" id="approveBtn"><i class="bi bi-check-circle"></i> Approve</button>`;
     }
-    if (!HR_IS_HEAD && ['draft', 'rejected'].includes(p.status)) {
+    if (p.can_edit) {
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-outline" id="editFromDetailBtn"><i class="bi bi-pencil"></i> Edit</button>`;
+    }
+    if (!HR_IS_HEAD && ['draft', 'rejected'].includes(p.status)) {
         actions += `<button type="button" class="jp-detail-btn jp-detail-btn-primary" id="submitFromDetailBtn"><i class="bi bi-send"></i> Submit for Approval</button>`;
     }
     if (p.status === 'approved') {
@@ -507,7 +511,6 @@ function renderDetail(p) {
     document.getElementById('submitFromDetailBtn')?.addEventListener('click', () => submitForApprovalFromDetail(p.id));
     document.getElementById('approveBtn')?.addEventListener('click', openApproveModal);
     document.getElementById('rejectBtn')?.addEventListener('click', openRejectModal);
-    document.getElementById('viewModerationMessageBtn')?.addEventListener('click', () => openViewModerationMessageModal(p));
     document.getElementById('closeBtn')?.addEventListener('click', () => archivePosting(p.id, 'close'));
     document.getElementById('archiveBtn')?.addEventListener('click', () => archivePosting(p.id, 'archive'));
     document.getElementById('reuseBtn')?.addEventListener('click', () => reusePosting(p.id));
@@ -577,16 +580,84 @@ function submitApprove() {
     reviewPosting(jpCurrentDetail.id, 'approve', message);
 }
 
-function openViewModerationMessageModal(p) {
-    const isRejected = p.status === 'rejected';
-    const message = isRejected ? p.rejection_reason : (p.approval_message || p.rejection_reason);
-    const actorFirst = isRejected ? p.rejecter_first : p.approver_first;
-    const actorLast = isRejected ? p.rejecter_last : p.approver_last;
-    const when = isRejected ? p.rejected_at : p.approved_at;
-    document.getElementById('viewModerationMessageMeta').textContent =
-        actorFirst ? `${isRejected ? 'Rejected' : 'Approved'} by ${actorFirst} ${actorLast} on ${jpFormatDate(when, true)}` : '';
-    document.getElementById('viewModerationMessageBody').innerHTML = window.mdToHtml ? window.mdToHtml(message) : jpEscapeHtml(message || '');
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('viewModerationMessageModal')).show();
+const JP_MSG_ACTION_LABEL = { approved: 'Approved', rejected: 'Rejected', comment: 'Message' };
+const JP_MSG_ACTION_CLASS = { approved: 'success', rejected: 'danger', comment: 'secondary' };
+
+// Moderation-message thread at the bottom of the detail drawer, mirroring a
+// running conversation log (submit -> reviewed -> follow-up messages)
+// rather than a single one-shot approve/reject note. HR Head (or Super
+// Admin) can drop a new message at any time via the composer at the bottom;
+// HR Staff can only read the thread.
+function renderMessageThread(p) {
+    const container = document.getElementById('jpMessageThread');
+    if (!container) return;
+    const messages = p.messages || [];
+    const canPost = HR_IS_HEAD;
+
+    if (messages.length === 0 && !canPost) { container.innerHTML = ''; return; }
+
+    const entriesHtml = messages.length
+        ? messages.map(m => {
+            const action = m.action && JP_MSG_ACTION_LABEL[m.action] ? m.action : null;
+            const authorName = (m.first_name || m.last_name) ? `${jpEscapeHtml(m.first_name || '')} ${jpEscapeHtml(m.last_name || '')}`.trim() : 'HR Head';
+            return `
+                <div class="jp-msg-entry">
+                    <div class="jp-msg-entry-icon"><i class="bi bi-person-circle"></i></div>
+                    <div class="jp-msg-entry-body">
+                        <div class="jp-msg-entry-meta">
+                            <strong>${authorName}</strong>
+                            ${action ? `<span class="badge bg-${JP_MSG_ACTION_CLASS[action]}-subtle text-${JP_MSG_ACTION_CLASS[action]}-emphasis">${JP_MSG_ACTION_LABEL[action]}</span>` : ''}
+                            <span class="text-muted small">${jpFormatDate(m.created_at, true)}</span>
+                        </div>
+                        <div class="jp-preview-description jp-msg-entry-text">${window.mdToHtml ? window.mdToHtml(m.message) : jpEscapeHtml(m.message)}</div>
+                    </div>
+                </div>
+            `;
+        }).join('')
+        : '<p class="text-muted small mb-0">No messages yet.</p>';
+
+    const composerHtml = canPost ? `
+        <div class="jp-msg-composer">
+            <div class="jp-md-toolbar" data-target="jpNewMessageInput">
+                <button type="button" class="jp-md-btn" data-md="bold" title="Bold"><i class="bi bi-type-bold"></i></button>
+                <button type="button" class="jp-md-btn" data-md="italic" title="Italic"><i class="bi bi-type-italic"></i></button>
+                <button type="button" class="jp-md-btn" data-md="list" title="Bulleted list"><i class="bi bi-list-ul"></i></button>
+            </div>
+            <textarea id="jpNewMessageInput" class="form-control" rows="2" maxlength="500" placeholder="Leave a message for HR Staff..."></textarea>
+            <button type="button" class="btn btn-yellow-primary btn-sm mt-2" id="jpPostMessageBtn"><i class="bi bi-send"></i> Post Message</button>
+        </div>
+    ` : '';
+
+    container.innerHTML = `
+        <hr>
+        <h6 class="fw-bold mb-1">Moderation Messages</h6>
+        <p class="text-muted small mb-2">A running conversation between HR Head and the HR Staff who submitted this posting.</p>
+        <div class="jp-msg-thread">${entriesHtml}</div>
+        ${composerHtml}
+    `;
+
+    const toolbar = container.querySelector('.jp-md-toolbar');
+    if (toolbar) setupMdToolbar(toolbar);
+    document.getElementById('jpPostMessageBtn')?.addEventListener('click', () => postNewMessage(p.id));
+}
+
+function postNewMessage(id) {
+    const input = document.getElementById('jpNewMessageInput');
+    const message = input.value.trim();
+    if (!message) { input.classList.add('is-invalid'); return; }
+    if (jpBusy) return;
+    jpBusy = true;
+    fetch('?page=api_hr_add_job_posting_message', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, message })
+    })
+        .then(r => r.json())
+        .then(data => {
+            jpBusy = false;
+            if (!data.success) { Swal.fire({ icon: 'error', title: 'Error', text: data.message }); return; }
+            viewPosting(id);
+            loadPostings(jpPage);
+        })
+        .catch(() => { jpBusy = false; });
 }
 
 // Small, stateless Markdown toolbar (Bold/Italic/List) shared by the

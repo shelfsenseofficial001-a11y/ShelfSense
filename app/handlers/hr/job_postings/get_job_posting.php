@@ -5,6 +5,7 @@ require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../models/JobPosting.php';
+require_once __DIR__ . '/../../../helpers/functions.php';
 
 use App\Core\Auth;
 use App\Core\Response;
@@ -31,6 +32,8 @@ try {
         Response::notFound('Job posting not found');
     }
     $posting['lineage'] = $model->getLineage($id);
+    $posting['messages'] = $model->getMessages($id);
+    $posting['can_edit'] = jobPostingCanEdit($posting);
 
     Response::success(['posting' => $posting], 'Job posting fetched');
 

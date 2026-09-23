@@ -62,6 +62,9 @@ try {
     $model = new JobPosting();
     if ($action === 'approve') {
         $model->approve($id, Auth::userId(), $message);
+        if ($message !== '') {
+            $model->addMessage($id, Auth::userId(), $message, 'approved');
+        }
         logRecruitmentEvent('job_posting', $id, 'approved', ['previous_status' => 'pending_approval', 'new_status' => 'approved', 'approval_message' => $message]);
         $notifText = $message !== ''
             ? "Your job posting \"{$posting['title']}\" was approved and is now public. HR Head left a moderation message."
@@ -71,6 +74,7 @@ try {
         Response::success(['id' => $id, 'status' => 'approved'], 'Job posting approved and now publicly visible.');
     } else {
         $model->reject($id, Auth::userId(), $message);
+        $model->addMessage($id, Auth::userId(), $message, 'rejected');
         logRecruitmentEvent('job_posting', $id, 'rejected', ['previous_status' => 'pending_approval', 'new_status' => 'rejected', 'reason' => $message]);
         createNotification($posting['created_by'], 'job_posting_rejected', "Your job posting \"{$posting['title']}\" was rejected. Tap to view the moderation message.", "?page=hr_job_postings&posting_id={$id}");
         $db->commit();
