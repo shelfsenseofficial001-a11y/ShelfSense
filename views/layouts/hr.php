@@ -67,12 +67,26 @@ use App\Core\Auth;
                 <a href="?page=hr_contracts" class="nav-item <?php echo $activePage === 'contracts' ? 'active' : ''; ?>" title="Contracts">
                     <span class="nav-icon-wrap"><i class="bi bi-file-text-fill"></i></span> <span class="nav-label">Contracts</span>
                 </a>
+                <?php $jpGroupActive = in_array($activePage, ['job_postings', 'job_posting_approvals'], true); ?>
+                <?php if (Auth::isHRHead() || Auth::isOwner()): ?>
+                <div class="nav-group <?php echo $jpGroupActive ? 'nav-group-open' : ''; ?>">
+                    <button type="button" class="nav-item nav-group-toggle <?php echo $jpGroupActive ? 'active' : ''; ?>" title="Job Postings">
+                        <span class="nav-icon-wrap"><i class="bi bi-megaphone-fill"></i></span>
+                        <span class="nav-label">Job Postings</span>
+                        <span class="nav-group-chevron"><i class="bi bi-chevron-down"></i></span>
+                    </button>
+                    <div class="nav-submenu">
+                        <a href="?page=hr_job_postings" class="nav-subitem <?php echo $activePage === 'job_postings' ? 'active' : ''; ?>">
+                            <i class="bi bi-list-ul"></i> All Postings
+                        </a>
+                        <a href="?page=hr_job_posting_approvals" class="nav-subitem <?php echo $activePage === 'job_posting_approvals' ? 'active' : ''; ?>">
+                            <i class="bi bi-patch-check-fill"></i> Approvals
+                        </a>
+                    </div>
+                </div>
+                <?php else: ?>
                 <a href="?page=hr_job_postings" class="nav-item <?php echo $activePage === 'job_postings' ? 'active' : ''; ?>" title="Job Postings">
                     <span class="nav-icon-wrap"><i class="bi bi-megaphone-fill"></i></span> <span class="nav-label">Job Postings</span>
-                </a>
-                <?php if (Auth::isHRHead() || Auth::isOwner()): ?>
-                <a href="?page=hr_job_posting_approvals" class="nav-item <?php echo $activePage === 'job_posting_approvals' ? 'active' : ''; ?>" title="Approvals">
-                    <span class="nav-icon-wrap"><i class="bi bi-patch-check-fill"></i></span> <span class="nav-label">Approvals</span>
                 </a>
                 <?php endif; ?>
                 <a href="?page=hr_recruitment_calendar" class="nav-item <?php echo $activePage === 'recruitment_calendar' ? 'active' : ''; ?>" title="Recruitment Calendar">
@@ -445,6 +459,78 @@ use App\Core\Auth;
             text-align: center;
         }
 
+        /* Job Postings / Approvals grouped as a collapsible dropdown --
+           "Job Postings" toggles a submenu instead of navigating directly */
+        .hr-sidebar .sidebar-nav .nav-group-toggle {
+            width: 100%;
+            background: none;
+            border: none;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .hr-sidebar .sidebar-nav .nav-group-chevron {
+            margin-left: auto;
+            font-size: 0.75rem;
+            flex-shrink: 0;
+            transition: transform 0.2s ease;
+        }
+
+        .hr-sidebar .sidebar-nav .nav-group.nav-group-open .nav-group-chevron {
+            transform: rotate(180deg);
+        }
+
+        .hr-sidebar .sidebar-nav .nav-submenu {
+            display: none;
+            flex-direction: column;
+            padding-left: 34px;
+            margin: 2px 0 4px;
+        }
+
+        .hr-sidebar .sidebar-nav .nav-group.nav-group-open .nav-submenu {
+            display: flex;
+        }
+
+        .hr-sidebar .sidebar-nav .nav-subitem {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 12px;
+            border-radius: 8px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.86rem;
+            transition: all 0.2s;
+            margin-bottom: 1px;
+        }
+
+        .hr-sidebar .sidebar-nav .nav-subitem i {
+            font-size: 0.95rem;
+            width: 18px;
+            text-align: center;
+        }
+
+        .hr-sidebar .sidebar-nav .nav-subitem:hover {
+            background: var(--light-yellow-subtle);
+            color: var(--text-main);
+        }
+
+        .hr-sidebar .sidebar-nav .nav-subitem.active {
+            background: var(--light-yellow-subtle);
+            color: var(--brand-yellow-hover);
+            font-weight: 600;
+        }
+
+        /* Collapsed sidebar shows icons only -- no room for a submenu, so
+           it stays hidden and the toggle button falls back to a plain
+           link to the Job Postings list (see the click handler below). */
+        .hr-sidebar.collapsed .sidebar-nav .nav-submenu {
+            display: none !important;
+        }
+        .hr-sidebar.collapsed .sidebar-nav .nav-group-chevron {
+            display: none;
+        }
+
         .hr-sidebar .sidebar-nav hr {
             margin: 12px 0;
             border-color: var(--border-color);
@@ -603,6 +689,20 @@ use App\Core\Auth;
         // Bell open/close, fetching, and rendering is now handled globally by app.js.
 
         document.addEventListener('DOMContentLoaded', function() {
+            // Job Postings / Approvals dropdown -- toggles the submenu open
+            // when the sidebar is expanded; when collapsed (icon-only,
+            // nowhere to show a submenu) it falls back to a plain link.
+            document.querySelectorAll('.nav-group-toggle').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    const sidebar = document.getElementById('hrSidebar');
+                    if (sidebar && sidebar.classList.contains('collapsed')) {
+                        window.location.href = '?page=hr_job_postings';
+                        return;
+                    }
+                    btn.closest('.nav-group').classList.toggle('nav-group-open');
+                });
+            });
+
             const topbar = document.querySelector('.hr-topbar');
             if (topbar && window.innerWidth <= 768) {
                 const toggleBtn = document.createElement('button');
