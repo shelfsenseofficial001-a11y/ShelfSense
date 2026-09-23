@@ -41,7 +41,9 @@ use App\Core\Auth;
                     <img src="/ShelfSense/public/assets/images/logo-white.png" class="logo-dark" alt="ShelfSense" width="22" height="22">
                 </span>
                 <span class="brand-label">Shelf<span class="text-yellow">Sense</span></span>
-                <span class="badge bg-primary ms-2"><?php echo Auth::isOwner() ? 'Owner' : 'HR'; ?></span>
+                <span class="badge bg-primary ms-2"><?php
+                    echo Auth::isOwner() ? 'Owner' : (Auth::isHRHead() ? 'HH' : (Auth::isHRStaff() ? 'HS' : 'HR'));
+                ?></span>
             </div>
 
             <!-- Standalone collapse toggle — its own row, like a nav item -->
