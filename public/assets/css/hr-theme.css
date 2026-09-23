@@ -675,8 +675,8 @@ body.hr-theme .jp-preview-description code {
     min-width: 0;
 }
 .jp-detail-side {
-    flex: 0 0 320px;
-    width: 320px;
+    flex: 0 0 440px;
+    width: 440px;
     border-left: 1px solid var(--border-color);
     padding-left: 20px;
 }
@@ -690,7 +690,7 @@ body.hr-theme .jp-preview-description code {
 .jp-detail-side-title .badge {
     font-size: 0.65rem;
 }
-@media (max-width: 860px) {
+@media (max-width: 1000px) {
     .jp-detail-split-layout {
         flex-direction: column;
     }
@@ -702,6 +702,15 @@ body.hr-theme .jp-preview-description code {
         padding-left: 0;
         padding-top: 16px;
     }
+}
+
+/* This drawer is much wider than the shared .detail-drawer pattern (to fit
+   the Details + Messages split layout), so its own close button sits at
+   the top-right corner instead of the app-wide top-left pin -- top-left
+   would land awkwardly far from the content it closes at this width. */
+.jp-detail-drawer .offcanvas-header {
+    left: auto;
+    right: 14px;
 }
 
 .jp-detail-actions {

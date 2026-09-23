@@ -127,7 +127,7 @@ $content .= <<<EOT
 </div>
 
 <!-- Detail / Review Modal -->
-<div class="offcanvas offcanvas-end detail-drawer" id="postingDetailModal" tabindex="-1" style="--bs-offcanvas-width: 980px;">
+<div class="offcanvas offcanvas-end detail-drawer jp-detail-drawer" id="postingDetailModal" tabindex="-1" style="--bs-offcanvas-width: 1100px;">
     <div class="offcanvas-header">
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
