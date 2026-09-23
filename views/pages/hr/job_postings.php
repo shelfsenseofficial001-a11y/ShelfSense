@@ -127,7 +127,7 @@ $content .= <<<EOT
 </div>
 
 <!-- Detail / Review Modal -->
-<div class="offcanvas offcanvas-end detail-drawer" id="postingDetailModal" tabindex="-1" style="--bs-offcanvas-width: 640px;">
+<div class="offcanvas offcanvas-end detail-drawer" id="postingDetailModal" tabindex="-1" style="--bs-offcanvas-width: 980px;">
     <div class="offcanvas-header">
         <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
@@ -216,7 +216,7 @@ $content .= <<<EOT
 
 <script>const HR_IS_HEAD = {$isHRHeadJs}; const JP_APPROVALS_MODE = {$approvalsModeJs};</script>
 <script src="/ShelfSense/public/assets/js/shared/markdown.js?v=20260908440000"></script>
-<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260923160000"></script>
+<script src="/ShelfSense/public/assets/js/hr/job_postings.js?v=20260923180000"></script>
 EOT;
 
 require_once __DIR__ . '/../../layouts/hr.php';

@@ -26,7 +26,7 @@ use App\Core\Auth;
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260921110000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260923160000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260923180000">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">

@@ -424,7 +424,7 @@ function deleteDraft(id, title) {
 // DETAIL / REVIEW / ARCHIVE / REUSE
 // ============================================
 
-function viewPosting(id, activeTab) {
+function viewPosting(id) {
     const body = document.getElementById('postingDetailBody');
     const footer = document.getElementById('postingDetailFooter');
     body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></div>`;
@@ -437,10 +437,6 @@ function viewPosting(id, activeTab) {
             if (!data.success) { body.innerHTML = `<div class="text-danger">${jpEscapeHtml(data.message)}</div>`; return; }
             jpCurrentDetail = data.data.posting;
             renderDetail(jpCurrentDetail);
-            if (activeTab) {
-                const tabBtn = body.querySelector(`[data-bs-target="${activeTab}"]`);
-                if (tabBtn) bootstrap.Tab.getOrCreateInstance(tabBtn).show();
-            }
         });
 }
 
@@ -465,16 +461,8 @@ function renderDetail(p) {
             <h3 class="jp-detail-title">${jpEscapeHtml(p.title)}</h3>
             ${jpStatusBadge(p.status)}
         </div>
-        <ul class="nav nav-pills jp-detail-tabs mb-3" role="tablist">
-            <li class="nav-item" role="presentation">
-                <button class="nav-link active" data-bs-toggle="pill" data-bs-target="#jpTabDetails" type="button" role="tab">Details</button>
-            </li>
-            <li class="nav-item" role="presentation">
-                <button class="nav-link" data-bs-toggle="pill" data-bs-target="#jpTabMessages" type="button" role="tab">Messages${messageCount ? ` <span class="badge bg-secondary">${messageCount}</span>` : ''}</button>
-            </li>
-        </ul>
-        <div class="tab-content">
-            <div class="tab-pane fade show active" id="jpTabDetails" role="tabpanel">
+        <div class="jp-detail-split-layout">
+            <div class="jp-detail-main">
                 <div class="jp-detail-field-grid">
                     <div><span class="jp-detail-field-label">Department</span><div class="jp-detail-field-value">${jpEscapeHtml(p.department_group || '—')}</div></div>
                     <div><span class="jp-detail-field-label">Closing Date</span><div class="jp-detail-field-value">${jpFormatDate(p.open_until)}</div></div>
@@ -493,7 +481,8 @@ function renderDetail(p) {
                 ${p.archived_at ? `<p class="small text-muted mb-1">Archived: ${jpFormatDate(p.archived_at, true)}</p>` : ''}
                 ${lineageHtml}
             </div>
-            <div class="tab-pane fade" id="jpTabMessages" role="tabpanel">
+            <div class="jp-detail-side">
+                <h6 class="jp-detail-side-title">Messages${messageCount ? ` <span class="badge bg-secondary">${messageCount}</span>` : ''}</h6>
                 <div id="jpMessageThread"></div>
             </div>
         </div>
@@ -670,7 +659,7 @@ function postNewMessage(id) {
         .then(data => {
             jpBusy = false;
             if (!data.success) { Swal.fire({ icon: 'error', title: 'Error', text: data.message }); return; }
-            viewPosting(id, '#jpTabMessages');
+            viewPosting(id);
             loadPostings(jpPage);
         })
         .catch(() => { jpBusy = false; });

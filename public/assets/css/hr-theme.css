@@ -662,15 +662,46 @@ body.hr-theme .jp-preview-description code {
     font-weight: 500;
     color: var(--text-main);
 }
-.jp-detail-tabs .nav-link {
+/* Details + Messages side by side in the (widened) detail drawer, instead
+   of the description/qualifications crowding a single narrow column or a
+   tab click hiding the conversation entirely. */
+.jp-detail-split-layout {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+}
+.jp-detail-main {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+.jp-detail-side {
+    flex: 0 0 320px;
+    width: 320px;
+    border-left: 1px solid var(--border-color);
+    padding-left: 20px;
+}
+.jp-detail-side-title {
     display: flex;
     align-items: center;
-    gap: 6px;
-    font-size: 0.85rem;
-    padding: 6px 14px;
+    gap: 8px;
+    font-weight: 700;
+    margin-bottom: 10px;
 }
-.jp-detail-tabs .nav-link .badge {
+.jp-detail-side-title .badge {
     font-size: 0.65rem;
+}
+@media (max-width: 860px) {
+    .jp-detail-split-layout {
+        flex-direction: column;
+    }
+    .jp-detail-side {
+        width: 100%;
+        flex-basis: auto;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding-left: 0;
+        padding-top: 16px;
+    }
 }
 
 .jp-detail-actions {
