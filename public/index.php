@@ -910,10 +910,16 @@ if ($page === 'pos_checkout') {
         Response::redirect('?page=pos_select_cashier');
         exit;
     }
-    $registerModel = new \App\Models\Register();
-    if (!$registerModel->getActiveAllocation(Auth::posRegisterId())) {
-        Response::redirect('?page=pos_budget&notice=no_budget');
-        exit;
+    // Test Mode (Owner Settings) skips the register-budget requirement,
+    // same as it already skips Face ID -- test sales shouldn't need a
+    // Store Manager to allocate a real float first. See create_order.php
+    // for the matching skip at order-submission time.
+    if (!\App\Core\Settings::isTestMode()) {
+        $registerModel = new \App\Models\Register();
+        if (!$registerModel->getActiveAllocation(Auth::posRegisterId())) {
+            Response::redirect('?page=pos_budget&notice=no_budget');
+            exit;
+        }
     }
     require_once __DIR__ . '/../views/pages/pos/checkout.php';
     exit;

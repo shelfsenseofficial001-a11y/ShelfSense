@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Settings.php';
 require_once __DIR__ . '/../../models/Order.php';
 require_once __DIR__ . '/../../models/OrderItem.php';
 require_once __DIR__ . '/../../models/OrderDealItem.php';
@@ -14,6 +15,7 @@ require_once __DIR__ . '/../../models/Register.php';
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
+use App\Core\Settings;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\OrderDealItem;
@@ -80,9 +82,11 @@ try {
     // scoped to the current float and never bleed into a prior or future
     // shift. Legacy staff-session checkout (Owner/Store Manager override,
     // no POS terminal involved) has no register concept, so no allocation
-    // is required there.
+    // is required there. Test Mode also skips it -- same as the pos_checkout
+    // page guard in index.php -- so test sales stay untied to any real
+    // register and never show up in a Store Manager's cash-out totals.
     $registerAllocationId = null;
-    if ($isPosSession) {
+    if ($isPosSession && !Settings::isTestMode()) {
         $registerModel = new Register();
         $allocation = $registerModel->getActiveAllocation(Auth::posRegisterId());
         if (!$allocation) {
