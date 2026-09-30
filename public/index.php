@@ -468,6 +468,14 @@ if ($page === 'home' || $page === '') {
     exit;
 }
 
+if ($page === 'pos_payment_result') {
+    // Public, no-login -- this is where the CUSTOMER'S phone lands after
+    // approving/declining a GCash/PayMaya payment (see
+    // paymongo_create_source.php), never the cashier's own session.
+    require_once __DIR__ . '/../views/pages/pos_payment_result.php';
+    exit;
+}
+
 if ($page === 'login') {
     if (Auth::check()) {
         Response::redirect('?page=dashboard');

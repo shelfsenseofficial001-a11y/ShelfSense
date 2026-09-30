@@ -33,9 +33,26 @@ if (!in_array($type, ['gcash', 'paymaya'], true)) {
 try {
     $amountCentavos = (int)round($amount * 100);
 
+    // Shared by both GCash and PayMaya ($type just picks which wallet
+    // PayMongo asks the customer to approve on) -- the redirect the
+    // customer's *phone* lands on after tapping approve/fail. HTTP_HOST
+    // must therefore already be an address that phone can reach: if the
+    // register itself is loaded via "localhost", this redirect can never
+    // resolve on a separate device -- the register needs to be opened via
+    // the host machine's LAN IP (e.g. http://192.168.x.x/ShelfSense/public/...)
+    // for the QR to work when scanned with an actual phone.
+    //
+    // This must be a public, no-login page (pos_payment_result), never
+    // pos_checkout itself -- the customer's phone has no POS session, so
+    // sending it to a staff-only page just bounces it through the login
+    // guard into the public landing page instead of a real confirmation.
+    // The register (a completely separate session) is what actually
+    // finalizes the payment, by polling the Source's status -- see
+    // startPayMongoPolling() in pos.js -- so this redirect is purely
+    // informational for whoever is holding the phone.
     $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
     $host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-    $redirectBase = $scheme . '://' . $host . '/ShelfSense/?page=pos_checkout';
+    $redirectBase = $scheme . '://' . $host . '/ShelfSense/public/?page=pos_payment_result';
 
     $source = PayMongo::createEwalletSource($amountCentavos, $type, $redirectBase, $redirectBase);
 
