@@ -1,8 +1,10 @@
 <?php
 // app/handlers/pos/paymongo_create_source.php
-// Starts a GCash/PayMaya payment for the current cart total. Returns a
-// checkout_url the customer approves on their own phone -- the register
-// shows it as a QR code and polls paymongo_source_status.php.
+// Starts a GCash payment for the current cart total via PayMongo's
+// Sources API. Returns a checkout_url the customer approves on their own
+// phone -- the register shows it as a QR code and polls
+// paymongo_source_status.php. PayMaya does NOT go through this endpoint
+// -- it isn't a valid Sources type -- see paymongo_create_intent.php.
 
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
@@ -26,16 +28,15 @@ $type = isset($input['type']) ? (string)$input['type'] : '';
 if ($amount <= 0) {
     Response::error('Invalid amount.', 400);
 }
-if (!in_array($type, ['gcash', 'paymaya'], true)) {
+if ($type !== 'gcash') {
     Response::error('Invalid payment type.', 400);
 }
 
 try {
     $amountCentavos = (int)round($amount * 100);
 
-    // Shared by both GCash and PayMaya ($type just picks which wallet
-    // PayMongo asks the customer to approve on) -- the redirect the
-    // customer's *phone* lands on after tapping approve/fail. HTTP_HOST
+    // The redirect the customer's *phone* lands on after tapping
+    // approve/fail. HTTP_HOST
     // must therefore already be an address that phone can reach: if the
     // register itself is loaded via "localhost", this redirect can never
     // resolve on a separate device -- the register needs to be opened via

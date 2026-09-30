@@ -1316,6 +1316,11 @@ function submitOrder(paymentReference) {
 
 // ============================================
 // PAYMONGO (GCASH / PAYMAYA)
+// GCash runs through PayMongo's Sources API (create -> poll -> charge).
+// PayMaya isn't a valid Source type there, so it runs through the
+// separate Payment Intent workflow instead (create+attach in one call ->
+// poll -- attach already triggers the charge once approved, so there's
+// no separate charge step for this one). See app/core/PayMongo.php.
 // ============================================
 
 let paymongoPollTimer = null;
@@ -1326,10 +1331,13 @@ function startPayMongoEwalletFlow(method, total) {
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Starting payment...';
 
-    fetch('?page=api_paymongo_create_source', {
+    const endpoint = method === 'gcash' ? '?page=api_paymongo_create_source' : '?page=api_paymongo_create_intent';
+    const body = method === 'gcash' ? { amount: total, type: method } : { amount: total };
+
+    fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total, type: method })
+        body: JSON.stringify(body)
     })
         .then(r => r.json())
         .then(res => {
@@ -1339,7 +1347,8 @@ function startPayMongoEwalletFlow(method, total) {
                 Swal.fire({ icon: 'error', title: 'Payment Error', text: res.message || 'Could not start payment.' });
                 return;
             }
-            openPayMongoQrModal(res.data.source_id, res.data.checkout_url, method, total);
+            const id = method === 'gcash' ? res.data.source_id : res.data.intent_id;
+            openPayMongoQrModal(id, res.data.checkout_url, method, total);
         })
         .catch(() => {
             btn.disabled = false;
@@ -1348,7 +1357,7 @@ function startPayMongoEwalletFlow(method, total) {
         });
 }
 
-function openPayMongoQrModal(sourceId, checkoutUrl, method, total) {
+function openPayMongoQrModal(id, checkoutUrl, method, total) {
     if (!paymongoModalInstance) {
         paymongoModalInstance = new bootstrap.Modal(document.getElementById('paymongoModal'));
     }
@@ -1362,10 +1371,14 @@ function openPayMongoQrModal(sourceId, checkoutUrl, method, total) {
     new QRCode(qrContainer, { text: checkoutUrl, width: 200, height: 200 });
 
     paymongoModalInstance.show();
-    startPayMongoPolling(sourceId, total);
+    if (method === 'gcash') {
+        startPayMongoSourcePolling(id, total);
+    } else {
+        startPayMongoIntentPolling(id);
+    }
 }
 
-function startPayMongoPolling(sourceId, total) {
+function startPayMongoSourcePolling(sourceId, total) {
     stopPayMongoPolling();
     paymongoPollTimer = setInterval(function () {
         fetch('?page=api_paymongo_source_status&source_id=' + encodeURIComponent(sourceId))
@@ -1402,6 +1415,32 @@ function startPayMongoPolling(sourceId, total) {
                     stopPayMongoPolling();
                     const msgEl = document.getElementById('paymongoStatusMsg');
                     msgEl.textContent = 'Payment was not completed (' + res.data.status + '). Please close this and try again.';
+                    msgEl.className = 'small text-danger mb-2';
+                }
+            })
+            .catch(() => {});
+    }, 2000);
+}
+
+function startPayMongoIntentPolling(intentId) {
+    stopPayMongoPolling();
+    paymongoPollTimer = setInterval(function () {
+        fetch('?page=api_paymongo_intent_status&intent_id=' + encodeURIComponent(intentId))
+            .then(r => r.json())
+            .then(res => {
+                if (!res.success) return;
+
+                if (res.data.status === 'succeeded') {
+                    stopPayMongoPolling();
+                    paymongoModalInstance.hide();
+                    submitOrder(res.data.payment_id);
+                } else if (res.data.status === 'awaiting_payment_method') {
+                    // Attach already moved it past this status once -- landing
+                    // back here means the customer declined/failed and would
+                    // need a fresh attempt, not more waiting.
+                    stopPayMongoPolling();
+                    const msgEl = document.getElementById('paymongoStatusMsg');
+                    msgEl.textContent = 'Payment was not completed. Please close this and try again.';
                     msgEl.className = 'small text-danger mb-2';
                 }
             })

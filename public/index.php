@@ -1015,6 +1015,16 @@ if ($page === 'api_paymongo_charge_source') {
     exit;
 }
 
+if ($page === 'api_paymongo_create_intent') {
+    require_once __DIR__ . '/../app/handlers/pos/paymongo_create_intent.php';
+    exit;
+}
+
+if ($page === 'api_paymongo_intent_status') {
+    require_once __DIR__ . '/../app/handlers/pos/paymongo_intent_status.php';
+    exit;
+}
+
 if ($page === 'api_get_products') {
     require_once __DIR__ . '/../app/handlers/pos/get_products.php';
     exit;

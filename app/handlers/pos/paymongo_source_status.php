@@ -1,7 +1,8 @@
 <?php
 // app/handlers/pos/paymongo_source_status.php
-// Polled by the register while showing the GCash/PayMaya QR, waiting for
-// the customer to approve (or fail/cancel) on their own phone.
+// Polled by the register while showing the GCash QR, waiting for the
+// customer to approve (or fail/cancel) on their own phone. PayMaya has
+// its own equivalent -- see paymongo_intent_status.php.
 
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
