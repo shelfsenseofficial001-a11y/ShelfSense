@@ -1514,12 +1514,17 @@ function showReceipt(order) {
 
     const discountAmount = parseFloat(order.discount_amount) || 0;
     const total = parseFloat(order.total) || 0;
+    const isPwdSeniorExempt = !!parseInt(order.pwd_senior_discount);
     // VAT is already baked into every listed price (standard PH retail
     // practice) -- this is a disclosure of how much of the total is VAT,
     // not an extra charge, so it never touches amount_paid/change_amount.
+    // PWD/Senior Citizen sales are VAT-exempt by law: the whole total
+    // becomes VAT-exempt sales and VAT is 0, but the total itself (already
+    // reduced by the PWD/Senior discount line above) is untouched here.
     const vatRate = 0.12;
-    const vatableSales = total / (1 + vatRate);
-    const vatAmount = total - vatableSales;
+    const vatableSales = isPwdSeniorExempt ? 0 : total / (1 + vatRate);
+    const vatExemptSales = isPwdSeniorExempt ? total : 0;
+    const vatAmount = isPwdSeniorExempt ? 0 : total - vatableSales;
     totalsContainer.innerHTML = `
         <div style="display:flex;justify-content:space-between;font-weight:600;">
             <span>Subtotal:</span>
@@ -1535,10 +1540,17 @@ function showReceipt(order) {
             <span>Total:</span>
             <span>₱${total.toFixed(2)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted, #888);">
-            <span>VATable Sales:</span>
-            <span>₱${vatableSales.toFixed(2)}</span>
-        </div>
+        ${isPwdSeniorExempt ? `
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted, #888);">
+                <span>VAT-Exempt Sales:</span>
+                <span>₱${vatExemptSales.toFixed(2)}</span>
+            </div>
+        ` : `
+            <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted, #888);">
+                <span>VATable Sales:</span>
+                <span>₱${vatableSales.toFixed(2)}</span>
+            </div>
+        `}
         <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted, #888);">
             <span>VAT (12%):</span>
             <span>₱${vatAmount.toFixed(2)}</span>
