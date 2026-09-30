@@ -264,11 +264,12 @@ function setupEventListeners() {
         document.getElementById('barcodeInput')?.focus();
     });
     
-    // Print receipt - only print the receipt content. Plays a brief
-    // "feeding out of a printer" animation first so it feels like an
-    // actual receipt printer rather than the browser dialog just popping up.
+    // "Print" is simulated, not real -- registers don't have an actual
+    // receipt printer hooked up yet, and popping the browser's own print
+    // dialog looked out of place next to it. A short printer/feed
+    // animation plays instead, standing in for a real receipt printer.
     document.getElementById('printReceiptBtn')?.addEventListener('click', function() {
-        playPrintAnimation(() => window.print());
+        playPrintAnimation();
     });
 
     // Re-open the receipt for the last order placed this session
@@ -1280,7 +1281,7 @@ function submitOrder(paymentReference) {
 
             bootstrap.Modal.getInstance(document.getElementById('paymentModal')).hide();
             showReceipt(order);
-            playPrintAnimation(() => window.print());
+            playPrintAnimation();
             notifyLargeSale(order);
             cart = [];
             dealCart = [];
@@ -1544,13 +1545,17 @@ function showReceipt(order) {
 
 // ============================================
 // PRINT ANIMATION
+// Stands in for an actual receipt printer, which the register doesn't
+// have -- a self-contained "modal" (title, feed animation, then a
+// confirmation) with no real browser print dialog behind it.
 // ============================================
 
-function playPrintAnimation(onDone) {
+function playPrintAnimation() {
     const overlay = document.createElement('div');
     overlay.className = 'print-animation-overlay';
     overlay.innerHTML = `
         <div class="print-animation-box">
+            <div class="print-animation-title">Print Receipt</div>
             <div class="print-animation-printer">
                 <i class="bi bi-printer-fill"></i>
                 <div class="print-animation-slot"></div>
@@ -1561,10 +1566,13 @@ function playPrintAnimation(onDone) {
     `;
     document.body.appendChild(overlay);
 
+    const label = overlay.querySelector('.print-animation-label');
     setTimeout(() => {
-        overlay.remove();
-        onDone();
+        label.innerHTML = '<i class="bi bi-check-circle-fill"></i> Printed!';
+        label.classList.add('print-animation-label-done');
     }, 1300);
+
+    setTimeout(() => overlay.remove(), 1900);
 }
 
 // ============================================

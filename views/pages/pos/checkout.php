@@ -14,7 +14,7 @@ $pageTitle = 'Checkout';
 $activePage = 'checkout';
 $additional_js = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>'
     . '<script src="https://cdn.jsdelivr.net/gh/davidshimjs/qrcodejs/qrcode.min.js"></script>'
-    . '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260930090000"></script>';
+    . '<script src="/ShelfSense/public/assets/js/pos/pos.js?v=20260930100000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [
