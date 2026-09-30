@@ -1513,6 +1513,13 @@ function showReceipt(order) {
     itemsContainer.innerHTML = itemsHtml;
 
     const discountAmount = parseFloat(order.discount_amount) || 0;
+    const total = parseFloat(order.total) || 0;
+    // VAT is already baked into every listed price (standard PH retail
+    // practice) -- this is a disclosure of how much of the total is VAT,
+    // not an extra charge, so it never touches amount_paid/change_amount.
+    const vatRate = 0.12;
+    const vatableSales = total / (1 + vatRate);
+    const vatAmount = total - vatableSales;
     totalsContainer.innerHTML = `
         <div style="display:flex;justify-content:space-between;font-weight:600;">
             <span>Subtotal:</span>
@@ -1526,7 +1533,15 @@ function showReceipt(order) {
         ` : ''}
         <div style="display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;color:var(--brand-yellow-hover);">
             <span>Total:</span>
-            <span>₱${parseFloat(order.total).toFixed(2)}</span>
+            <span>₱${total.toFixed(2)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted, #888);">
+            <span>VATable Sales:</span>
+            <span>₱${vatableSales.toFixed(2)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted, #888);">
+            <span>VAT (12%):</span>
+            <span>₱${vatAmount.toFixed(2)}</span>
         </div>
         ${order.amount_paid > 0 ? `
             <div style="display:flex;justify-content:space-between;">
