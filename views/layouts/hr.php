@@ -262,7 +262,7 @@ use App\Core\Auth;
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
 
     <!-- Date Picker Modal Component -->
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261007090000"></script>
 
     <style>
         /* ============================================

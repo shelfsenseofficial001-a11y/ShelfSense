@@ -1157,7 +1157,7 @@ $content = '
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold" for="applyBirthdate">Birthdate <span class="required-asterisk">*</span></label>
-                        <input type="date" id="applyBirthdate" name="birthdate" class="form-control" required max="' . date('Y-m-d') . '">
+                        <input type="date" id="applyBirthdate" name="birthdate" class="form-control" required min="' . date('Y-m-d', strtotime('-80 years')) . '" max="' . date('Y-m-d', strtotime('-18 years')) . '">
                         <div class="invalid-feedback" id="applyBirthdateError"></div>
                     </div>
                 </div>

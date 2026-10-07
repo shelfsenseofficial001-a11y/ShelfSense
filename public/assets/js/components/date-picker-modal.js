@@ -224,9 +224,19 @@
         yearRange() {
             const { min, max } = this.getBounds();
             const nowY = new Date().getFullYear();
-            const start = min ? min.y : nowY - 5;
-            const end = max ? max.y : nowY + 5;
-            return { start: Math.min(start, nowY), end: Math.max(end, nowY) };
+            // Only pad out to the current year on a side that has no
+            // explicit bound. A min/max that sits entirely in the past or
+            // the future has to be honoured as-is -- e.g. a birthdate
+            // capped at 18 years ago would otherwise still list every year
+            // up to today, since the old clamp forced the current year in.
+            const start = min ? min.y : Math.min(nowY - 5, max ? max.y : nowY);
+            const end = max ? max.y : Math.max(nowY + 5, start);
+            return { start, end };
+        }
+
+        clampYear(y) {
+            const { start, end } = this.yearRange();
+            return Math.min(Math.max(y, start), end);
         }
 
         syncSelects() {
@@ -245,7 +255,11 @@
         open() {
             const parsed = parseISO(this._value);
             const today = new Date();
-            this.viewYear = parsed ? parsed.y : today.getFullYear();
+            // Today is outside the allowed range on a bounded field (a
+            // birthdate capped at 18 years ago, say), so an empty picker
+            // has to open on the nearest selectable year instead -- that
+            // year is the only one the select can actually show.
+            this.viewYear = this.clampYear(parsed ? parsed.y : today.getFullYear());
             this.viewMonth = parsed ? parsed.m : today.getMonth() + 1;
             this.syncSelects();
             if (this.mode === 'month') this.renderMonthGrid(); else this.renderDayGrid();
