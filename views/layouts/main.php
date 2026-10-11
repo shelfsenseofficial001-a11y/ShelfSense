@@ -34,8 +34,8 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260910100000"></script>
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20261011000000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
     <?= $additional_js ?? '' ?>
 </body>
 </html>

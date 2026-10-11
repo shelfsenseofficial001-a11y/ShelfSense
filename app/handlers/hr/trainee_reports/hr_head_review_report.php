@@ -3,6 +3,10 @@
 // HR Head adds their own review note to a forwarded report. This is a
 // separate field from both the Trainer's report and the department
 // reviewer's observation -- neither of those is ever overwritten.
+// Store/Finance reports must have passed HR Staff screening first
+// (status 'hr_staff_reviewed'); HR department reports skip that stage
+// entirely since the trainer is already HR Staff, so a plain 'forwarded'
+// is accepted for them.
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
@@ -43,8 +47,9 @@ try {
     if (!$report) {
         Response::notFound('Report not found');
     }
-    if (!in_array($report['status'], ['forwarded', 'hr_reviewed'], true)) {
-        Response::error('This report has not been forwarded by the department reviewer yet.', 400);
+    $skippedHrStaff = $report['department'] === 'hr' && $report['status'] === 'forwarded';
+    if ($report['status'] !== 'hr_staff_reviewed' && $report['status'] !== 'hr_reviewed' && !$skippedHrStaff) {
+        Response::error('This report has not finished HR Staff screening yet.', 400);
     }
 
     $stmt = $db->prepare("
@@ -55,6 +60,17 @@ try {
     $stmt->execute([Auth::userId(), $notes !== '' ? $notes : null, $reportId]);
 
     logRecruitmentEvent('trainee_report', $reportId, 'hr_head_reviewed', ['new_status' => 'hr_reviewed']);
+
+    // Once all 12 weekly reports have actually reached the final hr_reviewed
+    // stage, the trainee's report set is truly complete -- this is what
+    // surfaces the "Mark as Eligible" action (see update_trainee.php).
+    $stmt = $db->prepare("SELECT COUNT(*) total, SUM(status != 'hr_reviewed') not_reviewed FROM trainee_reports WHERE trainee_id = ?");
+    $stmt->execute([$report['trainee_id']]);
+    $counts = $stmt->fetch();
+    if ((int)$counts['total'] >= 12 && (int)$counts['not_reviewed'] === 0) {
+        $db->prepare("UPDATE trainees SET reports_status = 'completed' WHERE id = ? AND reports_status != 'completed'")
+            ->execute([$report['trainee_id']]);
+    }
 
     Response::success(['report_id' => $reportId, 'status' => 'hr_reviewed'], 'Review note saved.');
 

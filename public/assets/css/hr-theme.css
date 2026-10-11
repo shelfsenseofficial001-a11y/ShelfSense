@@ -2071,4 +2071,113 @@ body.hr-theme .jp-draft-delete-btn:hover {
     transform: scale(1.05);
 }
 
+/* ==========================================================================
+   INTERVIEWS -- nested Scheduled/History sub-nav sidebar under each
+   Initial/Final tab (see views/pages/hr/interviews.php)
+   ========================================================================== */
+
+body.hr-theme .interview-subnav-layout {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+body.hr-theme .interview-subnav-sidebar {
+    flex: 0 0 180px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+body.hr-theme .interview-subnav-content {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+body.hr-theme .interview-subnav-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+    padding: 10px 14px;
+    text-align: left;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    color: var(--text-main);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+body.hr-theme .interview-subnav-btn:hover {
+    background: var(--bg-card-subtle);
+}
+
+body.hr-theme .interview-subnav-btn.active {
+    background: var(--brand-yellow);
+    border-color: var(--brand-yellow);
+    color: var(--brand-yellow-btn-text);
+}
+
+body.hr-theme .interview-subnav-btn .badge {
+    margin-left: auto;
+}
+
+body.hr-theme .interview-history-subfilter {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    margin: 2px 0 0 14px;
+    padding-left: 10px;
+    border-left: 2px solid var(--border-color);
+}
+
+body.hr-theme .interview-subfilter-btn {
+    text-align: left;
+    padding: 6px 10px;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+body.hr-theme .interview-subfilter-btn:hover {
+    background: var(--bg-card-subtle);
+    color: var(--text-main);
+}
+
+body.hr-theme .interview-subfilter-btn.active {
+    background: var(--bg-card-subtle);
+    color: var(--brand-yellow);
+    font-weight: 600;
+}
+
+@media (max-width: 767px) {
+    body.hr-theme .interview-subnav-layout {
+        flex-direction: column;
+    }
+    body.hr-theme .interview-subnav-sidebar {
+        flex: 1 1 auto;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    body.hr-theme .interview-subnav-btn {
+        width: auto;
+        flex: 1 1 auto;
+    }
+    body.hr-theme .interview-history-subfilter {
+        flex-direction: row;
+        flex-wrap: wrap;
+        margin-left: 0;
+        padding-left: 0;
+        border-left: none;
+        border-top: 1px solid var(--border-color);
+        padding-top: 6px;
+        width: 100%;
+    }
+}
+
 

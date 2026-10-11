@@ -254,7 +254,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     window.CURRENT_USER_ROLE = ' . json_encode($_SESSION['role'] ?? '') . ';
     window.HR_IS_HEAD = ' . $isHRHeadJs . ';
 </script>
-<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20260908600000"></script>
+<script src="/ShelfSense/public/assets/js/hr/trainees.js?v=20261011000002"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

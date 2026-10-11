@@ -26,7 +26,7 @@ use App\Core\Auth;
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260921110000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20260923190000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/hr-theme.css?v=20261011000000">
     <?php echo $additional_css ?? ''; ?>
 </head>
 <body class="hr-theme dashboard-theme">
@@ -65,6 +65,9 @@ use App\Core\Auth;
                 </a>
                 <a href="?page=hr_trainees" class="nav-item <?php echo $activePage === 'trainees' ? 'active' : ''; ?>" title="Trainees">
                     <span class="nav-icon-wrap"><i class="bi bi-mortarboard-fill"></i></span> <span class="nav-label">Trainees</span>
+                </a>
+                <a href="?page=trainee_report" class="nav-item <?php echo $activePage === 'trainee_report' ? 'active' : ''; ?>" title="Trainee Report">
+                    <span class="nav-icon-wrap"><i class="bi bi-journal-text"></i><span class="badge bg-danger nav-badge" id="traineeReportBadge" style="display:none;">0</span></span> <span class="nav-label">Trainee Report</span>
                 </a>
                 <a href="?page=hr_contracts" class="nav-item <?php echo $activePage === 'contracts' ? 'active' : ''; ?>" title="Contracts">
                     <span class="nav-icon-wrap"><i class="bi bi-file-text-fill"></i></span> <span class="nav-label">Contracts</span>
@@ -255,14 +258,14 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260910100000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20261011000000"></script>
     <?php echo $additional_js ?? ''; ?>
 
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
 
     <!-- Date Picker Modal Component -->
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
 
     <style>
         /* ============================================

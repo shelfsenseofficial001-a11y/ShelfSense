@@ -165,11 +165,11 @@ use App\Core\Auth;
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260910100000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20261011000000"></script>
     <script src="/ShelfSense/public/assets/js/supplier/shared.js"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20260920000000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
 
     <style>
         .supplier-sidebar {

@@ -111,11 +111,11 @@ try {
             $expectedWeeks = 12;
             $submittedWeeks = array_column($reports, 'week_number');
             $missing = array_diff(range(1, $expectedWeeks), $submittedWeeks);
-            $notForwarded = array_filter($reports, fn($r) => !in_array($r['status'], ['forwarded', 'hr_reviewed'], true));
+            $notForwarded = array_filter($reports, fn($r) => $r['status'] !== 'hr_reviewed');
 
             if ((!empty($missing) || !empty($notForwarded)) && !$override) {
                 Response::error(
-                    'Cannot mark eligible: ' . count($missing) . ' missing report(s) and ' . count($notForwarded) . ' not yet forwarded. Provide an override reason to proceed anyway.',
+                    'Cannot mark eligible: ' . count($missing) . ' missing report(s) and ' . count($notForwarded) . ' not yet through HR Head\'s final review. Provide an override reason to proceed anyway.',
                     400,
                     ['missing_weeks' => array_values($missing), 'not_forwarded' => count($notForwarded)]
                 );

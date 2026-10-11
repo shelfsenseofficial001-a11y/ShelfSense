@@ -76,23 +76,23 @@ try {
         'previous_status' => 'submitted', 'new_status' => 'forwarded'
     ]);
 
-    // Once all 12 weekly reports exist and none are still sitting at
-    // 'submitted' (i.e. every one has at least been forwarded), the trainee's
-    // report set is complete -- this is what surfaces the "Mark as Eligible"
-    // action in the Trainees list, so it must flip the moment the last
-    // report clears this stage, not just when an HR Head happens to look.
-    $stmt = $db->prepare("SELECT COUNT(*) total, SUM(status NOT IN ('forwarded', 'hr_reviewed')) not_forwarded FROM trainee_reports WHERE trainee_id = ?");
-    $stmt->execute([$report['trainee_id']]);
-    $counts = $stmt->fetch();
-    if ((int)$counts['total'] >= 12 && (int)$counts['not_forwarded'] === 0) {
-        $db->prepare("UPDATE trainees SET reports_status = 'completed' WHERE id = ? AND reports_status != 'completed'")
-            ->execute([$report['trainee_id']]);
-    }
-
-    $stmt = $db->prepare("SELECT user_id FROM users WHERE role = 'hr_head' AND is_active = 1");
-    $stmt->execute();
-    foreach ($stmt->fetchAll() as $head) {
-        createNotification($head['user_id'], 'trainee_report_forwarded', "A trainee's week {$report['week_number']} report was forwarded for your review.", "?page=hr_trainees");
+    // Forwarded reports go next to HR Staff screening (store/finance), or
+    // straight to HR Head when the department is 'hr' (the trainer is
+    // already HR Staff, so there's no independent HR Staff to screen it).
+    // The "Mark as Eligible" completion flip now happens in
+    // hr_head_review_report.php, once a report truly reaches hr_reviewed.
+    if ($report['department'] === 'hr') {
+        $stmt = $db->prepare("SELECT user_id FROM users WHERE role = 'hr_head' AND is_active = 1");
+        $stmt->execute();
+        foreach ($stmt->fetchAll() as $head) {
+            createNotification($head['user_id'], 'trainee_report_forwarded', "A trainee's week {$report['week_number']} report was forwarded for your review.", "?page=trainee_report");
+        }
+    } else {
+        $stmt = $db->prepare("SELECT user_id FROM users WHERE role = 'hr_staff' AND is_active = 1");
+        $stmt->execute();
+        foreach ($stmt->fetchAll() as $staff) {
+            createNotification($staff['user_id'], 'trainee_report_forwarded', "A trainee's week {$report['week_number']} report is ready for HR Staff screening.", "?page=trainee_report");
+        }
     }
 
     $db->commit();

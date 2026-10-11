@@ -79,28 +79,25 @@ $additional_js = '
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <script>
 // Exact campus coordinates (OpenStreetMap-verified, tagged as this school).
-const SHELFSENSE_BRANCHES = [
-    { lat: 14.3279155, lng: 120.9414801, label: "NCST Dasmariñas Branch", address: "Aguinaldo Highway, Zone 4, Poblacion, Dasmariñas, Cavite" },
-    { lat: 14.4250268, lng: 120.9320113, label: "NCST Imus Branch", address: "Molave Drive, Poblacion IV-C, Imus, Cavite" }
-];
+// Single store location only -- the Imus branch was removed.
+const SHELFSENSE_STORE_LOCATION = { lat: 14.3279155, lng: 120.9414801, label: "NCST Dasmariñas", address: "Aguinaldo Highway, Zone 4, Poblacion, Dasmariñas, Cavite" };
 
 function initShelfSenseMap() {
-    const el = document.getElementById("branchMap");
+    const el = document.getElementById("storeLocationMap");
     if (!el || typeof L === "undefined") return;
     try {
-        const bounds = L.latLngBounds(SHELFSENSE_BRANCHES.map(b => [b.lat, b.lng]));
-        const map = L.map("branchMap", { scrollWheelZoom: false }).fitBounds(bounds, { padding: [30, 30] });
+        const loc = SHELFSENSE_STORE_LOCATION;
+        const map = L.map("storeLocationMap", { scrollWheelZoom: false }).setView([loc.lat, loc.lng], 16);
         L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
             attribution: "&copy; OpenStreetMap contributors",
             maxZoom: 19
         }).addTo(map);
-        SHELFSENSE_BRANCHES.forEach(function(b) {
-            L.marker([b.lat, b.lng]).addTo(map)
-                .bindPopup("<strong>ShelfSense</strong><br>" + b.label + "<br><small>" + b.address + "</small>");
-        });
+        L.marker([loc.lat, loc.lng]).addTo(map)
+            .bindPopup("<strong>ShelfSense</strong><br>" + loc.label + "<br><small>" + loc.address + "</small>")
+            .openPopup();
     } catch (e) {
         console.error("Map failed to load:", e);
-        el.innerHTML = "<div class=\'d-flex align-items-center justify-content-center h-100 text-muted small text-center p-3\'><i class=\'bi bi-exclamation-triangle me-2\'></i>Map could not be loaded. Branches: NCST Dasmariñas and NCST Imus, Cavite.</div>";
+        el.innerHTML = "<div class=\'d-flex align-items-center justify-content-center h-100 text-muted small text-center p-3\'><i class=\'bi bi-exclamation-triangle me-2\'></i>Map could not be loaded. NCST Dasmariñas, Cavite.</div>";
     }
 }
 document.addEventListener("DOMContentLoaded", initShelfSenseMap);
@@ -732,9 +729,8 @@ $content = '
                     <div class="d-flex align-items-start gap-3 mb-3">
                         <div class="icon-box mb-0"><i class="bi bi-geo-alt"></i></div>
                         <div>
-                            <small class="text-muted d-block">Branch Locations</small>
+                            <small class="text-muted d-block">Location</small>
                             <span class="fw-semibold d-block">NCST Dasmariñas &mdash; Aguinaldo Highway, Zone 4, Poblacion, Dasmariñas, Cavite</span>
-                            <span class="fw-semibold d-block">NCST Imus &mdash; Molave Drive, Poblacion IV-C, Imus, Cavite</span>
                         </div>
                     </div>
 
@@ -748,8 +744,8 @@ $content = '
 
                 <div class="col-lg-6">
                     <h5 class="mb-2"><i class="bi bi-pin-map text-yellow me-2"></i>Find Us</h5>
-                    <p class="text-muted small mb-2">Two branches &mdash; NCST Dasmariñas and NCST Imus, Cavite.</p>
-                    <div id="branchMap" style="height:280px; border-radius:12px; overflow:hidden; border:1px solid var(--border-color, #ddd); background:#f3f3f3;"></div>
+                    <p class="text-muted small mb-2">NCST Dasmariñas, Cavite.</p>
+                    <div id="storeLocationMap" style="height:280px; border-radius:12px; overflow:hidden; border:1px solid var(--border-color, #ddd); background:#f3f3f3;"></div>
                 </div>
 
             </div>
@@ -882,7 +878,7 @@ $content = '
                 <ul>
                     <li><a href="mailto:shelfsenseofficial001@gmail.com">shelfsenseofficial001@gmail.com</a></li>
                     <li><a href="tel:+639264550078">0926 455 0078</a></li>
-                    <li><a href="?page=home#contact">Branch Locations</a></li>
+                    <li><a href="?page=home#contact">Our Location</a></li>
                 </ul>
             </div>
 

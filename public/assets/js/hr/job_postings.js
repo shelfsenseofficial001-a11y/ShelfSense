@@ -490,7 +490,7 @@ function renderDetail(p) {
 
     renderMessageThread(p);
 
-    let actions = `<div class="jp-detail-actions"><button type="button" class="jp-detail-btn jp-detail-btn-neutral" data-bs-dismiss="modal">Close</button>`;
+    let actions = `<div class="jp-detail-actions"><button type="button" class="jp-detail-btn jp-detail-btn-neutral" data-bs-dismiss="offcanvas">Close</button>`;
 
     const approvalsMode = typeof JP_APPROVALS_MODE !== 'undefined' && JP_APPROVALS_MODE;
     if (HR_IS_HEAD && approvalsMode && p.status === 'pending_approval') {

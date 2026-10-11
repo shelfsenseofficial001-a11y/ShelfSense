@@ -22,114 +22,84 @@ $db = \App\Core\Database::getInstance()->getConnection();
 $currentUserId = Auth::userId();
 $initialData = [
     'initial' => hr_interviews_build_data($db, $currentUserId, 1, 15, 'initial', 'scheduled', ''),
-    'final' => hr_interviews_build_data($db, $currentUserId, 1, 15, 'final', 'scheduled', ''),
-    'allStats' => hr_interviews_build_data($db, $currentUserId, 1, 15, 'all', 'all', '')
+    'final' => hr_interviews_build_data($db, $currentUserId, 1, 15, 'final', 'scheduled', '')
 ];
 $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 $owners = $db->query("SELECT first_name, last_name FROM users WHERE role = 'owner' AND is_active = 1 ORDER BY first_name")->fetchAll();
 $ownerNames = implode(', ', array_map(fn($o) => $o['first_name'] . ' ' . $o['last_name'], $owners));
 $ownerDisplay = $ownerNames !== '' ? $ownerNames : 'No active Owner account found';
 
+// HR Staff has no power over the Final Interview at all -- not just
+// scheduling, viewing too (see hr_interviews_build_data()'s own exclusion).
+// The tab/pill itself is left out entirely rather than shown empty.
+$canSeeFinalInterviews = Auth::isHRHead() || Auth::isOwner() || Auth::isSuperAdmin();
+$finalTabHtml = $canSeeFinalInterviews ? '
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="final-tab" data-bs-toggle="pill" data-bs-target="#final-interviews" type="button" role="tab">
+            <i class="bi bi-chat-dots"></i> Final
+            <span class="badge bg-danger ms-1" id="finalTabBadge" style="display:none;">0</span>
+        </button>
+    </li>' : '';
+
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
-<!-- Stats Row -->
-<div class="row g-2 mb-3" id="statsRow">
-    <div class="col">
-        <div class="modern-card p-2 text-center">
-            <small class="text-muted">Initial Scheduled</small>
-            <h5 class="mb-0 text-warning" id="statInitialScheduled">0</h5>
-        </div>
-    </div>
-    <div class="col">
-        <div class="modern-card p-2 text-center">
-            <small class="text-muted">Initial Completed</small>
-            <h5 class="mb-0 text-info" id="statInitialCompleted">0</h5>
-        </div>
-    </div>
-    <div class="col">
-        <div class="modern-card p-2 text-center">
-            <small class="text-muted">Final Scheduled</small>
-            <h5 class="mb-0 text-primary" id="statFinalScheduled">0</h5>
-        </div>
-    </div>
-    <div class="col">
-        <div class="modern-card p-2 text-center">
-            <small class="text-muted">Final Completed</small>
-            <h5 class="mb-0 text-success" id="statFinalCompleted">0</h5>
-        </div>
-    </div>
-</div>
-
-<!-- Interview Type Tabs + Status Filter, kept on one row: the status
-     filter shown here always matches whichever tab (Initial/Final) is
-     currently active -- see the shown.bs.tab handlers in interviews.js
-     that swap visibility of initialFilterRow/finalFilterRow. -->
-<div class="d-flex flex-wrap align-items-center gap-2 mb-3" id="interviewControlBar">
-    <ul class="nav nav-pills mb-0" id="interviewTypeTabs" role="tablist">
-        <li class="nav-item" role="presentation">
-            <button class="nav-link active" id="initial-tab" data-bs-toggle="pill" data-bs-target="#initial-interviews" type="button" role="tab">
-                <i class="bi bi-chat"></i> Initial
-                <span class="badge bg-danger ms-1" id="initialTabBadge" style="display:none;">0</span>
-            </button>
-        </li>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link" id="final-tab" data-bs-toggle="pill" data-bs-target="#final-interviews" type="button" role="tab">
-                <i class="bi bi-chat-dots"></i> Final
-                <span class="badge bg-danger ms-1" id="finalTabBadge" style="display:none;">0</span>
-            </button>
-        </li>
-    </ul>
-
-    <div class="d-flex gap-2 flex-wrap" id="initialFilterRow">
-        <!-- ✅ SCHEDULED is now default active, ALL button removed -->
-        <button class="btn btn-sm btn-outline-warning filter-btn-initial active" data-status="scheduled">
-            Scheduled <span class="badge bg-warning text-dark ms-1" id="initialScheduledBadge">0</span>
+<!-- Interview Type Tabs (Initial / Final) -->
+<ul class="nav nav-pills mb-3" id="interviewTypeTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active" id="initial-tab" data-bs-toggle="pill" data-bs-target="#initial-interviews" type="button" role="tab">
+            <i class="bi bi-chat"></i> Initial
+            <span class="badge bg-danger ms-1" id="initialTabBadge" style="display:none;">0</span>
         </button>
-        <button class="btn btn-sm btn-outline-success filter-btn-initial" data-status="completed">
-            Completed <span class="badge bg-success text-white ms-1" id="initialCompletedBadge">0</span>
-        </button>
-        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2" id="initialCount">0</span>
-    </div>
-    <div class="d-flex gap-2 flex-wrap d-none" id="finalFilterRow">
-        <!-- ✅ SCHEDULED default active -->
-        <button class="btn btn-sm btn-outline-warning filter-btn-final active" data-status="scheduled">
-            Scheduled <span class="badge bg-warning text-dark ms-1" id="finalScheduledBadge">0</span>
-        </button>
-        <button class="btn btn-sm btn-outline-success filter-btn-final" data-status="completed">
-            Completed <span class="badge bg-success text-white ms-1" id="finalCompletedBadge">0</span>
-        </button>
-        <span class="badge bg-primary-subtle text-primary-emphasis rounded-pill px-3 py-2" id="finalCount">0</span>
-    </div>
-</div>
+    </li>' . $finalTabHtml . '
+</ul>
 
 <div class="tab-content">
     <!-- ============================================ -->
     <!-- INITIAL INTERVIEWS TAB -->
     <!-- ============================================ -->
     <div class="tab-pane fade show active" id="initial-interviews" role="tabpanel">
-        <div class="row g-2 mb-3">
-            <div class="col-md-6">
-                <div class="autocomplete-wrapper">
-                    <input type="text" id="initialSearchInput" class="form-control" placeholder="Search by name..." maxlength="100" autocomplete="off">
-                    <div class="autocomplete-dropdown" id="initialAutocompleteDropdown"></div>
+        <div class="interview-subnav-layout">
+            <div class="interview-subnav-sidebar">
+                <button class="interview-subnav-btn active filter-btn-initial" data-status="scheduled">
+                    <i class="bi bi-calendar-event"></i> Scheduled
+                    <span class="badge bg-warning text-dark ms-1" id="initialScheduledBadge">0</span>
+                </button>
+                <button class="interview-subnav-btn filter-btn-initial" data-status="history">
+                    <i class="bi bi-clock-history"></i> History
+                    <span class="badge bg-info text-dark ms-1" id="initialNeedsTrainerBadge" style="display:none;" title="Passed, no trainer assigned yet">0</span>
+                </button>
+                <div class="interview-history-subfilter d-none" id="initialHistorySubfilter">
+                    <button class="interview-subfilter-btn active" data-status="history">All</button>
+                    <button class="interview-subfilter-btn" data-status="completed">Completed</button>
+                    <button class="interview-subfilter-btn" data-status="cancelled">Cancelled</button>
                 </div>
             </div>
-            <div class="col-md-3">
-                <button class="btn btn-yellow-outline btn-sm w-100" id="refreshInitialBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-            </div>
-        </div>
-        <div class="modern-card">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead><tr><th>Applicant</th><th>HR</th><th>Date & Time</th><th>Status</th><th>Result</th><th class="text-center">Actions</th></tr></thead>
-                        <tbody id="initialInterviewsTableBody"><tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr></tbody>
-                    </table>
+            <div class="interview-subnav-content">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <div class="autocomplete-wrapper">
+                            <input type="text" id="initialSearchInput" class="form-control" placeholder="Search by name..." maxlength="100" autocomplete="off">
+                            <div class="autocomplete-dropdown" id="initialAutocompleteDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-yellow-outline btn-sm w-100" id="refreshInitialBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                    </div>
                 </div>
-            </div>
-            <div class="card-footer">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small" id="initialTableInfo">Loading...</span>
-                    <nav aria-label="Page navigation"><ul class="pagination pagination-sm mb-0" id="initialPaginationContainer"><li class="page-item disabled"><span class="page-link">1</span></li></ul></nav>
+                <div class="modern-card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead><tr><th>Applicant</th><th>HR</th><th>Date & Time</th><th>Status</th><th>Result</th><th class="text-center">Actions</th></tr></thead>
+                                <tbody id="initialInterviewsTableBody"><tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small" id="initialTableInfo">Loading...</span>
+                            <nav aria-label="Page navigation"><ul class="pagination pagination-sm mb-0" id="initialPaginationContainer"><li class="page-item disabled"><span class="page-link">1</span></li></ul></nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -139,30 +109,48 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     <!-- FINAL INTERVIEWS TAB -->
     <!-- ============================================ -->
     <div class="tab-pane fade" id="final-interviews" role="tabpanel">
-        <div class="row g-2 mb-3">
-            <div class="col-md-6">
-                <div class="autocomplete-wrapper">
-                    <input type="text" id="finalSearchInput" class="form-control" placeholder="Search by name..." maxlength="100" autocomplete="off">
-                    <div class="autocomplete-dropdown" id="finalAutocompleteDropdown"></div>
+        <div class="interview-subnav-layout">
+            <div class="interview-subnav-sidebar">
+                <button class="interview-subnav-btn active filter-btn-final" data-status="scheduled">
+                    <i class="bi bi-calendar-event"></i> Scheduled
+                    <span class="badge bg-warning text-dark ms-1" id="finalScheduledBadge">0</span>
+                </button>
+                <button class="interview-subnav-btn filter-btn-final" data-status="history">
+                    <i class="bi bi-clock-history"></i> History
+                </button>
+                <div class="interview-history-subfilter d-none" id="finalHistorySubfilter">
+                    <button class="interview-subfilter-btn active" data-status="history">All</button>
+                    <button class="interview-subfilter-btn" data-status="completed">Completed</button>
+                    <button class="interview-subfilter-btn" data-status="cancelled">Cancelled</button>
                 </div>
             </div>
-            <div class="col-md-3">
-                <button class="btn btn-yellow-outline btn-sm w-100" id="refreshFinalBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
-            </div>
-        </div>
-        <div class="modern-card">
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover mb-0">
-                        <thead><tr><th>Applicant</th><th>HR</th><th>Date & Time</th><th>Status</th><th>Result</th><th class="text-center">Actions</th></tr></thead>
-                        <tbody id="finalInterviewsTableBody"><tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr></tbody>
-                    </table>
+            <div class="interview-subnav-content">
+                <div class="row g-2 mb-3">
+                    <div class="col-md-6">
+                        <div class="autocomplete-wrapper">
+                            <input type="text" id="finalSearchInput" class="form-control" placeholder="Search by name..." maxlength="100" autocomplete="off">
+                            <div class="autocomplete-dropdown" id="finalAutocompleteDropdown"></div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-yellow-outline btn-sm w-100" id="refreshFinalBtn"><i class="bi bi-arrow-clockwise"></i> Refresh</button>
+                    </div>
                 </div>
-            </div>
-            <div class="card-footer">
-                <div class="d-flex justify-content-between align-items-center">
-                    <span class="text-muted small" id="finalTableInfo">Loading...</span>
-                    <nav aria-label="Page navigation"><ul class="pagination pagination-sm mb-0" id="finalPaginationContainer"><li class="page-item disabled"><span class="page-link">1</span></li></ul></nav>
+                <div class="modern-card">
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead><tr><th>Applicant</th><th>HR</th><th>Date & Time</th><th>Status</th><th>Result</th><th class="text-center">Actions</th></tr></thead>
+                                <tbody id="finalInterviewsTableBody"><tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div></td></tr></tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="text-muted small" id="finalTableInfo">Loading...</span>
+                            <nav aria-label="Page navigation"><ul class="pagination pagination-sm mb-0" id="finalPaginationContainer"><li class="page-item disabled"><span class="page-link">1</span></li></ul></nav>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -227,15 +215,13 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">Date & Time</label>
-                        <input type="datetime-local" 
-                               name="scheduled_date" 
-                               id="scheduleDate" 
-                               class="form-control" 
+                        <input type="datetime-local"
+                               name="scheduled_date"
+                               id="scheduleDate"
+                               class="form-control"
                                required
-                               min="<?php echo $minDate; ?>"
-                               max="<?php echo $maxDate; ?>"
-                               oninput="validateDateInput(this)"
-                               onblur="validateDateInput(this)">
+                               min="' . $minDate . '"
+                               max="' . $maxDate . '">
                         <small class="text-muted">Min: Tomorrow, Max: 3 months from now</small>
                     </div>
                     <div class="mb-3">
@@ -360,7 +346,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Start Date</label>
-                    <input type="date" id="finalizeStartDate" class="form-control" min="<?php echo $todayDate; ?>">
+                    <input type="date" id="finalizeStartDate" class="form-control" min="' . $todayDate . '">
                 </div>
                 <div class="mb-3">
                     <label class="form-label fw-semibold">Rest Days (maximum 2)</label>
@@ -389,7 +375,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20260908600000"></script>
+<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20261011000003"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

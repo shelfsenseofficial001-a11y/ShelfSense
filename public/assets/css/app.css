@@ -896,8 +896,80 @@ input.has-clear-btn {
     color: var(--text-muted);
 }
 
-.date-picker-modal-el .dp-year-select {
-    max-width: 110px;
+.date-picker-modal-el .dp-year-combo {
+    position: relative;
+    width: 110px;
+    flex: 0 0 auto;
+}
+
+.date-picker-modal-el .dp-year-input {
+    width: 100%;
+}
+
+.date-picker-modal-el .dp-year-list {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: 180px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 0 0 8px 8px;
+    z-index: 1000;
+    display: none;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.date-picker-modal-el .dp-year-combo-open .dp-year-list {
+    display: block;
+}
+
+.date-picker-modal-el .dp-year-item {
+    padding: 6px 12px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: background 0.15s;
+}
+
+.date-picker-modal-el .dp-year-item:hover,
+.date-picker-modal-el .dp-year-item-highlight {
+    background: var(--light-yellow-subtle);
+}
+
+.date-picker-modal-el .dp-year-item-selected {
+    background: var(--brand-yellow) !important;
+    color: var(--brand-yellow-btn-text);
+}
+
+.date-picker-modal-el .dp-year-item-empty {
+    color: var(--text-muted);
+    text-align: center;
+    cursor: default;
+    font-size: 0.8rem;
+}
+
+[data-bs-theme="dark"] .date-picker-modal-el .dp-year-list {
+    background: var(--bg-card);
+    border-color: var(--border-color);
+}
+
+.date-picker-modal-el .dp-time-row .dp-hour-select,
+.date-picker-modal-el .dp-time-row .dp-minute-select,
+.date-picker-modal-el .dp-time-row .dp-ampm-select {
+    flex: 1;
+}
+
+.date-picker-modal-el .dp-invalid-flash {
+    animation: dp-invalid-shake 0.4s;
+    box-shadow: 0 0 0 2px var(--bs-danger, #dc3545) !important;
+    border-radius: 6px;
+}
+
+@keyframes dp-invalid-shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-4px); }
+    75% { transform: translateX(4px); }
 }
 
 .date-picker-modal-el .dp-day-headrow {
