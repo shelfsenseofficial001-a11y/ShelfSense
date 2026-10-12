@@ -480,6 +480,33 @@ function updatePendingBadge() {
 }
 
 // ============================================
+// GLOBAL: Update Trainee Report Badge
+// ============================================
+// Present on every layout's "Trainee Report" nav item (store_manager,
+// finance, cashier, hr) -- counts whatever's currently waiting on THIS user
+// specifically (a report to review, or one forwarded to them as HR Head).
+// A trainer's own active trainee is informational, not counted here.
+
+function updateTraineeReportBadge() {
+    const badge = document.getElementById('traineeReportBadge');
+    if (!badge) return;
+
+    fetch('?page=api_trainee_get_my_queue')
+        .then(response => response.json())
+        .then(data => {
+            if (!data.success) return;
+            const pending = (data.data.pending_review?.length || 0) + (data.data.pending_hr_staff_review?.length || 0) + (data.data.pending_hr_review?.length || 0);
+            if (pending > 0) {
+                badge.textContent = pending;
+                badge.style.display = 'inline-block';
+            } else {
+                badge.style.display = 'none';
+            }
+        })
+        .catch(() => {});
+}
+
+// ============================================
 // DATE VALIDATION
 // ============================================
 
@@ -509,6 +536,7 @@ function validateScheduleDate(dateStr) {
 
 document.addEventListener('DOMContentLoaded', function() {
     updatePendingBadge();
+    updateTraineeReportBadge();
 });
 
 // ============================================

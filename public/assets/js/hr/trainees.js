@@ -597,61 +597,6 @@ function assignTrainer() {
 
 let currentTraineeId = null;
 let currentTraineeReports = [];
-let currentTraineeWeeks = [];
-
-const REPORT_STRENGTH_OPTIONS = [
-    'Effective Communication', 'Technical / Job Knowledge', 'Punctuality & Reliability',
-    'Problem-Solving & Critical Thinking', 'Adaptability & Learning Agility',
-    'Teamwork & Collaboration', 'Attention to Detail', 'Initiative & Work Ethic'
-];
-const REPORT_IMPROVEMENT_OPTIONS = [
-    'Communication Skills', 'Speed & Productivity', 'Attention to Detail',
-    'Job Knowledge & Task Execution', 'Time Management & Prioritization',
-    'Punctuality & Attendance', 'Adaptability to Feedback', 'Proactivity & Initiative'
-];
-const WEEK_DAY_NAMES = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-
-// Builds the 12 weekly ranges anchored to the trainee's actual start_date
-// (e.g. start Aug 30 -> week 1 = Aug 30-Sep 5, week 2 = Sep 6-Sep 12, ...),
-// mirroring the same math submit_report.php uses server-side.
-function computeTraineeWeeks(startDateStr, restDays) {
-    const weeks = [];
-    const restSet = new Set((restDays || []).map(d => d.toLowerCase()));
-    const start = new Date(startDateStr + 'T00:00:00');
-    for (let w = 1; w <= 12; w++) {
-        const weekStart = new Date(start);
-        weekStart.setDate(weekStart.getDate() + (w - 1) * 7);
-        const days = [];
-        for (let i = 0; i < 7; i++) {
-            const d = new Date(weekStart);
-            d.setDate(d.getDate() + i);
-            const dayName = WEEK_DAY_NAMES[(d.getDay() + 6) % 7]; // JS Sunday=0 -> align to Monday-first
-            days.push({ date: d, dayName, isRestDay: restSet.has(dayName) });
-        }
-        weeks.push({ week: w, start: weekStart, end: days[6].date, days });
-    }
-    return weeks;
-}
-
-function formatShortDate(d) {
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-}
-
-function renderWeekCalendar(weekObj) {
-    if (!weekObj) return '';
-    const dayLabels = { monday: 'Mon', tuesday: 'Tue', wednesday: 'Wed', thursday: 'Thu', friday: 'Fri', saturday: 'Sat', sunday: 'Sun' };
-    return `
-        <div class="trainee-week-calendar d-flex gap-1 flex-wrap">
-            ${weekObj.days.map(d => `
-                <div class="trainee-week-day ${d.isRestDay ? 'is-rest-day' : ''}" title="${d.isRestDay ? 'Rest day' : 'Working day'}">
-                    <div class="trainee-week-day-name">${dayLabels[d.dayName]}</div>
-                    <div class="trainee-week-day-num">${d.date.getDate()}</div>
-                    ${d.isRestDay ? '<div class="trainee-week-day-tag">Rest</div>' : ''}
-                </div>
-            `).join('')}
-        </div>
-    `;
-}
 
 function openReportsModal(traineeId, traineeName) {
     currentTraineeId = traineeId;
@@ -692,71 +637,14 @@ function renderWeeklyReports(traineeId, data) {
     const role = window.CURRENT_USER_ROLE;
     const userId = window.CURRENT_USER_ID;
 
-    currentTraineeWeeks = data.trainee_start_date ? computeTraineeWeeks(data.trainee_start_date, data.trainee_rest_days) : [];
-    const submittedWeekNumbers = new Set((data.reports || []).map(r => r.week_number));
-    const defaultWeek = data.missing_weeks[0] || 1;
-
-    const weekOptions = currentTraineeWeeks.map(w => {
-        const isSubmitted = submittedWeekNumbers.has(w.week);
-        const label = `Week ${w.week} (${formatShortDate(w.start)} - ${formatShortDate(w.end)})${isSubmitted ? ' — Submitted' : ''}`;
-        return `<option value="${w.week}" ${isSubmitted ? 'disabled' : ''} ${w.week === defaultWeek ? 'selected' : ''}>${label}</option>`;
-    }).join('');
-
-    const strengthOptions = REPORT_STRENGTH_OPTIONS.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
-    const improvementOptions = REPORT_IMPROVEMENT_OPTIONS.map(o => `<option value="${escapeHtml(o)}">${escapeHtml(o)}</option>`).join('');
-
     let html = `
         <div class="mb-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
             <div>
                 <span class="badge bg-${data.all_reports_complete ? 'success' : 'secondary'}">${data.submitted_weeks}/${data.expected_weeks} weeks submitted</span>
-                ${data.all_forwarded && data.reports.length ? '<span class="badge bg-info ms-1">All forwarded to HR Head</span>' : ''}
+                ${data.all_reports_complete && data.reports.every(r => r.status === 'hr_reviewed') ? '<span class="badge bg-success ms-1">All reviewed by HR Head</span>' : ''}
                 ${data.missing_weeks.length ? `<span class="badge bg-warning text-dark ms-1">Missing: ${data.missing_weeks.join(', ')}</span>` : ''}
             </div>
-            <button class="btn btn-sm btn-yellow-primary" id="openSubmitReportBtn"><i class="bi bi-plus-circle"></i> Submit Weekly Report</button>
-        </div>
-        <div id="submitReportFormWrap" class="modern-card p-3 mb-3" style="display:none;">
-            <div class="mb-2">
-                <label class="form-label fw-semibold">Select Week</label>
-                <select id="reportWeekSelect" class="form-select form-select-sm mb-2" style="max-width:320px;">${weekOptions}</select>
-                <div id="reportWeekCalendar">${renderWeekCalendar(currentTraineeWeeks.find(w => w.week === defaultWeek))}</div>
-            </div>
-            <div class="mb-2"><label class="form-label fw-semibold">Report Content</label><textarea id="reportContentInput" class="form-control" rows="3" maxlength="5000"></textarea></div>
-            <div class="row g-2">
-                <div class="col-md-6">
-                    <label class="form-label small">Strengths</label>
-                    <select id="reportStrengths" class="form-select form-select-sm">
-                        <option value="">-- select --</option>
-                        ${strengthOptions}
-                        <option value="__other__">Other (specify)</option>
-                    </select>
-                    <input type="text" id="reportStrengthsOther" class="form-control form-control-sm mt-1" style="display:none;" maxlength="500" placeholder="Specify strength...">
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label small">Areas for Improvement</label>
-                    <select id="reportImprovements" class="form-select form-select-sm">
-                        <option value="">-- select --</option>
-                        ${improvementOptions}
-                        <option value="__other__">Other (specify)</option>
-                    </select>
-                    <input type="text" id="reportImprovementsOther" class="form-control form-control-sm mt-1" style="display:none;" maxlength="500" placeholder="Specify area for improvement...">
-                </div>
-            </div>
-            <div class="row g-2 mt-1">
-                <div class="col-md-6"><label class="form-label small">Attendance/Punctuality Notes</label><input type="text" id="reportAttendance" class="form-control form-control-sm" maxlength="1000"></div>
-                <div class="col-md-6">
-                    <label class="form-label small">Performance Rating</label>
-                    <select id="reportRating" class="form-select form-select-sm">
-                        <option value="">-- none --</option>
-                        <option value="excellent">Excellent</option>
-                        <option value="good">Good</option>
-                        <option value="satisfactory">Satisfactory</option>
-                        <option value="needs_improvement">Needs Improvement</option>
-                        <option value="poor">Poor</option>
-                    </select>
-                </div>
-            </div>
-            <div class="text-muted small mt-2">Once submitted, this report cannot be edited.</div>
-            <button class="btn btn-yellow-primary btn-sm mt-2" id="submitWeeklyReportBtn"><i class="bi bi-save"></i> Submit</button>
+            <span class="text-muted small">Trainers submit from their own <a href="?page=trainee_report">Trainee Report</a> tab.</span>
         </div>
     `;
 
@@ -765,13 +653,18 @@ function renderWeeklyReports(traineeId, data) {
     } else {
         html += data.reports.map(r => {
             const canObserve = r.status === 'submitted' && role === mapDeptToReviewerRoleJs(r.department) && Number(r.trainer_id) !== Number(userId);
-            const canHrReview = (r.status === 'forwarded' || r.status === 'hr_reviewed') && (role === 'hr_head');
+            // HR Staff screening (store/finance reports) only happens on the
+            // new Trainee Report tab's review board, not here -- so HR Head's
+            // review only unlocks once that stage is done (or skipped, for
+            // HR department trainees whose trainer is already HR Staff).
+            const canHrReview = (r.status === 'hr_staff_reviewed' || (r.status === 'forwarded' && r.department === 'hr') || r.status === 'hr_reviewed') && (role === 'hr_head');
+            const awaitingHrStaff = r.status === 'forwarded' && r.department !== 'hr';
             return `
             <div class="modern-card p-0 mb-2 report-row" data-report-id="${r.id}">
                 <div class="d-flex justify-content-between align-items-center p-3">
                     <h6 class="mb-0">Week ${r.week_number} <small class="text-muted">(${r.period_start} to ${r.period_end})</small></h6>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="badge bg-${r.status === 'submitted' ? 'secondary' : r.status === 'forwarded' ? 'info' : 'success'}">${escapeHtml(r.status)}</span>
+                        <span class="badge bg-${r.status === 'submitted' ? 'secondary' : r.status === 'forwarded' ? 'info' : r.status === 'hr_staff_reviewed' ? 'primary' : 'success'}">${reportStatusLabel(r.status)}</span>
                         <button class="btn btn-sm btn-outline-primary view-report-btn" data-report-id="${r.id}"><i class="bi bi-eye"></i> View</button>
                     </div>
                 </div>
@@ -782,7 +675,8 @@ function renderWeeklyReports(traineeId, data) {
                     ${r.strengths ? `<div class="small mb-1"><strong>Strengths:</strong> ${escapeHtml(r.strengths)}</div>` : ''}
                     ${r.improvements ? `<div class="small mb-2"><strong>Areas for Improvement:</strong> ${escapeHtml(r.improvements)}</div>` : ''}
                     ${r.attendance_notes ? `<div class="small mb-2"><strong>Attendance/Punctuality Notes:</strong> ${escapeHtml(r.attendance_notes)}</div>` : ''}
-                    ${r.reviewer_observation ? `<div class="alert alert-secondary py-1 px-2 small mb-2"><strong>${escapeHtml(r.reviewer_role)} observation (${escapeHtml(r.reviewer_first)} ${escapeHtml(r.reviewer_last)}):</strong> ${escapeHtml(r.reviewer_observation)}</div>` : ''}
+                    ${r.reviewer_observation ? `<div class="alert alert-secondary py-1 px-2 small mb-2"><strong>${escapeHtml(reviewerRoleLabel(r.reviewer_role))} observation (${escapeHtml(r.reviewer_first)} ${escapeHtml(r.reviewer_last)}):</strong> ${escapeHtml(r.reviewer_observation)}</div>` : ''}
+                    ${r.hr_staff_notes ? `<div class="alert alert-secondary py-1 px-2 small mb-2"><strong>HR Staff notes (${escapeHtml(r.hrstaff_first)} ${escapeHtml(r.hrstaff_last)}):</strong> ${escapeHtml(r.hr_staff_notes)}</div>` : ''}
                     ${r.hr_head_notes ? `<div class="alert alert-info py-1 px-2 small mb-2"><strong>HR Head notes:</strong> ${escapeHtml(r.hr_head_notes)}</div>` : ''}
                     ${canObserve ? `
                         <textarea class="form-control form-control-sm mb-1 observation-input" data-report-id="${r.id}" rows="2" maxlength="3000" placeholder="Add your observation (optional)..."></textarea>
@@ -792,6 +686,7 @@ function renderWeeklyReports(traineeId, data) {
                         <textarea class="form-control form-control-sm mb-1 hrhead-input" data-report-id="${r.id}" rows="2" maxlength="2000" placeholder="HR Head notes (optional)..."></textarea>
                         <button class="btn btn-sm btn-outline-success hrhead-review-btn" data-report-id="${r.id}"><i class="bi bi-check2"></i> Save Review Note</button>
                     ` : ''}
+                    ${awaitingHrStaff ? `<div class="small text-muted">Awaiting HR Staff screening -- see the <a href="?page=trainee_report">Trainee Report</a> tab.</div>` : ''}
                 </div>
             </div>`;
         }).join('');
@@ -807,21 +702,6 @@ function renderWeeklyReports(traineeId, data) {
         this.innerHTML = expanded ? '<i class="bi bi-eye"></i> View' : '<i class="bi bi-eye-slash"></i> Hide';
     }));
 
-    document.getElementById('openSubmitReportBtn')?.addEventListener('click', function () {
-        const wrap = document.getElementById('submitReportFormWrap');
-        wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
-    });
-    document.getElementById('reportWeekSelect')?.addEventListener('change', function () {
-        const weekObj = currentTraineeWeeks.find(w => w.week === parseInt(this.value));
-        document.getElementById('reportWeekCalendar').innerHTML = renderWeekCalendar(weekObj);
-    });
-    document.getElementById('reportStrengths')?.addEventListener('change', function () {
-        document.getElementById('reportStrengthsOther').style.display = this.value === '__other__' ? 'block' : 'none';
-    });
-    document.getElementById('reportImprovements')?.addEventListener('change', function () {
-        document.getElementById('reportImprovementsOther').style.display = this.value === '__other__' ? 'block' : 'none';
-    });
-    document.getElementById('submitWeeklyReportBtn')?.addEventListener('click', () => submitWeeklyReport(traineeId));
     body.querySelectorAll('.forward-report-btn').forEach(btn => btn.addEventListener('click', function () {
         const reportId = this.dataset.reportId;
         const obs = body.querySelector(`.observation-input[data-report-id="${reportId}"]`).value.trim();
@@ -834,50 +714,23 @@ function renderWeeklyReports(traineeId, data) {
     }));
 }
 
-function mapDeptToReviewerRoleJs(department) {
-    return { store: 'store_manager', finance: 'finance_head', hr: 'hr_staff' }[department] || null;
+// Mirrors trainee_report.js's trStatusLabel()/trRoleLabel() -- same enum
+// values, kept in sync by hand since this is a separate page/file.
+function reportStatusLabel(status) {
+    return {
+        submitted: 'Submitted', forwarded: 'Forwarded',
+        hr_staff_reviewed: 'HR Staff Reviewed', hr_reviewed: 'HR Reviewed'
+    }[status] || status;
+}
+function reviewerRoleLabel(role) {
+    return { store_manager: 'Store Manager', finance_head: 'Finance Head', hr_head: 'HR Head', hr_staff: 'HR Staff' }[role] || (role || 'Reviewer');
 }
 
-function submitWeeklyReport(traineeId) {
-    const strengthsSelect = document.getElementById('reportStrengths').value;
-    const improvementsSelect = document.getElementById('reportImprovements').value;
-    const strengthsOther = document.getElementById('reportStrengthsOther').value.trim();
-    const improvementsOther = document.getElementById('reportImprovementsOther').value.trim();
-
-    if (strengthsSelect === '__other__' && !strengthsOther) {
-        Swal.fire({ icon: 'warning', title: 'Strengths Required', text: 'Please specify the strength.' });
-        return;
-    }
-    if (improvementsSelect === '__other__' && !improvementsOther) {
-        Swal.fire({ icon: 'warning', title: 'Areas for Improvement Required', text: 'Please specify the area for improvement.' });
-        return;
-    }
-
-    const payload = {
-        trainee_id: traineeId,
-        week_number: parseInt(document.getElementById('reportWeekSelect').value),
-        report_content: document.getElementById('reportContentInput').value.trim(),
-        strengths: strengthsSelect === '__other__' ? strengthsOther : strengthsSelect,
-        improvements: improvementsSelect === '__other__' ? improvementsOther : improvementsSelect,
-        attendance_notes: document.getElementById('reportAttendance').value.trim(),
-        performance_rating: document.getElementById('reportRating').value
-    };
-    if (!payload.report_content) {
-        Swal.fire({ icon: 'warning', title: 'Report Cannot Be Empty', text: 'Please enter the report details.' });
-        return;
-    }
-    fetch('?page=api_trainee_submit_report', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
-    })
-        .then(r => r.json())
-        .then(data => {
-            if (data.success) {
-                Swal.fire({ icon: 'success', title: 'Report Submitted', text: data.message, timer: 2000, showConfirmButton: false });
-                loadWeeklyReports(traineeId);
-            } else {
-                Swal.fire({ icon: 'error', title: 'Submission Failed', text: data.message || 'Please try again.' });
-            }
-        });
+// Mirrors app/helpers/functions.php's mapDepartmentToReviewerRole() -- an HR
+// trainee's report goes straight to HR Head (the department head IS HR
+// Head here), not a peer HR Staff.
+function mapDeptToReviewerRoleJs(department) {
+    return { store: 'store_manager', finance: 'finance_head', hr: 'hr_head' }[department] || null;
 }
 
 function forwardReport(reportId, observation, traineeId) {

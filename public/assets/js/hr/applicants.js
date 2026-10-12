@@ -23,81 +23,27 @@ let pendingScrollToScheduleForm = null;
 // ============================================
 // DATE PICKER RESTRICTION - BLOCK INVALID DATES
 // ============================================
+// The scheduled-date field itself is now the shared date-picker-modal
+// component (see computeScheduleDateBounds() below for its min/max), which
+// already disables out-of-range days and times in its own UI -- this is
+// just the final defensive check right before the request goes out.
 
-function closeDatePicker(input) {
-    if (input) {
-        input.blur();
-    }
-    if (document.activeElement) {
-        document.activeElement.blur();
-    }
-}
+// Mirrors validateScheduleDate()'s (and the backend's, in
+// schedule_interview.php) own bounds exactly, as the shared date-picker
+// modal's min/max attributes -- so it actually disables out-of-range days
+// and times in its own UI instead of only catching a bad pick afterward.
+function computeScheduleDateBounds() {
+    const pad = n => String(n).padStart(2, '0');
+    const toLocal = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 
-function validateDateInput(input) {
-    const value = input.value;
-    if (!value) return;
-    
-    const selected = new Date(value);
-    const now = new Date();
-    const tomorrow = new Date(now);
+    const tomorrow = new Date();
     tomorrow.setDate(tomorrow.getDate() + 1);
     tomorrow.setHours(0, 0, 0, 0);
-    
-    const maxDate = new Date(now);
+
+    const maxDate = new Date();
     maxDate.setMonth(maxDate.getMonth() + 3);
-    maxDate.setHours(23, 59, 59, 999);
-    
-    if (isNaN(selected.getTime())) {
-        input.value = '';
-        input.classList.add('error');
-        closeDatePicker(input);
-        Swal.fire({
-            icon: 'warning',
-            title: 'Invalid Format',
-            text: 'Please use the date picker to select a valid date.',
-            timer: 2000,
-            timerProgressBar: true
-        });
-        setTimeout(() => input.classList.remove('error'), 2000);
-        return;
-    }
-    
-    if (selected < tomorrow) {
-        input.value = toDatetimeLocalString(tomorrow);
-        input.classList.add('error');
-        closeDatePicker(input);
-        Swal.fire({
-            icon: 'warning',
-            title: 'Date Too Early',
-            text: '❌ Cannot select yesterday or earlier. Snapped to the earliest allowed date.',
-            timer: 3000,
-            timerProgressBar: true
-        });
-        setTimeout(() => input.classList.remove('error'), 3000);
-        return;
-    }
 
-    if (selected > maxDate) {
-        input.value = toDatetimeLocalString(maxDate);
-        input.classList.add('error');
-        closeDatePicker(input);
-        Swal.fire({
-            icon: 'warning',
-            title: 'Date Too Far',
-            text: '❌ Cannot select beyond 3 months from now. Snapped to the latest allowed date.',
-            timer: 3000,
-            timerProgressBar: true
-        });
-        setTimeout(() => input.classList.remove('error'), 3000);
-        return;
-    }
-
-    input.classList.remove('error');
-}
-
-function toDatetimeLocalString(d) {
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    return { min: toLocal(tomorrow), max: toLocal(maxDate) };
 }
 
 function validateScheduleDate(dateStr) {
@@ -876,6 +822,7 @@ function renderApplicantDetail(applicant) {
     const statusColor = APPLICANT_STATUS_COLORS[applicant.status] || 'secondary';
     const canSchedule = canScheduleInterview(applicant.status);
     const canRejectApplicant = canReject(applicant.status);
+    const scheduleDateBounds = computeScheduleDateBounds();
 
     const rejectButtonHtml = canRejectApplicant ? `
         <div class="applicant-drawer-actions">
@@ -894,8 +841,7 @@ function renderApplicantDetail(applicant) {
                 <div class="mb-2">
                     <label class="form-label small">Date &amp; Time</label>
                     <input type="datetime-local" name="scheduled_date" id="scheduleDate" class="form-control form-control-sm" required
-                           value="${defaultScheduleDateValue()}"
-                           oninput="validateDateInput(this)" onblur="validateDateInput(this)">
+                           min="${scheduleDateBounds.min}" max="${scheduleDateBounds.max}">
                     <small class="text-muted">Min: Tomorrow, Max: 3 months from now</small>
                 </div>
                 <div class="mb-2">
@@ -994,6 +940,7 @@ function renderApplicantDetail(applicant) {
     drawApplicantSkillsStatsChart(applicant);
     updateApplicantScrollHint();
     loadResumePreviewFrame();
+    if (window.upgradeDatePickers) window.upgradeDatePickers(body);
 
     if (pendingScrollToScheduleForm && String(pendingScrollToScheduleForm) === String(applicant.id)) {
         pendingScrollToScheduleForm = null;
@@ -1255,13 +1202,6 @@ function drawApplicantSkillsStatsChart(applicant) {
 // the form is always visible for a schedulable applicant, never toggled)
 // ============================================
 
-// Default date/time for a fresh schedule form: tomorrow at 10am.
-function defaultScheduleDateValue() {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    return tomorrow.toISOString().slice(0, 16);
-}
 
 // Called from the applicants table row: opens the drawer for this
 // applicant (if not already open) and scrolls its always-visible
@@ -1472,7 +1412,4 @@ function formatDate(dateStr) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-// Make validateDateInput globally accessible
-window.validateDateInput = validateDateInput;
 window.validateScheduleDate = validateScheduleDate;
-window.closeDatePicker = closeDatePicker;

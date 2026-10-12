@@ -1,5 +1,9 @@
 <?php
 use App\Core\Auth;
+
+// A rank-and-file Employee only sees the Trainee Report tab while they're
+// actually training someone right now.
+$showTraineeReportTab = hasActiveTraineeAsTrainer(Auth::userId());
 ?>
 <!DOCTYPE html>
 <html lang="en" data-bs-theme="light">
@@ -73,6 +77,11 @@ use App\Core\Auth;
                     <span class="nav-icon-wrap"><i class="bi bi-clock-history"></i></span> <span class="nav-label">Order History</span>
                 </a>
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
+                <?php if ($showTraineeReportTab): ?>
+                <a href="?page=trainee_report" class="nav-item <?= $activePage === 'trainee_report' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-journal-text"></i><span class="badge bg-danger nav-badge" id="traineeReportBadge" style="display:none;">0</span></span> <span class="nav-label">Trainee Report</span>
+                </a>
+                <?php endif; ?>
                 <a href="?page=my_leaves" class="nav-item <?= $activePage === 'my_leaves' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar2-week"></i></span> <span class="nav-label">My Leaves</span>
                 </a>
@@ -127,11 +136,11 @@ use App\Core\Auth;
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <!-- Custom JS -->
-    <script src="/ShelfSense/public/assets/js/app.js?v=20260910100000"></script>
+    <script src="/ShelfSense/public/assets/js/app.js?v=20261011000000"></script>
 
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261007090000"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
 
     <?= $additional_js ?? '' ?>
     

@@ -41,11 +41,13 @@ try {
     $stmt = $db->prepare("
         SELECT tr.*, t1.first_name as trainer_first, t1.last_name as trainer_last,
                t2.first_name as reviewer_first, t2.last_name as reviewer_last,
-               t3.first_name as hrhead_first, t3.last_name as hrhead_last
+               t3.first_name as hrhead_first, t3.last_name as hrhead_last,
+               t4.first_name as hrstaff_first, t4.last_name as hrstaff_last
         FROM trainee_reports tr
         LEFT JOIN users t1 ON tr.trainer_id = t1.user_id
         LEFT JOIN users t2 ON tr.reviewer_id = t2.user_id
         LEFT JOIN users t3 ON tr.hr_head_id = t3.user_id
+        LEFT JOIN users t4 ON tr.hr_staff_id = t4.user_id
         WHERE tr.trainee_id = ?
         ORDER BY tr.week_number ASC
     ");
@@ -76,7 +78,6 @@ try {
         'submitted_weeks' => count($reports),
         'missing_weeks' => $missingWeeks,
         'all_reports_complete' => empty($missingWeeks),
-        'all_forwarded' => count(array_filter($reports, fn($r) => in_array($r['status'], ['forwarded', 'hr_reviewed'], true))) === count($reports) && !empty($reports),
         'trainee_start_date' => $trainee['start_date'],
         'trainee_end_date' => $trainee['end_date'],
         'trainee_rest_days' => $restDays

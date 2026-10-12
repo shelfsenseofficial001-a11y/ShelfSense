@@ -355,18 +355,33 @@ function mapRoleToDepartment($targetRole)
 
 /**
  * Who is authorized to add an observation and forward a department's weekly
- * trainee reports to HR Head. For HR trainees this is HR Staff (forwarding
- * directly, per the simpler HR-internal path); for Store/Finance it's the
- * department head/manager (never the Trainer themselves).
+ * trainee reports to HR Head. For HR trainees the Trainer is themselves an
+ * HR Staff member, and the department head IS HR Head -- so this goes
+ * straight from Trainer to HR Head in one hop, same as Store/Finance go to
+ * their own department head/manager (never the Trainer themselves).
  */
 function mapDepartmentToReviewerRole($department)
 {
     $map = [
         'store' => 'store_manager',
         'finance' => 'finance_head',
-        'hr' => 'hr_staff'
+        'hr' => 'hr_head'
     ];
     return $map[$department] ?? null;
+}
+
+/**
+ * Whether this user is currently training someone (trainer_id on an active
+ * trainees row) -- used to decide whether a rank-and-file trainer (not a
+ * department head, who always sees it) gets the "Trainee Report" nav tab.
+ */
+function hasActiveTraineeAsTrainer(?int $userId): bool
+{
+    if (!$userId) return false;
+    $db = \App\Core\Database::getInstance()->getConnection();
+    $stmt = $db->prepare("SELECT 1 FROM trainees WHERE trainer_id = ? AND status = 'active' LIMIT 1");
+    $stmt->execute([$userId]);
+    return (bool)$stmt->fetch();
 }
 
 // ============================================

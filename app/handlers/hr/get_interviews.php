@@ -19,12 +19,27 @@ function hr_interviews_build_data(PDO $db, int $currentUserId, int $page, int $l
     $where = "1=1";
     $params = [];
 
+    // HR Staff has no power over the Final Interview at all -- not just
+    // scheduling (already enforced in schedule_interview.php), but viewing
+    // too. Applies regardless of the requested $type (a direct ?type=final
+    // request correctly comes back empty; ?type=all silently drops final
+    // rows rather than ever surfacing them).
+    if (Auth::check() && Auth::role() === 'hr_staff' && !Auth::isSuperAdmin()) {
+        $where .= " AND i.interview_type != 'final'";
+    }
+
     if ($type !== 'all') {
         $where .= " AND i.interview_type = ?";
         $params[] = $type;
     }
 
-    if ($status !== 'all') {
+    if ($status === 'history') {
+        // Past/no-longer-actionable interviews -- completed AND cancelled,
+        // as one combined bucket (the Interviews page's "History" sub-tab
+        // then offers Completed/Cancelled as a secondary filter on top of
+        // this, passed through as status=completed/status=cancelled below).
+        $where .= " AND i.status IN ('completed', 'cancelled')";
+    } elseif ($status !== 'all') {
         $where .= " AND i.status = ?";
         $params[] = $status;
     }

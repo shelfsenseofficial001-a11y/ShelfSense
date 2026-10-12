@@ -599,6 +599,40 @@ if ($page === 'api_trainee_hr_head_review_report') {
     require_once __DIR__ . '/../app/handlers/hr/trainee_reports/hr_head_review_report.php';
     exit;
 }
+if ($page === 'api_trainee_get_my_queue') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/get_my_queue.php';
+    exit;
+}
+if ($page === 'api_trainee_save_daily_log') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/save_daily_log.php';
+    exit;
+}
+if ($page === 'api_trainee_get_daily_logs') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/get_daily_logs.php';
+    exit;
+}
+if ($page === 'api_trainee_add_hr_staff_screening') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/add_hr_staff_screening.php';
+    exit;
+}
+if ($page === 'api_trainee_get_review_board') {
+    require_once __DIR__ . '/../app/handlers/hr/trainee_reports/get_review_board.php';
+    exit;
+}
+if ($page === 'trainee_report') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    // Trainees/Suppliers aren't part of this reporting chain -- they have
+    // their own dashboards.
+    if (Auth::isTrainee() || Auth::isSupplier()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/shared/trainee_report.php';
+    exit;
+}
 if ($page === 'api_trainee_respond_to_contract') {
     require_once __DIR__ . '/../app/handlers/trainee/respond_to_contract.php';
     exit;

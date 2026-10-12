@@ -19,82 +19,10 @@ let searchTimeout = null;
 // ============================================
 // DATE PICKER RESTRICTION - BLOCK INVALID DATES
 // ============================================
-
-function closeDatePicker(input) {
-    if (input) {
-        input.blur();
-    }
-    if (document.activeElement) {
-        document.activeElement.blur();
-    }
-}
-
-function validateDateInput(input) {
-    const value = input.value;
-    if (!value) return;
-    
-    const selected = new Date(value);
-    const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(0, 0, 0, 0);
-    
-    const maxDate = new Date(now);
-    maxDate.setMonth(maxDate.getMonth() + 3);
-    maxDate.setHours(23, 59, 59, 999);
-    
-    if (isNaN(selected.getTime())) {
-        input.value = '';
-        input.classList.add('error');
-        closeDatePicker(input);
-        Swal.fire({
-            icon: 'warning',
-            title: 'Invalid Format',
-            text: 'Please use the date picker to select a valid date.',
-            timer: 2000,
-            timerProgressBar: true
-        });
-        setTimeout(() => input.classList.remove('error'), 2000);
-        return;
-    }
-    
-    if (selected < tomorrow) {
-        input.value = toDatetimeLocalString(tomorrow);
-        input.classList.add('error');
-        closeDatePicker(input);
-        Swal.fire({
-            icon: 'warning',
-            title: 'Date Too Early',
-            text: '❌ Cannot select yesterday or earlier. Snapped to the earliest allowed date.',
-            timer: 3000,
-            timerProgressBar: true
-        });
-        setTimeout(() => input.classList.remove('error'), 3000);
-        return;
-    }
-
-    if (selected > maxDate) {
-        input.value = toDatetimeLocalString(maxDate);
-        input.classList.add('error');
-        closeDatePicker(input);
-        Swal.fire({
-            icon: 'warning',
-            title: 'Date Too Far',
-            text: '❌ Cannot select beyond 3 months from now. Snapped to the latest allowed date.',
-            timer: 3000,
-            timerProgressBar: true
-        });
-        setTimeout(() => input.classList.remove('error'), 3000);
-        return;
-    }
-
-    input.classList.remove('error');
-}
-
-function toDatetimeLocalString(d) {
-    const pad = n => String(n).padStart(2, '0');
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
+// The scheduled-date field itself is now the shared date-picker-modal
+// component (its min/max come straight from the input's own attributes,
+// matching the backend's bounds in schedule_interview.php) -- this is just
+// the final defensive check right before the request goes out.
 
 function validateScheduleDate(dateStr) {
     const selected = new Date(dateStr);
@@ -118,6 +46,47 @@ function validateScheduleDate(dateStr) {
     return true;
 }
 
+// Wires the Scheduled/History sidebar buttons (.filter-btn-initial /
+// .filter-btn-final) plus the Completed/Cancelled sub-filter that only
+// shows once History is the active sidebar item (#<group>HistorySubfilter).
+// "History" by itself requests status=history (completed+cancelled
+// combined, see get_interviews.php); the sub-filter narrows that down to
+// exactly one of the two, or back to "All" (status=history again).
+function setupInterviewSubnav(group, filters, loadFn, resetPage) {
+    const sidebarBtns = document.querySelectorAll(`.filter-btn-${group}`);
+    const subfilterContainer = document.getElementById(`${group}HistorySubfilter`);
+    const subfilterBtns = subfilterContainer ? subfilterContainer.querySelectorAll('.interview-subfilter-btn') : [];
+
+    function applyStatus(status) {
+        filters.status = status;
+        resetPage();
+        loadFn();
+    }
+
+    sidebarBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            sidebarBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            const status = this.dataset.status;
+            if (status === 'history') {
+                subfilterContainer?.classList.remove('d-none');
+                subfilterBtns.forEach(b => b.classList.toggle('active', b.dataset.status === 'history'));
+            } else {
+                subfilterContainer?.classList.add('d-none');
+            }
+            applyStatus(status);
+        });
+    });
+
+    subfilterBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            subfilterBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            applyStatus(this.dataset.status);
+        });
+    });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log('✅ DOM ready - interviews page');
 
@@ -126,31 +95,19 @@ document.addEventListener('DOMContentLoaded', function() {
         renderInitialInterviews(initial.initial.interviews);
         renderPagination(initial.initial.pagination, 'initialPaginationContainer', loadInitialInterviews);
         document.getElementById('initialTableInfo').textContent = `Showing ${initial.initial.pagination.totalRecords || 0} interviews`;
-        document.getElementById('initialCount').textContent = `${initial.initial.pagination.totalRecords || 0} records`;
 
         renderFinalInterviews(initial.final.interviews);
         renderPagination(initial.final.pagination, 'finalPaginationContainer', loadFinalInterviews);
         document.getElementById('finalTableInfo').textContent = `Showing ${initial.final.pagination.totalRecords || 0} interviews`;
-        document.getElementById('finalCount').textContent = `${initial.final.pagination.totalRecords || 0} records`;
 
-        const allInterviews = initial.allStats.interviews || [];
-        const initialScheduled = allInterviews.filter(i => i.interview_type === 'initial' && i.status === 'scheduled').length;
-        const initialCompleted = allInterviews.filter(i => i.interview_type === 'initial' && i.status === 'completed').length;
-        const finalScheduled = allInterviews.filter(i => i.interview_type === 'final' && i.status === 'scheduled').length;
-        const finalCompleted = allInterviews.filter(i => i.interview_type === 'final' && i.status === 'completed').length;
-        document.getElementById('statInitialScheduled').textContent = initialScheduled;
-        document.getElementById('statInitialCompleted').textContent = initialCompleted;
-        document.getElementById('statFinalScheduled').textContent = finalScheduled;
-        document.getElementById('statFinalCompleted').textContent = finalCompleted;
-        updateInitialBadges(allInterviews.filter(i => i.interview_type === 'initial'));
-        updateFinalBadges(allInterviews.filter(i => i.interview_type === 'final'));
+        updateInitialBadges();
+        updateFinalBadges();
 
         if (window.ShelfSplash) window.ShelfSplash.ready();
     } else {
         loadInitialInterviews();
         loadFinalInterviews();
         loadContractInterviews();
-        loadAllStats();
     }
 
     // Deep link from the Trainees page's "Schedule Final Interview" button
@@ -168,16 +125,10 @@ document.addEventListener('DOMContentLoaded', function() {
         window.history.replaceState(null, '', cleanUrl);
     }
 
-    // Initial filter buttons
-    document.querySelectorAll('.filter-btn-initial').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn-initial').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            initialFilters.status = this.dataset.status;
-            initialPage = 1;
-            loadInitialInterviews();
-        });
-    });
+    // Scheduled/History sidebar (+ the Completed/Cancelled sub-filter that
+    // only applies once History is selected) for the Initial and Final tabs.
+    setupInterviewSubnav('initial', initialFilters, loadInitialInterviews, () => { initialPage = 1; });
+    setupInterviewSubnav('final', finalFilters, loadFinalInterviews, () => { finalPage = 1; });
 
     document.getElementById('refreshInitialBtn').addEventListener('click', function() {
         initialFilters.search = '';
@@ -195,17 +146,6 @@ document.addEventListener('DOMContentLoaded', function() {
             initialPage = 1;
             loadInitialInterviews();
         }, 300);
-    });
-
-    // Final filter buttons
-    document.querySelectorAll('.filter-btn-final').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.querySelectorAll('.filter-btn-final').forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            finalFilters.status = this.dataset.status;
-            finalPage = 1;
-            loadFinalInterviews();
-        });
     });
 
     document.getElementById('refreshFinalBtn').addEventListener('click', function() {
@@ -264,18 +204,19 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Tab switch events
+    // Tab switch events -- each type's own sidebar (and its History
+    // sub-filter, if open) lives inside its own tab-pane now, so there's no
+    // cross-tab row visibility to juggle here anymore.
     document.getElementById('initial-tab').addEventListener('shown.bs.tab', function() {
-        document.getElementById('initialFilterRow')?.classList.remove('d-none');
-        document.getElementById('finalFilterRow')?.classList.add('d-none');
         loadInitialInterviews(initialPage);
     });
 
-    document.getElementById('final-tab').addEventListener('shown.bs.tab', function() {
-        document.getElementById('finalFilterRow')?.classList.remove('d-none');
-        document.getElementById('initialFilterRow')?.classList.add('d-none');
-        loadFinalInterviews(finalPage);
-    });
+    const finalTab = document.getElementById('final-tab');
+    if (finalTab) {
+        finalTab.addEventListener('shown.bs.tab', function() {
+            loadFinalInterviews(finalPage);
+        });
+    }
 
     const contractTab = document.getElementById('contract-tab');
     if (contractTab) {
@@ -403,8 +344,7 @@ function loadInitialInterviews(page = 1) {
                 renderInitialInterviews(result.interviews);
                 renderPagination(result.pagination, 'initialPaginationContainer', loadInitialInterviews);
                 document.getElementById('initialTableInfo').textContent = `Showing ${result.pagination.totalRecords || 0} interviews`;
-                document.getElementById('initialCount').textContent = `${result.pagination.totalRecords || 0} records`;
-                updateInitialBadges(result.interviews || []);
+                updateInitialBadges();
             } else {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">${data.message || 'Failed to load'}</td></tr>`;
             }
@@ -506,8 +446,7 @@ function loadFinalInterviews(page = 1) {
                 renderFinalInterviews(result.interviews);
                 renderPagination(result.pagination, 'finalPaginationContainer', loadFinalInterviews);
                 document.getElementById('finalTableInfo').textContent = `Showing ${result.pagination.totalRecords || 0} interviews`;
-                document.getElementById('finalCount').textContent = `${result.pagination.totalRecords || 0} records`;
-                updateFinalBadges(result.interviews || []);
+                updateFinalBadges();
             } else {
                 tbody.innerHTML = `<tr><td colspan="6" class="text-center text-danger py-4">${data.message || 'Failed to load'}</td></tr>`;
             }
@@ -668,24 +607,23 @@ function renderContractInterviews(interviews) {
 // BADGE UPDATES
 // ============================================
 
+// Badge numbers only ever show on the Scheduled sidebar item (and the
+// Initial/Final tab itself) -- History never carries a plain count, since
+// it's a closed/no-longer-actionable bucket rather than something to keep
+// an eye on. The one exception is Initial's "needs trainer" badge below:
+// that's still an open action item (someone passed Initial but has no
+// trainer assigned yet), it just happens to live in the History bucket
+// (status=completed) rather than Scheduled.
 function updateInitialBadges() {
-    fetch(`?page=api_get_interviews&p=1&type=initial&status=all&search=`)
+    fetch(`?page=api_get_interviews&p=1&type=initial&status=scheduled&search=`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
-                const interviews = data.data.interviews || [];
-                const scheduled = interviews.filter(i => i.status === 'scheduled').length;
-                const needsTrainer = interviews.filter(i => i.status === 'completed' && i.result === 'passed' && !i.has_trainee_account).length;
-                // Update badge elements
+                const scheduled = data.data.pagination.totalRecords || 0;
                 const scheduledBadge = document.getElementById('initialScheduledBadge');
                 if (scheduledBadge) {
                     scheduledBadge.textContent = scheduled;
                     scheduledBadge.style.display = scheduled > 0 ? 'inline-block' : 'none';
-                }
-                const completedBadge = document.getElementById('initialCompletedBadge');
-                if (completedBadge) {
-                    completedBadge.textContent = needsTrainer;
-                    completedBadge.style.display = needsTrainer > 0 ? 'inline-block' : 'none';
                 }
                 const tabBadge = document.getElementById('initialTabBadge');
                 if (tabBadge) {
@@ -699,25 +637,33 @@ function updateInitialBadges() {
             }
         })
         .catch(() => {});
-}
 
-function updateFinalBadges() {
-    fetch(`?page=api_get_interviews&p=1&type=final&status=all&search=`)
+    fetch(`?page=api_get_interviews&p=1&limit=50&type=initial&status=completed&search=`)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 const interviews = data.data.interviews || [];
-                const scheduled = interviews.filter(i => i.status === 'scheduled').length;
-                const completed = interviews.filter(i => i.status === 'completed').length;
+                const needsTrainer = interviews.filter(i => i.result === 'passed' && !i.has_trainee_account).length;
+                const needsTrainerBadge = document.getElementById('initialNeedsTrainerBadge');
+                if (needsTrainerBadge) {
+                    needsTrainerBadge.textContent = needsTrainer;
+                    needsTrainerBadge.style.display = needsTrainer > 0 ? 'inline-block' : 'none';
+                }
+            }
+        })
+        .catch(() => {});
+}
+
+function updateFinalBadges() {
+    fetch(`?page=api_get_interviews&p=1&type=final&status=scheduled&search=`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const scheduled = data.data.pagination.totalRecords || 0;
                 const scheduledBadge = document.getElementById('finalScheduledBadge');
                 if (scheduledBadge) {
                     scheduledBadge.textContent = scheduled;
                     scheduledBadge.style.display = scheduled > 0 ? 'inline-block' : 'none';
-                }
-                const completedBadge = document.getElementById('finalCompletedBadge');
-                if (completedBadge) {
-                    completedBadge.textContent = completed;
-                    completedBadge.style.display = completed > 0 ? 'inline-block' : 'none';
                 }
                 const tabBadge = document.getElementById('finalTabBadge');
                 if (tabBadge) {
@@ -766,31 +712,6 @@ function updateContractBadges() {
 }
 
 // ============================================
-// LOAD ALL STATS
-// ============================================
-
-function loadAllStats() {
-    fetch(`?page=api_get_interviews&p=1&type=all&status=all&search=`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const interviews = data.data.interviews || [];
-                const initialScheduled = interviews.filter(i => i.interview_type === 'initial' && i.status === 'scheduled').length;
-                const initialCompleted = interviews.filter(i => i.interview_type === 'initial' && i.status === 'completed').length;
-                const finalScheduled = interviews.filter(i => i.interview_type === 'final' && i.status === 'scheduled').length;
-                const finalCompleted = interviews.filter(i => i.interview_type === 'final' && i.status === 'completed').length;
-                document.getElementById('statInitialScheduled').textContent = initialScheduled;
-                document.getElementById('statInitialCompleted').textContent = initialCompleted;
-                document.getElementById('statFinalScheduled').textContent = finalScheduled;
-                document.getElementById('statFinalCompleted').textContent = finalCompleted;
-                updateInitialBadges(interviews.filter(i => i.interview_type === 'initial'));
-                updateFinalBadges(interviews.filter(i => i.interview_type === 'final'));
-            }
-        })
-        .catch(error => console.error('Error loading stats:', error));
-}
-
-// ============================================
 // SCHEDULE FUNCTIONS
 // ============================================
 
@@ -832,10 +753,6 @@ function openScheduleFinalModal(applicantId, applicantName) {
     document.getElementById('scheduleDate').value = '';
     document.getElementById('scheduleGmeet').value = '';
     document.getElementById('scheduleMessage').value = '';
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(10, 0, 0, 0);
-    document.getElementById('scheduleDate').value = tomorrow.toISOString().slice(0, 16);
     const modalTitle = document.querySelector('#scheduleInterviewModal .modal-title');
     if (modalTitle) modalTitle.textContent = `Schedule Final Interview for ${applicantName}`;
     new bootstrap.Modal(document.getElementById('scheduleInterviewModal')).show();
@@ -907,7 +824,6 @@ function doScheduleInterview(form, data, applicantName) {
             loadInitialInterviews(initialPage);
             loadFinalInterviews(finalPage);
             loadContractInterviews(contractPage);
-            loadAllStats();
         } else {
             Swal.fire({ icon: 'error', title: 'Failed to Schedule', text: result.message || 'Please try again.' });
         }
@@ -966,7 +882,6 @@ function setInterviewResult() {
             loadInitialInterviews(initialPage);
             loadFinalInterviews(finalPage);
             loadContractInterviews(contractPage);
-            loadAllStats();
             updatePendingBadge();
         } else {
             Swal.fire({ icon: 'error', title: 'Failed to Save', text: result.message || 'Please try again.' });
@@ -1024,7 +939,6 @@ function createContractFromInterview(applicantId, interviewId, name) {
                         confirmButtonText: 'OK'
                     }).then(() => {
                         loadContractInterviews(contractPage);
-                        loadAllStats();
                     });
                 } else {
                     Swal.fire({ icon: 'error', title: 'Creation Failed', text: result.message || 'Please try again.' });
@@ -1155,7 +1069,6 @@ document.getElementById('confirmFinalizeHireBtn')?.addEventListener('click', fun
                 bootstrap.Modal.getInstance(document.getElementById('finalizeHireModal'))?.hide();
                 Swal.fire({ icon: 'success', title: 'Hired Contract Sent', text: result.message, timer: 2500, showConfirmButton: false });
                 loadFinalInterviews(finalPage);
-                loadAllStats();
             } else {
                 Swal.fire({ icon: 'error', title: 'Failed', text: result.message || 'Please try again.' });
             }
@@ -1176,7 +1089,7 @@ function loadTrainersForRole(targetRole) {
         .then(data => {
             select.disabled = false;
             if (data.success && data.data.trainers.length > 0) {
-                select.innerHTML = '<option value="">Select a trainer...</option>';
+                select.innerHTML = '<option value="" disabled selected hidden>Select a trainer...</option>';
                 data.data.trainers.forEach(trainer => {
                     select.innerHTML += `<option value="${trainer.user_id}">${trainer.first_name} ${trainer.last_name}</option>`;
                 });
@@ -1226,8 +1139,9 @@ function createTraineeWithTrainer(applicantId, trainerId, salaryMin, salaryMax, 
     const modal = bootstrap.Modal.getInstance(document.getElementById('trainerSelectionModal'));
     Swal.fire({
         title: 'Creating Account...',
-        text: 'Please wait.',
+        text: 'Sending email notifications to the trainee and trainer -- this can take up to 10 seconds.',
         allowOutsideClick: false,
+        allowEscapeKey: false,
         didOpen: () => Swal.showLoading()
     });
     fetch('?page=api_create_trainee_with_trainer', {
@@ -1259,7 +1173,6 @@ function createTraineeWithTrainer(applicantId, trainerId, salaryMin, salaryMax, 
                 loadInitialInterviews(initialPage);
                 loadFinalInterviews(finalPage);
                 loadContractInterviews(contractPage);
-                loadAllStats();
                 updatePendingBadge();
             });
         } else {
@@ -1314,7 +1227,6 @@ function updateInterviewStatus(id, action, result) {
             loadInitialInterviews(initialPage);
             loadFinalInterviews(finalPage);
             loadContractInterviews(contractPage);
-            loadAllStats();
         } else {
             Swal.fire({ icon: 'error', title: 'Update Failed', text: result.message || 'Please try again.' });
         }
@@ -1558,7 +1470,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// Make validateDateInput globally accessible
-window.validateDateInput = validateDateInput;
 window.validateScheduleDate = validateScheduleDate;
-window.closeDatePicker = closeDatePicker;

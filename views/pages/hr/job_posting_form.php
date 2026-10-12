@@ -38,6 +38,13 @@ $pageTitle = 'Job Postings';
 $activePage = 'job_postings';
 $postingJson = $posting ? json_encode($posting, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP) : 'null';
 
+// Mirrors the backend's own open_until window (create_job_posting.php /
+// update_job_posting.php: not in the past, no more than 6 months out) so
+// the shared date-picker modal actually disables out-of-range days/months
+// instead of silently relying on JS to snap a bad pick back after the fact.
+$openUntilMin = date('Y-m-d');
+$openUntilMax = date('Y-m-d', strtotime('+6 months'));
+
 // HR Head is editing someone else's posting, not authoring/resubmitting
 // their own -- offer a single "Save Changes" action instead of the
 // draft/submit choice that only makes sense for the posting's own author.
@@ -187,8 +194,8 @@ $content = '<script>window.__POSTING__ = ' . $postingJson . ';</script>' . <<<EO
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Closing Date <span class="text-danger">*</span></label>
                         <input type="date" id="postingOpenUntil" class="form-control"
-                               min="<?php echo date('Y-m-d'); ?>"
-                               max="<?php echo date('Y-m-d', strtotime('+6 months')); ?>"
+                               min="{$openUntilMin}"
+                               max="{$openUntilMax}"
                                oninput="validatePostingDate(this)"
                                onblur="validatePostingDate(this)">
                         <div class="form-text">Must be within the next 6 months.</div>
