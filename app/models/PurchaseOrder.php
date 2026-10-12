@@ -223,4 +223,27 @@ class PurchaseOrder
         }
         return $out;
     }
+
+    /**
+     * Total received per PO item in 'good' condition only -- the real
+     * billable ceiling. Damaged/missing quantities were logged as received
+     * (so the receipt accounts for the full shipment) but were never
+     * usable, so they must not count toward what a supplier can invoice.
+     */
+    public function getGoodReceivedQuantities($poId)
+    {
+        $stmt = $this->db->prepare("
+            SELECT po_item_id, COALESCE(SUM(quantity_received), 0) as received
+            FROM goods_receipt_items gri
+            JOIN goods_receipts gr ON gri.goods_receipt_id = gr.id
+            WHERE gr.po_id = ? AND gri.condition = 'good'
+            GROUP BY po_item_id
+        ");
+        $stmt->execute([$poId]);
+        $out = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $out[(int)$row['po_item_id']] = (int)$row['received'];
+        }
+        return $out;
+    }
 }

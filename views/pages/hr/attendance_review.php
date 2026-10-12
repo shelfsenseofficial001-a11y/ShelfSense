@@ -2,7 +2,7 @@
 $title = 'Attendance Review - ShelfSense HR';
 $pageTitle = 'Attendance Review';
 $activePage = 'attendance_review';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance_review.js?v=20260918230000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance_review.js?v=20261013000001"></script>';
 
 $content = <<<HTML
 <style>

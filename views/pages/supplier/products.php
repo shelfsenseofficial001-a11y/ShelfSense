@@ -14,7 +14,7 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $title = 'Supplier Products - ShelfSense';
 $pageTitle = 'My Product Catalog';
 $activePage = 'products';
-$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20260908600000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/supplier/products.js?v=20261012000001"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<'EOT'
 <div class="sp-stats-grid">

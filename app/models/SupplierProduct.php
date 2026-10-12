@@ -15,28 +15,31 @@ class SupplierProduct
     public function getAll($supplierId, $page = 1, $limit = 20, $search = '', $statusFilter = '')
     {
         $offset = ($page - 1) * $limit;
-        $where = "supplier_id = ?";
+        $where = "sp.supplier_id = ?";
         $params = [$supplierId];
 
         if (!empty($search)) {
-            $where .= " AND (name LIKE ? OR description LIKE ?)";
+            $where .= " AND (sp.name LIKE ? OR sp.description LIKE ?)";
             $searchParam = "%{$search}%";
             $params[] = $searchParam;
             $params[] = $searchParam;
         }
 
         if ($statusFilter === 'active') {
-            $where .= " AND is_active = 1";
+            $where .= " AND sp.is_active = 1";
         } elseif ($statusFilter === 'inactive') {
-            $where .= " AND is_active = 0";
+            $where .= " AND sp.is_active = 0";
         }
 
-        $countSql = "SELECT COUNT(*) as total FROM supplier_products WHERE $where";
+        $countSql = "SELECT COUNT(*) as total FROM supplier_products sp WHERE $where";
         $stmt = $this->db->prepare($countSql);
         $stmt->execute($params);
         $total = $stmt->fetch()['total'];
 
-        $sql = "SELECT * FROM supplier_products WHERE $where ORDER BY name LIMIT ? OFFSET ?";
+        $sql = "SELECT sp.*, p.image_path
+                FROM supplier_products sp
+                LEFT JOIN products p ON p.id = sp.store_product_id
+                WHERE $where ORDER BY sp.name LIMIT ? OFFSET ?";
         $params[] = $limit;
         $params[] = $offset;
         $stmt = $this->db->prepare($sql);

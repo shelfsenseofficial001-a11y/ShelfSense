@@ -20,11 +20,12 @@ if (!function_exists('fs_dashboard_build_data')) {
  */
 function fs_dashboard_build_data(PDO $db, Budget $budgetModel): array {
 
+    // Requisition and Purchase Order are separate stages -- budget check
+    // happens on the requisition itself, before any PO exists.
     $stmt = $db->query("
-        SELECT po.id, r.department_id, r.period_key, po.total as subtotal
-        FROM purchase_orders po
-        JOIN requisitions r ON po.requisition_id = r.id
-        WHERE po.status = 'pending_budget_check'
+        SELECT id, department_id, period_key, subtotal
+        FROM requisitions
+        WHERE status = 'pending_budget_check'
     ");
     $pendingRows = $stmt->fetchAll();
     $pendingCount = count($pendingRows);

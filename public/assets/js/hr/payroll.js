@@ -6,6 +6,11 @@ console.log('✅ payroll.js loaded');
 
 let currentCycleId = null;
 
+function getRoleDisplayName(r) {
+    const m = { owner: 'Owner', hr_head: 'HR Head', hr_staff: 'HR Staff', employee: 'Cashier', finance_head: 'Finance Head', finance_staff: 'Finance Staff', trainee: 'Trainee', store_manager: 'Store Manager', supplier: 'Supplier' };
+    return m[r] || r;
+}
+
 // ============================================
 // UTILITY FUNCTIONS
 // ============================================
@@ -339,7 +344,7 @@ function renderEntries(entries) {
         html += `
             <tr>
                 <td><strong>${escapeHtml(entry.first_name)} ${escapeHtml(entry.last_name)}</strong><br><small class="text-muted">${escapeHtml(entry.employee_number)}</small></td>
-                <td><span class="badge bg-info">${escapeHtml(entry.role)}</span></td>
+                <td><span class="badge bg-info">${escapeHtml(getRoleDisplayName(entry.role))}</span></td>
                 <td>${entry.total_working_days || 0}</td>
                 <td>${entry.attended_days || 0}</td>
                 <td>${entry.absent_days || 0}</td>

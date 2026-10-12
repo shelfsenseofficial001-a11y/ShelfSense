@@ -19,6 +19,9 @@ const PR_STATUS_LABELS = {
     confirmed: 'Confirmed',
     partially_received: 'Partially Received',
     received: 'Received',
+    discrepancy_logged: 'Discrepancy Logged',
+    action_taken: 'Action Taken',
+    resolved: 'Resolved',
     closed: 'Closed',
     pending: 'Pending',
     matched: 'Matched',
@@ -31,8 +34,8 @@ const PR_STATUS_LABELS = {
 
 function prStatusBadge(status) {
     const label = PR_STATUS_LABELS[status] || (status || 'Unknown').replace(/_/g, ' ');
-    const positive = ['approved', 'converted_to_po', 'confirmed', 'received', 'matched', 'closed', 'disbursed', 'supplier_accepted'];
-    const negative = ['rejected', 'budget_rejected', 'cancelled', 'price_hold', 'quantity_hold'];
+    const positive = ['approved', 'converted_to_po', 'confirmed', 'received', 'matched', 'closed', 'disbursed', 'supplier_accepted', 'resolved'];
+    const negative = ['rejected', 'budget_rejected', 'cancelled', 'price_hold', 'quantity_hold', 'discrepancy_logged'];
     let cls = 'bg-secondary';
     if (positive.includes(status)) cls = 'bg-success';
     else if (negative.includes(status)) cls = 'bg-danger';
@@ -172,4 +175,74 @@ function prRenderTimeline(events) {
             `).join('')}
         </ul>
     `;
+}
+
+/**
+ * The 3-Way Match view (PO <-> Goods Receipt <-> Invoice), shared across
+ * every page that references an invoice (Finance Staff, Finance Head,
+ * Supplier's own invoices) -- a read-only breakdown that's just as visible
+ * when everything reconciled cleanly as when it didn't, instead of only
+ * surfacing when there's a hold to fix. Builds its own modal on first use
+ * so no page needs its own copy of the markup.
+ */
+function prOpenMatchDetail(invoiceId) {
+    let modalEl = document.getElementById('prMatchModal');
+    if (!modalEl) {
+        document.body.insertAdjacentHTML('beforeend', `
+            <div class="modal fade" id="prMatchModal" tabindex="-1">
+                <div class="modal-dialog modal-lg modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title"><i class="bi bi-arrow-left-right"></i> 3-Way Match</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body" id="prMatchModalBody">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        `);
+        modalEl = document.getElementById('prMatchModal');
+    }
+    const body = document.getElementById('prMatchModalBody');
+    body.innerHTML = 'Loading...';
+    new bootstrap.Modal(modalEl).show();
+
+    prFetchJson(`?page=api_get_invoice&id=${invoiceId}`).then(inv => {
+        const isReconciled = inv.match_status === 'reconciled';
+        const rowsHtml = inv.items.map(i => {
+            const ok = i.variance_flag === 'ok';
+            return `
+                <tr class="${ok ? '' : 'table-warning'}">
+                    <td>${prEscapeHtml(i.store_product_name)}</td>
+                    <td>${i.po_quantity} @ ${prCurrency(i.po_unit_price)}</td>
+                    <td>${i.good_received_quantity}</td>
+                    <td>${i.billed_quantity} @ ${prCurrency(i.billed_unit_price)}</td>
+                    <td class="text-center">${ok
+                        ? '<i class="bi bi-check-circle-fill text-success" title="Matches"></i>'
+                        : `<span class="badge bg-danger">${prEscapeHtml((i.variance_flag || '').replace(/_/g, ' '))}</span>`}
+                    </td>
+                </tr>
+            `;
+        }).join('');
+
+        body.innerHTML = `
+            <div class="alert ${isReconciled ? 'alert-success' : 'alert-warning'} d-flex align-items-center gap-2">
+                <i class="bi ${isReconciled ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'} fs-4"></i>
+                <div>
+                    <div class="fw-bold">${isReconciled ? 'Matches cleanly' : 'Variance found'}</div>
+                    <div class="small mb-0">${isReconciled
+                        ? 'Every line reconciles against the Purchase Order and Goods Receipt. Ready for payment.'
+                        : 'One or more lines don’t match the Purchase Order and/or Goods Receipt -- see below.'}
+                    </div>
+                </div>
+            </div>
+            <p class="text-muted small mb-2">Invoice <strong>${prEscapeHtml(inv.invoice_number)}</strong> for PO <strong>${prEscapeHtml(inv.po_number)}</strong></p>
+            <table class="table table-sm align-middle mb-0">
+                <thead><tr><th>Product</th><th>PO Ordered @ Price</th><th>GR Received (Good)</th><th>Invoice Billed @ Price</th><th class="text-center">Match</th></tr></thead>
+                <tbody>${rowsHtml}</tbody>
+            </table>
+        `;
+    }).catch(e => {
+        body.innerHTML = `<div class="alert alert-danger">${prEscapeHtml(e.message)}</div>`;
+    });
 }

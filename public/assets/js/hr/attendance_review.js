@@ -5,6 +5,11 @@ console.log('✅ attendance_review.js loaded');
 
 let currentMonthYear = '';
 
+function getRoleDisplayName(r) {
+    const m = { owner: 'Owner', hr_head: 'HR Head', hr_staff: 'HR Staff', employee: 'Cashier', finance_head: 'Finance Head', finance_staff: 'Finance Staff', trainee: 'Trainee', store_manager: 'Store Manager', supplier: 'Supplier' };
+    return m[r] || r;
+}
+
 function formatDateDisplay(dateStr) {
     if (!dateStr) return '-';
     const d = new Date(dateStr);
@@ -543,7 +548,7 @@ function renderEmployeeDrillDown(data, monthYear) {
             <div class="hr-timecard-avatar">${initials.toUpperCase()}</div>
             <div>
                 <div class="hr-timecard-name">${emp.first_name} ${emp.last_name}</div>
-                <div class="hr-timecard-meta">${emp.employee_number} &middot; ${emp.role}</div>
+                <div class="hr-timecard-meta">${emp.employee_number} &middot; ${getRoleDisplayName(emp.role)}</div>
             </div>
         </div>
 

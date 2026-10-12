@@ -6,19 +6,19 @@
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
-require_once __DIR__ . '/../../../models/PurchaseOrder.php';
 require_once __DIR__ . '/../../../models/Invoice.php';
 require_once __DIR__ . '/../../../models/InvoiceMatcher.php';
 require_once __DIR__ . '/../../../models/PoEvent.php';
+require_once __DIR__ . '/../../../models/PoDiscrepancy.php';
 require_once __DIR__ . '/../../../helpers/functions.php';
 
 use App\Core\Auth;
 use App\Core\Database;
 use App\Core\Response;
-use App\Models\PurchaseOrder;
 use App\Models\Invoice;
 use App\Models\InvoiceMatcher;
 use App\Models\PoEvent;
+use App\Models\PoDiscrepancy;
 
 header('Content-Type: application/json');
 
@@ -53,14 +53,46 @@ try {
     if (!$po) {
         Response::notFound('Purchase order not found for this supplier.');
     }
-    // This invoice's 3-way match result now gates the upcoming payment
-    // request, so there has to be a logged Goods Receipt to reconcile
-    // against before one can be submitted.
-    if (!in_array($po['status'], ['partially_received', 'received'], true)) {
-        Response::error('This purchase order has no logged goods receipt yet. Submit the invoice after the Store Manager receives at least part of the order. Current status: ' . $po['status'], 400);
+    // One invoice per PO (1:1) -- it always represents the complete, final
+    // bill, so invoicing stays locked until the PO is fully, cleanly
+    // received: not just partially shipped, and nothing still open on an
+    // RMA/Backorder.
+    $discModel = new PoDiscrepancy();
+    if ($po['status'] !== 'received') {
+        Response::error('This purchase order is not fully received yet, or still has an unresolved RMA/Backorder. Current status: ' . $po['status'], 400);
+    }
+    if ($discModel->hasBlockingDiscrepancy($poId)) {
+        Response::error('This purchase order has unresolved discrepancies (missing items need a backorder, damaged items need an RMA). Resolve them in the Purchase Order detail before invoicing.', 400);
     }
 
-    $filePath = null;
+    // One invoice per PO (1:1) -- but a 'rejected' invoice (Returned to
+    // Supplier by Finance Staff) is revised in place here rather than
+    // blocked, so the Supplier actually has a way to fix and resubmit it.
+    $stmt = $db->prepare("SELECT id, match_status, file_path FROM invoices WHERE po_id = ?");
+    $stmt->execute([$poId]);
+    $existingInvoice = $stmt->fetch();
+    $isResubmission = false;
+    if ($existingInvoice) {
+        if ($existingInvoice['match_status'] !== 'rejected') {
+            Response::error('This purchase order already has an invoice. Only one invoice is allowed per purchase order.', 400);
+        }
+        $isResubmission = true;
+    }
+
+    // Billed quantity is NOT hard-capped here against the good-received
+    // ceiling -- that's what InvoiceMatcher's 3-way match is for. A supplier
+    // over-billing (honest mistake or otherwise) creates the invoice and
+    // lands it in quantity_hold for Finance to review, exactly like a price
+    // mismatch does. Only basic input sanity is enforced at this boundary.
+    foreach ($items as $item) {
+        $billedQty = intval($item['billed_quantity'] ?? -1);
+        $billedPrice = floatval($item['billed_unit_price'] ?? -1);
+        if ($billedQty < 0 || $billedPrice < 0) {
+            Response::error('Billed quantity and price must be non-negative.', 400);
+        }
+    }
+
+    $filePath = $isResubmission ? ($existingInvoice['file_path'] ?? null) : null;
     if (!empty($_FILES['file']) && $_FILES['file']['error'] !== UPLOAD_ERR_NO_FILE) {
         $uploadResult = uploadFile($_FILES['file'], __DIR__ . '/../../../../public/uploads/invoices', ['pdf', 'jpg', 'jpeg', 'png']);
         if (!$uploadResult['success']) {
@@ -72,24 +104,40 @@ try {
     $db->beginTransaction();
 
     $invoiceModel = new Invoice();
-    $invoiceNumber = $invoiceModel->generateNumber();
 
     $subtotal = 0;
     foreach ($items as $item) {
         $subtotal += floatval($item['billed_quantity'] ?? 0) * floatval($item['billed_unit_price'] ?? 0);
     }
 
-    $invoiceId = $invoiceModel->create([
-        'invoice_number' => $invoiceNumber,
-        'po_id' => $poId,
-        'supplier_id' => $supplierId,
-        'invoice_date' => $invoiceDate,
-        'due_date' => $dueDate,
-        'subtotal' => $subtotal,
-        'total' => $subtotal,
-        'file_path' => $filePath,
-        'notes' => $notes,
-    ]);
+    if ($isResubmission) {
+        $invoiceId = $existingInvoice['id'];
+        $invoiceModel->prepareForResubmission($invoiceId, [
+            'invoice_date' => $invoiceDate,
+            'due_date' => $dueDate,
+            'subtotal' => $subtotal,
+            'total' => $subtotal,
+            'file_path' => $filePath,
+            'notes' => $notes,
+        ]);
+        $invoiceModel->deleteItems($invoiceId);
+        $stmt = $db->prepare("SELECT invoice_number FROM invoices WHERE id = ?");
+        $stmt->execute([$invoiceId]);
+        $invoiceNumber = $stmt->fetchColumn();
+    } else {
+        $invoiceNumber = $invoiceModel->generateNumber();
+        $invoiceId = $invoiceModel->create([
+            'invoice_number' => $invoiceNumber,
+            'po_id' => $poId,
+            'supplier_id' => $supplierId,
+            'invoice_date' => $invoiceDate,
+            'due_date' => $dueDate,
+            'subtotal' => $subtotal,
+            'total' => $subtotal,
+            'file_path' => $filePath,
+            'notes' => $notes,
+        ]);
+    }
 
     foreach ($items as $item) {
         $invoiceModel->addItem(
@@ -103,7 +151,13 @@ try {
     $matcher = new InvoiceMatcher();
     $matchStatus = $matcher->match($invoiceId);
 
-    (new PoEvent())->log($poId, 'invoice_submitted', "Supplier submitted invoice {$invoiceNumber}. Reconciliation result: {$matchStatus}.", 'not_store_manager', Auth::userId());
+    (new PoEvent())->log(
+        $poId,
+        'invoice_submitted',
+        ($isResubmission ? 'Supplier resubmitted' : 'Supplier submitted') . " invoice {$invoiceNumber}. Reconciliation result: {$matchStatus}.",
+        'not_store_manager',
+        Auth::userId()
+    );
 
     $db->commit();
 
@@ -129,6 +183,9 @@ try {
 } catch (Exception $e) {
     if ($db->inTransaction()) {
         $db->rollBack();
+    }
+    if ($e instanceof PDOException && (int)$e->getCode() === 23000) {
+        Response::error('This purchase order already has an invoice. Only one invoice is allowed per purchase order.', 400);
     }
     error_log('invoices/create.php error: ' . $e->getMessage());
     Response::error('Error: ' . $e->getMessage());

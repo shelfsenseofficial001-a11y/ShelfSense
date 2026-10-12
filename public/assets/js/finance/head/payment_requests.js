@@ -36,6 +36,7 @@ async function loadPendingRequisitions() {
                 <td>${prCurrency(r.subtotal)}</td>
                 <td>${prCurrency(r.budget_status.available)} ${r.budget_status.exceeded ? '<span class="badge bg-danger">Exceeded</span>' : ''}</td>
                 <td>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="openRequisitionDetail(${r.id})" title="View details"><i class="bi bi-eye"></i></button>
                     <button class="btn btn-sm btn-success" onclick="openApprove(${r.id}, '${prEscapeHtml(r.requisition_number)}', ${r.budget_status.exceeded}, ${r.budget_status.shortfall})"><i class="bi bi-check"></i> Approve</button>
                     <button class="btn btn-sm btn-warning" onclick="openRejectReq(${r.id})"><i class="bi bi-arrow-counterclockwise"></i> Request Revision</button>
                 </td>
@@ -122,6 +123,7 @@ async function loadPendingPoPayments() {
                 <td>${prCurrency(pr.amount)}</td>
                 <td>${prEscapeHtml(pr.requested_by_name || '')}</td>
                 <td>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="openPoDetail(${pr.po_id})" title="View details"><i class="bi bi-eye"></i></button>
                     <button class="btn btn-sm btn-success" onclick="openApprovePoPayment(${pr.id}, ${pr.amount}, '${prEscapeHtml(pr.po_number)}')"><i class="bi bi-check"></i> Approve</button>
                     <button class="btn btn-sm btn-danger" onclick="openRejectPoPayment(${pr.id})"><i class="bi bi-x"></i> Reject</button>
                 </td>
@@ -171,7 +173,7 @@ async function confirmApprovePoPayment() {
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
         bootstrap.Modal.getInstance(document.getElementById('approvePoPaymentModal'))?.hide();
-        Swal.fire('Payment sent', data.message, 'success');
+        showPaymentReceipt(data.receipt);
         loadPendingPoPayments();
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
@@ -179,6 +181,34 @@ async function confirmApprovePoPayment() {
         btn.innerHTML = originalBtnHtml;
         unlock();
     }
+}
+
+const PO_PAYMENT_METHOD_LABELS = {
+    bank_transfer: 'Bank Transfer',
+    check: 'Check',
+    cash: 'Cash',
+    paymongo_simulated: 'PayMongo (Simulated)',
+    other: 'Other',
+};
+
+function showPaymentReceipt(receipt) {
+    if (!receipt) return;
+    const isSimulated = receipt.method === 'paymongo_simulated';
+    document.getElementById('paymentReceiptBody').innerHTML = `
+        ${isSimulated ? `<div class="alert alert-warning small"><strong>Demo notice:</strong> no real funds were transferred -- this simulates the payout.</div>` : ''}
+        <table class="table table-sm mb-0">
+            <tbody>
+                <tr><th class="text-muted" style="width:40%">Purchase Order</th><td>${prEscapeHtml(receipt.po_number)}</td></tr>
+                <tr><th class="text-muted">Supplier</th><td>${prEscapeHtml(receipt.supplier_name)}</td></tr>
+                <tr><th class="text-muted">Amount</th><td class="fw-bold">${prCurrency(receipt.amount)}</td></tr>
+                <tr><th class="text-muted">Method</th><td>${prEscapeHtml(PO_PAYMENT_METHOD_LABELS[receipt.method] || receipt.method)}</td></tr>
+                <tr><th class="text-muted">Reference</th><td><code>${prEscapeHtml(receipt.reference_number)}</code></td></tr>
+                <tr><th class="text-muted">Approved By</th><td>${prEscapeHtml(receipt.approved_by_name)}</td></tr>
+                <tr><th class="text-muted">Date</th><td>${prFormatDateTime(receipt.paid_at)}</td></tr>
+            </tbody>
+        </table>
+    `;
+    new bootstrap.Modal(document.getElementById('paymentReceiptModal')).show();
 }
 
 function openRejectPoPayment(id) {
@@ -205,5 +235,59 @@ async function confirmRejectPoPayment() {
         Swal.fire('Error', e.message, 'error');
     } finally {
         unlock();
+    }
+}
+
+async function openRequisitionDetail(reqId) {
+    const modal = new bootstrap.Modal(document.getElementById('fhReqDetailModal'));
+    document.getElementById('fhReqDetailBody').innerHTML = 'Loading...';
+    modal.show();
+    try {
+        const r = await prFetchJson(`?page=api_get_requisition&id=${reqId}`);
+        const itemsHtml = r.items.map(i => `
+            <tr><td>${prEscapeHtml(i.store_product_name)}</td><td>${i.quantity}</td><td>${prCurrency(i.estimated_unit_price)}</td><td>${prCurrency(i.estimated_total)}</td></tr>
+        `).join('');
+        const budgetHtml = r.budget_status ? `
+            <p><strong>Budget Available:</strong> ${prCurrency(r.budget_status.available)} ${r.budget_status.exceeded ? '<span class="badge bg-danger">Exceeded</span>' : ''}</p>
+        ` : '';
+        document.getElementById('fhReqDetailBody').innerHTML = `
+            <p><strong>Supplier:</strong> ${prEscapeHtml(r.supplier_name)} &nbsp; <strong>Department:</strong> ${prEscapeHtml(r.department_name)} &nbsp; <strong>Status:</strong> ${prStatusBadge(r.status)}</p>
+            <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+            <p class="fw-bold text-end">Total: ${prCurrency(r.subtotal)}</p>
+            ${budgetHtml}
+            ${r.purchase_order ? `<p><strong>Purchase Order:</strong> ${prEscapeHtml(r.purchase_order.po_number)} (${prStatusBadge(r.purchase_order.status)})</p>` : ''}
+            <hr><h6>History</h6>
+            ${prRenderTimeline(r.events)}
+        `;
+    } catch (e) {
+        document.getElementById('fhReqDetailBody').innerHTML = `<div class="alert alert-danger">${prEscapeHtml(e.message)}</div>`;
+    }
+}
+
+async function openPoDetail(poId) {
+    const modal = new bootstrap.Modal(document.getElementById('fhPoDetailModal'));
+    document.getElementById('fhPoDetailBody').innerHTML = 'Loading...';
+    modal.show();
+    try {
+        const po = await prFetchJson(`?page=api_get_purchase_order&id=${poId}`);
+        const itemsHtml = po.items.map(i => `
+            <tr><td>${prEscapeHtml(i.store_product_name)}</td><td>${i.quantity}</td><td>${prCurrency(i.unit_price)}</td><td>${prCurrency(i.total)}</td><td>${i.received_quantity_total ?? 0}</td></tr>
+        `).join('');
+        const invoicesHtml = (po.invoices || []).length ? `
+            <hr><h6>Invoices</h6>
+            <table class="table table-sm"><thead><tr><th>Invoice #</th><th>Total</th><th>Status</th><th></th></tr></thead><tbody>
+            ${po.invoices.map(inv => `<tr><td>${prEscapeHtml(inv.invoice_number)}</td><td>${prCurrency(inv.total)}</td><td>${prStatusBadge(inv.match_status)}</td><td><button class="btn btn-sm btn-outline-secondary" onclick="prOpenMatchDetail(${inv.id})"><i class="bi bi-arrow-left-right"></i> View Match</button></td></tr>`).join('')}
+            </tbody></table>
+        ` : '';
+        document.getElementById('fhPoDetailBody').innerHTML = `
+            <p><strong>Supplier:</strong> ${prEscapeHtml(po.supplier_name)} &nbsp; <strong>Status:</strong> ${prStatusBadge(po.status)}</p>
+            <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th>Received</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+            <p class="fw-bold text-end">Total: ${prCurrency(po.total)}</p>
+            ${invoicesHtml}
+            <hr><h6>History</h6>
+            ${prRenderTimeline(po.events)}
+        `;
+    } catch (e) {
+        document.getElementById('fhPoDetailBody').innerHTML = `<div class="alert alert-danger">${prEscapeHtml(e.message)}</div>`;
     }
 }

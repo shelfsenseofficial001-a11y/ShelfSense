@@ -150,6 +150,12 @@ function renderProducts(products) {
             : '<span class="sp-status-badge status-rejected">Inactive</span>';
         return `
             <div class="sp-product-card" data-id="${product.id}">
+                <div class="sp-product-image">
+                    ${product.image_path
+                        ? `<img src="/ShelfSense/public/${product.image_path}" alt="${escapeHtmlSP(product.name)}">`
+                        : `<i class="bi bi-box-seam"></i>`
+                    }
+                </div>
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="sp-product-name">${escapeHtmlSP(product.name)}</div>
                     ${statusBadge}

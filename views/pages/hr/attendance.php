@@ -2,7 +2,7 @@
 $title = 'Attendance - ShelfSense HR';
 $pageTitle = 'Attendance Management';
 $activePage = 'attendance';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20260921120000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/attendance.js?v=20261013000001"></script>';
 
 // Month/year options
 $currentMonth = date('m');

@@ -9,7 +9,9 @@ use App\Core\Database;
  * match (`reconciled`) is what allows Finance Staff to request payment;
  * a variance (`quantity_hold`/`price_hold`) blocks the payment request
  * until Finance Staff resolves it via resolve_variance.php.
- * Quantity rule: billed <= received (else quantity_hold).
+ * Quantity rule: billed <= received in 'good' condition (else quantity_hold)
+ * -- damaged/missing quantities were logged on the receipt but were never
+ * usable, so they never count toward what's billable.
  * Price rule: billed price must be within EITHER the percent OR the flat
  * amount tolerance of the PO's contracted price (whichever is looser) --
  * else price_hold.
@@ -46,7 +48,7 @@ class InvoiceMatcher
         $priceAmount = (float)$tolerance['price_tolerance_amount'];
         $qtyPercent = (float)$tolerance['quantity_tolerance_percent'];
 
-        $received = $this->poModel->getReceivedQuantities($invoice['po_id']);
+        $received = $this->poModel->getGoodReceivedQuantities($invoice['po_id']);
 
         $hasQuantityHold = false;
         $hasPriceHold = false;

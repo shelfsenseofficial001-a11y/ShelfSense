@@ -160,7 +160,21 @@ try {
 
     $db->commit();
 
-    Response::success(['payment_request_id' => $requestId, 'po_id' => $po['id'], 'status' => 'paid'], 'Payment approved and sent to supplier.');
+    $approver = Auth::user();
+    Response::success([
+        'payment_request_id' => $requestId,
+        'po_id' => $po['id'],
+        'status' => 'paid',
+        'receipt' => [
+            'po_number' => $po['po_number'],
+            'supplier_name' => $supplier['company_name'] ?? '',
+            'amount' => $amount,
+            'method' => $method,
+            'reference_number' => $referenceNumber,
+            'approved_by_name' => trim(($approver['first_name'] ?? '') . ' ' . ($approver['last_name'] ?? '')),
+            'paid_at' => date('Y-m-d H:i:s'),
+        ],
+    ], 'Payment approved and sent to supplier.');
 } catch (Exception $e) {
     if ($db->inTransaction()) {
         $db->rollBack();

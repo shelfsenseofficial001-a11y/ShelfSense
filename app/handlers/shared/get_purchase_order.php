@@ -10,6 +10,7 @@ require_once __DIR__ . '/../../models/Invoice.php';
 require_once __DIR__ . '/../../models/PoCounterProposal.php';
 require_once __DIR__ . '/../../models/PoPaymentRequest.php';
 require_once __DIR__ . '/../../models/PoEvent.php';
+require_once __DIR__ . '/../../models/PoDiscrepancy.php';
 
 use App\Core\Auth;
 use App\Core\Database;
@@ -20,6 +21,7 @@ use App\Models\Invoice;
 use App\Models\PoCounterProposal;
 use App\Models\PoPaymentRequest;
 use App\Models\PoEvent;
+use App\Models\PoDiscrepancy;
 
 header('Content-Type: application/json');
 
@@ -64,6 +66,20 @@ try {
         $grModel = new GoodsReceipt();
         $po['goods_receipts'] = $grModel->getByPoId($id);
     }
+
+    // Discrepancies (and the good-condition quantity ceiling they drive) are
+    // supplier-actionable by design, unlike the raw Goods Receipt detail
+    // above -- the Supplier needs to see and resolve these to unblock
+    // invoicing, so they're visible to every role permitted on this endpoint.
+    $discModel = new PoDiscrepancy();
+    $goodReceived = $poModel->getGoodReceivedQuantities($id);
+    $outstanding = $discModel->getOutstandingQuantities($id);
+    foreach ($po['items'] as &$item) {
+        $item['good_received_quantity'] = $goodReceived[(int)$item['id']] ?? 0;
+        $item['outstanding_discrepancy_quantity'] = $outstanding[(int)$item['id']] ?? 0;
+    }
+    unset($item);
+    $po['discrepancies'] = $discModel->getByPo($id);
 
     // Supplier Invoice detail is restricted from the Store Manager -- billing
     // and payment status is a Finance/Supplier concern; the Store Manager's

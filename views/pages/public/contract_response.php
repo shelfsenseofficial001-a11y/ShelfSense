@@ -34,6 +34,13 @@ $shiftLabels = [
     'closing' => 'Closing (2pm-10pm)',
     'midshift' => 'MidShift (10am-6pm)'
 ];
+
+// target_role stores the internal role name the job posting was filed under
+// (e.g. "Employee"), not always what it should read as to the applicant --
+// same "Employee" -> "Cashier" convention used in the HR applicants filter.
+$targetRoleLabels = [
+    'Employee' => 'Cashier',
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -90,7 +97,7 @@ $shiftLabels = [
         <?php else: ?>
             <p>Please review the terms below:</p>
             <ul class="terms">
-                <li><span class="label">Role</span><?= htmlspecialchars($contract['target_role']) ?></li>
+                <li><span class="label">Role</span><?= htmlspecialchars($targetRoleLabels[$contract['target_role']] ?? $contract['target_role']) ?></li>
                 <?php if ($isTrainee): ?>
                     <li><span class="label">Salary Range (indicative, paid hourly)</span>₱<?= number_format($contract['salary_range_min'], 2) ?> – ₱<?= number_format($contract['salary_range_max'], 2) ?></li>
                     <li><span class="label">Working Hours</span><?= date('g:i A', strtotime($contract['schedule_start'])) ?> – <?= date('g:i A', strtotime($contract['schedule_end'])) ?></li>

@@ -2,8 +2,8 @@
 $title = 'Requisitions & Payments - Finance Head';
 $pageTitle = 'Requisitions & Payments';
 $activePage = 'head_payment_requests';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20261012000001"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20261013000003"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs mb-3" id="fhTabs" role="tablist">
@@ -102,6 +102,21 @@ $content = <<<'EOT'
     </div>
 </div>
 
+<div class="modal fade" id="paymentReceiptModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header bg-success-subtle">
+                <h5 class="modal-title"><i class="bi bi-check-circle-fill text-success"></i> Payment Sent</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="paymentReceiptBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-yellow-primary btn-sm" data-bs-dismiss="modal">Done</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <div class="modal fade" id="rejectPoPaymentModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -111,6 +126,24 @@ $content = <<<'EOT'
                 <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button class="btn btn-danger btn-sm" id="confirmRejectPoPaymentBtn">Reject</button>
             </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fhReqDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Requisition Detail</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" id="fhReqDetailBody">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="fhPoDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Purchase Order Detail</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body" id="fhPoDetailBody">Loading...</div>
         </div>
     </div>
 </div>

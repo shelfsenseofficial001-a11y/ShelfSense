@@ -247,7 +247,7 @@
     transform: translateY(-2px);
     box-shadow: 0 6px 18px rgba(0,0,0,0.08);
 }
-.sm-product-card .sm-product-image {
+.sm-product-image {
     width: 100%;
     height: 130px;
     background: var(--bg-card-subtle);
@@ -258,8 +258,9 @@
     font-size: 2.2rem;
     overflow: hidden;
     position: relative;
+    border-radius: 8px;
 }
-.sm-product-card .sm-product-image img {
+.sm-product-image img {
     width: 100%;
     height: 100%;
     object-fit: cover;

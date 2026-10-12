@@ -2,22 +2,32 @@
 $title = 'Requisitions - Finance Staff';
 $pageTitle = 'Requisitions — Budget Check';
 $activePage = 'staff_requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20261012000001"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
+    . '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20261013000002"></script>';
 
 $content = <<<'EOT'
-<p class="text-muted">Requisitions submitted by Store Managers, awaiting a budget availability check before they go to Finance Head for supplier approval.</p>
-<div class="table-responsive">
-    <table class="table table-hover align-middle">
-        <thead><tr>
-            <th>Requisition #</th><th>Suggested Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th>Status</th><th></th>
-        </tr></thead>
-        <tbody id="pendingTableBody"><tr><td colspan="7" class="text-center py-4">Loading...</td></tr></tbody>
-    </table>
-</div>
-<div class="d-flex justify-content-between align-items-center">
-    <small id="pendingPageInfo" class="text-muted"></small>
-    <ul class="pagination pagination-sm mb-0" id="pendingPagination"></ul>
+<div class="row g-3">
+    <div class="col-lg-4">
+        <div class="modern-card p-3 h-100">
+            <h6 class="fw-bold mb-1"><i class="bi bi-clipboard-check text-yellow me-2"></i>Pending Requisitions</h6>
+            <p class="text-muted small mb-2">Awaiting a budget availability check before Finance Head review.</p>
+            <input type="text" id="pendingSearchInput" class="form-control form-control-sm mb-2" placeholder="Search requisition #, supplier, department...">
+            <div class="list-group" id="pendingListGroup" style="max-height:65vh; overflow-y:auto;">
+                <div class="text-center text-muted py-4">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="modern-card p-3">
+            <div id="fsReqDetailBody">
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-arrow-left-circle fs-1 d-block mb-2"></i>
+                    Select a requisition from the list to see its details.
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="modal fade" id="rejectModal" tabindex="-1">

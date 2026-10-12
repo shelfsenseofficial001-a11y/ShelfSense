@@ -1256,6 +1256,16 @@ if ($page === 'api_sm_create_goods_receipt') {
     exit;
 }
 
+if ($page === 'api_supplier_resolve_po_discrepancy') {
+    require_once __DIR__ . '/../app/handlers/supplier/purchase_orders/resolve_discrepancy.php';
+    exit;
+}
+
+if ($page === 'api_sm_list_discrepancies') {
+    require_once __DIR__ . '/../app/handlers/store_manager/discrepancies/list.php';
+    exit;
+}
+
 if ($page === 'api_sm_rate_supplier') {
     require_once __DIR__ . '/../app/handlers/store_manager/supplier_ratings/create.php';
     exit;
@@ -1711,6 +1721,11 @@ if ($page === 'api_fs_list_invoices') {
 
 if ($page === 'api_fs_resolve_variance') {
     require_once __DIR__ . '/../app/handlers/finance/staff/invoices/resolve_variance.php';
+    exit;
+}
+
+if ($page === 'api_fs_return_invoice_to_supplier') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/invoices/return_to_supplier.php';
     exit;
 }
 

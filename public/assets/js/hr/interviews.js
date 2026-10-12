@@ -1211,19 +1211,22 @@ function viewInterview(id) {
             if (data.success) {
                 const interview = data.data.interviews.find(i => i.id == id);
                 if (interview) {
+                    const targetRoleLabels = { 'Employee': 'Cashier' };
+                    const interviewStatusLabels = { scheduled: 'Scheduled', completed: 'Completed', cancelled: 'Cancelled' };
+                    const interviewResultLabels = { passed: 'Passed', failed: 'Failed', pending: 'Pending' };
                     body.innerHTML = `
                         <div class="row">
                             <div class="col-md-6">
                                 <p><strong>Applicant:</strong> ${escapeHtml(interview.applicant_name)}</p>
                                 <p><strong>Email:</strong> ${escapeHtml(interview.applicant_email)}</p>
-                                <p><strong>Role:</strong> ${escapeHtml(interview.target_role)}</p>
+                                <p><strong>Role:</strong> ${escapeHtml(targetRoleLabels[interview.target_role] || interview.target_role)}</p>
                             </div>
                             <div class="col-md-6">
                                 <p><strong>Type:</strong> ${interview.type_label}</p>
                                 <p><strong>Date:</strong> ${interview.formatted_date} at ${interview.formatted_time}</p>
                                 <p><strong>HR:</strong> ${escapeHtml(interview.hr_name || 'Not assigned')}</p>
-                                <p><strong>Status:</strong> <span class="badge bg-${interview.status_color}">${interview.status}</span></p>
-                                <p><strong>Result:</strong> <span class="badge bg-${interview.result_color}">${interview.result || 'Pending'}</span></p>
+                                <p><strong>Status:</strong> <span class="badge bg-${interview.status_color}">${interviewStatusLabels[interview.status] || interview.status}</span></p>
+                                <p><strong>Result:</strong> <span class="badge bg-${interview.result_color}">${interviewResultLabels[interview.result] || 'Pending'}</span></p>
                             </div>
                         </div>
                         ${interview.gmeet_link ? `<div class="mt-3"><p><strong>Gmeet Link:</strong> <a href="${interview.gmeet_link}" target="_blank">${interview.gmeet_link}</a></p></div>` : ''}

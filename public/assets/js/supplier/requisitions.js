@@ -4,10 +4,12 @@
 
 let spPoPage = 1;
 let spCounterPoId = null;
+let spDiscrepancyTarget = null;
 
 document.addEventListener('DOMContentLoaded', function () {
     loadPoList();
     document.getElementById('spSubmitCounterBtn').addEventListener('click', submitCounter);
+    document.getElementById('spSubmitDiscrepancyBtn').addEventListener('click', submitDiscrepancyResolution);
 });
 
 async function loadPoList() {
@@ -49,11 +51,32 @@ async function openPoDetail(poId) {
                 <button class="btn btn-yellow-primary btn-sm" onclick="shipPo(${po.id}, this)"><i class="bi bi-truck"></i> Mark as Shipped</button>
             `;
         }
+
+        const openDiscrepancies = (po.discrepancies || []).filter(d => d.status === 'open');
+        const discrepancyHtml = openDiscrepancies.length ? `
+            <div class="alert alert-warning mt-3">
+                <strong><i class="bi bi-exclamation-triangle"></i> Needs Your Action</strong>
+                <p class="small text-muted mb-2">The Store Manager logged these items as not received in good condition. Resolve each before this PO can be invoiced.</p>
+                ${openDiscrepancies.map(d => `
+                    <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                        <div>
+                            <strong>${prEscapeHtml(d.store_product_name)}</strong>
+                            <div class="text-muted small">${d.quantity}x ${d.type === 'missing' ? 'missing' : 'damaged'}</div>
+                        </div>
+                        <button class="btn btn-sm ${d.type === 'missing' ? 'btn-outline-warning' : 'btn-outline-danger'}" onclick="openDiscrepancyModal(${po.id}, ${d.id}, '${d.type}')">
+                            ${d.type === 'missing' ? 'Backorder' : 'Request RMA'}
+                        </button>
+                    </div>
+                `).join('')}
+            </div>
+        ` : '';
+
         document.getElementById('spPoDetailBody').innerHTML = `
             <p><strong>Status:</strong> ${prStatusBadge(po.status)} &nbsp; <strong>Terms:</strong> ${prEscapeHtml(po.terms || '')}</p>
             <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${itemsHtml}</tbody></table>
             <p class="fw-bold text-end">Total: ${prCurrency(po.total)}</p>
             ${actions}
+            ${discrepancyHtml}
             <hr><h6>History</h6>
             ${prRenderTimeline(po.events)}
         `;
@@ -136,6 +159,56 @@ async function submitCounter() {
         if (!data.success) throw new Error(data.message);
         Swal.fire('Submitted', data.message, 'success');
         bootstrap.Modal.getInstance(document.getElementById('spCounterModal'))?.hide();
+        loadPoList();
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    } finally {
+        unlock();
+    }
+}
+
+function openDiscrepancyModal(poId, discrepancyId, type) {
+    spDiscrepancyTarget = { poId, discrepancyId, type };
+    const isMissing = type === 'missing';
+    document.getElementById('spDiscrepancyModalTitle').textContent = isMissing ? 'Backorder Missing Item' : 'Request RMA — Damaged Item';
+    document.getElementById('spDiscrepancyModalDesc').textContent = isMissing
+        ? 'Give the Store Manager a new delivery date for the missing units. Your invoice for the units already received in good condition can go through right away.'
+        : 'This generates an RMA for pickup of the damaged units. Invoicing for this PO stays on hold until the replacement is delivered and received clean.';
+    document.getElementById('spDiscrepancyBackorderField').classList.toggle('d-none', !isMissing);
+    document.getElementById('spDiscrepancyPickupField').classList.toggle('d-none', isMissing);
+    document.getElementById('spDiscrepancyNewDeliveryDate').value = '';
+    document.getElementById('spDiscrepancyPickupDate').value = '';
+    bootstrap.Modal.getInstance(document.getElementById('spPoDetailModal'))?.hide();
+    new bootstrap.Modal(document.getElementById('spDiscrepancyModal')).show();
+}
+
+async function submitDiscrepancyResolution() {
+    if (!spDiscrepancyTarget) return;
+    const { poId, discrepancyId, type } = spDiscrepancyTarget;
+    const isMissing = type === 'missing';
+    const payload = {
+        po_id: poId,
+        discrepancy_id: discrepancyId,
+        action: isMissing ? 'backorder' : 'rma',
+    };
+    if (isMissing) {
+        payload.new_delivery_date = document.getElementById('spDiscrepancyNewDeliveryDate').value;
+        if (!payload.new_delivery_date) { Swal.fire('Date required', 'Enter the new delivery date.', 'warning'); return; }
+    } else {
+        payload.pickup_date = document.getElementById('spDiscrepancyPickupDate').value;
+        if (!payload.pickup_date) { Swal.fire('Date required', 'Enter the pickup date.', 'warning'); return; }
+    }
+
+    const unlock = prLockButton(document.getElementById('spSubmitDiscrepancyBtn'));
+    try {
+        const res = await fetch('?page=api_supplier_resolve_po_discrepancy', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        Swal.fire('Recorded', data.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('spDiscrepancyModal'))?.hide();
         loadPoList();
     } catch (e) {
         Swal.fire('Error', e.message, 'error');

@@ -349,7 +349,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20261012000004"></script>
+<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20261013000001"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

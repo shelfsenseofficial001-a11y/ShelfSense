@@ -6,11 +6,13 @@ let smProducts = [];
 let smEligibleSuppliers = [];
 let smSelectedSupplierId = null;
 let minePage = 1;
+let smDiscrepancyType = '';
 
 document.addEventListener('DOMContentLoaded', function () {
     loadProducts();
     loadMineList();
     loadPoList();
+    loadDiscrepancies();
     setDefaultOrderDate();
     setNeededByBounds();
     activateTabFromQuery();
@@ -339,6 +341,7 @@ async function loadMineList() {
                 <td>${prStatusBadge(r.status)}</td>
                 <td>${prFormatDate(r.created_at)}</td>
                 <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="openRequisitionDetail(${r.id})"><i class="bi bi-eye"></i> View</button>
                     ${r.rejected_reason ? `<span class="text-danger small" title="${prEscapeHtml(r.rejected_reason)}"><i class="bi bi-info-circle"></i></span>` : ''}
                     ${(r.status === 'revision_requested' || r.status === 'budget_rejected') ? `<button class="btn btn-sm btn-outline-warning" onclick="reviseRequisition(${r.id})"><i class="bi bi-arrow-counterclockwise"></i> Revise</button>` : ''}
                 </td>
@@ -350,13 +353,41 @@ async function loadMineList() {
     }
 }
 
+async function openRequisitionDetail(reqId) {
+    const modal = new bootstrap.Modal(document.getElementById('reqDetailModal'));
+    const body = document.getElementById('reqDetailBody');
+    body.innerHTML = 'Loading...';
+    modal.show();
+    try {
+        const r = await prFetchJson(`?page=api_get_requisition&id=${reqId}`);
+        const itemsHtml = r.items.map(i => `
+            <tr><td>${prEscapeHtml(i.store_product_name)}</td><td>${i.quantity}</td><td>${prCurrency(i.estimated_unit_price)}</td><td>${prCurrency(i.estimated_total)}</td></tr>
+        `).join('');
+        const budgetHtml = r.budget_status ? `
+            <p><strong>Budget Available:</strong> ${prCurrency(r.budget_status.available)} ${r.budget_status.exceeded ? '<span class="badge bg-danger">Exceeded</span>' : ''}</p>
+        ` : '';
+        body.innerHTML = `
+            <p><strong>Supplier:</strong> ${prEscapeHtml(r.supplier_name)} &nbsp; <strong>Department:</strong> ${prEscapeHtml(r.department_name)} &nbsp; <strong>Status:</strong> ${prStatusBadge(r.status)}</p>
+            <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${itemsHtml}</tbody></table>
+            <p class="fw-bold text-end">Total: ${prCurrency(r.subtotal)}</p>
+            ${budgetHtml}
+            ${r.notes ? `<p><strong>Notes:</strong> ${prEscapeHtml(r.notes)}</p>` : ''}
+            ${r.purchase_order ? `<p><strong>Purchase Order:</strong> ${prEscapeHtml(r.purchase_order.po_number)} (${prStatusBadge(r.purchase_order.status)})</p>` : ''}
+            <hr><h6>History</h6>
+            ${prRenderTimeline(r.events)}
+        `;
+    } catch (e) {
+        body.innerHTML = `<div class="alert alert-danger">${prEscapeHtml(e.message)}</div>`;
+    }
+}
+
 async function loadPoList() {
     const tbody = document.getElementById('poTableBody');
     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading...</td></tr>';
     try {
         const data = await prFetchJson('?page=api_sm_list_pos&limit=20');
         const rows = data.purchase_orders || [];
-        prSetTabBadge('poSectionHeading', rows.length);
+        prSetTabBadge('po-tab', rows.length);
         tbody.innerHTML = rows.length ? rows.map(po => `
             <tr>
                 <td>${prEscapeHtml(po.po_number)}</td>
@@ -371,6 +402,42 @@ async function loadPoList() {
         `).join('') : prEmptyRow(5, 'No purchase orders need attention right now.');
     } catch (e) {
         tbody.innerHTML = prErrorRow(5, e.message);
+    }
+}
+
+function setDiscrepancyFilter(type) {
+    smDiscrepancyType = type;
+    document.getElementById('discFilterAll').classList.toggle('active', type === '');
+    document.getElementById('discFilterBackorder').classList.toggle('active', type === 'missing');
+    document.getElementById('discFilterRma').classList.toggle('active', type === 'damaged');
+    loadDiscrepancies();
+}
+
+async function loadDiscrepancies() {
+    const tbody = document.getElementById('discTableBody');
+    tbody.innerHTML = '<tr><td colspan="8" class="text-center py-4">Loading...</td></tr>';
+    try {
+        const params = new URLSearchParams({ limit: 50 });
+        if (smDiscrepancyType) params.set('type', smDiscrepancyType);
+        const data = await prFetchJson(`?page=api_sm_list_discrepancies&${params}`);
+        const rows = data.discrepancies || [];
+        tbody.innerHTML = rows.length ? rows.map(d => `
+            <tr>
+                <td>${prEscapeHtml(d.po_number)}</td>
+                <td>${prEscapeHtml(d.supplier_name)}</td>
+                <td>${prEscapeHtml(d.store_product_name)}</td>
+                <td>${d.type === 'missing' ? 'Missing (Backorder)' : 'Damaged (RMA)'}</td>
+                <td>${d.quantity}</td>
+                <td>${prStatusBadge(d.status === 'open' ? 'discrepancy_logged' : d.status)}</td>
+                <td class="small text-muted">${d.type === 'missing'
+                    ? (d.new_delivery_date ? `New delivery ${prFormatDate(d.new_delivery_date)}` : 'Awaiting supplier action')
+                    : (d.rma_number ? `${prEscapeHtml(d.rma_number)}, pickup ${prFormatDate(d.pickup_date)}${d.status === 'resolved' ? ' — replacement received' : ''}` : 'Awaiting supplier action')}
+                </td>
+                <td><button class="btn btn-sm btn-outline-primary" onclick="openPoDetail(${d.po_id})"><i class="bi bi-eye"></i> View PO</button></td>
+            </tr>
+        `).join('') : prEmptyRow(8, 'No backorders or RMAs on file.');
+    } catch (e) {
+        tbody.innerHTML = prErrorRow(8, e.message);
     }
 }
 
@@ -401,23 +468,50 @@ async function openPoDetail(poId) {
             `;
         }
 
+        const discrepancies = po.discrepancies || [];
+        let discrepancyHtml = '';
+        if (discrepancies.length) {
+            discrepancyHtml = `
+                <hr><h6>Discrepancies</h6>
+                <table class="table table-sm"><thead><tr><th>Product</th><th>Type</th><th>Qty</th><th>Status</th><th>Detail</th></tr></thead><tbody>
+                ${discrepancies.map(d => `
+                    <tr>
+                        <td>${prEscapeHtml(d.store_product_name)}</td>
+                        <td>${d.type === 'missing' ? 'Missing' : 'Damaged'}</td>
+                        <td>${d.quantity}</td>
+                        <td>${prStatusBadge(d.status === 'open' ? 'discrepancy_logged' : d.status)}</td>
+                        <td class="small text-muted">${d.type === 'missing'
+                            ? (d.new_delivery_date ? `Backordered, new delivery ${prFormatDate(d.new_delivery_date)}` : 'Awaiting supplier action')
+                            : (d.rma_number ? `${prEscapeHtml(d.rma_number)}, pickup ${prFormatDate(d.pickup_date)}${d.status === 'resolved' ? ' — replacement received' : ''}` : 'Awaiting supplier action')}
+                        </td>
+                    </tr>
+                `).join('')}
+                </tbody></table>
+            `;
+        }
+
         let grHtml = '';
-        if (['shipped', 'partially_received'].includes(po.status)) {
+        if (['shipped', 'partially_received', 'discrepancy_logged'].includes(po.status)) {
             grHtml = `
                 <hr><h6>Log Goods Receipt</h6>
                 <p class="text-muted small">Enter how many of each remaining unit arrived in each condition. Splitting across Good/Damaged/Missing is logged in one submission.</p>
                 <table class="table table-sm" id="grItemsTable"><thead><tr><th>Product</th><th>Ordered</th><th>Received So Far</th><th style="width:90px">Good</th><th style="width:90px">Damaged</th><th style="width:90px">Missing</th><th style="width:70px">Remaining</th></tr></thead>
                 <tbody>
                 ${po.items.map(i => {
-                    const remaining = i.quantity - i.received_quantity_total;
+                    const outstanding = i.outstanding_discrepancy_quantity || 0;
+                    const remaining = Math.max(i.quantity - i.received_quantity_total, 0) + outstanding;
+                    // A line with an open RMA/Backorder already on file can only
+                    // take the replacement as Good here -- Damaged/Missing are
+                    // tracked by that existing record, not re-raised on top of it.
+                    const lockBadCondition = outstanding > 0;
                     return `
                     <tr data-po-item-id="${i.id}" data-remaining="${remaining}">
                         <td>${prEscapeHtml(i.store_product_name)}</td>
                         <td>${i.quantity}</td>
                         <td>${i.received_quantity_total}</td>
                         <td><input type="number" class="form-control form-control-sm gr-qty-good" min="0" max="${remaining}" value="0"></td>
-                        <td><input type="number" class="form-control form-control-sm gr-qty-damaged" min="0" max="${remaining}" value="0"></td>
-                        <td><input type="number" class="form-control form-control-sm gr-qty-missing" min="0" max="${remaining}" value="0"></td>
+                        <td><input type="number" class="form-control form-control-sm gr-qty-damaged" min="0" max="${remaining}" value="0" ${lockBadCondition ? 'disabled title="Already tracked via RMA -- log the replacement as Good"' : ''}></td>
+                        <td><input type="number" class="form-control form-control-sm gr-qty-missing" min="0" max="${remaining}" value="0" ${lockBadCondition ? 'disabled title="Already tracked via Backorder -- log the arrival as Good"' : ''}></td>
                         <td class="gr-remaining-display text-muted">${remaining}</td>
                     </tr>
                 `;
@@ -432,6 +526,7 @@ async function openPoDetail(poId) {
             <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th>Received</th></tr></thead><tbody>${itemsHtml}</tbody></table>
             <p class="fw-bold text-end">Total: ${prCurrency(po.total)}</p>
             ${counterHtml}
+            ${discrepancyHtml}
             ${grHtml}
             <hr><h6>History</h6>
             ${prRenderTimeline(po.events)}

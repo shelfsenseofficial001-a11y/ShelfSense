@@ -4,6 +4,14 @@
 
 console.log('✅ orders.js loaded');
 
+const ORDER_PAYMENT_METHOD_LABELS = {
+    cash: 'Cash',
+    card: 'Card',
+    gcash: 'GCash',
+    paymaya: 'PayMaya',
+    other: 'Other',
+};
+
 document.addEventListener("DOMContentLoaded", function() {
     if (window.__INITIAL_DATA__) {
         renderOrders(window.__INITIAL_DATA__.orders);
@@ -154,7 +162,7 @@ function renderOrders(orders) {
                 <td>${date}</td>
                 <td>${order.item_count || 0}</td>
                 <td class="fw-bold">₱${parseFloat(order.total).toFixed(2)}</td>
-                <td><span class="badge bg-info">${order.payment_method}</span></td>
+                <td><span class="badge bg-info">${ORDER_PAYMENT_METHOD_LABELS[order.payment_method] || order.payment_method}</span></td>
                 <td>${statusBadge}</td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-outline-primary view-order-btn" data-id="${order.id}">
@@ -315,7 +323,7 @@ function renderOrderDetail(order) {
     const statusBadge = isVoided
         ? '<span class="badge bg-danger">Voided</span>'
         : '<span class="badge bg-success">Completed</span>';
-    const paymentLabel = (order.payment_method || "").replace(/\b\w/g, c => c.toUpperCase());
+    const paymentLabel = ORDER_PAYMENT_METHOD_LABELS[order.payment_method] || order.payment_method || '';
 
     let itemsHtml = "";
     if (order.items && order.items.length > 0) {

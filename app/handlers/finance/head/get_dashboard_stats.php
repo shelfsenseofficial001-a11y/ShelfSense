@@ -22,7 +22,9 @@ function fh_dashboard_build_data(PDO $db, Budget $budgetModel): array {
     $calendarMonth = date('Y-m');
     $cutoffKey = CutoffPeriod::getCurrentKey();
 
-    $stmt = $db->query("SELECT COUNT(*) as c FROM purchase_orders WHERE status = 'pending_fh_approval'");
+    // Finance Head approval also happens on the requisition itself now, not
+    // a PO status -- a PO isn't even created until this gate passes.
+    $stmt = $db->query("SELECT COUNT(*) as c FROM requisitions WHERE status = 'pending_finance_head'");
     $pendingRequisitions = (int)$stmt->fetch()['c'];
 
     $stmt = $db->query("SELECT COUNT(*) as c FROM po_payment_requests WHERE status = 'pending'");

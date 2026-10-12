@@ -2,8 +2,8 @@
 $title = 'Purchase Orders - Supplier';
 $pageTitle = 'Purchase Orders';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/supplier/requisitions.js?v=20260907"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
+    . '<script src="/ShelfSense/public/assets/js/supplier/requisitions.js?v=20261013000001"></script>';
 
 $content = <<<'EOT'
 <div class="modern-card p-3">
@@ -45,6 +45,29 @@ $content = <<<'EOT'
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button class="btn btn-yellow-primary btn-sm" id="spSubmitCounterBtn">Submit Proposal</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="spDiscrepancyModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title" id="spDiscrepancyModalTitle">Resolve Discrepancy</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p class="text-muted small" id="spDiscrepancyModalDesc"></p>
+                <div class="mb-2" id="spDiscrepancyBackorderField">
+                    <label class="form-label">New Delivery Date</label>
+                    <input type="date" id="spDiscrepancyNewDeliveryDate" class="form-control">
+                </div>
+                <div class="mb-2 d-none" id="spDiscrepancyPickupField">
+                    <label class="form-label">Pickup Date</label>
+                    <input type="date" id="spDiscrepancyPickupDate" class="form-control">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-yellow-primary btn-sm" id="spSubmitDiscrepancyBtn">Submit</button>
             </div>
         </div>
     </div>

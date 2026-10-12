@@ -23,7 +23,7 @@ var atmPlaceholderEl = null;
 // ===== UTILITY =====
 function formatTime(t){ if(!t)return '-'; let p=t.split(':'); return p[0]+':'+p[1]; }
 function formatDate(d){ if(!d)return '-'; let dt=new Date(d); return dt.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
-function getRoleDisplayName(r){ let m={owner:'Owner',hr_head:'HR Head',hr_staff:'HR Staff',cashier:'Cashier',finance_head:'Finance Head',finance_staff:'Finance Staff',trainee:'Trainee'}; return m[r]||r; }
+function getRoleDisplayName(r){ let m={owner:'Owner',hr_head:'HR Head',hr_staff:'HR Staff',employee:'Cashier',finance_head:'Finance Head',finance_staff:'Finance Staff',trainee:'Trainee',store_manager:'Store Manager',supplier:'Supplier'}; return m[r]||r; }
 function getStatusClass(s,rd){ if(rd||s==='rest_day')return 'status-rest-day'; let m={present:'status-present',late:'status-late',absent:'status-absent',leave_paid:'status-leave',leave_unpaid:'status-leave',holiday_no_work:'status-holiday',holiday_work:'status-present'}; return m[s]||'status-absent'; }
 function getStatusIconClass(s,rd,re){ if(rd||s==='rest_day')return 'bi-moon-stars-fill'; if(!re)return 'bi-hourglass-split'; let m={present:'bi-check-circle-fill',late:'bi-exclamation-triangle-fill',absent:'bi-x-circle-fill',leave_paid:'bi-clipboard-check-fill',leave_unpaid:'bi-clipboard-fill',holiday_no_work:'bi-stars',holiday_work:'bi-stars'}; return m[s]||'bi-question-circle'; }
 function getStatusLabel(s,rd,re){ if(rd||s==='rest_day')return 'Rest Day'; if(!re)return 'No Record'; let m={present:'Present',late:'Late',absent:'Absent',leave_paid:'Leave (Paid)',leave_unpaid:'Leave (Unpaid)',holiday_no_work:'Holiday (No Work)',holiday_work:'Holiday (Work)'}; return m[s]||'Unknown'; }

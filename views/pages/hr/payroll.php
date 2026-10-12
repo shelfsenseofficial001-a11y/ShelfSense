@@ -5,7 +5,7 @@ use App\Models\PayrollCycle;
 $title = 'Payroll - ShelfSense HR';
 $pageTitle = 'Payroll Management';
 $activePage = 'payroll';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20260920100000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20261013000001"></script>';
 
 $currentMonth = date('m');
 $currentYear = date('Y');

@@ -447,12 +447,17 @@ function viewContract(id) {
                         'closing': 'Closing (2pm-10pm)',
                         'midshift': 'MidShift (10am-6pm)'
                     };
+                    // target_role stores the internal role name the job posting was filed
+                    // under (e.g. "Employee"), not always what it should read as -- same
+                    // "Employee" -> "Cashier" convention used in the applicants filter.
+                    const targetRoleLabels = { 'Employee': 'Cashier' };
+                    const contractStatusLabels = { pending: 'Pending', accepted: 'Accepted', declined: 'Declined' };
                     body.innerHTML = `
                         <div class="row">
                             <div class="col-md-6">
                                 <p><strong>Trainee:</strong> ${escapeHtml(contract.trainee_name)}</p>
                                 <p><strong>Email:</strong> ${escapeHtml(contract.applicant_email)}</p>
-                                <p><strong>Role:</strong> ${escapeHtml(contract.target_role)}</p>
+                                <p><strong>Role:</strong> ${escapeHtml(targetRoleLabels[contract.target_role] || contract.target_role)}</p>
                                 <p><strong>Employee #:</strong> ${escapeHtml(contract.employee_number || 'N/A')}</p>
                             </div>
                             <div class="col-md-6">
@@ -462,7 +467,7 @@ function viewContract(id) {
                                 <p><strong>Start Date:</strong> ${contract.formatted_start || '—'}</p>
                                 <p><strong>Decision Deadline:</strong> ${contract.decision_deadline ? new Date(contract.decision_deadline).toLocaleDateString() : '—'}</p>
                                 <p><strong>Rest Days:</strong> ${contract.rest_days ? contract.rest_days.split(',').map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') : 'None'}</p>
-                                <p><strong>Status:</strong> <span class="badge bg-${contract.status === 'pending' ? 'warning' : contract.status === 'accepted' ? 'success' : 'danger'}">${contract.status}</span></p>
+                                <p><strong>Status:</strong> <span class="badge bg-${contract.status === 'pending' ? 'warning' : contract.status === 'accepted' ? 'success' : 'danger'}">${contractStatusLabels[contract.status] || contract.status}</span></p>
                             </div>
                         </div>
                         ${contract.job_details ? `<div class="mt-3"><p><strong>Job Details:</strong></p><div class="p-3 rounded" style="background: var(--bg-card-subtle); color: var(--text-main);">${escapeHtml(contract.job_details)}</div></div>` : ''}

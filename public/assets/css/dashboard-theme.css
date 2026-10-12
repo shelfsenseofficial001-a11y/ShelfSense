@@ -261,39 +261,7 @@ body.dashboard-theme .sm-requisition-total {
     gap: 2px;
 }
 
-/* Purchase Orders card: sticky, pinned just under the topbar, so it
-   stays in view while the taller Create Requisition form beside it
-   scrolls. Sized against the viewport (not height:100% of its column --
-   that would make it exactly as tall as its own containing block, which
-   leaves position:sticky no room to move and silently cancels it) so it
-   still reaches down toward the bottom of the screen. The table body
-   fills the remaining height and scrolls internally past that, with the
-   header row staying put via its own position:sticky. */
-body.dashboard-theme .sm-po-card {
-    position: sticky;
-    top: 88px;
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100vh - 120px);
-}
-
-body.dashboard-theme .sm-po-scroll {
-    flex: 1 1 auto;
-    min-height: 0;
-    overflow-y: auto;
-}
-
-body.dashboard-theme .sm-po-scroll table {
-    height: 100%;
-}
-
-body.dashboard-theme .sm-po-scroll thead th {
-    position: sticky;
-    top: 0;
-    z-index: 1;
-}
-
-body.dashboard-theme .sm-po-scroll td[colspan] {
+body.dashboard-theme .sm-po-card td[colspan] {
     vertical-align: middle;
     padding: 2.5rem 1rem;
 }

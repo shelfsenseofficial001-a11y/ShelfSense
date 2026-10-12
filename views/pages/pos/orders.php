@@ -17,7 +17,7 @@ $title = 'Order History - ShelfSense POS';
 $pageTitle = 'Order History';
 $activePage = 'orders';
 $additional_js = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>'
-    . '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20260917310000"></script>';
+    . '<script src="/ShelfSense/public/assets/js/pos/orders.js?v=20261013000001"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourSteps = [

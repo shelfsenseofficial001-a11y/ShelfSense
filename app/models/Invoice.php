@@ -65,6 +65,44 @@ class Invoice
         return $stmt->execute([$status, $id]);
     }
 
+    /** Finance Staff sends a held invoice back to the Supplier with a reason. */
+    public function setRejected($id, $reason)
+    {
+        $stmt = $this->db->prepare("UPDATE invoices SET match_status = 'rejected', rejection_reason = ?, updated_at = NOW() WHERE id = ?");
+        return $stmt->execute([$reason, $id]);
+    }
+
+    /**
+     * Revises a rejected invoice in place for resubmission -- po_id stays
+     * UNIQUE (one invoice per PO), so a correction updates the existing row
+     * rather than inserting a second one. match_status is set to 'pending'
+     * here; the caller re-runs InvoiceMatcher right after.
+     */
+    public function prepareForResubmission($id, $data)
+    {
+        $stmt = $this->db->prepare("
+            UPDATE invoices
+            SET invoice_date = ?, due_date = ?, subtotal = ?, total = ?, file_path = ?, notes = ?,
+                rejection_reason = NULL, match_status = 'pending', updated_at = NOW()
+            WHERE id = ?
+        ");
+        return $stmt->execute([
+            $data['invoice_date'],
+            $data['due_date'],
+            $data['subtotal'] ?? 0,
+            $data['total'] ?? 0,
+            $data['file_path'] ?? null,
+            $data['notes'] ?? null,
+            $id,
+        ]);
+    }
+
+    public function deleteItems($invoiceId)
+    {
+        $stmt = $this->db->prepare("DELETE FROM invoice_items WHERE invoice_id = ?");
+        return $stmt->execute([$invoiceId]);
+    }
+
     public function getById($id)
     {
         $stmt = $this->db->prepare("
@@ -80,8 +118,17 @@ class Invoice
 
     public function getItems($invoiceId)
     {
+        // The Goods Receipt leg of the 3-way match -- good-condition quantity
+        // actually received, which is the real ceiling InvoiceMatcher checks
+        // billed_quantity against (not the PO's ordered quantity).
         $stmt = $this->db->prepare("
-            SELECT ii.*, p.name as store_product_name, poi.quantity as po_quantity, poi.unit_price as po_unit_price
+            SELECT ii.*, p.name as store_product_name, poi.quantity as po_quantity, poi.unit_price as po_unit_price,
+                   COALESCE((
+                       SELECT SUM(gri.quantity_received)
+                       FROM goods_receipt_items gri
+                       JOIN goods_receipts gr ON gr.id = gri.goods_receipt_id
+                       WHERE gr.po_id = poi.po_id AND gri.po_item_id = poi.id AND gri.condition = 'good'
+                   ), 0) as good_received_quantity
             FROM invoice_items ii
             JOIN purchase_order_items poi ON ii.po_item_id = poi.id
             JOIN products p ON poi.store_product_id = p.id

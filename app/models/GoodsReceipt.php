@@ -24,6 +24,7 @@ class GoodsReceipt
                 INSERT INTO goods_receipt_items (goods_receipt_id, po_item_id, quantity_received, `condition`, notes)
                 VALUES (?, ?, ?, ?, ?)
             ");
+            $insertedItems = [];
             foreach ($items as $item) {
                 $itemStmt->execute([
                     $grId,
@@ -32,6 +33,12 @@ class GoodsReceipt
                     $item['condition'] ?? 'good',
                     $item['notes'] ?? null,
                 ]);
+                $insertedItems[] = [
+                    'goods_receipt_item_id' => (int)$this->db->lastInsertId(),
+                    'po_item_id' => (int)$item['po_item_id'],
+                    'quantity_received' => (int)$item['quantity_received'],
+                    'condition' => $item['condition'] ?? 'good',
+                ];
 
                 $upd = $this->db->prepare("UPDATE purchase_order_items SET received_quantity = received_quantity + ? WHERE id = ?");
                 $upd->execute([$item['quantity_received'], $item['po_item_id']]);
@@ -51,7 +58,7 @@ class GoodsReceipt
             }
 
             $this->db->commit();
-            return $grId;
+            return ['gr_id' => $grId, 'items' => $insertedItems];
         } catch (\Exception $e) {
             $this->db->rollBack();
             throw $e;

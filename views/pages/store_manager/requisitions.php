@@ -2,8 +2,8 @@
 $title = 'Requisitions - Store Manager';
 $pageTitle = 'Requisitions';
 $activePage = 'requisitions';
-$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20261012000006"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
+    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20261013000004"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs sm-tabs mb-3" id="requisitionTabs" role="tablist">
@@ -15,6 +15,16 @@ $content = <<<'EOT'
     <li class="nav-item" role="presentation">
         <button class="nav-link" id="create-tab" data-bs-toggle="tab" data-bs-target="#createTab" data-tab-key="create" type="button" role="tab">
             <i class="bi bi-cart-plus"></i> Create Requisition
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="po-tab" data-bs-toggle="tab" data-bs-target="#poTab" data-tab-key="po" type="button" role="tab">
+            <i class="bi bi-truck"></i> Purchase Orders
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="disc-tab" data-bs-toggle="tab" data-bs-target="#discTab" data-tab-key="discrepancies" type="button" role="tab">
+            <i class="bi bi-exclamation-triangle"></i> Backorders &amp; RMA
         </button>
     </li>
 </ul>
@@ -57,20 +67,7 @@ $content = <<<'EOT'
 
     <div class="tab-pane fade" id="createTab" role="tabpanel">
         <div class="row g-3">
-            <div class="col-lg-7">
-                <div class="modern-card p-3 sm-po-card">
-                    <h6 id="poSectionHeading"><i class="bi bi-truck"></i> Purchase Orders</h6>
-                    <p class="text-muted small">Purchase orders needing your response (supplier counter-proposals) or ready for goods receipt.</p>
-                    <div class="sm-po-scroll">
-                        <table class="table table-hover align-middle mb-0">
-                            <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>
-                            <tbody id="poTableBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-5">
+            <div class="col-lg-8 col-xl-7 mx-auto">
                 <div class="modern-card p-3">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -116,6 +113,37 @@ $content = <<<'EOT'
                         <button type="button" class="btn btn-yellow-primary" id="submitRequisitionBtn" disabled><i class="bi bi-send"></i> Submit for Budget Check</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="poTab" role="tabpanel">
+        <div class="modern-card p-3 sm-po-card">
+            <h6 id="poSectionHeading"><i class="bi bi-truck"></i> Purchase Orders</h6>
+            <p class="text-muted small">Purchase orders needing your response (supplier counter-proposals) or ready for goods receipt.</p>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>
+                    <tbody id="poTableBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="discTab" role="tabpanel">
+        <div class="modern-card p-3">
+            <h6><i class="bi bi-exclamation-triangle"></i> Backorders &amp; RMA</h6>
+            <p class="text-muted small">Missing and damaged lines raised on goods receipts, and what the supplier has done about each.</p>
+            <div class="btn-group btn-group-sm mb-3" role="group">
+                <button type="button" class="btn btn-outline-secondary active" id="discFilterAll" onclick="setDiscrepancyFilter('')">All</button>
+                <button type="button" class="btn btn-outline-secondary" id="discFilterBackorder" onclick="setDiscrepancyFilter('missing')">Backorders</button>
+                <button type="button" class="btn btn-outline-secondary" id="discFilterRma" onclick="setDiscrepancyFilter('damaged')">RMA</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>PO #</th><th>Supplier</th><th>Product</th><th>Type</th><th>Qty</th><th>Status</th><th>Detail</th><th></th></tr></thead>
+                    <tbody id="discTableBody"><tr><td colspan="8" class="text-center py-4">Loading...</td></tr></tbody>
+                </table>
             </div>
         </div>
     </div>
@@ -170,6 +198,18 @@ $content = <<<'EOT'
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="poDetailBody">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="reqDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Requisition Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="reqDetailBody">Loading...</div>
         </div>
     </div>
 </div>
