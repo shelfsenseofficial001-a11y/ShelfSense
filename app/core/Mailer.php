@@ -119,13 +119,15 @@ class Mailer
         $statusLabels = [
             'application_received' => 'Application Received',
             'initial_scheduled' => 'Initial Interview Scheduled',
+            'initial_passed' => 'You Passed Your Initial Interview!',
             'final_scheduled' => 'Final Interview Scheduled',
+            'final_passed' => 'You Passed Your Final Interview!',
             'contract_offered' => 'Contract Offered',
             'hired' => 'Congratulations! You\'re Hired!',
             'initial_failed' => 'Application Update',
             'final_failed' => 'Application Update',
         ];
-        
+
         $subject = $statusLabels[$status] ?? 'Application Status Update - ShelfSense';
         $body = $this->getApplicantEmailTemplate($applicant, $status, $message);
         return $this->send($applicant['email'], $subject, $body);
@@ -143,6 +145,14 @@ class Mailer
     {
         $subject = "Your Trainee Contract - ShelfSense";
         $body = $this->getTraineeContractTemplate($applicant, $terms);
+        return $this->send($applicant['email'], $subject, $body);
+    }
+
+    /** Sent when HR first offers a Trainee Contract, before a trainer is assigned -- states the response deadline and that it's auto-declined if missed. */
+    public function sendTraineeContractOffer($applicant, $terms)
+    {
+        $subject = "Trainee Contract Offer - ShelfSense";
+        $body = $this->getTraineeContractOfferTemplate($applicant, $terms);
         return $this->send($applicant['email'], $subject, $body);
     }
 
@@ -237,16 +247,20 @@ class Mailer
     {
         $statusMessages = [
             'initial_scheduled' => "You have been scheduled for an initial interview. Please check your email for the Google Meet link.",
+            'initial_passed' => "Congratulations! You have passed your Initial Interview. HR will be in touch with a Trainee Contract offer shortly.",
             'final_scheduled' => "You have been scheduled for a final interview. Please check your email for the Google Meet link.",
+            'final_passed' => "Congratulations! You have passed your Final Interview. HR will be in touch with a Hired Contract offer shortly.",
             'contract_offered' => "Congratulations! You have been offered a contract. Please check the portal for details.",
             'hired' => "Congratulations! You have been hired. Welcome to the team!",
             'initial_failed' => "Thank you for your interest. Unfortunately, you did not pass the initial interview.",
             'final_failed' => "Thank you for your interest. Unfortunately, you did not pass the final interview.",
         ];
-        
+
         $statusLabels = [
             'initial_scheduled' => 'Initial Interview Scheduled',
+            'initial_passed' => 'Initial Interview Passed!',
             'final_scheduled' => 'Final Interview Scheduled',
+            'final_passed' => 'Final Interview Passed!',
             'contract_offered' => 'Contract Offered',
             'hired' => 'You\'re Hired!',
             'initial_failed' => 'Application Update',
@@ -313,6 +327,47 @@ class Mailer
                 <p style='font-size:12px;color:#6b7280;'>Please log in to the portal for more details.</p>
             </div>
         ", "Your Trainee Contract - ShelfSense");
+    }
+
+    /** The Accept/Decline button pair, linking straight to the public, no-login contract_response page -- shared by every contract-offer email. */
+    private function getContractResponseButtonsHtml($responseUrl)
+    {
+        if (empty($responseUrl)) {
+            return "<p style='font-size:12px;color:#6b7280;'>Please log in to the portal to accept or decline.</p>";
+        }
+        $acceptUrl = htmlspecialchars($responseUrl);
+        return "
+            <div style='text-align:center;margin:20px 0;'>
+                <a href='{$acceptUrl}' style='display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 28px;border-radius:8px;margin:0 6px;'>Review &amp; Respond</a>
+            </div>
+            <p style='font-size:12px;color:#6b7280;text-align:center;'>The button opens a page where you can accept or decline -- no login needed.</p>
+        ";
+    }
+
+    private function getTraineeContractOfferTemplate($applicant, $terms)
+    {
+        $notesHtml = !empty($terms['notes']) ? "<li><strong>HR Notes:</strong> " . nl2br(htmlspecialchars($terms['notes'])) . "</li>" : '';
+        $buttonsHtml = $this->getContractResponseButtonsHtml($terms['response_url'] ?? null);
+        return $this->getLayout("
+            <div style='text-align:center;padding:20px;background:#facc15;border-radius:8px 8px 0 0;'>
+                <h2 style='margin:0;color:#1a1a1a;'>📄 Trainee Contract Offer</h2>
+            </div>
+            <div style='padding:20px;background:#ffffff;border:1px solid #e5e7eb;border-radius:0 0 8px 8px;'>
+                <p>Dear <strong>{$applicant['first_name']}</strong>,</p>
+                <p>Congratulations on passing your initial interview! Please review the Trainee Contract terms below and respond:</p>
+                <ul>
+                    <li><strong>Salary Range:</strong> ₱" . number_format($terms['salary_min'], 2) . " – ₱" . number_format($terms['salary_max'], 2) . " (indicative; paid hourly, exact rate set after your account is created)</li>
+                    <li><strong>Working Hours:</strong> {$terms['schedule_start']} – {$terms['schedule_end']} (5 hours/day)</li>
+                    <li><strong>Rest Days:</strong> {$terms['rest_days']}</li>
+                    {$notesHtml}
+                </ul>
+                <div style='background:#fef3c7;padding:16px;border-radius:8px;margin:16px 0;'>
+                    <p style='margin:0;color:#92400e;font-weight:bold;'>⏰ Respond by {$terms['decision_deadline']}</p>
+                    <p style='margin:4px 0 0;color:#92400e;font-size:13px;'>If you do not accept or decline by this date, this offer will be automatically declined and cannot be accepted afterward.</p>
+                </div>
+                {$buttonsHtml}
+            </div>
+        ", "Trainee Contract Offer - ShelfSense");
     }
 
     private function getTrainerAssignmentTemplate($trainer, $traineeName, $targetRole)

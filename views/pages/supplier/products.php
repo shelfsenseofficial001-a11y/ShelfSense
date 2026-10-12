@@ -6,11 +6,7 @@ define('SHELFSENSE_INTERNAL_INCLUDE', true);
 require_once __DIR__ . '/../../../app/handlers/supplier/get_supplier_products.php';
 
 $db = Database::getInstance()->getConnection();
-$userId = Auth::userId();
-$stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
-$stmt->execute([$userId]);
-$supplier = $stmt->fetch();
-$supplierId = $supplier ? $supplier['id'] : $userId;
+$supplierId = (int)(Auth::supplierId() ?? 0);
 
 $initialData = supplier_products_build_data($db, $supplierId, 1, 20, '', '');
 $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
@@ -94,10 +90,13 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                     <div class="mb-2">
                         <label class="form-label fw-semibold">Product Name *</label>
                         <input type="text" name="name" id="productName" class="form-control" required maxlength="100">
-                        <div class="sp-mapping-warning mt-1">
-                            <i class="bi bi-exclamation-triangle"></i>
-                            This name must exactly match a Store product name so it can be automatically linked to that product for Store Manager comparisons.
-                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Linked Store Product</label>
+                        <select id="productStoreLink" class="form-select searchable-select" data-placeholder="Not linked...">
+                            <option value="">Not linked</option>
+                        </select>
+                        <div class="form-text">Which item in the Store's catalog this listing is for, so Store Managers can compare it against other suppliers. Leave unset to have it matched automatically by exact name.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Description</label>

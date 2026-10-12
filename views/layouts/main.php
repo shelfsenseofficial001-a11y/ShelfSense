@@ -35,7 +35,7 @@
     
     <!-- Custom JS -->
     <script src="/ShelfSense/public/assets/js/app.js?v=20261011000000"></script>
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261012000002"></script>
     <?= $additional_js ?? '' ?>
 </body>
 </html>

@@ -454,6 +454,162 @@ function activateEmployeeFromAcceptedContract($db, $contract)
 }
 
 // ============================================
+// CONTRACT DECISION DEADLINES
+// ============================================
+
+/** A random, unguessable per-contract token for the no-login email response link -- never the sequential contract id. */
+function generateContractResponseToken(): string
+{
+    return bin2hex(random_bytes(32));
+}
+
+/** Builds an absolute app URL from APP_URL in .env (falls back to the current request's own host if unset). */
+function appUrl(string $path = ''): string
+{
+    $base = rtrim($_ENV['APP_URL'] ?? ('http://' . ($_SERVER['HTTP_HOST'] ?? 'localhost')), '/');
+    return $base . $path;
+}
+
+/**
+ * Auto-declines any pending contract (Trainee or Hired) whose decision
+ * deadline has passed -- the applicant/trainee simply loses the ability to
+ * accept once the date is gone, no grace period. Called lazily at the top
+ * of every page/endpoint that reads contracts, rather than relying on a
+ * cron job, so it's always accurate by the time anyone looks.
+ */
+function expireOverdueContracts(PDO $db): void
+{
+    $stmt = $db->prepare("SELECT id, applicant_id FROM contracts WHERE status = 'pending' AND decision_deadline IS NOT NULL AND decision_deadline < CURDATE()");
+    $stmt->execute();
+    $expired = $stmt->fetchAll();
+    if (!$expired) {
+        return;
+    }
+
+    $db->prepare("UPDATE contracts SET status = 'declined', declined_at = NOW(), response_notes = 'Automatically declined: decision deadline passed.', updated_at = NOW() WHERE status = 'pending' AND decision_deadline IS NOT NULL AND decision_deadline < CURDATE()")->execute();
+
+    $appStmt = $db->prepare("UPDATE applicants SET status = 'contract_declined', updated_at = NOW() WHERE id = ?");
+    foreach ($expired as $row) {
+        $appStmt->execute([$row['applicant_id']]);
+        logRecruitmentEvent('applicant', $row['applicant_id'], 'contract_expired', [
+            'previous_status' => 'contract_offered', 'new_status' => 'contract_declined', 'reason' => 'Decision deadline passed'
+        ]);
+    }
+}
+
+/**
+ * The actual accept/decline business logic for a contract (Trainee or
+ * Hired), shared between the logged-in trainee's own endpoint
+ * (respond_to_contract.php) and the no-login, token-based email link
+ * (respond_to_contract_token.php). $expectedUserId, when given, is an
+ * ownership check (the logged-in path); the token path already proved
+ * ownership by knowing the token, so it passes null.
+ *
+ * Returns ['ok' => bool, 'code' => int, 'message' => string, 'contract' => array|null].
+ * Never throws for ordinary business-rule failures (already processed,
+ * deadline passed, wrong owner) -- those come back as ok:false with a
+ * message, same as any other validation error.
+ */
+function processContractResponse(PDO $db, int $contractId, string $action, string $responseNotes = '', ?int $expectedUserId = null): array
+{
+    $db->beginTransaction();
+
+    $stmt = $db->prepare("
+        SELECT c.*, a.target_role, a.email as applicant_email, a.last_name as applicant_last_name,
+               u.first_name, u.user_id as employee_user_id
+        FROM contracts c
+        JOIN applicants a ON c.applicant_id = a.id
+        JOIN users u ON c.user_id = u.user_id
+        WHERE c.id = ? FOR UPDATE
+    ");
+    $stmt->execute([$contractId]);
+    $contract = $stmt->fetch();
+
+    if (!$contract) {
+        $db->rollBack();
+        return ['ok' => false, 'code' => 404, 'message' => 'Contract not found.', 'contract' => null];
+    }
+    if ($expectedUserId !== null && (int)$contract['user_id'] !== $expectedUserId) {
+        $db->rollBack();
+        return ['ok' => false, 'code' => 403, 'message' => 'This is not your contract.', 'contract' => null];
+    }
+    if ($contract['status'] !== 'pending') {
+        $db->rollBack();
+        return ['ok' => false, 'code' => 400, 'message' => 'This contract has already been processed.', 'contract' => $contract];
+    }
+
+    // The decision deadline is a hard cutoff -- no grace period.
+    if (!empty($contract['decision_deadline']) && strtotime($contract['decision_deadline'] . ' 23:59:59') < time()) {
+        $db->prepare("UPDATE contracts SET status = 'declined', declined_at = NOW(), response_notes = 'Automatically declined: decision deadline passed.', updated_at = NOW() WHERE id = ?")
+            ->execute([$contract['id']]);
+        $db->prepare("UPDATE applicants SET status = 'contract_declined', updated_at = NOW() WHERE id = ?")
+            ->execute([$contract['applicant_id']]);
+        logRecruitmentEvent('applicant', $contract['applicant_id'], 'contract_expired', [
+            'previous_status' => 'contract_offered', 'new_status' => 'contract_declined', 'reason' => 'Decision deadline passed'
+        ]);
+        $db->commit();
+        return ['ok' => false, 'code' => 400, 'message' => 'The decision deadline for this contract has passed. It has been automatically declined and can no longer be accepted.', 'contract' => $contract];
+    }
+
+    $isTraineeContract = $contract['contract_type'] === 'trainee';
+
+    if ($action === 'accept') {
+        if ($isTraineeContract) {
+            $db->prepare("UPDATE contracts SET status = 'accepted', accepted_at = NOW(), updated_at = NOW() WHERE id = ?")
+                ->execute([$contract['id']]);
+            $message = 'Trainee Contract accepted! HR will now assign your trainer.';
+
+            $stmt = $db->prepare("SELECT user_id FROM users WHERE role IN ('hr_head', 'hr_staff') AND is_active = 1");
+            $stmt->execute();
+            foreach ($stmt->fetchAll() as $staff) {
+                createNotification($staff['user_id'], 'contract_accepted', "{$contract['first_name']} {$contract['applicant_last_name']} accepted their Trainee Contract. Assign a trainer.", "?page=hr_interviews");
+            }
+        } else {
+            activateEmployeeFromAcceptedContract($db, $contract);
+            $message = 'Contract accepted! Your employee account is now active.';
+
+            try {
+                $mailer = new \App\Core\Mailer();
+                $mailer->sendApplicantStatusUpdate(
+                    ['email' => $contract['applicant_email'], 'first_name' => $contract['first_name']],
+                    'hired'
+                );
+            } catch (Exception $e) {
+                error_log('processContractResponse: hired email failed: ' . $e->getMessage());
+            }
+
+            $stmt = $db->prepare("SELECT user_id FROM users WHERE role = 'hr_head' AND is_active = 1");
+            $stmt->execute();
+            foreach ($stmt->fetchAll() as $head) {
+                createNotification($head['user_id'], 'contract_accepted', "{$contract['first_name']} {$contract['applicant_last_name']} accepted their Hired Contract.", "?page=hr_contracts");
+            }
+        }
+    } else {
+        $stmt = $db->prepare("UPDATE contracts SET status = 'declined', declined_at = NOW(), response_notes = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$responseNotes !== '' ? $responseNotes : null, $contractId]);
+
+        $stmt = $db->prepare("UPDATE applicants SET status = 'contract_declined', updated_at = NOW() WHERE id = ?");
+        $stmt->execute([$contract['applicant_id']]);
+
+        logRecruitmentEvent('applicant', $contract['applicant_id'], 'contract_declined_by_applicant', [
+            'previous_status' => 'contract_offered', 'new_status' => 'contract_declined', 'reason' => $responseNotes
+        ]);
+
+        $stmt = $db->prepare("SELECT user_id FROM users WHERE role IN ('hr_head', 'hr_staff') AND is_active = 1");
+        $stmt->execute();
+        $contractLabel = $isTraineeContract ? 'Trainee Contract' : 'Hired Contract';
+        foreach ($stmt->fetchAll() as $staff) {
+            createNotification($staff['user_id'], 'contract_declined', "{$contract['first_name']} {$contract['applicant_last_name']} declined their {$contractLabel}.", "?page=hr_contracts");
+        }
+
+        $message = 'Contract declined.';
+    }
+
+    $db->commit();
+    return ['ok' => true, 'code' => 200, 'message' => $message, 'contract' => $contract];
+}
+
+// ============================================
 // RECRUITMENT / JOB-POSTING AUDIT LOG
 // ============================================
 
@@ -1155,13 +1311,13 @@ function validateExpectedDeliveryDate($rawValue)
     $date = \DateTime::createFromFormat('Y-m-d', $value);
     $date->setTime(0, 0, 0);
     $today = new \DateTime('today');
-    $maxDate = (clone $today)->modify('+1 year');
+    $maxDate = (clone $today)->modify('+6 months');
 
     if ($date < $today) {
         return 'Expected delivery date cannot be earlier than today.';
     }
     if ($date > $maxDate) {
-        return 'Expected delivery date cannot be more than one year from today.';
+        return 'Expected delivery date cannot be more than 6 months from today.';
     }
 
     return null;

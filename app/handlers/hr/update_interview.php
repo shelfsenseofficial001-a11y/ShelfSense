@@ -4,9 +4,11 @@
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../core/Mailer.php';
 
 use App\Core\Auth;
 use App\Core\Database;
+use App\Core\Mailer;
 use App\Core\Response;
 
 header('Content-Type: application/json');
@@ -81,6 +83,32 @@ try {
             if (!empty($newStatus)) {
                 $stmt = $db->prepare("UPDATE applicants SET status = ?, updated_at = NOW() WHERE id = ?");
                 $stmt->execute([$newStatus, $interview['applicant_id']]);
+            }
+
+            // No email was ever sent for a pass/fail result until now -- the
+            // applicant had to log in and check the portal to find out.
+            $stmt = $db->prepare("SELECT first_name, last_name, email FROM applicants WHERE id = ?");
+            $stmt->execute([$interview['applicant_id']]);
+            $applicantForEmail = $stmt->fetch();
+            if ($applicantForEmail) {
+                try {
+                    $mailer = new Mailer();
+                    $interviewLabel = $interview['interview_type'] === 'initial' ? 'Initial Interview' : 'Final Interview';
+                    if ($result === 'passed') {
+                        $nextStep = $interview['interview_type'] === 'initial'
+                            ? 'HR will be in touch with a Trainee Contract offer shortly.'
+                            : 'HR will be in touch with a Hired Contract offer shortly.';
+                        $mailer->sendApplicantStatusUpdate($applicantForEmail, $newStatus,
+                            "Congratulations! You have passed your {$interviewLabel}. {$nextStep}"
+                        );
+                    } else {
+                        $mailer->sendApplicantStatusUpdate($applicantForEmail, $newStatus,
+                            "Thank you for your interest. Unfortunately, you did not pass your {$interviewLabel}."
+                        );
+                    }
+                } catch (Exception $e) {
+                    error_log('update_interview.php: result email failed: ' . $e->getMessage());
+                }
             }
 
             $message = 'Interview result set to: ' . ucfirst($result);

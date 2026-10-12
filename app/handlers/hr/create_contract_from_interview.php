@@ -96,14 +96,21 @@ try {
         Response::error('No trainee record found for this applicant.', 400);
     }
 
+    // No deadline-days selector on the Finalize Hire modal (unlike the
+    // Contracts page's Offer Contract form) -- defaults to the same 5 days.
+    $decisionDeadline = date('Y-m-d', strtotime('+5 days'));
+    $responseToken = generateContractResponseToken();
+
     $stmt = $db->prepare("
-        INSERT INTO contracts (applicant_id, user_id, contract_type, status, shift, salary, salary_range_min, salary_range_max, job_details, start_date, rest_days, offered_by, offered_at, created_at)
-        VALUES (?, ?, 'hired', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+        INSERT INTO contracts (applicant_id, user_id, contract_type, status, shift, salary, salary_range_min, salary_range_max, job_details, start_date, rest_days, decision_deadline, response_token, offered_by, offered_at, created_at)
+        VALUES (?, ?, 'hired', 'pending', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     ");
     $stmt->execute([
         $applicantId, $trainee['user_id'], $shift, $salary, $salaryMin, $salaryMax,
         $jobDetails !== '' ? $jobDetails : null, $startDate,
         !empty($restDaysArray) ? implode(',', $restDaysArray) : null,
+        $decisionDeadline,
+        $responseToken,
         Auth::userId()
     ]);
     $contractId = $db->lastInsertId();
@@ -119,10 +126,14 @@ try {
     ]);
 
     $mailer = new Mailer();
+    $deadlineLabel = date('F j, Y', strtotime($decisionDeadline));
+    $responseUrl = appUrl('/?page=contract_response&token=' . $responseToken);
     $mailer->send(
         $applicant['email'],
         'Your Employment Contract - ShelfSense',
-        "<p>Dear {$applicant['first_name']},</p><p>Following your Final Interview, your Hired Contract is ready: shift <strong>{$shift}</strong>, salary range <strong>₱" . number_format((float)$salaryMin, 2) . " – ₱" . number_format((float)$salaryMax, 2) . "</strong>, starting <strong>" . date('F j, Y', strtotime($startDate)) . "</strong>.</p><p>Please log in to the portal to accept or decline.</p>"
+        "<p>Dear {$applicant['first_name']},</p><p>Following your Final Interview, your Hired Contract is ready: shift <strong>{$shift}</strong>, salary range <strong>₱" . number_format((float)$salaryMin, 2) . " – ₱" . number_format((float)$salaryMax, 2) . "</strong>, starting <strong>" . date('F j, Y', strtotime($startDate)) . "</strong>.</p><p>Please respond by <strong>{$deadlineLabel}</strong> -- if you do not respond by then, this offer will be automatically declined and cannot be accepted afterward.</p>"
+        . "<div style='text-align:center;margin:20px 0;'><a href='" . htmlspecialchars($responseUrl) . "' style='display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 28px;border-radius:8px;'>Review &amp; Respond</a></div>"
+        . "<p style='font-size:12px;color:#6b7280;text-align:center;'>The button opens a page where you can accept or decline -- no login needed.</p>"
     );
 
     // Notify the Owner too -- they were present at this Final Interview.

@@ -56,11 +56,10 @@ if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
     try {
         $db = \App\Core\Database::getInstance()->getConnection();
 
-        $userId = Auth::userId();
-        $stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
-        $stmt->execute([$userId]);
-        $supplier = $stmt->fetch();
-        $supplierId = $supplier ? $supplier['id'] : $userId;
+        $supplierId = Auth::supplierId();
+        if (!$supplierId) {
+            Response::forbidden('No supplier profile linked to this account.');
+        }
 
         $page = isset($_GET['p']) ? max(1, intval($_GET['p'])) : 1;
         $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 20;

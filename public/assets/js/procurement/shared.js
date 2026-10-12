@@ -7,6 +7,7 @@ const PR_STATUS_LABELS = {
     pending_budget_check: 'Pending Budget Check',
     budget_rejected: 'Budget Rejected',
     pending_finance_head: 'Pending Finance Head',
+    revision_requested: 'Revision Requested',
     approved: 'Approved',
     rejected: 'Rejected',
     converted_to_po: 'Converted to PO',

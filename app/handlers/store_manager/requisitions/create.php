@@ -1,22 +1,23 @@
 <?php
 // app/handlers/store_manager/requisitions/create.php
-// Store Manager builds a resupply request by picking store products; the
-// eligible-supplier list (see purchase_orders/list_eligible_suppliers.php)
-// narrows to only suppliers who carry every selected product with enough
-// quantity on file. Once a supplier is chosen, this creates BOTH the
-// requisition (an audit record of what was asked, by whom) and the Purchase
-// Order itself immediately, priced from that supplier's on-file prices --
-// no separate Finance-driven PO-creation step exists anymore.
+// Store Manager builds a resupply request: picks store products + quantities,
+// and ONE suggested supplier from the eligible-supplier comparison (narrowed
+// to suppliers who carry every selected product with enough quantity on
+// file) plus an optional note on why that supplier. This creates ONLY the
+// requisition (an audit record of what was asked, by whom) -- the Purchase
+// Order itself is no longer created here. It's created later by Finance Head
+// at approval time (see finance/head/requisitions/approve.php), once Finance
+// Staff has budget-checked the requisition and Finance Head has signed off on
+// the suggested supplier (or sent it back for revision).
 
 require_once __DIR__ . '/../../../core/Database.php';
 require_once __DIR__ . '/../../../core/Auth.php';
 require_once __DIR__ . '/../../../core/Response.php';
 require_once __DIR__ . '/../../../core/CutoffPeriod.php';
 require_once __DIR__ . '/../../../models/Requisition.php';
-require_once __DIR__ . '/../../../models/PurchaseOrder.php';
+require_once __DIR__ . '/../../../models/RequisitionEvent.php';
 require_once __DIR__ . '/../../../models/SupplierProduct.php';
 require_once __DIR__ . '/../../../models/Budget.php';
-require_once __DIR__ . '/../../../models/PoEvent.php';
 require_once __DIR__ . '/../../../helpers/functions.php';
 
 use App\Core\Auth;
@@ -24,10 +25,9 @@ use App\Core\Database;
 use App\Core\Response;
 use App\Core\CutoffPeriod;
 use App\Models\Requisition;
-use App\Models\PurchaseOrder;
+use App\Models\RequisitionEvent;
 use App\Models\SupplierProduct;
 use App\Models\Budget;
-use App\Models\PoEvent;
 
 header('Content-Type: application/json');
 
@@ -41,23 +41,22 @@ if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
 $input = json_decode(file_get_contents('php://input'), true);
 
 $supplierId = isset($input['supplier_id']) ? intval($input['supplier_id']) : 0;
-$departmentId = isset($input['department_id']) ? intval($input['department_id']) : 0;
-$orderDate = isset($input['order_date']) ? trim($input['order_date']) : '';
 $neededByDate = isset($input['needed_by_date']) ? trim($input['needed_by_date']) : '';
 $notes = isset($input['notes']) ? trim($input['notes']) : '';
+$supplierNote = isset($input['supplier_note']) ? trim($input['supplier_note']) : '';
 $items = isset($input['items']) ? $input['items'] : [];
 
 if ($supplierId <= 0) {
-    Response::error('Supplier is required', 400);
-}
-if (empty($orderDate)) {
-    Response::error('Order date is required', 400);
+    Response::error('A suggested supplier is required', 400);
 }
 if (empty($items) || !is_array($items)) {
     Response::error('At least one item is required', 400);
 }
 if (strlen($notes) > 500) {
     Response::error('Notes cannot exceed 500 characters', 400);
+}
+if (strlen($supplierNote) > 500) {
+    Response::error('Supplier note cannot exceed 500 characters', 400);
 }
 
 $neededByError = validateExpectedDeliveryDate($neededByDate);
@@ -72,8 +71,11 @@ foreach ($items as $item) {
     if ($storeProductId <= 0 || $quantity <= 0) {
         Response::error('Invalid item: store product and quantity are required', 400);
     }
-    if ($quantity > 999) {
-        Response::error('Quantity cannot exceed 999 per item', 400);
+    if ($quantity > 1000) {
+        Response::error('Quantity cannot exceed 1000 per item', 400);
+    }
+    if (isset($storeProductQuantities[$storeProductId])) {
+        Response::error('Each product can only be added once per requisition.', 400);
     }
     $storeProductQuantities[$storeProductId] = ['quantity' => $quantity];
 }
@@ -82,17 +84,12 @@ try {
     $db = Database::getInstance()->getConnection();
     $budgetModel = new Budget();
 
-    if ($departmentId > 0) {
-        $department = $budgetModel->getDepartmentById($departmentId);
-    } else {
-        $department = $budgetModel->getDepartmentByName('store');
-        if (!$department) {
-            $newId = $budgetModel->createDepartment('store', 'STORE');
-            $department = $budgetModel->getDepartmentById($newId);
-        }
-    }
+    // Procurement budget lives entirely under the Store/Front department --
+    // never client-selectable.
+    $department = $budgetModel->getDepartmentByName('store');
     if (!$department) {
-        Response::error('Invalid department', 400);
+        $newId = $budgetModel->createDepartment('store', 'STORE');
+        $department = $budgetModel->getDepartmentById($newId);
     }
 
     // Re-validate eligibility server-side -- the client's comparison view is
@@ -120,8 +117,8 @@ try {
         'department_id' => $department['id'],
         'preferred_supplier_id' => $supplierId,
         'period_key' => CutoffPeriod::getCurrentKey(),
-        'status' => 'converted_to_po',
-        'order_date' => $orderDate,
+        'status' => 'pending_budget_check',
+        'order_date' => date('Y-m-d'),
         'needed_by_date' => $neededByDate !== '' ? $neededByDate : null,
         'notes' => $notes,
     ]);
@@ -140,31 +137,19 @@ try {
     $stmt = $db->prepare("UPDATE requisitions SET subtotal = ? WHERE id = ?");
     $stmt->execute([$subtotal, $requisitionId]);
 
-    $poModel = new PurchaseOrder();
-    $poNumber = $poModel->generateNumber();
-    $poId = $poModel->create([
-        'po_number' => $poNumber,
-        'requisition_id' => $requisitionId,
-        'supplier_id' => $supplierId,
-        'status' => 'pending_budget_check',
-        'order_date' => $orderDate,
-        'expected_delivery_date' => $neededByDate !== '' ? $neededByDate : null,
-        'created_by' => Auth::userId(),
-    ]);
-    foreach ($chosen['items'] as $line) {
-        $poModel->addItem($poId, $line['store_product_id'], $line['supplier_product_id'], $line['quantity'], $line['unit_price']);
+    $eventMsg = "Requisition {$requisitionNumber} submitted. Suggested supplier: {$chosen['supplier_name']}.";
+    if ($supplierNote !== '') {
+        $eventMsg .= " Note: {$supplierNote}";
     }
-    $poModel->recalculateTotals($poId);
-
-    (new PoEvent())->log($poId, 'po_created', "Purchase Order {$poNumber} created by Store Manager from requisition #{$requisitionNumber}, supplier: {$chosen['supplier_name']}.", 'all', Auth::userId());
+    (new RequisitionEvent())->log($requisitionId, 'requisition_submitted', $eventMsg, Auth::userId(), 'store_manager');
 
     $db->commit();
 
     foreach (getUsersByRole('finance_staff') as $u) {
         createNotification(
             $u['user_id'],
-            'po_pending_budget_check',
-            "New Purchase Order {$poNumber} (₱" . number_format($subtotal, 2) . ") needs a budget check.",
+            'requisition_pending_budget_check',
+            "New Requisition {$requisitionNumber} (₱" . number_format($subtotal, 2) . ") needs a budget check.",
             "?page=finance_staff_requisitions"
         );
     }
@@ -172,10 +157,8 @@ try {
     Response::success([
         'requisition_id' => $requisitionId,
         'requisition_number' => $requisitionNumber,
-        'po_id' => $poId,
-        'po_number' => $poNumber,
         'total' => $subtotal
-    ], 'Purchase Order created and sent for budget check');
+    ], 'Requisition submitted for budget check');
 
 } catch (Exception $e) {
     if ($db->inTransaction()) {

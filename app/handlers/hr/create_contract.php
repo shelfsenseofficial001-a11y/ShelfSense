@@ -28,10 +28,15 @@ $salaryMax = isset($input['salary_max']) ? floatval($input['salary_max']) : 0;
 $jobDetails = isset($input['job_details']) ? trim($input['job_details']) : '';
 $startDate = isset($input['start_date']) ? trim($input['start_date']) : '';
 $restDays = isset($input['rest_days']) ? trim($input['rest_days']) : '';
+$decisionDeadlineDays = isset($input['decision_deadline']) ? intval($input['decision_deadline']) : 5;
 
 if ($applicantId <= 0 || empty($shift) || $salaryMin <= 0 || $salaryMax <= 0 || empty($startDate)) {
     Response::error('Missing required fields', 400);
 }
+if ($decisionDeadlineDays < 3 || $decisionDeadlineDays > 7) {
+    Response::error('Decision deadline must be between 3 and 7 days.', 400);
+}
+$decisionDeadline = date('Y-m-d', strtotime("+{$decisionDeadlineDays} days"));
 if ($salaryMax < $salaryMin) {
     Response::error('Maximum salary cannot be less than minimum salary.', 400);
 }
@@ -83,9 +88,10 @@ try {
     $userId = $trainee['user_id'];
     
     // Create contract with rest_days
+    $responseToken = generateContractResponseToken();
     $stmt = $db->prepare("
-        INSERT INTO contracts (applicant_id, user_id, shift, salary, salary_range_min, salary_range_max, job_details, start_date, rest_days, status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')
+        INSERT INTO contracts (applicant_id, user_id, shift, salary, salary_range_min, salary_range_max, job_details, start_date, rest_days, decision_deadline, response_token, status, offered_by, offered_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, NOW())
     ");
     $stmt->execute([
         $applicantId,
@@ -96,7 +102,10 @@ try {
         $salaryMax,
         $jobDetails,
         $startDate,
-        $restDays
+        $restDays,
+        $decisionDeadline,
+        $responseToken,
+        Auth::userId()
     ]);
     $contractId = $db->lastInsertId();
     
@@ -114,7 +123,13 @@ try {
 
     try {
         $mailer = new Mailer();
-        $mailer->sendApplicantStatusUpdate($applicant, 'contract_offered');
+        $deadlineLabel = date('F j, Y', strtotime($decisionDeadline));
+        $responseUrl = appUrl('/?page=contract_response&token=' . $responseToken);
+        $mailer->sendApplicantStatusUpdate($applicant, 'contract_offered',
+            "Congratulations! You have been offered a Hired Contract. Please respond by {$deadlineLabel} -- if you do not respond by then, this offer will be automatically declined and cannot be accepted afterward."
+            . "<div style='text-align:center;margin:20px 0;'><a href='" . htmlspecialchars($responseUrl) . "' style='display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;font-weight:bold;padding:12px 28px;border-radius:8px;'>Review &amp; Respond</a></div>"
+            . "<p style='font-size:12px;color:#6b7280;text-align:center;'>The button opens a page where you can accept or decline -- no login needed.</p>"
+        );
     } catch (Exception $e) {
         error_log('create_contract.php: offer email failed: ' . $e->getMessage());
     }

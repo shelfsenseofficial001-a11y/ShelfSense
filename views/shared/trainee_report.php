@@ -11,7 +11,12 @@ $title = 'Trainee Report - ShelfSense';
 $pageTitle = 'Trainee Report';
 $activePage = 'trainee_report';
 
+require_once __DIR__ . '/../../app/core/Auth.php';
+use App\Core\Auth;
+
 $role = $_SESSION['role'] ?? 'cashier';
+$isHRHeadJs = (Auth::isHRHead() || Auth::isSuperAdmin()) ? 'true' : 'false';
+$canManageTraineesJs = Auth::canAccessModule('hr_head') ? 'true' : 'false';
 $layout = 'cashier';
 if (in_array($role, ['hr_head', 'hr_staff', 'owner'])) {
     $layout = 'hr';
@@ -21,7 +26,7 @@ if (in_array($role, ['hr_head', 'hr_staff', 'owner'])) {
     $layout = 'finance';
 }
 
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/trainee_report.js?v=20261011000003"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/trainee_report.js?v=20261012000001"></script>';
 $additional_css = '
 <style>
     .tr-status-chip {
@@ -154,6 +159,8 @@ $content = <<<'EOT'
     </div>
 </div>
 EOT;
+
+$content = '<script>window.HR_IS_HEAD = ' . $isHRHeadJs . '; window.HR_CAN_MANAGE_TRAINEES = ' . $canManageTraineesJs . ';</script>' . $content;
 
 if ($layout === 'hr') {
     require_once __DIR__ . '/../layouts/hr.php';

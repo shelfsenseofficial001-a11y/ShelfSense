@@ -21,16 +21,14 @@ if (!Auth::isSupplier() && !Auth::isSuperAdmin()) {
 }
 
 $db = Database::getInstance()->getConnection();
-$stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
-$stmt->execute([Auth::userId()]);
-$supplier = $stmt->fetch();
-if (!$supplier) {
+$supplierId = Auth::supplierId();
+if (!$supplierId) {
     Response::success(['purchase_orders' => [], 'pagination' => ['currentPage' => 1, 'perPage' => 20, 'totalRecords' => 0, 'totalPages' => 0]], 'No supplier profile linked to this account.');
 }
 
 $page = isset($_GET['page_num']) ? max(1, intval($_GET['page_num'])) : 1;
 $limit = isset($_GET['limit']) ? min(100, max(1, intval($_GET['limit']))) : 20;
-$filters = ['supplier_id' => $supplier['id']];
+$filters = ['supplier_id' => $supplierId];
 if (!empty($_GET['status'])) {
     $filters['status'] = $_GET['status'];
 }

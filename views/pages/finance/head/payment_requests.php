@@ -3,11 +3,11 @@ $title = 'Requisitions & Payments - Finance Head';
 $pageTitle = 'Requisitions & Payments';
 $activePage = 'head_payment_requests';
 $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20260908"></script>';
+    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20261012000001"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs mb-3" id="fhTabs" role="tablist">
-    <li class="nav-item"><button class="nav-link active" id="tabPendingPos" data-bs-toggle="tab" data-bs-target="#reqTab" type="button">Pending Purchase Orders</button></li>
+    <li class="nav-item"><button class="nav-link active" id="tabPendingPos" data-bs-toggle="tab" data-bs-target="#reqTab" type="button">Pending Requisitions</button></li>
     <li class="nav-item"><button class="nav-link" id="tabPendingPoPayments" data-bs-toggle="tab" data-bs-target="#poPaymentTab" type="button">Pending PO Payments</button></li>
 </ul>
 
@@ -15,7 +15,7 @@ $content = <<<'EOT'
     <div class="tab-pane fade show active" id="reqTab">
         <div class="table-responsive">
             <table class="table table-hover align-middle">
-                <thead><tr><th>PO # (Requisition #)</th><th>Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th></th></tr></thead>
+                <thead><tr><th>Requisition #</th><th>Suggested Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th></th></tr></thead>
                 <tbody id="fhReqTableBody"><tr><td colspan="6" class="text-center py-4">Loading...</td></tr></tbody>
             </table>
         </div>
@@ -54,11 +54,14 @@ $content = <<<'EOT'
 <div class="modal fade" id="rejectReqModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <div class="modal-header"><h5 class="modal-title">Reject Requisition</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body"><textarea id="rejectReqReason" class="form-control" rows="3" placeholder="Reason..."></textarea></div>
+            <div class="modal-header"><h5 class="modal-title">Request Revision</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <p class="text-muted small">Sends this back to the Store Manager with your reason -- they can change the suggested supplier/items and resubmit.</p>
+                <textarea id="rejectReqReason" class="form-control" rows="3" placeholder="What should the Store Manager change?"></textarea>
+            </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button class="btn btn-danger btn-sm" id="confirmRejectReqBtn">Reject</button>
+                <button class="btn btn-warning btn-sm" id="confirmRejectReqBtn">Send</button>
             </div>
         </div>
     </div>

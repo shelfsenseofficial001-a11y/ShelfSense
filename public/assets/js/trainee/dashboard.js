@@ -233,7 +233,7 @@ function renderDashboard(data) {
     `;
 
     if (data.pending_contract && data.pending_contract.status === 'pending') {
-        wireContractButtons(data.pending_contract.id);
+        wireContractButtons(data.pending_contract.id, data.pending_contract.contract_type === 'trainee');
     }
 
     document.dispatchEvent(new CustomEvent('trainee-dashboard-rendered'));
@@ -252,16 +252,20 @@ function renderContractCard(c) {
         ? `${formatPeso(c.salary_range_min)} – ${formatPeso(c.salary_range_max)}`
         : (c.salary ? formatPeso(c.salary) : '—');
     const restDays = c.rest_days ? c.rest_days.split(',').map(d => d.charAt(0).toUpperCase() + d.slice(1)).join(', ') : '—';
+    const isTrainee = c.contract_type === 'trainee';
+    const scheduleField = isTrainee
+        ? `<div class="col-md-4"><small class="text-muted d-block">Working Hours</small><strong>${traineeEscapeHtml(c.schedule_start || '—')} – ${traineeEscapeHtml(c.schedule_end || '—')}</strong></div>`
+        : `<div class="col-md-4"><small class="text-muted d-block">Shift</small><strong>${traineeEscapeHtml(c.shift)}</strong></div>`;
     return `
         <div class="modern-card p-4 mb-4" style="border:2px solid var(--brand-yellow);">
-            <h5 class="fw-bold mb-2"><i class="bi bi-file-earmark-text text-yellow me-2"></i>You Have a Hired Contract Waiting</h5>
-            <p class="text-muted mb-3">Review the terms below and accept or decline. Accepting will activate your official employee account.</p>
+            <h5 class="fw-bold mb-2"><i class="bi bi-file-earmark-text text-yellow me-2"></i>You Have a ${isTrainee ? 'Trainee' : 'Hired'} Contract Waiting</h5>
+            <p class="text-muted mb-3">Review the terms below and accept or decline.${isTrainee ? ' Accepting lets HR assign your trainer and start your training period.' : ' Accepting will activate your official employee account.'}</p>
             <div class="row g-2 mb-3">
-                <div class="col-md-4"><small class="text-muted d-block">Shift</small><strong>${traineeEscapeHtml(c.shift)}</strong></div>
+                ${scheduleField}
                 <div class="col-md-4"><small class="text-muted d-block">Salary Range</small><strong>${salary}</strong></div>
                 <div class="col-md-4"><small class="text-muted d-block">Start Date</small><strong>${traineeEscapeHtml(c.start_date)}</strong></div>
                 <div class="col-md-4"><small class="text-muted d-block">Rest Days</small><strong>${restDays}</strong></div>
-                <div class="col-md-4"><small class="text-muted d-block">Decision Deadline</small><strong>${traineeEscapeHtml(c.decision_deadline || '—')}</strong></div>
+                ${!isTrainee ? `<div class="col-md-4"><small class="text-muted d-block">Decision Deadline</small><strong>${traineeEscapeHtml(c.decision_deadline || '—')}</strong></div>` : ''}
             </div>
             ${c.job_details ? `<p class="small"><strong>Job Details:</strong> ${traineeEscapeHtml(c.job_details)}</p>` : ''}
             <div id="contractResponseAlert"></div>
@@ -278,9 +282,12 @@ function renderContractCard(c) {
     `;
 }
 
-function wireContractButtons(contractId) {
+function wireContractButtons(contractId, isTrainee) {
     document.getElementById('acceptContractBtn')?.addEventListener('click', function () {
-        if (!confirm('Accept this contract? This will activate your official employee account.')) return;
+        const confirmMsg = isTrainee
+            ? 'Accept this Trainee Contract? HR will then assign your trainer.'
+            : 'Accept this contract? This will activate your official employee account.';
+        if (!confirm(confirmMsg)) return;
         respondToContract(contractId, 'accept', '');
     });
     document.getElementById('declineContractBtn')?.addEventListener('click', function () {

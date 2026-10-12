@@ -10,17 +10,9 @@ function formatCurrency(amount) {
 
 let currentPage = 1;
 let currentFilters = {
-    status: 'all',
-    search: ''
-};
-
-// Role salary ranges (fixed salary with min/max limits)
-const ROLE_SALARY_RANGES = {
-    'Cashier': { min: 9900, max: 10500 },
-    'HR Staff': { min: 13800, max: 14700 },
-    'Finance Staff': { min: 13800, max: 14700 },
-    'Head HR': { min: 15000, max: 18600 },
-    'Head Finance': { min: 15000, max: 18600 }
+    status: 'pending',
+    search: '',
+    contractType: 'trainee'
 };
 
 // ============================================
@@ -65,67 +57,6 @@ document.getElementById('createContractModal').addEventListener('show.bs.modal',
 });
 
 // ============================================
-// REST DAY TOGGLES (EDIT)
-// ============================================
-
-let editSelectedRestDays = [];
-
-function initEditRestDays() {
-    editSelectedRestDays = [];
-    document.querySelectorAll('#editRestDaysContainer .edit-rest-day-toggle').forEach(btn => {
-        btn.classList.remove('btn-primary');
-        btn.classList.add('btn-outline-secondary');
-    });
-    document.getElementById('editContractRestDays').value = '';
-}
-
-function loadEditRestDays(restDaysStr) {
-    if (restDaysStr) {
-        const days = restDaysStr.split(',').map(d => d.trim());
-        days.forEach(day => {
-            const btn = document.querySelector(`#editRestDaysContainer .edit-rest-day-toggle[data-day="${day}"]`);
-            if (btn && editSelectedRestDays.length < 2) {
-                editSelectedRestDays.push(day);
-                btn.classList.remove('btn-outline-secondary');
-                btn.classList.add('btn-primary');
-            }
-        });
-        document.getElementById('editContractRestDays').value = editSelectedRestDays.join(',');
-    }
-}
-
-// Attach event listeners for edit modal rest day toggles
-document.querySelectorAll('#editRestDaysContainer .edit-rest-day-toggle').forEach(btn => {
-    btn.addEventListener('click', function() {
-        const day = this.dataset.day;
-        const index = editSelectedRestDays.indexOf(day);
-        if (index > -1) {
-            editSelectedRestDays.splice(index, 1);
-            this.classList.remove('btn-primary');
-            this.classList.add('btn-outline-secondary');
-        } else {
-            if (editSelectedRestDays.length >= 2) {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Limit Reached',
-                    text: 'You can only select 2 rest days.'
-                });
-                return;
-            }
-            editSelectedRestDays.push(day);
-            this.classList.remove('btn-outline-secondary');
-            this.classList.add('btn-primary');
-        }
-        document.getElementById('editContractRestDays').value = editSelectedRestDays.join(',');
-    });
-});
-
-// Reset edit modal rest days when modal opens (after data is loaded)
-document.getElementById('editContractModal').addEventListener('show.bs.modal', function() {
-    initEditRestDays();
-});
-
-// ============================================
 // DOM READY
 // ============================================
 
@@ -137,11 +68,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (result.contracts && result.contracts.length > 0) {
             renderContracts(result.contracts);
             renderPagination(result.pagination);
-            renderStats(result.stats);
         } else {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center text-muted py-4">
+                    <td colspan="5" class="text-center text-muted py-4">
                         <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                         No contracts found
                     </td>
@@ -155,15 +85,32 @@ document.addEventListener('DOMContentLoaded', function() {
 
     if (window.ShelfSenseFilterChips) {
         window.ShelfSenseFilterChips.init('activeFilterChips', [
-            { key: 'status', type: 'select', elementId: 'filterStatus', defaultValue: 'all' },
             { key: 'search', type: 'search', elementId: 'searchInput' },
         ]);
     }
 
-    document.getElementById('filterStatus').addEventListener('change', function() {
-        currentFilters.status = this.value;
-        currentPage = 1;
-        loadContracts();
+    document.querySelectorAll('.filter-btn-contract').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.filter-btn-contract').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilters.status = this.dataset.status;
+            currentPage = 1;
+            loadContracts();
+        });
+    });
+
+    document.querySelectorAll('#contractTypeTabs button').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('#contractTypeTabs button').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            currentFilters.contractType = this.dataset.contractType;
+            // Trainee Contracts are only ever created per-applicant from
+            // their "Initial Interview Passed" row -- no standalone offer
+            // button for that type.
+            document.getElementById('createContractBtn').style.display = currentFilters.contractType === 'hired' ? '' : 'none';
+            currentPage = 1;
+            loadContracts();
+        });
     });
 
     const searchInput = document.getElementById('searchInput');
@@ -191,14 +138,36 @@ document.addEventListener('DOMContentLoaded', function() {
         createContract();
     });
 
+    document.getElementById('createTraineeContractForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        createTraineeContract();
+    });
+
+    // Offer Contract (global button) only applies to Hiring Contract --
+    // Trainee Contracts are only created per-applicant from their "Initial
+    // Interview Passed" row (see renderContracts' create-trainee-contract-row-btn).
     document.getElementById('createContractBtn').addEventListener('click', function() {
         openCreateContractModal();
     });
 
-    document.getElementById('editContractForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        saveEditedContract();
-    });
+    function wireRestDayToggleGroup(toggleSelector, containerId, hiddenInputId) {
+        document.querySelectorAll(toggleSelector).forEach(btn => {
+            btn.addEventListener('click', function() {
+                const container = document.getElementById(containerId);
+                const selectedBtns = container.querySelectorAll('.btn-primary');
+                const isSelected = this.classList.contains('btn-primary');
+                if (!isSelected && selectedBtns.length >= 2) {
+                    Swal.fire({ icon: 'warning', title: 'Limit Reached', text: 'You can only select 2 rest days.' });
+                    return;
+                }
+                this.classList.toggle('btn-primary', !isSelected);
+                this.classList.toggle('btn-outline-secondary', isSelected);
+                const selected = Array.from(container.querySelectorAll('.btn-primary')).map(b => b.dataset.day);
+                document.getElementById(hiddenInputId).value = selected.join(',');
+            });
+        });
+    }
+    wireRestDayToggleGroup('.trainee-contract-rest-day-toggle', 'traineeContractRestDaysContainer', 'traineeContractRestDays');
 
     // Autocomplete for contracts search
     const searchInputAutocomplete = document.getElementById('searchInput');
@@ -289,14 +258,15 @@ function loadContracts(page = currentPage) {
     const params = new URLSearchParams({
         p: page,
         status: currentFilters.status,
-        search: currentFilters.search
+        search: currentFilters.search,
+        contract_type: currentFilters.contractType
     });
     const url = `?page=api_get_contracts&${params}`;
     console.log('🔍 Request URL:', url);
     const tbody = document.getElementById('contractsTableBody');
     tbody.innerHTML = `
         <tr>
-            <td colspan="7" class="text-center py-4">
+            <td colspan="5" class="text-center py-4">
                 <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-2 text-muted">Loading contracts...</p>
             </td>
@@ -311,11 +281,10 @@ function loadContracts(page = currentPage) {
                 if (result.contracts && result.contracts.length > 0) {
                     renderContracts(result.contracts);
                     renderPagination(result.pagination);
-                    renderStats(result.stats);
                 } else {
                     tbody.innerHTML = `
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">
+                            <td colspan="5" class="text-center text-muted py-4">
                                 <i class="bi bi-inbox fs-3 d-block mb-2"></i>
                                 No contracts found
                             </td>
@@ -325,7 +294,7 @@ function loadContracts(page = currentPage) {
             } else {
                 tbody.innerHTML = `
                     <tr>
-                        <td colspan="7" class="text-center text-danger py-4">
+                        <td colspan="5" class="text-center text-danger py-4">
                             <i class="bi bi-exclamation-triangle fs-3 d-block"></i>
                             ${data.message || 'Failed to load contracts'}
                         </td>
@@ -337,7 +306,7 @@ function loadContracts(page = currentPage) {
             console.error('❌ Fetch error:', error);
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="7" class="text-center text-danger py-4">
+                    <td colspan="5" class="text-center text-danger py-4">
                         <i class="bi bi-exclamation-triangle fs-3 d-block"></i>
                         An error occurred. Please try again.
                     </td>
@@ -363,23 +332,36 @@ function renderContracts(contracts) {
         `;
         return;
     }
-    const shiftLabels = {
-        'opening': 'Opening (6am-2pm)',
-        'closing': 'Closing (2pm-10pm)',
-        'midshift': 'MidShift (10am-6pm)'
-    };
     const statusColors = { 'pending': 'warning', 'accepted': 'success', 'declined': 'danger' };
-    tbody.innerHTML = contracts.map(contract => `
+    tbody.innerHTML = contracts.map(contract => {
+        if (contract.is_virtual) {
+            // Passed Initial Interview, no Trainee Contract exists yet --
+            // not a real contracts row, just a prompt for HR to create one.
+            return `
+                <tr>
+                    <td><strong>${escapeHtml(contract.trainee_name)}</strong></td>
+                    <td>${escapeHtml(contract.applicant_email)}</td>
+                    <td><span class="badge bg-info">${escapeHtml(contract.target_role)}</span></td>
+                    <td><span class="badge bg-secondary">Initial Interview Passed</span></td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-outline-success create-trainee-contract-row-btn"
+                                data-applicant-id="${contract.applicant_id}"
+                                data-name="${escapeHtml(contract.trainee_name)}">
+                            <i class="bi bi-file-earmark-plus"></i> Create Contract
+                        </button>
+                    </td>
+                </tr>
+            `;
+        }
+        return `
         <tr>
             <td>
                 <strong>${escapeHtml(contract.trainee_name)}</strong>
                 <br>
                 <small class="text-muted">${escapeHtml(contract.employee_number || 'N/A')}</small>
             </td>
+            <td>${escapeHtml(contract.applicant_email)}</td>
             <td><span class="badge bg-info">${escapeHtml(contract.target_role)}</span></td>
-            <td>${escapeHtml(shiftLabels[contract.shift] || contract.shift || '—')}</td>
-            <td>${contract.formatted_salary_range || ('₱' + formatCurrency(contract.salary))}</td>
-            <td>${contract.formatted_start || '—'}</td>
             <td>
                 <span class="badge bg-${statusColors[contract.status] || 'secondary'}">
                     ${contract.status.charAt(0).toUpperCase() + contract.status.slice(1)}
@@ -388,17 +370,6 @@ function renderContracts(contracts) {
             <td class="text-center">
                 <button class="btn btn-sm btn-outline-primary view-contract" data-id="${contract.id}"><i class="bi bi-eye"></i></button>
                 ${contract.status === 'pending' ? `
-                    <button class="btn btn-sm btn-outline-warning edit-contract-btn"
-                            data-id="${contract.id}"
-                            data-applicant="${escapeHtml(contract.trainee_name)}"
-                            data-role="${escapeHtml(contract.target_role)}">
-                        <i class="bi bi-pencil"></i>
-                    </button>
-                    <button class="btn btn-sm btn-outline-primary send-email-btn"
-                            data-id="${contract.id}"
-                            data-applicant="${escapeHtml(contract.trainee_name)}">
-                        <i class="bi bi-envelope"></i>
-                    </button>
                     <button class="btn btn-sm btn-outline-danger decline-contract"
                             data-id="${contract.id}"
                             data-name="${escapeHtml(contract.trainee_name)}">
@@ -407,18 +378,13 @@ function renderContracts(contracts) {
                 ` : ''}
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 
+    document.querySelectorAll('.create-trainee-contract-row-btn').forEach(btn => btn.addEventListener('click', function() {
+        openCreateTraineeContractModal(this.dataset.applicantId, this.dataset.name);
+    }));
     document.querySelectorAll('.view-contract').forEach(btn => btn.addEventListener('click', function() { viewContract(this.dataset.id); }));
-    document.querySelectorAll('.edit-contract-btn').forEach(btn => btn.addEventListener('click', function() {
-        const contractId = this.dataset.id;
-        const traineeName = this.dataset.applicant;
-        const role = this.dataset.role;
-        openEditContractModal(contractId, traineeName, role);
-    }));
-    document.querySelectorAll('.send-email-btn').forEach(btn => btn.addEventListener('click', function() {
-        sendContractEmail(this.dataset.id, this.dataset.applicant);
-    }));
     document.querySelectorAll('.decline-contract').forEach(btn => btn.addEventListener('click', function() {
         updateContract(this.dataset.id, 'decline', this.dataset.name);
     }));
@@ -458,17 +424,6 @@ function renderPagination(pagination) {
             loadContracts(page);
         });
     });
-}
-
-// ============================================
-// STATS
-// ============================================
-
-function renderStats(stats) {
-    document.getElementById('statTotal').textContent = stats.total || 0;
-    document.getElementById('statPending').textContent = stats.pending || 0;
-    document.getElementById('statAccepted').textContent = stats.accepted || 0;
-    document.getElementById('statDeclined').textContent = stats.declined || 0;
 }
 
 // ============================================
@@ -541,6 +496,69 @@ function openCreateContractModal() {
     new bootstrap.Modal(document.getElementById('createContractModal')).show();
 }
 
+// ============================================
+// CREATE TRAINEE CONTRACT
+// ============================================
+
+function openCreateTraineeContractModal(applicantId, applicantName) {
+    document.getElementById('createTraineeContractForm').reset();
+    document.getElementById('traineeContractApplicantId').value = applicantId;
+    document.getElementById('traineeContractApplicantName').textContent = applicantName;
+    document.getElementById('traineeContractScheduleStart').value = '10:00';
+    document.querySelectorAll('.trainee-contract-rest-day-toggle').forEach(btn => {
+        const isWeekend = btn.dataset.day === 'saturday' || btn.dataset.day === 'sunday';
+        btn.classList.toggle('btn-primary', isWeekend);
+        btn.classList.toggle('btn-outline-secondary', !isWeekend);
+    });
+    document.getElementById('traineeContractRestDays').value = 'saturday,sunday';
+    new bootstrap.Modal(document.getElementById('createTraineeContractModal')).show();
+}
+
+function createTraineeContract() {
+    const form = document.getElementById('createTraineeContractForm');
+    const formData = new FormData(form);
+    const data = Object.fromEntries(formData);
+    const salaryMin = parseFloat(data.salary_min);
+    const salaryMax = parseFloat(data.salary_max);
+    if (!data.applicant_id) {
+        Swal.fire({ icon: 'warning', title: 'Applicant Required', text: 'Please select an applicant.' });
+        return;
+    }
+    if (isNaN(salaryMin) || isNaN(salaryMax) || salaryMin <= 0 || salaryMax <= 0) {
+        Swal.fire({ icon: 'warning', title: 'Invalid Salary Range', text: 'Please enter a valid salary range.' });
+        return;
+    }
+    if (salaryMax < salaryMin) {
+        Swal.fire({ icon: 'warning', title: 'Invalid Salary Range', text: 'Maximum salary cannot be less than minimum salary.' });
+        return;
+    }
+    const submitBtn = form.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Sending...';
+    fetch('?page=api_create_trainee_contract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(result => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Offer Trainee Contract';
+        if (result.success) {
+            Swal.fire({ icon: 'success', title: 'Trainee Contract Offered!', text: result.message, timer: 1800, showConfirmButton: false });
+            bootstrap.Modal.getInstance(document.getElementById('createTraineeContractModal')).hide();
+            loadContracts();
+        } else {
+            Swal.fire({ icon: 'error', title: 'Failed to Offer', text: result.message || 'Please try again.' });
+        }
+    })
+    .catch(() => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = 'Offer Trainee Contract';
+        Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+    });
+}
+
 function createContract() {
     const form = document.getElementById('createContractForm');
     const formData = new FormData(form);
@@ -588,169 +606,6 @@ function createContract() {
     });
 }
 
-// ============================================
-// EDIT CONTRACT (FULLY UPDATED)
-// ============================================
-
-function openEditContractModal(contractId, traineeName, targetRole) {
-    // Reset edit rest days UI
-    initEditRestDays();
-
-    document.getElementById('editContractId').value = contractId;
-    document.getElementById('editContractName').textContent = traineeName;
-    document.getElementById('editContractRole').value = targetRole;
-    const range = ROLE_SALARY_RANGES[targetRole] || { min: 0, max: 0 };
-    document.getElementById('salaryRangeHint').textContent = `Range: ₱${formatCurrency(range.min)} – ₱${formatCurrency(range.max)}`;
-    document.getElementById('editContractSalary').min = range.min;
-    document.getElementById('editContractSalary').max = range.max;
-
-    fetch(`?page=api_get_contracts&p=1&status=all&search=`)
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                const contract = data.data.contracts.find(c => c.id == contractId);
-                if (contract) {
-                    document.getElementById('editContractShift').value = contract.shift || '';
-                    document.getElementById('editContractSalary').value = contract.salary || '';
-                    document.getElementById('editContractStartDate').value = contract.start_date || '';
-                    document.getElementById('editContractJobDetails').value = contract.job_details || '';
-                    if (contract.decision_deadline) {
-                        const days = Math.ceil((new Date(contract.decision_deadline) - new Date()) / (1000 * 60 * 60 * 24));
-                        document.getElementById('editContractDeadline').value = Math.max(3, Math.min(7, days));
-                    } else {
-                        document.getElementById('editContractDeadline').value = '5';
-                    }
-                    // Load rest days
-                    const restDays = contract.rest_days || '';
-                    document.getElementById('editContractRestDays').value = restDays;
-                    // Apply toggles after a tiny delay
-                    setTimeout(() => {
-                        loadEditRestDays(restDays);
-                    }, 50);
-
-                    // ✅ Set min attributes for date inputs dynamically
-                    const today = new Date().toISOString().split('T')[0];
-                    const startDateInput = document.getElementById('editContractStartDate');
-                    const deadlineInput = document.getElementById('editContractDeadline');
-                    
-                    // Set min attribute for start date and deadline (which is a select, so min doesn't apply directly)
-                    // For start date, we set min attribute
-                    if (startDateInput) {
-                        startDateInput.min = today;
-                        // Also attach change listener for immediate warning
-                        startDateInput.addEventListener('change', function() {
-                            const todayStr = new Date().toISOString().split('T')[0];
-                            if (this.value < todayStr) {
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Invalid Date',
-                                    text: 'Start date cannot be in the past.'
-                                });
-                                this.value = '';
-                            }
-                        });
-                    }
-
-                    // For deadline select, we can't use min, but we can validate on change later.
-
-                }
-            }
-        })
-        .catch(error => {
-            console.error('Error fetching contract:', error);
-            Swal.fire({ icon: 'error', title: 'Error', text: 'Could not load contract data.' });
-        });
-
-    new bootstrap.Modal(document.getElementById('editContractModal')).show();
-}
-
-function saveEditedContract() {
-    const form = document.getElementById('editContractForm');
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData);
-    const role = data.role;
-    const range = ROLE_SALARY_RANGES[role] || { min: 0, max: 0 };
-    const salary = parseFloat(data.salary);
-    
-    // Validate salary
-    if (isNaN(salary) || salary < range.min || salary > range.max) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Salary Out of Range',
-            text: `Salary must be between ₱${formatCurrency(range.min)} and ₱${formatCurrency(range.max)} for this role.`
-        });
-        return;
-    }
-
-    // ✅ Validate dates (no past dates)
-    const today = new Date().toISOString().split('T')[0];
-    if (data.start_date < today) {
-        Swal.fire({ icon: 'warning', title: 'Invalid Start Date', text: 'Start date cannot be in the past.' });
-        return;
-    }
-    // Decision deadline is a number of days from today, not a date string.
-    // The decision_deadline in the form is the number of days (3-7). 
-    // We compute the actual deadline date from the days selected.
-    // But the backend expects a date string. In the form data, we have 'decision_deadline' as the number of days.
-    // We'll compute the deadline date here and then convert it to a date string before sending.
-    const days = parseInt(data.decision_deadline) || 5;
-    const deadline = new Date();
-    deadline.setDate(deadline.getDate() + days);
-    const deadlineStr = deadline.toISOString().split('T')[0];
-    if (deadlineStr < today) {
-        Swal.fire({ icon: 'warning', title: 'Invalid Deadline', text: 'Decision deadline cannot be in the past.' });
-        return;
-    }
-    if (deadlineStr < data.start_date) {
-        Swal.fire({ icon: 'warning', title: 'Invalid Deadline', text: 'Decision deadline must be after the start date.' });
-        return;
-    }
-
-    // Now we send the computed deadline date as decision_deadline
-    const submitData = {
-        contract_id: data.contract_id,
-        action: 'update_details',
-        shift: data.shift,
-        salary: data.salary,
-        start_date: data.start_date,
-        job_details: data.job_details,
-        decision_deadline: deadlineStr,
-        rest_days: data.rest_days || ''
-    };
-
-    const submitBtn = form.querySelector('button[type="submit"]');
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
-
-    fetch('?page=api_update_contract', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(submitData)
-    })
-    .then(response => response.json())
-    .then(result => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Save Changes';
-        if (result.success) {
-            Swal.fire({
-                icon: 'success',
-                title: 'Contract Updated!',
-                text: 'The contract details have been saved.',
-                timer: 1500,
-                showConfirmButton: false
-            });
-            bootstrap.Modal.getInstance(document.getElementById('editContractModal')).hide();
-            loadContracts(currentPage);
-        } else {
-            Swal.fire({ icon: 'error', title: 'Update Failed', text: result.message || 'Please try again.' });
-        }
-    })
-    .catch(error => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Save Changes';
-        Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
-    });
-}
 
 // ============================================
 // UPDATE CONTRACT (ACCEPT/DECLINE)
@@ -804,34 +659,6 @@ function updateContract(id, action, name) {
             .catch(error => {
                 Swal.close();
                 Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
-            });
-        }
-    });
-}
-
-// ============================================
-// SEND EMAIL (PLACEHOLDER)
-// ============================================
-
-function sendContractEmail(contractId, name) {
-    Swal.fire({
-        icon: 'info',
-        title: 'Send Contract Email?',
-        html: `Send the contract details to <strong>${name}</strong> via email?`,
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Send',
-        cancelButtonText: 'Cancel'
-    }).then(result => {
-        if (result.isConfirmed) {
-            // TODO: Implement actual email sending
-            Swal.fire({
-                icon: 'success',
-                title: 'Email Sent!',
-                html: `
-                    <p>The contract details have been sent to <strong>${name}</strong>.</p>
-                    <p class="text-muted">The trainee can now review the contract and accept/decline it.</p>
-                `,
-                confirmButtonText: 'OK'
             });
         }
     });

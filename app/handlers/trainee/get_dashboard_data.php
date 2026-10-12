@@ -4,6 +4,7 @@
 require_once __DIR__ . '/../../core/Database.php';
 require_once __DIR__ . '/../../core/Auth.php';
 require_once __DIR__ . '/../../core/Response.php';
+require_once __DIR__ . '/../../helpers/functions.php';
 
 use App\Core\Auth;
 use App\Core\Database;
@@ -16,6 +17,8 @@ if (!function_exists('trainee_dashboard_build_data')) {
  * itself (server-rendered first paint).
  */
 function trainee_dashboard_build_data(PDO $db, int $userId): ?array {
+    expireOverdueContracts($db);
+
     // Get trainee data
     $stmt = $db->prepare("
         SELECT 

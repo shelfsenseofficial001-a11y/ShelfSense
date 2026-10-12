@@ -15,10 +15,10 @@ if (!function_exists('supplier_dashboard_build_data')) {
  * refresh) and the dashboard page itself (server-rendered first paint).
  */
 function supplier_dashboard_build_data(PDO $db, int $userId): array {
-    $stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
+    $stmt = $db->prepare("SELECT id FROM suppliers WHERE user_id = ?");
     $stmt->execute([$userId]);
     $supplier = $stmt->fetch();
-    $supplierId = $supplier ? $supplier['id'] : $userId;
+    $supplierId = $supplier ? (int)$supplier['id'] : null;
 
     $stmt = $db->prepare("
         SELECT

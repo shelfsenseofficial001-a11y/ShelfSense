@@ -2,6 +2,7 @@
 // app/handlers/hr/get_contracts.php
 
 require_once __DIR__ . '/../../core/Database.php';
+require_once __DIR__ . '/../../helpers/functions.php';
 
 use App\Core\Auth;
 use App\Core\Database;
@@ -12,9 +13,16 @@ if (!function_exists('hr_contracts_build_data')) {
  * Builds a page of contracts + stats. Shared by the API endpoint (filter/
  * pagination/search) and the Contracts page's first paint.
  */
-function hr_contracts_build_data(PDO $db, int $page, int $limit, string $status, string $search): array {
+function hr_contracts_build_data(PDO $db, int $page, int $limit, string $status, string $search, string $contractType = 'all'): array {
+    expireOverdueContracts($db);
+
     $where = "1=1";
     $params = [];
+
+    if ($contractType !== 'all') {
+        $where .= " AND c.contract_type = ?";
+        $params[] = $contractType;
+    }
 
     if ($status !== 'all') {
         $where .= " AND c.status = ?";
@@ -58,6 +66,43 @@ function hr_contracts_build_data(PDO $db, int $page, int $limit, string $status,
     $stmt->execute($queryParams);
     $contracts = $stmt->fetchAll();
 
+    // "Virtual" rows: applicants who passed Initial Interview but have no
+    // Trainee Contract record yet. They aren't real `contracts` rows (no
+    // salary/schedule has been decided), but still need to be visible in
+    // Trainee Contract > Pending so HR can create the contract for them --
+    // that's the row's only action (see contracts.js: is_virtual rows get a
+    // "Create Contract" button instead of the usual view/edit/decline set).
+    $virtualRows = [];
+    if ($page === 1 && in_array($contractType, ['trainee', 'all'], true) && in_array($status, ['pending', 'all'], true)) {
+        $vWhere = "a.status = 'initial_passed' AND a.id NOT IN (SELECT applicant_id FROM contracts WHERE contract_type = 'trainee')";
+        $vParams = [];
+        if (!empty($search)) {
+            $vWhere .= " AND (a.first_name LIKE ? OR a.last_name LIKE ? OR a.email LIKE ?)";
+            $vSearchParam = "%{$search}%";
+            $vParams = [$vSearchParam, $vSearchParam, $vSearchParam];
+        }
+        $vStmt = $db->prepare("SELECT a.id AS applicant_id, a.first_name, a.last_name, a.email, a.target_role FROM applicants a WHERE $vWhere ORDER BY a.first_name");
+        $vStmt->execute($vParams);
+        foreach ($vStmt->fetchAll() as $a) {
+            $virtualRows[] = [
+                'id' => null,
+                'is_virtual' => true,
+                'applicant_id' => (int)$a['applicant_id'],
+                'contract_type' => 'trainee',
+                'status' => 'awaiting_contract',
+                'trainee_name' => trim($a['first_name'] . ' ' . $a['last_name']),
+                'applicant_email' => $a['email'],
+                'target_role' => $a['target_role'],
+                'employee_number' => null,
+                'shift_label' => '—',
+                'status_color' => 'secondary',
+                'formatted_start' => '—',
+                'formatted_salary' => '—',
+                'formatted_salary_range' => null,
+            ];
+        }
+    }
+
     $shiftLabels = [
         'opening' => 'Opening (6am-2pm)',
         'closing' => 'Closing (2pm-10pm)',
@@ -73,7 +118,11 @@ function hr_contracts_build_data(PDO $db, int $page, int $limit, string $status,
     foreach ($contracts as &$contract) {
         $contract['applicant_name'] = $contract['applicant_first_name'] . ' ' . $contract['applicant_last_name'];
         $contract['trainee_name'] = $contract['trainee_first_name'] . ' ' . $contract['trainee_last_name'];
-        $contract['shift_label'] = $shiftLabels[$contract['shift']] ?? ucfirst($contract['shift']);
+        $contract['shift_label'] = $contract['shift']
+            ? ($shiftLabels[$contract['shift']] ?? ucfirst($contract['shift']))
+            : (($contract['schedule_start'] && $contract['schedule_end'])
+                ? date('g:i A', strtotime($contract['schedule_start'])) . ' – ' . date('g:i A', strtotime($contract['schedule_end']))
+                : '—');
         $contract['status_color'] = $statusColors[$contract['status']] ?? 'secondary';
         $contract['formatted_start'] = date('M d, Y', strtotime($contract['start_date']));
         $contract['formatted_salary'] = '₱' . number_format($contract['salary'], 2);
@@ -81,8 +130,12 @@ function hr_contracts_build_data(PDO $db, int $page, int $limit, string $status,
             ? '₱' . number_format($contract['salary_range_min'], 2) . ' – ₱' . number_format($contract['salary_range_max'], 2)
             : null;
     }
+    unset($contract);
 
-    $statsSql = "SELECT 
+    $contracts = array_merge($virtualRows, $contracts);
+    $total += count($virtualRows);
+
+    $statsSql = "SELECT
                     COUNT(*) as total,
                     SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
                     SUM(CASE WHEN status = 'accepted' THEN 1 ELSE 0 END) as accepted,
@@ -105,7 +158,7 @@ function hr_contracts_build_data(PDO $db, int $page, int $limit, string $status,
             'accepted' => (int)($stats['accepted'] ?? 0),
             'declined' => (int)($stats['declined'] ?? 0)
         ],
-        'filters' => ['status' => $status, 'search' => $search]
+        'filters' => ['status' => $status, 'search' => $search, 'contract_type' => $contractType]
     ];
 }
 }
@@ -133,12 +186,13 @@ if (!defined('SHELFSENSE_INTERNAL_INCLUDE')) {
         $limit = isset($_GET['limit']) ? min(50, max(1, intval($_GET['limit']))) : 15;
         $status = isset($_GET['status']) ? $_GET['status'] : 'all';
         $search = isset($_GET['search']) ? trim($_GET['search']) : '';
+        $contractType = isset($_GET['contract_type']) ? $_GET['contract_type'] : 'all';
 
         if (strlen($search) > 100) {
             Response::error('Search term cannot exceed 100 characters.', 400);
         }
 
-        Response::success(hr_contracts_build_data($db, $page, $limit, $status, $search), 'Contracts fetched successfully');
+        Response::success(hr_contracts_build_data($db, $page, $limit, $status, $search, $contractType), 'Contracts fetched successfully');
     } catch (Exception $e) {
         error_log('get_contracts.php error: ' . $e->getMessage());
         Response::error('Error: ' . $e->getMessage());

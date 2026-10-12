@@ -79,9 +79,6 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
                 <a href="?page=hr_interviews" class="nav-item <?= $activePage === 'hr_interviews' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar-event-fill"></i></span> <span class="nav-label">Interviews</span>
                 </a>
-                <a href="?page=hr_trainees" class="nav-item <?= $activePage === 'hr_trainees' ? 'active' : '' ?>">
-                    <span class="nav-icon-wrap"><i class="bi bi-mortarboard-fill"></i></span> <span class="nav-label">Trainees</span>
-                </a>
                 <a href="?page=hr_contracts" class="nav-item <?= $activePage === 'hr_contracts' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-file-text-fill"></i></span> <span class="nav-label">Contracts</span>
                 </a>
@@ -156,7 +153,7 @@ $isFinanceTrainee = in_array($targetRole, ['finance_head', 'finance_staff']);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/ShelfSense/public/assets/js/app.js?v=20261011000000"></script>
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261012000002"></script>
     <?= $additional_js ?? '' ?>
 
     <style>

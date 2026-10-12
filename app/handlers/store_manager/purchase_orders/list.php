@@ -25,7 +25,9 @@ $filters = [];
 if (!empty($_GET['status'])) {
     $filters['status'] = $_GET['status'];
 } else {
-    $filters['statuses'] = ['supplier_counter_proposed', 'confirmed', 'shipped', 'partially_received', 'received'];
+    // 'paid' is included so a PO still needing a supplier rating (Close &
+    // Review) keeps showing here too, not just the still-in-progress ones.
+    $filters['statuses'] = ['supplier_counter_proposed', 'confirmed', 'shipped', 'partially_received', 'received', 'paid'];
 }
 
 try {

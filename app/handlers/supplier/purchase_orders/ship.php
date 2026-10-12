@@ -37,15 +37,13 @@ if ($poId <= 0) {
 $db = Database::getInstance()->getConnection();
 
 try {
-    $stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
-    $stmt->execute([Auth::userId()]);
-    $supplier = $stmt->fetch();
-    if (!$supplier) {
+    $supplierId = Auth::supplierId();
+    if (!$supplierId) {
         Response::forbidden('No supplier profile linked to this account.');
     }
 
     $stmt = $db->prepare("SELECT * FROM purchase_orders WHERE id = ? AND supplier_id = ?");
-    $stmt->execute([$poId, $supplier['id']]);
+    $stmt->execute([$poId, $supplierId]);
     $po = $stmt->fetch();
     if (!$po) {
         Response::notFound('Purchase order not found for this supplier.');

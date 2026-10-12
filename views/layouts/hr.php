@@ -63,9 +63,6 @@ use App\Core\Auth;
                 <a href="?page=hr_interviews" class="nav-item <?php echo $activePage === 'interviews' ? 'active' : ''; ?>" title="Interviews">
                     <span class="nav-icon-wrap"><i class="bi bi-calendar-event-fill"></i></span> <span class="nav-label">Interviews</span>
                 </a>
-                <a href="?page=hr_trainees" class="nav-item <?php echo $activePage === 'trainees' ? 'active' : ''; ?>" title="Trainees">
-                    <span class="nav-icon-wrap"><i class="bi bi-mortarboard-fill"></i></span> <span class="nav-label">Trainees</span>
-                </a>
                 <a href="?page=trainee_report" class="nav-item <?php echo $activePage === 'trainee_report' ? 'active' : ''; ?>" title="Trainee Report">
                     <span class="nav-icon-wrap"><i class="bi bi-journal-text"></i><span class="badge bg-danger nav-badge" id="traineeReportBadge" style="display:none;">0</span></span> <span class="nav-label">Trainee Report</span>
                 </a>
@@ -265,7 +262,7 @@ use App\Core\Auth;
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
 
     <!-- Date Picker Modal Component -->
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261012000002"></script>
 
     <style>
         /* ============================================

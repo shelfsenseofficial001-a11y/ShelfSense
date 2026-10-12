@@ -80,7 +80,16 @@
     class DatePickerModal {
         constructor(input) {
             this.original = input;
-            this.mode = input.type === 'month' ? 'month' : (input.type === 'datetime-local' ? 'datetime' : 'date');
+            // data-no-time="true" opt-in: a datetime-local field that doesn't
+            // actually need an hour/minute/AM-PM picked (e.g. a deadline
+            // that's conceptually just a date) renders as a plain date
+            // calendar instead -- confirm() below still writes back a full
+            // datetime-local-shaped value (midnight) so any other code on
+            // the page reading .value in that format keeps working
+            // unchanged. Every other field (no data-no-time attribute) is
+            // completely unaffected.
+            this.noTime = input.dataset.noTime === 'true';
+            this.mode = input.type === 'month' ? 'month' : (input.type === 'datetime-local' && !this.noTime ? 'datetime' : 'date');
             this.id = input.id || ('dp' + Math.random().toString(36).slice(2));
             this._value = input.value || input.getAttribute('value') || '';
             this.viewYear = null;
@@ -194,7 +203,7 @@
                             </div>
                             <div class="dp-day-grid"></div>
                             <div class="dp-month-grid"></div>
-                            <div class="dp-time-row d-flex gap-2 mt-2" style="display:none;">
+                            <div class="dp-time-row gap-2 mt-2" style="display:none;">
                                 <select class="form-select form-select-sm dp-hour-select"><option value="">HH</option></select>
                                 <select class="form-select form-select-sm dp-minute-select"><option value="">MM</option></select>
                                 <select class="form-select form-select-sm dp-ampm-select">
@@ -598,7 +607,16 @@
                         this.renderDayGrid();
                         this.applyTimeBounds();
                     } else {
-                        this.confirm(`${this.viewYear}-${pad(this.viewMonth)}-${pad(d)}`);
+                        const dateStr = `${this.viewYear}-${pad(this.viewMonth)}-${pad(d)}`;
+                        // The T00:00 suffix only makes sense when the real
+                        // underlying field is datetime-local and data-no-time
+                        // is suppressing its time picker -- a plain
+                        // type="date" field (which is already 'date' mode
+                        // with no help from data-no-time) must always get a
+                        // bare YYYY-MM-DD, or server-side date validation
+                        // rejects it.
+                        const needsTimeSuffix = this.noTime && this.original.type === 'datetime-local';
+                        this.confirm(needsTimeSuffix ? `${dateStr}T00:00` : dateStr);
                     }
                 });
             });

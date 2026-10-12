@@ -140,7 +140,7 @@ $showTraineeReportTab = hasActiveTraineeAsTrainer(Auth::userId());
 
     <!-- Searchable Select Component -->
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
-    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261011000004"></script>
+    <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261012000002"></script>
 
     <?= $additional_js ?? '' ?>
     

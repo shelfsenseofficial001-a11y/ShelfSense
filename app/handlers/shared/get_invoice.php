@@ -33,11 +33,8 @@ try {
     }
 
     if (Auth::isSupplier() && !Auth::isSuperAdmin()) {
-        $db = Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
-        $stmt->execute([Auth::userId()]);
-        $s = $stmt->fetch();
-        if (!$s || (int)$s['id'] !== (int)$invoice['supplier_id']) {
+        $supplierId = Auth::supplierId();
+        if (!$supplierId || $supplierId !== (int)$invoice['supplier_id']) {
             Response::forbidden('This invoice does not belong to you.');
         }
     }

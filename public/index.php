@@ -229,6 +229,11 @@ if ($page === 'api_create_trainee_with_trainer') {
     exit;
 }
 
+if ($page === 'api_create_trainee_contract') {
+    require_once __DIR__ . '/../app/handlers/hr/create_trainee_contract.php';
+    exit;
+}
+
 // ============================================
 // HR PAGE ROUTES (Require authentication)
 // ============================================
@@ -502,6 +507,16 @@ if ($page === 'apply') {
     exit;
 }
 
+if ($page === 'contract_response') {
+    require_once __DIR__ . '/../views/pages/public/contract_response.php';
+    exit;
+}
+
+if ($page === 'api_public_contract_response') {
+    require_once __DIR__ . '/../app/handlers/public/respond_to_contract_token.php';
+    exit;
+}
+
 if ($page === 'privacy_policy') {
     require_once __DIR__ . '/../views/pages/privacy_policy.php';
     exit;
@@ -551,23 +566,6 @@ if ($page === 'api_update_interview') {
 // ============================================
 // HR TRAINEES ROUTES
 // ============================================
-
-if ($page === 'hr_trainees') {
-    if (!Auth::check()) {
-        Response::redirect('?page=login');
-        exit;
-    }
-    if (Auth::isTrainee()) {
-        Response::redirect('?page=dashboard');
-        exit;
-    }
-    if (!Auth::isHR() && !Auth::isOwner()) {
-        Response::redirect('?page=dashboard');
-        exit;
-    }
-    require_once __DIR__ . '/../views/pages/hr/trainees.php';
-    exit;
-}
 
 if ($page === 'api_get_trainees') {
     require_once __DIR__ . '/../app/handlers/hr/get_trainees.php';
@@ -1193,6 +1191,26 @@ if ($page === 'api_sm_create_requisition') {
     exit;
 }
 
+if ($page === 'api_sm_resubmit_requisition') {
+    require_once __DIR__ . '/../app/handlers/store_manager/requisitions/resubmit.php';
+    exit;
+}
+
+if ($page === 'api_fs_requisition_check_budget') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/requisitions/check_budget.php';
+    exit;
+}
+
+if ($page === 'api_fh_requisition_approve') {
+    require_once __DIR__ . '/../app/handlers/finance/head/requisitions/approve.php';
+    exit;
+}
+
+if ($page === 'api_fh_requisition_request_revision') {
+    require_once __DIR__ . '/../app/handlers/finance/head/requisitions/request_revision.php';
+    exit;
+}
+
 if ($page === 'api_sm_list_eligible_suppliers') {
     require_once __DIR__ . '/../app/handlers/store_manager/purchase_orders/list_eligible_suppliers.php';
     exit;
@@ -1235,6 +1253,11 @@ if ($page === 'api_sm_respond_to_counter') {
 
 if ($page === 'api_sm_create_goods_receipt') {
     require_once __DIR__ . '/../app/handlers/store_manager/goods_receipts/create.php';
+    exit;
+}
+
+if ($page === 'api_sm_rate_supplier') {
+    require_once __DIR__ . '/../app/handlers/store_manager/supplier_ratings/create.php';
     exit;
 }
 
@@ -1521,6 +1544,11 @@ if ($page === 'api_supplier_delete_product') {
     exit;
 }
 
+if ($page === 'api_supplier_get_store_catalog') {
+    require_once __DIR__ . '/../app/handlers/supplier/get_store_catalog.php';
+    exit;
+}
+
 // ============================================
 // STORE MANAGER - ADDITIONAL ROUTES
 // ============================================
@@ -1558,6 +1586,11 @@ if ($page === 'finance_staff_requisitions') {
         exit;
     }
     require_once __DIR__ . '/../views/pages/finance/staff/requisitions.php';
+    exit;
+}
+
+if ($page === 'api_fh_list_requisitions_pending') {
+    require_once __DIR__ . '/../app/handlers/finance/head/requisitions/list_pending.php';
     exit;
 }
 
@@ -1653,6 +1686,11 @@ if ($page === 'api_fs_list_pos_pending_budget_check') {
 
 if ($page === 'api_fs_check_po_budget') {
     require_once __DIR__ . '/../app/handlers/finance/staff/purchase_orders/check_budget.php';
+    exit;
+}
+
+if ($page === 'api_fs_list_requisitions_pending_budget_check') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/requisitions/list_pending_budget_check.php';
     exit;
 }
 

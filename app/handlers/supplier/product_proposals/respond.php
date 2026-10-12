@@ -51,15 +51,13 @@ if ($action === 'confirm') {
 
 try {
     $db = \App\Core\Database::getInstance()->getConnection();
-    $stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
-    $stmt->execute([Auth::userId()]);
-    $supplier = $stmt->fetch();
-    if (!$supplier) {
+    $supplierId = Auth::supplierId();
+    if (!$supplierId) {
         Response::forbidden('No supplier profile linked to this account.');
     }
 
     $proposalModel = new ProductProposal();
-    $proposal = $proposalModel->supplierRespond($id, $supplier['id'], $action, Auth::userId(), $data);
+    $proposal = $proposalModel->supplierRespond($id, $supplierId, $action, Auth::userId(), $data);
 
     // Notify whoever proposed it (their own tracking page, by role) and
     // every active Owner (their approval queue).

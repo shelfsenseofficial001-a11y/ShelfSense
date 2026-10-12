@@ -146,16 +146,25 @@ class SupplierProduct
             $bySupplier[$row['supplier_id']]['items'][(int)$row['store_product_id']] = $row;
         }
 
+        // A supplier is "eligible" here just by carrying every requested
+        // product at all -- how much they currently have on file is shown
+        // to the Store Manager as information (available_quantity /
+        // sufficient_stock per line), never a block on requesting it. The
+        // Store Manager requests what the store actually needs; whether a
+        // supplier can fully cover it is something to work out at
+        // sourcing/negotiation (or discovered as a real short-shipment at
+        // delivery, which the goods-receipt/3-way-match flow already
+        // handles) -- not something this picker should gate upfront.
         $eligible = [];
         foreach ($bySupplier as $supplierId => $data) {
-            $covers = true;
+            $carriesAll = true;
             $lines = [];
             $total = 0.0;
             foreach ($storeProductQuantities as $storeProductId => $need) {
                 $needQty = (int)($need['quantity'] ?? 0);
                 $sp = $data['items'][$storeProductId] ?? null;
-                if (!$sp || (int)$sp['quantity'] < $needQty) {
-                    $covers = false;
+                if (!$sp) {
+                    $carriesAll = false;
                     break;
                 }
                 $lineTotal = round($needQty * (float)$sp['price'], 2);
@@ -166,11 +175,12 @@ class SupplierProduct
                     'supplier_product_name' => $sp['name'],
                     'unit_price' => (float)$sp['price'],
                     'available_quantity' => (int)$sp['quantity'],
+                    'sufficient_stock' => (int)$sp['quantity'] >= $needQty,
                     'quantity' => $needQty,
                     'total' => $lineTotal,
                 ];
             }
-            if ($covers) {
+            if ($carriesAll) {
                 $eligible[] = [
                     'supplier_id' => (int)$supplierId,
                     'supplier_name' => $data['name'],

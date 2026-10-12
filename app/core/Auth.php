@@ -176,6 +176,25 @@ class Auth
         return self::role() === 'supplier';
     }
 
+    /**
+     * The suppliers.id row for the logged-in supplier account, via
+     * suppliers.user_id -- or null if this account has no supplier company
+     * linked yet. Callers must handle null explicitly rather than guessing
+     * (e.g. falling back to the raw user_id, which is a different id space).
+     */
+    public static function supplierId()
+    {
+        if (!self::check()) {
+            return null;
+        }
+
+        $db = Database::getInstance()->getConnection();
+        $stmt = $db->prepare("SELECT id FROM suppliers WHERE user_id = ?");
+        $stmt->execute([self::userId()]);
+        $row = $stmt->fetch();
+        return $row ? (int)$row['id'] : null;
+    }
+
     // ✅ NEW: Finance role checks
     public static function isFinanceStaff()
     {
@@ -286,7 +305,7 @@ class Auth
             $sidebar['hr_dashboard'] = '?page=hr_dashboard';
             $sidebar['hr_applicants'] = '?page=hr_applicants';
             $sidebar['hr_interviews'] = '?page=hr_interviews';
-            $sidebar['hr_trainees'] = '?page=hr_trainees';
+            $sidebar['trainee_report'] = '?page=trainee_report';
             $sidebar['hr_contracts'] = '?page=hr_contracts';
             $sidebar['hr_schedules'] = '?page=hr_schedules';
             $sidebar['hr_attendance'] = '?page=hr_attendance';

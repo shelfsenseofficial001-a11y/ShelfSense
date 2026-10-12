@@ -38,7 +38,20 @@ function hr_interviews_build_data(PDO $db, int $currentUserId, int $page, int $l
         // as one combined bucket (the Interviews page's "History" sub-tab
         // then offers Completed/Cancelled as a secondary filter on top of
         // this, passed through as status=completed/status=cancelled below).
-        $where .= " AND i.status IN ('completed', 'cancelled')";
+        // Passed-but-unassigned initial interviews live in their own
+        // Unassigned Applicants queue, not here (see status=unassigned).
+        $where .= " AND i.status IN ('completed', 'cancelled') AND NOT (i.interview_type = 'initial' AND i.status = 'completed' AND i.result = 'passed' AND t.id IS NULL)";
+    } elseif ($status === 'unassigned') {
+        // "Unassigned Applicants" is purely the trainer-assignation queue:
+        // passed Initial Interview, already has an ACCEPTED Trainee Contract
+        // (created/offered from the Contracts page, not here), but no
+        // trainer assigned yet. Applicants who haven't had a Trainee
+        // Contract created/accepted yet live in Contracts > Trainee
+        // Contract > Pending instead, not here.
+        $where .= " AND i.interview_type = 'initial' AND i.status = 'completed' AND i.result = 'passed' AND t.id IS NULL AND a.status = 'initial_passed'
+                    AND EXISTS (SELECT 1 FROM contracts c2 WHERE c2.applicant_id = a.id AND c2.contract_type = 'trainee' AND c2.status = 'accepted')";
+    } elseif ($status === 'completed') {
+        $where .= " AND i.status = 'completed' AND NOT (i.interview_type = 'initial' AND i.result = 'passed' AND t.id IS NULL)";
     } elseif ($status !== 'all') {
         $where .= " AND i.status = ?";
         $params[] = $status;
@@ -52,8 +65,9 @@ function hr_interviews_build_data(PDO $db, int $currentUserId, int $page, int $l
         $params[] = $searchParam;
     }
 
-    $countSql = "SELECT COUNT(*) as total FROM interviews i 
-                 JOIN applicants a ON i.applicant_id = a.id 
+    $countSql = "SELECT COUNT(*) as total FROM interviews i
+                 JOIN applicants a ON i.applicant_id = a.id
+                 LEFT JOIN trainees t ON t.applicant_id = a.id
                  WHERE $where";
     $stmt = $db->prepare($countSql);
     $stmt->execute($params);
@@ -72,6 +86,7 @@ function hr_interviews_build_data(PDO $db, int $currentUserId, int $page, int $l
             FROM interviews i
             JOIN applicants a ON i.applicant_id = a.id
             LEFT JOIN users u ON i.hr_user_id = u.user_id
+            LEFT JOIN trainees t ON t.applicant_id = a.id
             WHERE $where
             ORDER BY i.scheduled_date DESC
             LIMIT ? OFFSET ?";

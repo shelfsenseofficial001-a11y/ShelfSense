@@ -396,7 +396,180 @@ function selectBoardTrainee(traineeId) {
     TR_BOARD_SELECTED_WEEK = null;
     renderBoardTraineeList();
     renderBoardWeekTabs();
-    document.getElementById('trBoardContent').innerHTML = '<p class="text-muted small mb-0">Select a week to view the report.</p>';
+    const trainee = findBoardTrainee(traineeId);
+    document.getElementById('trBoardContent').innerHTML =
+        renderTrainerPanel(trainee) +
+        renderEligibilityPanel(trainee) +
+        '<p class="text-muted small mb-0">Select a week to view the report.</p>';
+}
+
+// Reassign Trainer: open to any HR role that can manage trainees (not just
+// HR Head), reusing the existing update_trainee.php reassign_trainer action
+// that the old standalone Trainees page used to expose.
+function renderTrainerPanel(trainee) {
+    if (!trainee || TR_BOARD_MODE === 'history' || !window.HR_CAN_MANAGE_TRAINEES) return '';
+    return `
+        <div class="d-flex justify-content-between align-items-center mb-3 p-2 rounded" style="background: var(--bg-card-subtle);">
+            <span class="small"><strong>Trainer:</strong> ${trainee.trainer_name ? escapeHtml(trainee.trainer_name) : '<span class="text-muted">Not assigned</span>'}</span>
+            <button type="button" class="btn btn-sm btn-outline-warning tr-reassign-trainer-btn" data-trainee-id="${trainee.trainee_id}" data-role="${escapeHtml(trainee.target_role)}" data-name="${escapeHtml(trainee.name)}">
+                <i class="bi bi-arrow-repeat"></i> Reassign Trainer
+            </button>
+        </div>
+    `;
+}
+
+document.addEventListener('click', function(e) {
+    const btn = e.target.closest('.tr-reassign-trainer-btn');
+    if (btn) openReassignTrainerModal(btn.dataset.traineeId, btn.dataset.role, btn.dataset.name);
+});
+
+function openReassignTrainerModal(traineeId, targetRole, name) {
+    const selectId = 'trReassignTrainerSelect';
+    let modalEl = document.getElementById('trReassignTrainerModal');
+    if (!modalEl) {
+        document.body.insertAdjacentHTML('beforeend', `
+            <div class="modal fade" id="trReassignTrainerModal" tabindex="-1">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Reassign Trainer</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <p><strong>Trainee:</strong> <span id="trReassignTraineeName"></span></p>
+                            <input type="hidden" id="trReassignTraineeId">
+                            <div class="mb-3">
+                                <label class="form-label fw-semibold">New Trainer</label>
+                                <select id="${selectId}" class="form-select"><option value="">Loading trainers...</option></select>
+                            </div>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                            <button type="button" class="btn btn-yellow-primary btn-sm" id="trConfirmReassignBtn">Reassign</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `);
+        modalEl = document.getElementById('trReassignTrainerModal');
+        document.getElementById('trConfirmReassignBtn').addEventListener('click', submitReassignTrainer);
+    }
+    document.getElementById('trReassignTraineeId').value = traineeId;
+    document.getElementById('trReassignTraineeName').textContent = name;
+    const select = document.getElementById(selectId);
+    select.innerHTML = '<option value="">Loading trainers...</option>';
+    fetch(`?page=api_get_trainers_by_role&role=${encodeURIComponent(targetRole)}`)
+        .then(r => r.json())
+        .then(data => {
+            if (data.success && data.data.trainers.length > 0) {
+                select.innerHTML = '<option value="" disabled selected hidden>Select a trainer...</option>' +
+                    data.data.trainers.map(t => `<option value="${t.user_id}">${escapeHtml(t.first_name)} ${escapeHtml(t.last_name)}</option>`).join('');
+            } else {
+                select.innerHTML = '<option value="">No trainers available for this role</option>';
+            }
+        })
+        .catch(() => { select.innerHTML = '<option value="">Error loading trainers</option>'; });
+    new bootstrap.Modal(modalEl).show();
+}
+
+function submitReassignTrainer() {
+    const traineeId = document.getElementById('trReassignTraineeId').value;
+    const trainerId = document.getElementById('trReassignTrainerSelect').value;
+    if (!trainerId) {
+        Swal.fire({ icon: 'warning', title: 'Please Select a Trainer', text: 'Choose a trainer to reassign.' });
+        return;
+    }
+    fetch('?page=api_update_trainee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trainee_id: traineeId, action: 'reassign_trainer', trainer_id: trainerId })
+    })
+        .then(r => r.json())
+        .then(result => {
+            if (result.success) {
+                bootstrap.Modal.getInstance(document.getElementById('trReassignTrainerModal'))?.hide();
+                Swal.fire({ icon: 'success', title: 'Trainer Reassigned!', text: result.message, timer: 1500, showConfirmButton: false })
+                    .then(() => loadReviewBoard());
+            } else {
+                Swal.fire({ icon: 'error', title: 'Failed', text: result.message || 'Please try again.' });
+            }
+        })
+        .catch(() => {
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+        });
+}
+
+// Eligibility decision: only once every week has reached HR Head's final
+// review (status 'hr_reviewed'), only for HR Head/SuperAdmin, and only if
+// not already decided. Reuses the existing api_update_trainee 'complete'/
+// 'terminate' actions (already gated server-side to HR Head).
+function renderEligibilityPanel(trainee) {
+    if (!trainee || TR_BOARD_MODE === 'history' || !window.HR_IS_HEAD) return '';
+    if (trainee.eligible_for_contract) {
+        return `
+            <div class="alert alert-primary d-flex justify-content-between align-items-center mb-3">
+                <span><i class="bi bi-check2-circle"></i> Eligible for a Hiring Contract.</span>
+                <a class="btn btn-sm btn-success" href="?page=hr_interviews&schedule_final=${encodeURIComponent(trainee.applicant_id)}&name=${encodeURIComponent(trainee.name)}"><i class="bi bi-calendar-check"></i> Schedule Final Interview</a>
+            </div>
+        `;
+    }
+    const allReviewed = trainee.weeks.length > 0 && trainee.weeks.every(w => w.status === 'hr_reviewed');
+    if (!allReviewed) return '';
+    return `
+        <div class="alert alert-success d-flex justify-content-between align-items-center mb-3">
+            <span><i class="bi bi-check2-circle"></i> All 12 weeks reviewed. Decide eligibility for a Hiring Contract.</span>
+            <span>
+                <button type="button" class="btn btn-sm btn-success tr-eligible-btn" data-trainee-id="${trainee.trainee_id}" data-name="${escapeHtml(trainee.name)}">Eligible for Hiring Contract</button>
+                <button type="button" class="btn btn-sm btn-outline-danger tr-terminate-btn" data-trainee-id="${trainee.trainee_id}" data-name="${escapeHtml(trainee.name)}">Terminate</button>
+            </span>
+        </div>
+    `;
+}
+
+document.addEventListener('click', function(e) {
+    const eligibleBtn = e.target.closest('.tr-eligible-btn');
+    const terminateBtn = e.target.closest('.tr-terminate-btn');
+    if (eligibleBtn) traineeEligibilityDecision(parseInt(eligibleBtn.dataset.traineeId, 10), 'complete', eligibleBtn.dataset.name);
+    if (terminateBtn) traineeEligibilityDecision(parseInt(terminateBtn.dataset.traineeId, 10), 'terminate', terminateBtn.dataset.name);
+});
+
+function traineeEligibilityDecision(traineeId, action, name, override = false, reason = '') {
+    Swal.fire({ title: 'Processing...', text: 'Please wait.', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+    fetch('?page=api_update_trainee', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trainee_id: traineeId, action, override, reason })
+    })
+        .then(r => r.json())
+        .then(result => {
+            Swal.close();
+            if (result.success) {
+                const msg = action === 'complete'
+                    ? `<p><strong>${escapeHtml(name)}</strong> is now eligible for the Final Interview.</p><p class="text-muted">Next step: go to the <strong>Interviews</strong> page and schedule their Final Interview.</p>`
+                    : `<p><strong>${escapeHtml(name)}</strong> has been terminated.</p><p class="text-muted">The trainee account has been deactivated and the trainer released.</p>`;
+                Swal.fire({ icon: 'success', title: action === 'complete' ? 'Trainee Marked Eligible!' : 'Trainee Terminated', html: msg, confirmButtonText: 'OK' })
+                    .then(() => loadReviewBoard());
+            } else if (result.data && result.data.missing_weeks && action === 'complete') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Reports Incomplete',
+                    html: `<p>${escapeHtml(result.message)}</p><textarea id="overrideReason" class="swal2-textarea" placeholder="Reason for overriding..."></textarea>`,
+                    showCancelButton: true,
+                    confirmButtonText: 'Override & Mark Eligible',
+                    preConfirm: () => {
+                        const r = document.getElementById('overrideReason').value.trim();
+                        if (!r) { Swal.showValidationMessage('An override reason is required.'); return false; }
+                        return r;
+                    }
+                }).then(r2 => { if (r2.isConfirmed) traineeEligibilityDecision(traineeId, action, name, true, r2.value); });
+            } else {
+                Swal.fire({ icon: 'error', title: 'Action Failed', text: result.message || 'Please try again.' });
+            }
+        })
+        .catch(() => {
+            Swal.close();
+            Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong. Please try again.' });
+        });
 }
 
 function findBoardTrainee(traineeId) {

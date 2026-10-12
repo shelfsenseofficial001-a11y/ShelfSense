@@ -9,10 +9,10 @@ let minePage = 1;
 
 document.addEventListener('DOMContentLoaded', function () {
     loadProducts();
-    loadDepartments();
     loadMineList();
     loadPoList();
     setDefaultOrderDate();
+    setNeededByBounds();
     activateTabFromQuery();
 
     document.getElementById('mineStatusFilter').addEventListener('change', () => { minePage = 1; loadMineList(); });
@@ -23,7 +23,50 @@ document.addEventListener('DOMContentLoaded', function () {
         e.preventDefault();
         bootstrap.Tab.getOrCreateInstance(document.getElementById('create-tab')).show();
     });
+
+    document.getElementById('confirmRateSupplierBtn').addEventListener('click', submitSupplierRating);
 });
+
+// ============================================
+// SUPPLIER RATING (Close & Review)
+// ============================================
+
+let smRateTargetPoId = null;
+
+function openRateSupplier(poId) {
+    smRateTargetPoId = poId;
+    document.getElementById('rateOnTime').checked = true;
+    document.getElementById('rateFillRate').value = 100;
+    document.getElementById('rateQuality').value = '3';
+    document.getElementById('rateNotes').value = '';
+    new bootstrap.Modal(document.getElementById('rateSupplierModal')).show();
+}
+
+async function submitSupplierRating() {
+    const payload = {
+        po_id: smRateTargetPoId,
+        on_time: document.getElementById('rateOnTime').checked,
+        fill_rate_percent: parseFloat(document.getElementById('rateFillRate').value) || 0,
+        quality_rating: parseInt(document.getElementById('rateQuality').value, 10),
+        notes: document.getElementById('rateNotes').value,
+    };
+    const unlock = prLockButton(document.getElementById('confirmRateSupplierBtn'));
+    try {
+        const res = await fetch('?page=api_sm_rate_supplier', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        bootstrap.Modal.getInstance(document.getElementById('rateSupplierModal'))?.hide();
+        Swal.fire('Thanks!', data.message, 'success');
+        loadPoList();
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    } finally {
+        unlock();
+    }
+}
 
 function activateTabFromQuery() {
     const tabKey = new URLSearchParams(window.location.search).get('tab');
@@ -32,9 +75,26 @@ function activateTabFromQuery() {
     if (tabButton) bootstrap.Tab.getOrCreateInstance(tabButton).show();
 }
 
+// Matches the server-side rule in validateExpectedDeliveryDate() exactly:
+// today through +6 months, no earlier, no later. Set directly on the real
+// (now-hidden) input's min/max attributes before date-picker-modal.js
+// upgrades it, so the calendar disables everything outside that window.
+function setNeededByBounds() {
+    const input = document.getElementById('createNeededBy');
+    if (!input) return;
+    const toIso = (d) => d.toISOString().split('T')[0];
+    const today = new Date();
+    const max = new Date();
+    max.setMonth(max.getMonth() + 6);
+    input.min = toIso(today);
+    input.max = toIso(max);
+}
+
 function setDefaultOrderDate() {
+    // Display-only -- always today, never editable. Not part of the submit
+    // payload at all; the server stamps order_date itself.
     const input = document.getElementById('createOrderDate');
-    if (input) input.value = new Date().toISOString().split('T')[0];
+    if (input) input.value = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
 async function loadProducts() {
@@ -47,32 +107,67 @@ async function loadProducts() {
     }
 }
 
-async function loadDepartments() {
-    try {
-        const data = await prFetchJson('?page=api_departments');
-        const sel = document.getElementById('createDepartment');
-        sel.innerHTML = (data.departments || []).filter(d => d.is_active).map(d => `<option value="${d.id}">${prEscapeHtml(d.name)}</option>`).join('');
-    } catch (e) {
-        console.error(e);
-    }
+// Product ids already picked in OTHER rows -- excluded from a row's own
+// dropdown so the same product can never be added twice. A row keeps
+// showing its own current selection regardless (it's not "taken" from
+// its own point of view).
+function selectedProductIds(excludeRowId) {
+    const ids = new Set();
+    document.querySelectorAll('#createItemsBody .sm-item-row').forEach(row => {
+        if (row.id === excludeRowId) return;
+        const v = parseInt(row.querySelector('.item-product')?.value);
+        if (v) ids.add(v);
+    });
+    return ids;
 }
 
-function addItemRow() {
+function buildProductOptions(excludeRowId, currentValue) {
+    const taken = selectedProductIds(excludeRowId);
+    return smProducts
+        .filter(p => p.store_product_id === currentValue || !taken.has(p.store_product_id))
+        .map(p => `<option value="${p.store_product_id}" ${p.store_product_id === currentValue ? 'selected' : ''}>${prEscapeHtml(p.name)}</option>`)
+        .join('');
+}
+
+// Re-renders every OTHER row's option list after one row's selection
+// changes, so a product just picked disappears from the rest immediately
+// (and reappears if that row is changed away from it again).
+function refreshAllProductOptions(justChangedRowId) {
+    document.querySelectorAll('#createItemsBody .sm-item-row').forEach(row => {
+        if (row.id === justChangedRowId) return;
+        const select = row.querySelector('.item-product');
+        const current = parseInt(select.value);
+        select.innerHTML = buildProductOptions(row.id, current);
+    });
+}
+
+function addItemRow(presetProductId, presetQty) {
     const list = document.getElementById('createItemsBody');
     const rowId = 'row_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
-    const options = smProducts.map(p => `<option value="${p.store_product_id}">${prEscapeHtml(p.name)}</option>`).join('');
+    const options = buildProductOptions(rowId, presetProductId);
     const row = document.createElement('div');
     row.className = 'sm-item-row';
     row.id = rowId;
     row.innerHTML = `
         <select class="form-select form-select-sm item-product">${options}</select>
-        <input type="number" class="form-control form-control-sm item-qty" min="1" max="999" value="1">
-        <button type="button" class="sm-item-remove" onclick="document.getElementById('${rowId}').remove(); refreshEligibleSuppliers();" title="Remove item"><i class="bi bi-trash"></i></button>
+        <input type="number" class="form-control form-control-sm item-qty" min="1" max="1000" value="${presetQty || 1}">
+        <button type="button" class="sm-item-remove" onclick="document.getElementById('${rowId}').remove(); refreshAllProductOptions(); refreshEligibleSuppliers();" title="Remove item"><i class="bi bi-trash"></i></button>
     `;
     list.appendChild(row);
 
-    row.querySelector('.item-product').addEventListener('change', refreshEligibleSuppliers);
-    row.querySelector('.item-qty').addEventListener('input', refreshEligibleSuppliers);
+    row.querySelector('.item-product').addEventListener('change', function () {
+        refreshAllProductOptions(rowId);
+        refreshEligibleSuppliers();
+    });
+    const qtyInput = row.querySelector('.item-qty');
+    qtyInput.addEventListener('input', function () {
+        if (this.value !== '' && parseInt(this.value, 10) > 1000) {
+            this.value = 1000;
+            Swal.fire({ icon: 'warning', title: 'Limit is 1000', text: 'Quantity cannot exceed 1000 per item.', timer: 2000, timerProgressBar: true });
+        }
+        refreshEligibleSuppliers();
+    });
+    refreshAllProductOptions(rowId);
     refreshEligibleSuppliers();
 }
 
@@ -112,10 +207,11 @@ async function doRefreshEligibleSuppliers() {
         const data = await prFetchJson(`?page=api_sm_list_eligible_suppliers&items=${encodeURIComponent(JSON.stringify(items))}`);
         smEligibleSuppliers = data.suppliers || [];
         if (smEligibleSuppliers.length === 0) {
-            panel.innerHTML = '<div class="alert alert-warning small mb-0">No single supplier carries all of these products in the requested quantities.</div>';
+            panel.innerHTML = '<div class="alert alert-warning small mb-0">No supplier carries all of these products at all.</div>';
             return;
         }
-        panel.innerHTML = smEligibleSuppliers.map(s => `
+        panel.innerHTML = smEligibleSuppliers.map(s => {
+            return `
             <label class="sm-supplier-option" for="supplier_${s.supplier_id}">
                 <input class="form-check-input" type="radio" name="supplierChoice" id="supplier_${s.supplier_id}" value="${s.supplier_id}" onchange="selectSupplier(${s.supplier_id})">
                 <span class="sm-supplier-name">${prEscapeHtml(s.supplier_name)}</span>
@@ -125,10 +221,12 @@ async function doRefreshEligibleSuppliers() {
                 ${s.items.map(item => {
                     const storeName = smProducts.find(p => p.store_product_id === item.store_product_id)?.name || '';
                     const sameName = storeName.trim().toLowerCase() === (item.supplier_product_name || '').trim().toLowerCase();
-                    return `<li>${prEscapeHtml(storeName)}${!sameName && item.supplier_product_name ? ` <span class="text-muted">(${prEscapeHtml(item.supplier_product_name)} at ${prEscapeHtml(s.supplier_name)})</span>` : ''} &times; ${item.quantity}</li>`;
+                    const stockLabel = `<span class="text-muted small">(${item.available_quantity} in stock at this supplier)</span>`;
+                    return `<li>${prEscapeHtml(storeName)}${!sameName && item.supplier_product_name ? ` <span class="text-muted">(${prEscapeHtml(item.supplier_product_name)} at ${prEscapeHtml(s.supplier_name)})</span>` : ''} &times; ${item.quantity} ${stockLabel}</li>`;
                 }).join('')}
             </ul>
-        `).join('');
+        `;
+        }).join('');
     } catch (e) {
         panel.innerHTML = `<div class="alert alert-danger small mb-0">${prEscapeHtml(e.message)}</div>`;
     }
@@ -144,6 +242,8 @@ function selectSupplier(supplierId) {
     });
 }
 
+let smResubmitTargetId = null;
+
 async function submitRequisition() {
     const items = collectItems();
     if (items.length === 0) {
@@ -157,26 +257,32 @@ async function submitRequisition() {
 
     const payload = {
         supplier_id: smSelectedSupplierId,
-        department_id: parseInt(document.getElementById('createDepartment').value) || null,
-        order_date: document.getElementById('createOrderDate').value,
         needed_by_date: document.getElementById('createNeededBy').value,
         notes: document.getElementById('createNotes').value,
+        supplier_note: document.getElementById('createSupplierNote').value,
         items,
     };
 
+    const isResubmit = !!smResubmitTargetId;
+    if (isResubmit) payload.requisition_id = smResubmitTargetId;
+    const endpoint = isResubmit ? 'api_sm_resubmit_requisition' : 'api_sm_create_requisition';
+
     const unlock = prLockButton(document.getElementById('submitRequisitionBtn'));
     try {
-        const res = await fetch('?page=api_sm_create_requisition', {
+        const res = await fetch(`?page=${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
         });
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
-        Swal.fire('Submitted', data.message, 'success');
+        Swal.fire(isResubmit ? 'Resubmitted' : 'Submitted', data.message, 'success');
         document.getElementById('createItemsBody').innerHTML = '';
         document.getElementById('createNotes').value = '';
+        document.getElementById('createSupplierNote').value = '';
         smSelectedSupplierId = null;
+        smResubmitTargetId = null;
+        document.getElementById('submitRequisitionBtn').innerHTML = '<i class="bi bi-send"></i> Submit for Budget Check';
         addItemRow();
         minePage = 1;
         loadMineList();
@@ -185,6 +291,33 @@ async function submitRequisition() {
         Swal.fire('Error', e.message, 'error');
     } finally {
         unlock();
+    }
+}
+
+/** Finance Head sent this requisition back -- pre-fill the create form from
+ *  its existing items/supplier/notes so the Store Manager can adjust and
+ *  resubmit, rather than starting over from scratch. */
+async function reviseRequisition(id) {
+    try {
+        const req = await prFetchJson(`?page=api_get_requisition&id=${id}`);
+        smResubmitTargetId = id;
+        document.getElementById('createItemsBody').innerHTML = '';
+        (req.items || []).forEach(it => addItemRow(it.store_product_id, it.quantity));
+        document.getElementById('createNeededBy').value = req.needed_by_date || '';
+        document.getElementById('createNotes').value = req.notes || '';
+        document.getElementById('createSupplierNote').value = '';
+        document.getElementById('submitRequisitionBtn').innerHTML = '<i class="bi bi-arrow-counterclockwise"></i> Resubmit for Budget Check';
+        const revisionEvent = (req.events || []).slice().reverse().find(e => e.event_type === 'revision_requested');
+        if (revisionEvent) {
+            Swal.fire('Finance Head requested a revision', revisionEvent.description, 'info');
+        }
+        new bootstrap.Tab(document.getElementById('create-tab')).show();
+        setTimeout(() => {
+            const supplierRadio = document.querySelector(`#eligibleSuppliersPanel input[value="${req.preferred_supplier_id}"]`);
+            if (supplierRadio) { supplierRadio.checked = true; selectSupplier(parseInt(req.preferred_supplier_id)); }
+        }, 600);
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
     }
 }
 
@@ -205,7 +338,10 @@ async function loadMineList() {
                 <td>${prCurrency(r.subtotal)}</td>
                 <td>${prStatusBadge(r.status)}</td>
                 <td>${prFormatDate(r.created_at)}</td>
-                <td>${r.rejected_reason ? `<span class="text-danger small" title="${prEscapeHtml(r.rejected_reason)}"><i class="bi bi-info-circle"></i></span>` : ''}</td>
+                <td>
+                    ${r.rejected_reason ? `<span class="text-danger small" title="${prEscapeHtml(r.rejected_reason)}"><i class="bi bi-info-circle"></i></span>` : ''}
+                    ${(r.status === 'revision_requested' || r.status === 'budget_rejected') ? `<button class="btn btn-sm btn-outline-warning" onclick="reviseRequisition(${r.id})"><i class="bi bi-arrow-counterclockwise"></i> Revise</button>` : ''}
+                </td>
             </tr>
         `).join('') : prEmptyRow(7, 'No requisitions found.');
         prRenderPagination(document.getElementById('minePagination'), document.getElementById('minePageInfo'), data.pagination, 'requisitions', (p) => { minePage = p; loadMineList(); });
@@ -227,7 +363,10 @@ async function loadPoList() {
                 <td>${prEscapeHtml(po.supplier_name)}</td>
                 <td>${prCurrency(po.total)}</td>
                 <td>${prStatusBadge(po.status)}</td>
-                <td><button class="btn btn-sm btn-outline-primary" onclick="openPoDetail(${po.id})"><i class="bi bi-eye"></i> View</button></td>
+                <td>
+                    <button class="btn btn-sm btn-outline-primary" onclick="openPoDetail(${po.id})"><i class="bi bi-eye"></i> View</button>
+                    ${po.status === 'paid' ? `<button class="btn btn-sm btn-outline-success" onclick="openRateSupplier(${po.id})"><i class="bi bi-star"></i> Rate Supplier</button>` : ''}
+                </td>
             </tr>
         `).join('') : prEmptyRow(5, 'No purchase orders need attention right now.');
     } catch (e) {

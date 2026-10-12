@@ -56,13 +56,21 @@ class Supplier
         return $stmt->fetch();
     }
 
+    public function getByUserId($userId)
+    {
+        $stmt = $this->db->prepare("SELECT * FROM suppliers WHERE user_id = ?");
+        $stmt->execute([$userId]);
+        return $stmt->fetch();
+    }
+
     public function create($data)
     {
         $stmt = $this->db->prepare("
-            INSERT INTO suppliers (company_name, contact_person, email, phone, address, tax_id, notes)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO suppliers (user_id, company_name, contact_person, email, phone, address, tax_id, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ");
         $result = $stmt->execute([
+            $data['user_id'] ?? null,
             $data['company_name'],
             $data['contact_person'] ?? null,
             $data['email'] ?? null,
@@ -80,8 +88,8 @@ class Supplier
     public function update($id, $data)
     {
         $stmt = $this->db->prepare("
-            UPDATE suppliers 
-            SET company_name = ?, contact_person = ?, email = ?, phone = ?, 
+            UPDATE suppliers
+            SET company_name = ?, contact_person = ?, email = ?, phone = ?,
                 address = ?, tax_id = ?, notes = ?, updated_at = NOW()
             WHERE id = ?
         ");

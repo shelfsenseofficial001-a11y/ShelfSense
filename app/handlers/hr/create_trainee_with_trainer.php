@@ -29,11 +29,6 @@ error_log('📥 create_trainee_with_trainer input: ' . print_r($input, true));
 
 $applicantId = isset($input['applicant_id']) ? intval($input['applicant_id']) : 0;
 $trainerId = isset($input['trainer_id']) ? intval($input['trainer_id']) : 0;
-// A range, as discussed in the interview -- not a single agreed figure.
-$salaryMin = isset($input['salary_min']) ? floatval($input['salary_min']) : 0;
-$salaryMax = isset($input['salary_max']) ? floatval($input['salary_max']) : 0;
-$scheduleStartRaw = isset($input['schedule_start']) ? trim($input['schedule_start']) : '10:00';
-$restDays = isset($input['rest_days']) ? trim($input['rest_days']) : 'saturday,sunday';
 
 if ($applicantId <= 0) {
     Response::error('Invalid applicant ID.', 400);
@@ -41,33 +36,6 @@ if ($applicantId <= 0) {
 
 if ($trainerId <= 0) {
     Response::error('Please select a valid trainer.', 400);
-}
-
-if ($salaryMin <= 0 || $salaryMax <= 0) {
-    Response::error('Please enter a valid salary range.', 400);
-}
-if ($salaryMax < $salaryMin) {
-    Response::error('Maximum salary cannot be less than minimum salary.', 400);
-}
-
-// Trainee shifts are always exactly 5 hours -- the end time is always
-// computed server-side from the start, never trusted from the client, so a
-// tampered request can never create a shift of a different length.
-if (!preg_match('/^([01]\d|2[0-3]):([0-5]\d)$/', $scheduleStartRaw)) {
-    Response::error('Invalid working hours start time.', 400);
-}
-$scheduleStart = $scheduleStartRaw . ':00';
-$scheduleEnd = date('H:i:s', strtotime($scheduleStartRaw) + 5 * 3600);
-
-$restDaysArray = array_filter(array_map('trim', explode(',', $restDays)));
-$validDays = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
-foreach ($restDaysArray as $d) {
-    if (!in_array($d, $validDays, true)) {
-        Response::error('Invalid rest day value.', 400);
-    }
-}
-if (count($restDaysArray) > 2) {
-    Response::error('A trainee cannot have more than 2 rest days per week.', 400);
 }
 
 try {
@@ -85,6 +53,28 @@ try {
     if ($applicant['status'] !== 'initial_passed') {
         Response::error('Applicant must have passed the initial interview (status: initial_passed). Current status: ' . $applicant['status'], 400);
     }
+
+    // HR now offers a Trainee Contract first (create_trainee_contract.php)
+    // and the applicant must accept it before a trainer can be assigned --
+    // salary range, working hours, and rest days all come from that
+    // accepted contract rather than being re-entered here.
+    $stmt = $db->prepare("SELECT * FROM contracts WHERE applicant_id = ? AND contract_type = 'trainee' ORDER BY id DESC LIMIT 1");
+    $stmt->execute([$applicantId]);
+    $traineeContract = $stmt->fetch();
+
+    if (!$traineeContract) {
+        Response::error('No Trainee Contract has been offered to this applicant yet.', 400);
+    }
+    if ($traineeContract['status'] !== 'accepted') {
+        Response::error('The applicant has not yet accepted their Trainee Contract (status: ' . $traineeContract['status'] . ').', 400);
+    }
+
+    $salaryMin = (float)$traineeContract['salary_range_min'];
+    $salaryMax = (float)$traineeContract['salary_range_max'];
+    $scheduleStart = $traineeContract['schedule_start'];
+    $scheduleEnd = $traineeContract['schedule_end'];
+    $restDays = $traineeContract['rest_days'] ?: 'saturday,sunday';
+    $restDaysArray = array_filter(array_map('trim', explode(',', $restDays)));
 
     $dbTargetRole = mapDisplayRoleToDbRole($applicant['target_role']);
 
@@ -107,32 +97,11 @@ try {
     $stmt = $db->prepare("UPDATE users SET can_train = 0, updated_at = NOW() WHERE user_id = ?");
     $stmt->execute([$trainerId]);
 
-    $stmt = $db->prepare("SELECT user_id FROM users WHERE email = ?");
-    $stmt->execute([$applicant['email']]);
-    $existingUser = $stmt->fetch();
-
-    if ($existingUser) {
-        $newUserId = $existingUser['user_id'];
-        $defaultPassword = null;
-    } else {
-        $employeeNumber = generateEmployeeNumber('trainee');
-        $defaultPassword = generateDefaultPassword($applicant['first_name'], $applicant['last_name']);
-        $hashedPassword = password_hash($defaultPassword, PASSWORD_DEFAULT);
-
-        $stmt = $db->prepare("
-            INSERT INTO users (employee_number, first_name, last_name, middle_name, email, password, role, is_first_login, can_train) 
-            VALUES (?, ?, ?, ?, ?, ?, 'trainee', 1, 0)
-        ");
-        $stmt->execute([
-            $employeeNumber,
-            $applicant['first_name'],
-            $applicant['last_name'],
-            $applicant['middle_name'] ?? '',
-            $applicant['email'],
-            $hashedPassword
-        ]);
-        $newUserId = $db->lastInsertId();
-    }
+    // The trainee's user account was already created when the Trainee
+    // Contract was offered (create_trainee_contract.php) -- reuse it rather
+    // than creating a second account for the same applicant.
+    $newUserId = $traineeContract['user_id'];
+    $defaultPassword = null;
 
     $startDate = date('Y-m-d');
     $endDate = date('Y-m-d', strtotime('+3 months'));

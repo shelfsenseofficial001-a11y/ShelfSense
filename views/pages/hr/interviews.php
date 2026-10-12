@@ -63,9 +63,12 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                     <i class="bi bi-calendar-event"></i> Scheduled
                     <span class="badge bg-warning text-dark ms-1" id="initialScheduledBadge">0</span>
                 </button>
+                <button class="interview-subnav-btn filter-btn-initial" data-status="unassigned">
+                    <i class="bi bi-person-exclamation"></i> Unassigned Applicants
+                    <span class="badge bg-info text-dark ms-1" id="initialNeedsTrainerBadge" style="display:none;" title="Passed, no trainer assigned yet">0</span>
+                </button>
                 <button class="interview-subnav-btn filter-btn-initial" data-status="history">
                     <i class="bi bi-clock-history"></i> History
-                    <span class="badge bg-info text-dark ms-1" id="initialNeedsTrainerBadge" style="display:none;" title="Passed, no trainer assigned yet">0</span>
                 </button>
                 <div class="interview-history-subfilter d-none" id="initialHistorySubfilter">
                     <button class="interview-subfilter-btn active" data-status="history">All</button>
@@ -252,7 +255,8 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     </div>
 </div>
 
-<!-- Trainer Selection Modal (reused from applicants) -->
+<!-- Trainer Selection Modal -- only once the applicant has accepted their
+     Trainee Contract (created from the Contracts page, not here). -->
 <div class="modal fade" id="trainerSelectionModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
@@ -270,41 +274,11 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                     </select>
                     <div class="form-text">Trainer must have the same role as the trainee\'s target role.</div>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Trainee Salary Range</label>
-                    <div class="row g-2">
-                        <div class="col-6">
-                            <input type="number" id="traineeSalaryMin" class="form-control" placeholder="Min" value="3900" step="100" min="1">
-                        </div>
-                        <div class="col-6">
-                            <input type="number" id="traineeSalaryMax" class="form-control" placeholder="Max" value="4500" step="100" min="1">
-                        </div>
-                    </div>
-                    <div class="form-text">Enter the range discussed with the trainee.</div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Working Hours (as discussed in the interview)</label>
-                    <input type="time" id="traineeScheduleStart" class="form-control" value="10:00">
-                    <div class="form-text">Trainee shifts are fixed at exactly <strong>5 hours/day</strong> &mdash; end time is set automatically (<span id="traineeScheduleEndPreview">3:00 PM</span>).</div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label fw-semibold">Rest Days (maximum 2)</label>
-                    <div class="d-flex flex-wrap gap-3" id="traineeRestDaysGroup">
-                        <div class="form-check"><input class="form-check-input trainee-rest-day" type="checkbox" value="monday" id="restMonday"><label class="form-check-label" for="restMonday">Mon</label></div>
-                        <div class="form-check"><input class="form-check-input trainee-rest-day" type="checkbox" value="tuesday" id="restTuesday"><label class="form-check-label" for="restTuesday">Tue</label></div>
-                        <div class="form-check"><input class="form-check-input trainee-rest-day" type="checkbox" value="wednesday" id="restWednesday"><label class="form-check-label" for="restWednesday">Wed</label></div>
-                        <div class="form-check"><input class="form-check-input trainee-rest-day" type="checkbox" value="thursday" id="restThursday"><label class="form-check-label" for="restThursday">Thu</label></div>
-                        <div class="form-check"><input class="form-check-input trainee-rest-day" type="checkbox" value="friday" id="restFriday"><label class="form-check-label" for="restFriday">Fri</label></div>
-                        <div class="form-check"><input class="form-check-input trainee-rest-day" type="checkbox" value="saturday" id="restSaturday" checked><label class="form-check-label" for="restSaturday">Sat</label></div>
-                        <div class="form-check"><input class="form-check-input trainee-rest-day" type="checkbox" value="sunday" id="restSunday" checked><label class="form-check-label" for="restSunday">Sun</label></div>
-                    </div>
-                    <div class="form-text">Cannot select more than 2 rest days.</div>
-                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button type="button" class="btn btn-yellow-primary btn-sm" id="confirmCreateTraineeBtn">
-                    <i class="bi bi-person-plus"></i> Create Trainee Account
+                    <i class="bi bi-person-plus"></i> Assign Trainer
                 </button>
             </div>
         </div>
@@ -336,10 +310,10 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
                     <label class="form-label fw-semibold">Salary Range</label>
                     <div class="row g-2">
                         <div class="col-6">
-                            <input type="number" id="finalizeSalaryMin" class="form-control" placeholder="Min" step="100" min="1">
+                            <input type="number" id="finalizeSalaryMin" class="form-control" placeholder="Min" step="1" min="1">
                         </div>
                         <div class="col-6">
-                            <input type="number" id="finalizeSalaryMax" class="form-control" placeholder="Max" step="100" min="1">
+                            <input type="number" id="finalizeSalaryMax" class="form-control" placeholder="Max" step="1" min="1">
                         </div>
                     </div>
                     <div class="form-text">The midpoint of this range is used as the base rate for payroll; overtime, bonuses, and deductions may bring the final monthly pay above or below it.</div>
@@ -375,7 +349,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     </div>
 </div>
 
-<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20261011000003"></script>
+<script src="/ShelfSense/public/assets/js/hr/interviews.js?v=20261012000004"></script>
 ';
 
 require_once __DIR__ . '/../../layouts/hr.php';

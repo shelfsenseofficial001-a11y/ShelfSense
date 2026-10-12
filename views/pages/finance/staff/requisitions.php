@@ -1,16 +1,16 @@
 <?php
-$title = 'Purchase Orders - Finance Staff';
-$pageTitle = 'Purchase Orders — Budget Check';
+$title = 'Requisitions - Finance Staff';
+$pageTitle = 'Requisitions — Budget Check';
 $activePage = 'staff_requisitions';
 $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20260908150000"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20260907"></script>';
+    . '<script src="/ShelfSense/public/assets/js/finance/staff/requisitions.js?v=20261012000001"></script>';
 
 $content = <<<'EOT'
-<p class="text-muted">Purchase Orders created by Store Managers, awaiting a budget availability check before they go to Finance Head for approval.</p>
+<p class="text-muted">Requisitions submitted by Store Managers, awaiting a budget availability check before they go to Finance Head for supplier approval.</p>
 <div class="table-responsive">
     <table class="table table-hover align-middle">
         <thead><tr>
-            <th>PO # (Requisition #)</th><th>Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th>Status</th><th></th>
+            <th>Requisition #</th><th>Suggested Supplier</th><th>Department</th><th>Total</th><th>Budget Available</th><th>Status</th><th></th>
         </tr></thead>
         <tbody id="pendingTableBody"><tr><td colspan="7" class="text-center py-4">Loading...</td></tr></tbody>
     </table>

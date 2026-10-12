@@ -27,14 +27,11 @@ if (!empty($_GET['status'])) {
 
 try {
     if (Auth::isSupplier() && !Auth::isSuperAdmin()) {
-        $db = \App\Core\Database::getInstance()->getConnection();
-        $stmt = $db->prepare("SELECT id FROM suppliers WHERE email = (SELECT email FROM users WHERE user_id = ?)");
-        $stmt->execute([Auth::userId()]);
-        $supplier = $stmt->fetch();
-        if (!$supplier) {
+        $supplierId = Auth::supplierId();
+        if (!$supplierId) {
             Response::success(['proposals' => []], 'Proposals fetched successfully');
         }
-        $filters['supplier_id'] = $supplier['id'];
+        $filters['supplier_id'] = $supplierId;
     }
 
     $proposalModel = new ProductProposal();

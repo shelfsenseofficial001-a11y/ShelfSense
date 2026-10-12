@@ -155,7 +155,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
         <div class="modern-card p-3 h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h6 class="fw-bold mb-0"><i class="bi bi-mortarboard-fill text-yellow me-2"></i>Trainees</h6>
-                <a href="?page=hr_trainees" class="btn btn-yellow-outline btn-sm">View All</a>
+                <a href="?page=trainee_report" class="btn btn-yellow-outline btn-sm">View All</a>
             </div>
             <div class="mini-table-scroll">
                 <table class="table table-sm table-hover mb-0">

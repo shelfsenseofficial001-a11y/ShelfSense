@@ -72,10 +72,12 @@ try {
     };
 
     $stmt = $db->query("
-        SELECT t.id AS trainee_id, t.target_role, t.status, t.eligible_for_contract,
+        SELECT t.id AS trainee_id, t.applicant_id, t.target_role, t.status, t.eligible_for_contract,
+               t.trainer_id, tr.first_name AS trainer_first_name, tr.last_name AS trainer_last_name,
                a.first_name, a.last_name
         FROM trainees t
         JOIN applicants a ON a.id = t.applicant_id
+        LEFT JOIN users tr ON tr.user_id = t.trainer_id
         ORDER BY a.first_name, a.last_name
     ");
     $allTrainees = $stmt->fetchAll();
@@ -92,9 +94,13 @@ try {
         if ($row['status'] === 'active') {
             $activeTrainees[] = [
                 'trainee_id' => (int)$row['trainee_id'],
+                'applicant_id' => (int)$row['applicant_id'],
                 'name' => $name,
                 'target_role' => $row['target_role'],
                 'department' => $department,
+                'eligible_for_contract' => (int)$row['eligible_for_contract'] === 1,
+                'trainer_id' => $row['trainer_id'] ? (int)$row['trainer_id'] : null,
+                'trainer_name' => $row['trainer_id'] ? trim($row['trainer_first_name'] . ' ' . $row['trainer_last_name']) : null,
                 'weeks' => $buildWeeks((int)$row['trainee_id'], $department)
             ];
         } elseif (in_array($row['status'], ['completed', 'terminated'], true)) {

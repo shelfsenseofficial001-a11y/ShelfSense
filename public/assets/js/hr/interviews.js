@@ -248,30 +248,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Working hours are fixed at exactly 5 hours -- keep the preview in sync
-    // and let createTraineeWithTrainer compute the real end time itself so a
-    // tampered/stale value can never reach the backend as anything else.
-    document.getElementById('traineeScheduleStart')?.addEventListener('input', function() {
-        document.getElementById('traineeScheduleEndPreview').textContent = computeFiveHourEndLabel(this.value);
-    });
-
-    document.querySelectorAll('.trainee-rest-day').forEach(cb => {
-        cb.addEventListener('change', function() {
-            const checked = document.querySelectorAll('.trainee-rest-day:checked');
-            if (checked.length > 2) {
-                this.checked = false;
-                Swal.fire({ icon: 'warning', title: 'Too Many Rest Days', text: 'A trainee cannot have more than 2 rest days per week.', timer: 2500, timerProgressBar: true });
-            }
-        });
-    });
-
     document.getElementById('confirmCreateTraineeBtn')?.addEventListener('click', function() {
         const trainerId = document.getElementById('trainerSelect').value;
-        const salaryMin = document.getElementById('traineeSalaryMin').value;
-        const salaryMax = document.getElementById('traineeSalaryMax').value;
-        const scheduleStart = document.getElementById('traineeScheduleStart').value || '10:00';
-        const restDays = Array.from(document.querySelectorAll('.trainee-rest-day:checked')).map(cb => cb.value);
-
         if (!trainerId) {
             Swal.fire({
                 icon: 'warning',
@@ -282,32 +260,17 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        if (!salaryMin || !salaryMax || Number(salaryMin) <= 0 || Number(salaryMax) <= 0) {
-            Swal.fire({ icon: 'warning', title: 'Salary Range Required', text: 'Please enter a valid salary range.' });
-            return;
-        }
-
-        if (Number(salaryMax) < Number(salaryMin)) {
-            Swal.fire({ icon: 'warning', title: 'Invalid Salary Range', text: 'Maximum salary cannot be less than minimum salary.' });
-            return;
-        }
-
-        if (restDays.length > 2) {
-            Swal.fire({ icon: 'warning', title: 'Too Many Rest Days', text: 'A trainee cannot have more than 2 rest days per week.' });
-            return;
-        }
-
         Swal.fire({
-            title: 'Create Trainee Account?',
-            html: `This will create a trainee account with the selected trainer assigned, a fixed 5-hour shift starting at ${scheduleStart}, and ${restDays.length} rest day(s)/week.`,
+            title: 'Assign Trainer?',
+            html: `This will create the trainee's account with the selected trainer assigned, using the salary/schedule already agreed in their Trainee Contract.`,
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#198754',
-            confirmButtonText: 'Yes, Create',
+            confirmButtonText: 'Yes, Assign',
             cancelButtonText: 'Cancel'
         }).then(result => {
             if (result.isConfirmed) {
-                createTraineeWithTrainer(currentApplicantIdForTraining, trainerId, salaryMin, salaryMax, scheduleStart, restDays);
+                createTraineeWithTrainer(currentApplicantIdForTraining, trainerId);
             }
         });
     });
@@ -376,9 +339,11 @@ function renderInitialInterviews(interviews) {
             `<span class="badge bg-${interview.result_color}">${interview.result ? interview.result.charAt(0).toUpperCase() + interview.result.slice(1) : '—'}</span>`
             : `<span class="badge bg-secondary">—</span>`;
 
-        // Trainer assignment (Trainee Contract) is the correct next step
-        // once Initial passes -- Final Interview only happens after 3 months
-        // of training, scheduled separately once training is complete.
+        // Unassigned Applicants is purely the trainer-assignation queue --
+        // the backend (get_interviews.php, status=unassigned) only returns
+        // rows that already have an ACCEPTED Trainee Contract, so Assign
+        // Trainer is always actionable here. Contract creation/offer/accept
+        // all happen separately on the Contracts page.
         const showTrainerBtn = (interview.status === 'completed' && interview.result === 'passed' && !interview.has_trainee_account);
 
         html += `
@@ -996,8 +961,6 @@ function openTrainerSelectionModalFromFinal(applicantId, applicantName, targetRo
     currentApplicantIdForTraining = applicantId;
     document.getElementById('trainerApplicantName').textContent = applicantName;
     document.getElementById('trainerTargetRole').textContent = targetRole;
-    document.getElementById('traineeSalaryMin').value = 3900;
-    document.getElementById('traineeSalaryMax').value = 4500;
     loadTrainersForRole(targetRole);
     new bootstrap.Modal(document.getElementById('trainerSelectionModal')).show();
 }
@@ -1126,15 +1089,10 @@ function computeFiveHourEnd24(startValue) {
     return `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`;
 }
 
-function createTraineeWithTrainer(applicantId, trainerId, salaryMin, salaryMax, scheduleStart, restDays) {
+function createTraineeWithTrainer(applicantId, trainerId) {
     const data = {
         applicant_id: applicantId,
-        trainer_id: trainerId,
-        salary_min: salaryMin,
-        salary_max: salaryMax,
-        schedule_start: scheduleStart || '10:00',
-        schedule_end: computeFiveHourEnd24(scheduleStart || '10:00'),
-        rest_days: (restDays && restDays.length ? restDays : ['saturday', 'sunday']).join(',')
+        trainer_id: trainerId
     };
     const modal = bootstrap.Modal.getInstance(document.getElementById('trainerSelectionModal'));
     Swal.fire({

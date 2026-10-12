@@ -6,8 +6,11 @@ console.log('✅ supplier/products.js loaded');
 
 let currentPage = 1;
 let allProducts = [];
+let storeCatalog = [];
 
 document.addEventListener('DOMContentLoaded', function () {
+    loadStoreCatalog();
+
     if (window.__INITIAL_DATA__) {
         const data = window.__INITIAL_DATA__;
         allProducts = data.products || [];
@@ -64,6 +67,25 @@ function setupEventListeners() {
     document.getElementById('confirmDeleteBtn')?.addEventListener('click', function () {
         deleteProduct();
     });
+}
+
+function loadStoreCatalog() {
+    fetch('?page=api_supplier_get_store_catalog')
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                storeCatalog = data.data.products || [];
+                const select = document.getElementById('productStoreLink');
+                if (select) {
+                    const current = select.value;
+                    select.innerHTML = '<option value="">Not linked</option>' +
+                        storeCatalog.map(p => `<option value="${p.id}">${escapeHtmlSP(p.name)}</option>`).join('');
+                    select.value = current;
+                    if (window.refreshSearchableSelect) window.refreshSearchableSelect(select);
+                }
+            }
+        })
+        .catch(() => {});
 }
 
 function debounceSpp(fn, wait) {
@@ -159,6 +181,8 @@ function openProductModal(id = null) {
     form.reset();
     document.getElementById('productId').value = '';
     document.getElementById('productStatus').value = '1';
+    const storeLinkSelect = document.getElementById('productStoreLink');
+    storeLinkSelect.value = '';
     title.textContent = 'Add Product to Catalog';
 
     if (id) {
@@ -171,20 +195,24 @@ function openProductModal(id = null) {
             document.getElementById('productPrice').value = product.price;
             document.getElementById('productQuantity').value = product.quantity ?? 0;
             document.getElementById('productStatus').value = product.is_active ? '1' : '0';
+            storeLinkSelect.value = product.store_product_id ?? '';
         }
     }
+    if (window.refreshSearchableSelect) window.refreshSearchableSelect(storeLinkSelect);
 
     new bootstrap.Modal(modal).show();
 }
 
 function saveProduct() {
     const id = document.getElementById('productId').value;
+    const storeLinkValue = document.getElementById('productStoreLink').value;
     const data = {
         name: document.getElementById('productName').value.trim(),
         description: document.getElementById('productDescription').value.trim(),
         price: parseFloat(document.getElementById('productPrice').value),
         quantity: parseInt(document.getElementById('productQuantity').value),
-        is_active: parseInt(document.getElementById('productStatus').value)
+        is_active: parseInt(document.getElementById('productStatus').value),
+        store_product_id: storeLinkValue ? parseInt(storeLinkValue) : null
     };
 
     if (!data.name || !(data.price > 0)) {
