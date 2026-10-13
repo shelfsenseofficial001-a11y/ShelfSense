@@ -80,8 +80,8 @@ $additional_css = '
 
 $content = <<<'EOT'
 <!-- Leave Balances -->
-<div class="row g-3 mb-4" id="leaveBalances">
-    <div class="col-6 col-md-3">
+<div class="row row-cols-2 row-cols-md-5 g-3 mb-4" id="leaveBalances">
+    <div class="col">
         <div class="leave-balance-card">
             <div class="balance-label">Sick Leave</div>
             <div class="balance-number" id="balanceSick">0</div>
@@ -89,7 +89,7 @@ $content = <<<'EOT'
             <div class="balance-remaining" id="remainingSick">0 remaining</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col">
         <div class="leave-balance-card">
             <div class="balance-label">Vacation Leave</div>
             <div class="balance-number" id="balanceVacation">0</div>
@@ -97,7 +97,7 @@ $content = <<<'EOT'
             <div class="balance-remaining" id="remainingVacation">0 remaining</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col">
         <div class="leave-balance-card">
             <div class="balance-label">Emergency Leave</div>
             <div class="balance-number" id="balanceEmergency">0</div>
@@ -105,7 +105,7 @@ $content = <<<'EOT'
             <div class="balance-remaining" id="remainingEmergency">0 remaining</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col">
         <div class="leave-balance-card">
             <div class="balance-label">Maternity Leave</div>
             <div class="balance-number" id="balanceMaternity">0</div>
@@ -113,7 +113,7 @@ $content = <<<'EOT'
             <div class="balance-remaining" id="remainingMaternity">0 remaining</div>
         </div>
     </div>
-    <div class="col-6 col-md-3">
+    <div class="col">
         <div class="leave-balance-card">
             <div class="balance-label">Other Leave</div>
             <div class="balance-number" id="balanceOther">0</div>

@@ -1514,6 +1514,16 @@ if ($page === 'api_save_supplier_dashboard_layout') {
     exit;
 }
 
+if ($page === 'api_get_finance_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/finance/get_dashboard_layout.php';
+    exit;
+}
+
+if ($page === 'api_save_finance_dashboard_layout') {
+    require_once __DIR__ . '/../app/handlers/finance/save_dashboard_layout.php';
+    exit;
+}
+
 if ($page === 'api_supplier_list_pos') {
     require_once __DIR__ . '/../app/handlers/supplier/purchase_orders/list.php';
     exit;

@@ -53,6 +53,37 @@ function fh_dashboard_build_data(PDO $db, Budget $budgetModel): array {
     }
     $overallUsedPercentage = $allocatedSum > 0 ? round(($committedSum / $allocatedSum) * 100, 1) : null;
 
+    // The two approval queues behind the "Pending" stat, returned as rows so
+    // the dashboard can show them as tables instead of only a count the Head
+    // has to click into -- same treatment as the Store Manager dashboard.
+    $stmt = $db->query("
+        SELECT r.id, r.requisition_number, r.subtotal, r.created_at,
+               d.name AS department_name,
+               s.company_name AS supplier_name
+        FROM requisitions r
+        LEFT JOIN departments d ON d.id = r.department_id
+        LEFT JOIN suppliers s ON s.id = r.preferred_supplier_id
+        WHERE r.status = 'pending_finance_head'
+        ORDER BY r.created_at ASC
+        LIMIT 20
+    ");
+    $requisitionsToApprove = $stmt->fetchAll();
+
+    $stmt = $db->query("
+        SELECT pr.id, pr.amount, pr.created_at,
+               po.po_number,
+               s.company_name AS supplier_name,
+               u.first_name, u.last_name
+        FROM po_payment_requests pr
+        LEFT JOIN purchase_orders po ON po.id = pr.po_id
+        LEFT JOIN suppliers s ON s.id = po.supplier_id
+        LEFT JOIN users u ON u.user_id = pr.requested_by
+        WHERE pr.status = 'pending'
+        ORDER BY pr.created_at ASC
+        LIMIT 20
+    ");
+    $paymentsToApprove = $stmt->fetchAll();
+
     $stmt = $db->prepare("
         SELECT po.id, po.status, po.updated_at, po.rejection_reason,
                r.requisition_number, po.total as requisition_total,
@@ -77,6 +108,8 @@ function fh_dashboard_build_data(PDO $db, Budget $budgetModel): array {
         ],
         'budget_departments' => $departments,
         'departments_near_limit' => $nearLimit,
+        'requisitions_to_approve' => $requisitionsToApprove,
+        'payments_to_approve' => $paymentsToApprove,
         'recent_activity' => $recentActivity
     ];
 }

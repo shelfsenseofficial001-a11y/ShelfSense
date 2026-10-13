@@ -25,8 +25,8 @@ $showTraineeReportTab = $isFinanceHead || $isSuperAdmin || hasActiveTraineeAsTra
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260921110000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/finance.css">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20261013160000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/finance.css?v=20261013180000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">
@@ -121,9 +121,22 @@ $showTraineeReportTab = $isFinanceHead || $isSuperAdmin || hasActiveTraineeAsTra
         <div class="finance-content flex-grow-1">
             <div class="finance-topbar d-flex justify-content-between align-items-center">
                 <div>
-                    <h5 class="mb-0"><?= $pageTitle ?? 'Finance Dashboard' ?></h5>
+                    <div class="topbar-greeting">Hello, <span class="text-yellow"><?= htmlspecialchars($_SESSION['first_name'] ?? 'there') ?></span>!</div>
+                    <div class="topbar-subtitle">
+                        <span class="topbar-page-label"><?= $pageTitle ?? 'Finance Dashboard' ?></span>
+                        <span class="topbar-dot">•</span>
+                        <span id="topbarDateTime"></span>
+                    </div>
                 </div>
                 <div class="d-flex align-items-center gap-3">
+                    <?php if (in_array($activePage ?? '', ['staff_dashboard', 'head_dashboard'], true)): ?>
+                    <!-- Dashboard Edit Mode -->
+                    <button class="dash-edit-btn" id="dashEditModeBtn" aria-label="Rearrange dashboard widgets" type="button">
+                        <i class="bi bi-pencil-fill"></i>
+                        <span class="dash-edit-label">Edit UI</span>
+                    </button>
+                    <?php endif; ?>
+
                     <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Dark Mode">
                         <i class="bi bi-moon-stars-fill" id="themeIcon"></i>
                     </button>
@@ -156,10 +169,37 @@ $showTraineeReportTab = $isFinanceHead || $isSuperAdmin || hasActiveTraineeAsTra
     </div>
     </div>
 
+    <!-- Dashboard "Saved!" toast, shown bottom-center (same spot as the
+         Keep/Revert prompt below) when edit mode is turned off -->
+    <div class="dash-saved-toast-container">
+        <div id="dashSavedToast" class="toast align-items-center border-0 dash-saved-toast" role="status" aria-live="polite" aria-atomic="true" data-bs-delay="1800">
+            <div class="d-flex">
+                <div class="toast-body"><i class="bi bi-check-circle-fill me-2"></i>Saved!</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Dashboard "Keep changes?" confirmation, shown when exiting edit
+         mode -- like Windows' "Keep these display settings?" prompt.
+         5-second countdown; if unanswered, the change is KEPT. -->
+    <div class="dash-revert-confirm" id="dashRevertConfirm" role="alertdialog" aria-live="assertive">
+        <div class="dash-revert-text">
+            <i class="bi bi-grid-3x3-gap-fill"></i>
+            <span>Keep the new dashboard layout?</span>
+        </div>
+        <div class="dash-revert-actions">
+            <button type="button" class="dash-revert-btn dash-revert-undo">Revert</button>
+            <button type="button" class="dash-revert-btn dash-revert-keep">
+                Keep Changes <span class="dash-revert-countdown">5</span>
+            </button>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="/ShelfSense/public/assets/js/app.js?v=20261011000000"></script>
-    <script src="/ShelfSense/public/assets/js/finance/staff/shared.js?v=20260901010000"></script>
+    <script src="/ShelfSense/public/assets/js/finance/staff/shared.js?v=20261013210000"></script>
     <?= $additional_js ?? '' ?>
     <script src="/ShelfSense/public/assets/js/components/searchable-select.js?v=20260908530000"></script>
     <script src="/ShelfSense/public/assets/js/components/date-picker-modal.js?v=20261012000002"></script>
@@ -254,6 +294,35 @@ $showTraineeReportTab = $isFinanceHead || $isSuperAdmin || hasActiveTraineeAsTra
             font-family: 'Space Grotesk', sans-serif;
             font-weight: 600;
         }
+        .finance-topbar .topbar-greeting {
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 1.4rem;
+            font-weight: 700;
+            letter-spacing: -0.3px;
+            color: var(--text-main);
+            line-height: 1.2;
+        }
+        .finance-topbar .topbar-greeting .text-yellow {
+            background: linear-gradient(135deg, var(--brand-yellow), var(--brand-yellow-hover));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .finance-topbar .topbar-subtitle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+        .finance-topbar .topbar-subtitle .topbar-page-label {
+            font-weight: 600;
+            color: var(--brand-yellow);
+        }
+        .finance-topbar .topbar-subtitle .topbar-dot {
+            opacity: 0.5;
+        }
         .finance-page-content {
             padding: 24px;
         }
@@ -345,6 +414,20 @@ $showTraineeReportTab = $isFinanceHead || $isSuperAdmin || hasActiveTraineeAsTra
                 topbar.prepend(toggleBtn);
             }
         });
+
+        // Live date/time in the topbar greeting
+        (function() {
+            const el = document.getElementById('topbarDateTime');
+            if (!el) return;
+            function tick() {
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+                const timeStr = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+                el.textContent = dateStr + ' — ' + timeStr;
+            }
+            tick();
+            setInterval(tick, 1000);
+        })();
     </script>
 </body>
 </html>

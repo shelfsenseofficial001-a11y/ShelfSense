@@ -17,8 +17,18 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('payMethodSelect')?.addEventListener('change', function () {
         document.getElementById('payReferenceWrap').classList.toggle('d-none', this.value === 'paymongo_simulated');
         document.getElementById('paySimulatedNotice').classList.toggle('d-none', this.value !== 'paymongo_simulated');
+        // Switching to the simulated method clears any reference error, since
+        // that field no longer applies.
+        validateApprovePoPayment();
     });
     document.getElementById('confirmApprovePoPaymentBtn')?.addEventListener('click', confirmApprovePoPayment);
+
+    // Live validation: show the problem as the Head types, and keep the
+    // confirm button disabled until the field is actually usable.
+    fnWireLiveValidation(['approveReqJustification'], validateApproveReq);
+    fnWireLiveValidation(['rejectReqReason'], validateRejectReq);
+    fnWireLiveValidation(['rejectPoPaymentReason'], validateRejectPoPayment);
+    fnWireLiveValidation(['payReferenceInput'], validateApprovePoPayment);
 });
 
 async function loadPendingRequisitions() {
@@ -47,6 +57,19 @@ async function loadPendingRequisitions() {
     }
 }
 
+// The justification only applies when the requisition is over budget --
+// when it isn't, the field is hidden and must not block approval.
+function validateApproveReq() {
+    const input = document.getElementById('approveReqJustification');
+    const error = fhApproveExceeded
+        ? fnValidateText(input.value, { required: true, min: 10, max: 500, label: 'Justification' })
+        : '';
+    fnSetFieldError(input, 'approveReqJustificationError', input.dataset.touched ? error : '');
+    const btn = document.getElementById('confirmApproveReqBtn');
+    if (btn) btn.disabled = !!error;
+    return !error;
+}
+
 function openApprove(id, number, exceeded, shortfall) {
     fhApproveTargetId = id;
     fhApproveExceeded = exceeded;
@@ -54,16 +77,19 @@ function openApprove(id, number, exceeded, shortfall) {
         ? `Requisition ${number} exceeds available budget by ${prCurrency(shortfall)}.`
         : `Approve requisition ${number}? This will reserve the budget and create the Purchase Order.`;
     document.getElementById('approveReqJustificationWrap').classList.toggle('d-none', !exceeded);
-    document.getElementById('approveReqJustification').value = '';
+    const input = document.getElementById('approveReqJustification');
+    input.value = '';
+    delete input.dataset.touched;
+    fnSetFieldError(input, 'approveReqJustificationError', '');
+    validateApproveReq();
     new bootstrap.Modal(document.getElementById('approveReqModal')).show();
 }
 
 async function confirmApproveReq() {
-    const justification = document.getElementById('approveReqJustification').value.trim();
-    if (fhApproveExceeded && !justification) {
-        Swal.fire('Justification required', 'This request exceeds budget.', 'warning');
-        return;
-    }
+    const input = document.getElementById('approveReqJustification');
+    input.dataset.touched = '1';
+    if (!validateApproveReq()) { input.focus(); return; }
+    const justification = input.value.trim();
     const unlock = prLockButton(document.getElementById('confirmApproveReqBtn'));
     try {
         const res = await fetch('?page=api_fh_requisition_approve', {
@@ -82,15 +108,32 @@ async function confirmApproveReq() {
     }
 }
 
+// A revision request goes back to the Store Manager as actionable
+// feedback, so a bare "no" is not enough -- require a real sentence.
+function validateRejectReq() {
+    const input = document.getElementById('rejectReqReason');
+    const error = fnValidateText(input.value, { required: true, min: 10, max: 500, label: 'Reason' });
+    fnSetFieldError(input, 'rejectReqReasonError', input.dataset.touched ? error : '');
+    const btn = document.getElementById('confirmRejectReqBtn');
+    if (btn) btn.disabled = !!error;
+    return !error;
+}
+
 function openRejectReq(id) {
     fhRejectReqTargetId = id;
-    document.getElementById('rejectReqReason').value = '';
+    const input = document.getElementById('rejectReqReason');
+    input.value = '';
+    delete input.dataset.touched;
+    fnSetFieldError(input, 'rejectReqReasonError', '');
+    validateRejectReq();
     new bootstrap.Modal(document.getElementById('rejectReqModal')).show();
 }
 
 async function confirmRejectReq() {
-    const reason = document.getElementById('rejectReqReason').value.trim();
-    if (!reason) { Swal.fire('Reason required', '', 'warning'); return; }
+    const input = document.getElementById('rejectReqReason');
+    input.dataset.touched = '1';
+    if (!validateRejectReq()) { input.focus(); return; }
+    const reason = input.value.trim();
     const unlock = prLockButton(document.getElementById('confirmRejectReqBtn'));
     try {
         const res = await fetch('?page=api_fh_requisition_request_revision', {
@@ -134,19 +177,46 @@ async function loadPendingPoPayments() {
     }
 }
 
+// The reference stays optional (it's how a real payout is traced, but not
+// every method produces one). When it IS filled in, keep it to the shape a
+// bank/cheque reference actually takes rather than accepting free text.
+function validateApprovePoPayment() {
+    const input = document.getElementById('payReferenceInput');
+    const method = document.getElementById('payMethodSelect').value;
+    const error = method === 'paymongo_simulated'
+        ? ''
+        : fnValidateText(input.value, {
+            required: false,
+            max: 50,
+            pattern: /^[A-Za-z0-9/\-#. ]+$/,
+            patternMessage: 'Letters, numbers and - / # . only.',
+        });
+    fnSetFieldError(input, 'payReferenceInputError', input.dataset.touched ? error : '');
+    const btn = document.getElementById('confirmApprovePoPaymentBtn');
+    if (btn) btn.disabled = !!error;
+    return !error;
+}
+
 function openApprovePoPayment(id, amount, poNumber) {
     fhPayTargetId = id;
     document.getElementById('payApproveSummary').textContent = `Pay ${prCurrency(amount)} to the supplier for PO ${poNumber}.`;
     document.getElementById('payMethodSelect').value = 'bank_transfer';
     document.getElementById('payReferenceWrap').classList.remove('d-none');
     document.getElementById('paySimulatedNotice').classList.add('d-none');
-    document.getElementById('payReferenceInput').value = '';
+    const input = document.getElementById('payReferenceInput');
+    input.value = '';
+    delete input.dataset.touched;
+    fnSetFieldError(input, 'payReferenceInputError', '');
+    validateApprovePoPayment();
     new bootstrap.Modal(document.getElementById('approvePoPaymentModal')).show();
 }
 
 async function confirmApprovePoPayment() {
+    const refInput = document.getElementById('payReferenceInput');
+    refInput.dataset.touched = '1';
+    if (!validateApprovePoPayment()) { refInput.focus(); return; }
     const method = document.getElementById('payMethodSelect').value;
-    const referenceNumber = document.getElementById('payReferenceInput').value.trim();
+    const referenceNumber = refInput.value.trim();
     const btn = document.getElementById('confirmApprovePoPaymentBtn');
     const originalBtnHtml = btn.innerHTML;
     const unlock = prLockButton(btn);
@@ -211,15 +281,32 @@ function showPaymentReceipt(receipt) {
     new bootstrap.Modal(document.getElementById('paymentReceiptModal')).show();
 }
 
+// Rejecting a payment request sends the reason back to the Finance Staff
+// who raised it, so it needs to say something actionable.
+function validateRejectPoPayment() {
+    const input = document.getElementById('rejectPoPaymentReason');
+    const error = fnValidateText(input.value, { required: true, min: 10, max: 500, label: 'Reason' });
+    fnSetFieldError(input, 'rejectPoPaymentReasonError', input.dataset.touched ? error : '');
+    const btn = document.getElementById('confirmRejectPoPaymentBtn');
+    if (btn) btn.disabled = !!error;
+    return !error;
+}
+
 function openRejectPoPayment(id) {
     fhRejectPoPaymentTargetId = id;
-    document.getElementById('rejectPoPaymentReason').value = '';
+    const input = document.getElementById('rejectPoPaymentReason');
+    input.value = '';
+    delete input.dataset.touched;
+    fnSetFieldError(input, 'rejectPoPaymentReasonError', '');
+    validateRejectPoPayment();
     new bootstrap.Modal(document.getElementById('rejectPoPaymentModal')).show();
 }
 
 async function confirmRejectPoPayment() {
-    const reason = document.getElementById('rejectPoPaymentReason').value.trim();
-    if (!reason) { Swal.fire('Reason required', '', 'warning'); return; }
+    const input = document.getElementById('rejectPoPaymentReason');
+    input.dataset.touched = '1';
+    if (!validateRejectPoPayment()) { input.focus(); return; }
+    const reason = input.value.trim();
     const unlock = prLockButton(document.getElementById('confirmRejectPoPaymentBtn'));
     try {
         const res = await fetch('?page=api_fh_approve_po_payment', {

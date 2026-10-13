@@ -9,7 +9,7 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $title = 'Catalog & Deals - Store Manager';
 $pageTitle = 'Catalog & Deals';
 $activePage = 'catalog';
-$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/catalog.js?v=20260917300000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/store_manager/catalog.js?v=20261013151000"></script>';
 
 $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>' . <<<'EOT'
 <!-- Stats -->
@@ -112,34 +112,48 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">Create Deal</h5>
+                <h5 class="modal-title"><i class="bi bi-tags-fill me-2 text-yellow"></i>Create Deal</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form id="createDealForm">
                 <div class="modal-body">
-                    <div class="mb-2">
-                        <label class="form-label fw-semibold">Deal Name *</label>
+                    <h6 class="sm-section-title"><i class="bi bi-card-text"></i> Deal Details</h6>
+                    <p class="text-muted small">Give the bundle a name customers will recognise at the register.</p>
+
+                    <div class="mb-3">
+                        <label class="form-label">Deal Name *</label>
                         <input type="text" id="dealName" class="form-control" required maxlength="150" placeholder="e.g. Book + Pen Combo">
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label fw-semibold">Description</label>
-                        <textarea id="dealDescription" class="form-control" rows="2" maxlength="500"></textarea>
+                        <div class="invalid-feedback" id="dealNameError"></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Bundle Price *</label>
-                        <input type="number" id="dealPrice" class="form-control" step="0.01" min="0.01" required>
+                        <label class="form-label">Description <span class="text-muted fw-normal">(optional)</span></label>
+                        <textarea id="dealDescription" class="form-control sm-notes-input" rows="2" maxlength="500" placeholder="Short note about what makes this bundle worth it."></textarea>
+                    </div>
+                    <div class="mb-1">
+                        <label class="form-label">Bundle Price *</label>
+                        <div class="input-group">
+                            <span class="input-group-text">&#8369;</span>
+                            <input type="number" id="dealPrice" class="form-control" step="0.01" min="0.01" max="999999.99" required placeholder="0.00" inputmode="decimal">
+                        </div>
+                        <div class="invalid-feedback" id="dealPriceError"></div>
                         <div class="form-text">This is the flat price charged for the whole bundle -- it doesn't factor in each product's own price or discount.</div>
                     </div>
-                    <div class="mb-2 d-flex justify-content-between align-items-center">
-                        <label class="form-label fw-semibold mb-0">Products in this bundle *</label>
-                        <button type="button" class="btn btn-sm btn-yellow-outline" id="addDealItemRowBtn"><i class="bi bi-plus-lg"></i> Add Product</button>
+
+                    <div class="sm-section-divider"></div>
+                    <h6 class="sm-section-title"><i class="bi bi-box-seam"></i> Products in this Bundle *</h6>
+                    <p class="text-muted small">A bundle needs at least 2 different products. Set how many of each the deal includes.</p>
+                    <div class="sm-item-table">
+                        <div class="sm-item-list-header">
+                            <span>Product</span><span>Qty</span><span></span>
+                        </div>
+                        <div id="dealItemsBody" class="sm-item-list"></div>
+                        <button type="button" class="sm-add-item-btn" id="addDealItemRowBtn"><i class="bi bi-plus-lg"></i> Add Product</button>
                     </div>
-                    <div id="dealItemsBody"></div>
-                    <div class="form-text">A bundle needs at least 2 different products.</div>
+                    <div class="invalid-feedback" id="dealItemsError"></div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-yellow-primary btn-sm">Create Deal</button>
+                    <button type="submit" class="btn btn-yellow-primary btn-sm"><i class="bi bi-tags-fill me-1"></i>Create Deal</button>
                 </div>
             </form>
         </div>

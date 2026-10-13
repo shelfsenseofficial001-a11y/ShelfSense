@@ -11,7 +11,7 @@ $title = 'Budget Management - Finance Head';
 $pageTitle = 'Budget Management';
 $activePage = 'head_budget';
 $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20260908600000"></script>';
+    . '<script src="/ShelfSense/public/assets/js/finance/head/budget.js?v=20261013190000"></script>';
 
 $defaultPeriod = CutoffPeriod::getCurrentKey();
 $initialData = budget_overview_build_data(new Budget(), $defaultPeriod);
@@ -43,8 +43,14 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 
     <div class="tab-pane fade" id="deptTab">
         <div class="row g-2 mb-3">
-            <div class="col-md-4"><input type="text" id="newDeptName" class="form-control" placeholder="Department name"></div>
-            <div class="col-md-3"><input type="text" id="newDeptCode" class="form-control" placeholder="Code (optional)"></div>
+            <div class="col-md-4">
+                <input type="text" id="newDeptName" class="form-control" placeholder="Department name" maxlength="100">
+                <div class="invalid-feedback" id="newDeptNameError"></div>
+            </div>
+            <div class="col-md-3">
+                <input type="text" id="newDeptCode" class="form-control" placeholder="Code (optional)" maxlength="20">
+                <div class="invalid-feedback" id="newDeptCodeError"></div>
+            </div>
             <div class="col-md-2"><button class="btn btn-yellow-primary" id="addDeptBtn">Add</button></div>
         </div>
         <table class="table table-sm" id="deptTable"><thead><tr><th>Name</th><th>Code</th><th>Status</th><th></th></tr></thead><tbody id="deptTableBody"></tbody></table>
@@ -61,9 +67,21 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 
     <div class="tab-pane fade" id="toleranceTab">
         <div class="row g-3" style="max-width:500px;">
-            <div class="col-md-6"><label class="form-label">Price Tolerance (%)</label><input type="number" id="tolPricePercent" class="form-control" step="0.01" min="0"></div>
-            <div class="col-md-6"><label class="form-label">Price Tolerance (₱ flat)</label><input type="number" id="tolPriceAmount" class="form-control" step="0.01" min="0"></div>
-            <div class="col-md-6"><label class="form-label">Quantity Tolerance (%)</label><input type="number" id="tolQtyPercent" class="form-control" step="0.01" min="0"></div>
+            <div class="col-md-6">
+                <label class="form-label">Price Tolerance (%)</label>
+                <input type="number" id="tolPricePercent" class="form-control" step="0.01" min="0" max="100" inputmode="decimal">
+                <div class="invalid-feedback" id="tolPricePercentError"></div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Price Tolerance (₱ flat)</label>
+                <input type="number" id="tolPriceAmount" class="form-control" step="0.01" min="0" max="999999.99" inputmode="decimal">
+                <div class="invalid-feedback" id="tolPriceAmountError"></div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Quantity Tolerance (%)</label>
+                <input type="number" id="tolQtyPercent" class="form-control" step="0.01" min="0" max="100" inputmode="decimal">
+                <div class="invalid-feedback" id="tolQtyPercentError"></div>
+            </div>
         </div>
         <p class="text-muted small mt-2">An invoice line passes the price check if it's within EITHER the percent OR the flat amount (whichever is looser).</p>
         <button class="btn btn-yellow-primary btn-sm" id="saveToleranceBtn">Save</button>
@@ -77,9 +95,13 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
             <div class="modal-body">
                 <p id="setBudgetDeptLabel"></p>
                 <label class="form-label">New Allocated Amount</label>
-                <input type="number" id="setBudgetAmount" class="form-control" min="0" step="0.01">
+                <div class="input-group">
+                    <span class="input-group-text">&#8369;</span>
+                    <input type="number" id="setBudgetAmount" class="form-control" min="0" max="99999999.99" step="0.01" inputmode="decimal" placeholder="0.00">
+                </div>
+                <div class="invalid-feedback" id="setBudgetAmountError"></div>
                 <label class="form-label mt-2">Reason</label>
-                <textarea id="setBudgetReason" class="form-control" rows="2"></textarea>
+                <textarea id="setBudgetReason" class="form-control" rows="2" maxlength="500"></textarea>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>

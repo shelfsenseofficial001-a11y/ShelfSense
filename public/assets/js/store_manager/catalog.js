@@ -542,16 +542,137 @@ function deleteDeal(id, name) {
 
 // ---- Create Deal modal ----
 
+const DEAL_MAX_QTY = 99;
+const DEAL_MAX_PRICE = 999999.99;
+
+// Keeps a field's error text in sync with Bootstrap's .is-invalid styling.
+// The feedback node is toggled with d-block because several of these fields
+// are not an immediate sibling of their input (the price sits inside an
+// .input-group, the items error follows the whole .sm-item-table), so
+// Bootstrap's own .is-invalid ~ .invalid-feedback rule never matches.
+function setDealFieldError(input, feedbackId, message) {
+    const feedback = document.getElementById(feedbackId);
+    if (input) input.classList.toggle('is-invalid', !!message);
+    if (feedback) {
+        feedback.textContent = message || '';
+        feedback.classList.toggle('d-block', !!message);
+    }
+}
+
+// Stops the characters a number input would otherwise accept but that are
+// never valid here -- the exponent form (1e5) and any sign, so a negative
+// price or quantity can't even be typed. Quantities are whole units, so
+// they additionally reject a decimal point.
+function blockInvalidNumberKeys(input, allowDecimal) {
+    input.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const blocked = ['e', 'E', '+', '-'];
+        if (!allowDecimal) blocked.push('.', ',');
+        if (blocked.includes(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function (e) {
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        const ok = allowDecimal ? /^\d*\.?\d*$/.test(text.trim()) : /^\d+$/.test(text.trim());
+        if (!ok) e.preventDefault();
+    });
+}
+
+// Validates the whole form and paints inline errors. Fields only light up
+// once the user has actually touched them (or on a submit attempt), so an
+// untouched form doesn't open covered in red. Returns true when valid.
+function validateDealForm(markAllTouched) {
+    const nameInput = document.getElementById('dealName');
+    const priceInput = document.getElementById('dealPrice');
+    if (!nameInput || !priceInput) return false;
+
+    if (markAllTouched) {
+        nameInput.dataset.touched = '1';
+        priceInput.dataset.touched = '1';
+        document.querySelectorAll('#dealItemsBody .deal-item-qty').forEach(q => { q.dataset.touched = '1'; });
+    }
+
+    let valid = true;
+
+    const name = nameInput.value.trim();
+    let nameError = '';
+    if (!name) nameError = 'Deal name is required.';
+    else if (name.length < 3) nameError = 'Use at least 3 characters.';
+    if (nameError) valid = false;
+    setDealFieldError(nameInput, 'dealNameError', nameInput.dataset.touched ? nameError : '');
+
+    const rawPrice = priceInput.value.trim();
+    const price = parseFloat(rawPrice);
+    let priceError = '';
+    if (!rawPrice) priceError = 'Bundle price is required.';
+    else if (!isFinite(price) || price <= 0) priceError = 'Enter a price greater than zero.';
+    else if (price > DEAL_MAX_PRICE) priceError = 'Price cannot exceed ' + DEAL_MAX_PRICE.toLocaleString() + '.';
+    else if (!/^\d+(\.\d{1,2})?$/.test(rawPrice)) priceError = 'Use at most 2 decimal places.';
+    if (priceError) valid = false;
+    setDealFieldError(priceInput, 'dealPriceError', priceInput.dataset.touched ? priceError : '');
+
+    // Per-row quantities, plus the bundle-level rules (2+ rows, no repeats).
+    const seen = new Set();
+    const duplicateIds = new Set();
+    let qtyInvalid = false;
+    document.querySelectorAll('#dealItemsBody .sm-item-row').forEach(row => {
+        const sel = row.querySelector('.deal-item-product');
+        const qtyInput = row.querySelector('.deal-item-qty');
+        const id = parseInt(sel?.value, 10);
+        if (id) {
+            if (seen.has(id)) duplicateIds.add(id);
+            seen.add(id);
+        }
+        const raw = (qtyInput?.value || '').trim();
+        const qty = parseInt(raw, 10);
+        const bad = !raw || !/^\d+$/.test(raw) || qty < 1 || qty > DEAL_MAX_QTY;
+        if (bad) qtyInvalid = true;
+        if (qtyInput) qtyInput.classList.toggle('is-invalid', bad && !!qtyInput.dataset.touched);
+    });
+    document.querySelectorAll('#dealItemsBody .sm-item-row').forEach(row => {
+        const sel = row.querySelector('.deal-item-product');
+        const id = parseInt(sel?.value, 10);
+        if (sel) sel.classList.toggle('is-invalid', duplicateIds.has(id));
+    });
+
+    let itemsError = '';
+    if (seen.size < 2) itemsError = 'A bundle needs at least 2 different products.';
+    else if (duplicateIds.size) itemsError = 'Each product can only appear once -- the highlighted rows repeat.';
+    else if (qtyInvalid) itemsError = 'Quantities must be whole numbers from 1 to ' + DEAL_MAX_QTY + '.';
+    if (itemsError) valid = false;
+    setDealFieldError(null, 'dealItemsError', itemsError);
+
+    const submitBtn = document.querySelector('#createDealForm button[type="submit"]');
+    if (submitBtn && !submitBtn.dataset.saving) submitBtn.disabled = !valid;
+
+    return valid;
+}
+
 function setupCreateDealModal() {
     const openBtn = document.getElementById('createDealBtn');
     const addRowBtn = document.getElementById('addDealItemRowBtn');
     const form = document.getElementById('createDealForm');
+    const nameInput = document.getElementById('dealName');
+    const priceInput = document.getElementById('dealPrice');
+
+    if (priceInput) blockInvalidNumberKeys(priceInput, true);
+
+    [nameInput, priceInput].forEach(el => {
+        if (!el) return;
+        el.addEventListener('input', () => { el.dataset.touched = '1'; validateDealForm(false); });
+        el.addEventListener('blur', () => { el.dataset.touched = '1'; validateDealForm(false); });
+    });
 
     openBtn?.addEventListener('click', () => {
         form.reset();
         document.getElementById('dealItemsBody').innerHTML = '';
+        // Clear any red left over from a previous, abandoned attempt.
+        [nameInput, priceInput].forEach(el => { if (el) delete el.dataset.touched; });
+        setDealFieldError(nameInput, 'dealNameError', '');
+        setDealFieldError(priceInput, 'dealPriceError', '');
+        setDealFieldError(null, 'dealItemsError', '');
         addDealItemRow();
         addDealItemRow();
+        validateDealForm(false);
         new bootstrap.Modal(document.getElementById('createDealModal')).show();
     });
 
@@ -559,6 +680,11 @@ function setupCreateDealModal() {
 
     form?.addEventListener('submit', function (e) {
         e.preventDefault();
+        if (!validateDealForm(true)) {
+            const firstBad = document.querySelector('#createDealForm .is-invalid');
+            if (firstBad) firstBad.focus();
+            return;
+        }
         submitCreateDeal();
     });
 }
@@ -572,10 +698,32 @@ function addDealItemRow() {
     row.id = rowId;
     row.innerHTML = `
         <select class="form-select form-select-sm deal-item-product">${options}</select>
-        <input type="number" class="form-control form-control-sm deal-item-qty" min="1" max="99" value="1">
-        <button type="button" class="sm-item-remove" onclick="document.getElementById('${rowId}').remove();" title="Remove"><i class="bi bi-trash"></i></button>
+        <input type="number" class="form-control form-control-sm deal-item-qty" min="1" max="${DEAL_MAX_QTY}" value="1" inputmode="numeric">
+        <button type="button" class="sm-item-remove" title="Remove"><i class="bi bi-trash"></i></button>
     `;
     body.appendChild(row);
+
+    // Default each new row to the first product not already in the bundle,
+    // so adding a row doesn't immediately trip the "no duplicates" rule.
+    const taken = new Set();
+    body.querySelectorAll('.sm-item-row').forEach(r => {
+        if (r !== row) {
+            const v = parseInt(r.querySelector('.deal-item-product')?.value, 10);
+            if (v) taken.add(v);
+        }
+    });
+    const select = row.querySelector('.deal-item-product');
+    const firstFree = allProducts.find(p => !taken.has(p.id));
+    if (firstFree) select.value = firstFree.id;
+
+    const qtyInput = row.querySelector('.deal-item-qty');
+    blockInvalidNumberKeys(qtyInput, false);
+    qtyInput.addEventListener('input', () => { qtyInput.dataset.touched = '1'; validateDealForm(false); });
+    qtyInput.addEventListener('blur', () => { qtyInput.dataset.touched = '1'; validateDealForm(false); });
+    row.querySelector('.deal-item-product').addEventListener('change', () => validateDealForm(false));
+    row.querySelector('.sm-item-remove').addEventListener('click', () => { row.remove(); validateDealForm(false); });
+
+    validateDealForm(false);
 }
 
 function submitCreateDeal() {
@@ -614,8 +762,17 @@ function submitCreateDeal() {
     }
 
     const submitBtn = document.querySelector('#createDealForm button[type="submit"]');
+    const submitLabel = '<i class="bi bi-tags-fill me-1"></i>Create Deal';
+    // Marks the in-flight state so validateDealForm() won't re-enable the
+    // button underneath a save that's still running.
+    submitBtn.dataset.saving = '1';
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Saving...';
+    const finishSaving = () => {
+        delete submitBtn.dataset.saving;
+        submitBtn.innerHTML = submitLabel;
+        submitBtn.disabled = false;
+    };
 
     fetch('?page=api_store_manager_create_deal', {
         method: 'POST',
@@ -624,8 +781,7 @@ function submitCreateDeal() {
     })
     .then(r => r.json())
     .then(result => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Create Deal';
+        finishSaving();
         if (result.success) {
             Swal.fire({ icon: 'success', title: 'Deal created!', timer: 1500, showConfirmButton: false });
             const modalInstance = bootstrap.Modal.getInstance(document.getElementById('createDealModal'));
@@ -636,8 +792,7 @@ function submitCreateDeal() {
         }
     })
     .catch(() => {
-        submitBtn.disabled = false;
-        submitBtn.innerHTML = 'Create Deal';
+        finishSaving();
         Swal.fire({ icon: 'error', title: 'Error', text: 'Something went wrong.' });
     });
 }

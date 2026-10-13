@@ -26,7 +26,7 @@ if (in_array($role, ['hr_head', 'hr_staff', 'owner'])) {
     $layout = 'finance';
 }
 
-$additional_js = '<script src="/ShelfSense/public/assets/js/shared/trainee_report.js?v=20261012000001"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/shared/trainee_report.js?v=20261013120500"></script>';
 $additional_css = '
 <style>
     .tr-status-chip {
@@ -61,37 +61,70 @@ $additional_css = '
         border-radius: 50%;
         background: var(--brand-yellow);
     }
+    /* ---- Fill the page height instead of leaving dead space below the
+       card (same "stretch to fill" convention as dashboard-theme.css). The
+       three board columns then scroll internally rather than the page. ---- */
+    #traineeReportRoot { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+    #trReviewBoard { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+    #trReviewBoard > .row { flex: 1 1 auto; min-height: 0; }
+    .tr-board-col { display: flex; flex-direction: column; min-height: 0; }
+
     /* Review board (dept head / HR Staff / HR Head) */
-    .tr-board-col { min-height: 480px; }
-    .tr-board-trainee-row { cursor: pointer; padding: 8px 12px; border: none; text-align: left; background: transparent; width: 100%; }
+    .tr-board-trainee-row { cursor: pointer; padding: 10px 12px; border: none; text-align: left; background: transparent; width: 100%; }
     .tr-board-trainee-row:hover { background: var(--light-yellow-subtle); }
-    .tr-board-trainee-row.active { background: var(--light-yellow-subtle); font-weight: 600; }
+    .tr-board-trainee-row.active { background: var(--light-yellow-subtle); font-weight: 600; box-shadow: inset 3px 0 0 var(--brand-yellow); }
     .tr-board-outcome { font-size: 0.65rem; padding: 2px 8px; border-radius: 10px; font-weight: 600; color: #fff; }
     .tr-board-outcome.accepted { background: #198754; }
     .tr-board-outcome.failed { background: #dc3545; }
+    /* Amber "needs you" counter + per-trainee progress text in the list */
+    .tr-trainee-need { font-size: 0.6rem; font-weight: 700; padding: 1px 7px; border-radius: 10px; background: #fef3c7; color: #92400e; }
+    [data-bs-theme="dark"] .tr-trainee-need { background: #78350f; color: #fcd34d; }
+    .tr-trainee-progress { font-size: 0.62rem; color: var(--text-muted); font-weight: 600; }
+
+    /* ---- Week column: progress header + status-dot list + legend ---- */
+    .tr-week-progress { padding: 12px 10px 10px; border-bottom: 1px solid var(--border-color, #e5e7eb); }
+    .tr-week-progress-label { font-size: 0.68rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: .03em; }
+    .tr-week-progress-count { font-size: 0.72rem; font-weight: 700; color: var(--text-main); }
+    .tr-week-bar { height: 6px; border-radius: 4px; background: var(--border-color, #e5e7eb); overflow: hidden; }
+    .tr-week-bar > span { display: block; height: 100%; background: #198754; border-radius: 4px; transition: width .25s ease; }
+    .tr-week-need-pill { font-size: 0.62rem; font-weight: 700; padding: 2px 8px; border-radius: 10px; background: #fef3c7; color: #92400e; }
+    [data-bs-theme="dark"] .tr-week-need-pill { background: #78350f; color: #fcd34d; }
+    .tr-week-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
 
     .tr-week-tab {
-        padding: 10px 8px;
-        border: 1px solid var(--border-color, #e5e7eb);
-        border-right: none;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--border-color, #e5e7eb);
         cursor: not-allowed;
         font-size: 0.78rem;
         font-weight: 600;
         color: var(--text-muted);
     }
-    .tr-week-tab + .tr-week-tab { border-top: none; }
     .tr-week-tab.tr-week-clickable { cursor: pointer; }
+    .tr-week-tab.tr-week-clickable:hover { background: var(--light-yellow-subtle); }
+    .tr-week-dot { width: 9px; height: 9px; border-radius: 50%; flex: 0 0 auto; background: var(--border-color, #d1d5db); }
+    .tr-week-dot.submitted, .tr-week-dot.forwarded, .tr-week-dot.hr_staff_reviewed { background: #3b82f6; }
+    .tr-week-dot.hr_reviewed { background: #198754; }
+    .tr-week-dot.actionable { background: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,.25); }
+    .tr-week-label { flex: 1 1 auto; }
+    .tr-week-state { font-size: 0.6rem; font-weight: 700; margin-left: auto; }
     .tr-week-tab.tr-week-actionable { color: #92400e; background: #fef3c7; }
     [data-bs-theme="dark"] .tr-week-tab.tr-week-actionable { background: #78350f; color: #fcd34d; }
-    .tr-week-tab.tr-week-done { color: #065f46; }
+    .tr-week-tab.tr-week-done .tr-week-state { color: #198754; }
     .tr-week-tab.tr-week-selected {
-        background: var(--bg-card);
+        background: var(--bg-card-subtle);
         color: var(--text-main);
-        margin-right: -1px;
-        border-right: 1px solid var(--bg-card);
-        position: relative;
-        z-index: 2;
+        box-shadow: inset 3px 0 0 var(--brand-yellow);
     }
+    .tr-week-legend { border-top: 1px solid var(--border-color, #e5e7eb); padding: 8px 10px; display: flex; flex-wrap: wrap; gap: 4px 12px; }
+    .tr-week-legend-item { display: inline-flex; align-items: center; gap: 5px; font-size: 0.6rem; color: var(--text-muted); font-weight: 600; }
+
+    #trBoardTraineeList { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+    #trBoardContent { overflow-y: auto; }
+    .tr-content-placeholder { flex: 1 1 auto; min-height: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--text-muted); }
+    .tr-content-placeholder i { font-size: 1.8rem; margin-bottom: 8px; opacity: .6; }
 
     .tr-day-box {
         flex: 1 1 0;
@@ -141,14 +174,19 @@ $content = <<<'EOT'
                 <div class="p-2 border-bottom">
                     <input type="text" class="form-control form-control-sm" id="trBoardSearch" placeholder="Search trainees...">
                 </div>
-                <div class="list-group list-group-flush" id="trBoardTraineeList" style="max-height:440px; overflow-y:auto;"></div>
-                <div class="p-2 border-top text-center">
-                    <button type="button" class="btn btn-link btn-sm" id="trBoardHistoryToggle">View History</button>
+                <div class="list-group list-group-flush" id="trBoardTraineeList"></div>
+                <div class="p-2 border-top">
+                    <button type="button" class="btn btn-outline-secondary btn-sm w-100" id="trBoardHistoryToggle">
+                        <i class="bi bi-clock-history me-1"></i><span class="tr-history-toggle-label">View History</span>
+                    </button>
                 </div>
             </div>
             <div class="col-md-2 border-end tr-board-col" id="trBoardWeekTabs"></div>
             <div class="col-md-7 tr-board-col p-3" id="trBoardContent">
-                <p class="text-muted small mb-0">Select a trainee, then a week, to view their report.</p>
+                <div class="tr-content-placeholder">
+                    <i class="bi bi-clipboard2-check"></i>
+                    <p class="small mb-0">Select a trainee, then a week,<br>to view their report.</p>
+                </div>
             </div>
         </div>
     </div>

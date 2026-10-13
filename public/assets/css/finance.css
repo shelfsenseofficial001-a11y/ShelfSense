@@ -131,3 +131,30 @@
     .fn-stats-grid { grid-template-columns: repeat(2, 1fr); }
     .fn-card-grid { grid-template-columns: 1fr; }
 }
+
+/* ---------- Dashboard mini-tables (mirrors the Store Manager / HR
+   dashboards' preview tables, so every module's dashboard reads the
+   same way) ---------- */
+/* min-height as well as max: without it a table with one row (or an empty
+   state) collapses to a stub and the dashboard reads as a row of ragged
+   little cards instead of the even grid the other modules have. */
+.fn-mini-table-scroll {
+    min-height: 280px;
+    max-height: 340px;
+    overflow-y: auto;
+}
+.fn-mini-table-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-card-subtle, var(--bg-card));
+    color: var(--text-muted);
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    font-weight: 600;
+    z-index: 1;
+}
+.fn-mini-table-scroll td {
+    vertical-align: middle;
+    font-size: 0.84rem;
+}

@@ -11,7 +11,8 @@ $initialDataJson = json_encode($initialData, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 $title = 'Finance Staff Dashboard';
 $pageTitle = 'Finance Staff Dashboard';
 $activePage = 'staff_dashboard';
-$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/dashboard.js?v=20260908600000"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/finance/staff/dashboard.js?v=20261013180000"></script>
+<script src="/ShelfSense/public/assets/js/finance/dashboard-layout.js?v=20261013180000"></script>';
 $additional_js .= '
 <script>
 window.dashboardTourReadyEvent = "fn-staff-dashboard-rendered";
@@ -22,9 +23,14 @@ window.dashboardTourSteps = [
         desc: "Everything you need lives here -- Dashboard, Requisitions, Payment Requests, and Budget."
     },
     {
-        target: ".fn-stats-grid",
+        target: "#fnDashCanvasStats",
         title: "Quick stats",
         desc: "A snapshot of your workload: requisitions to review, pending payment requests, available budget, and anything over budget."
+    },
+    {
+        target: "#dashEditModeBtn",
+        title: "Make it yours",
+        desc: "Click \"Edit UI\" to drag and reorder every card above into whatever layout works best for you. Your arrangement is saved automatically."
     },
     {
         target: ".user-edit-btn",

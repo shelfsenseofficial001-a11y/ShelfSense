@@ -3,7 +3,7 @@ $title = 'Requisitions & Payments - Finance Head';
 $pageTitle = 'Requisitions & Payments';
 $activePage = 'head_payment_requests';
 $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
-    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20261013000003"></script>';
+    . '<script src="/ShelfSense/public/assets/js/finance/head/payment_requests.js?v=20261013210000"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs mb-3" id="fhTabs" role="tablist">
@@ -40,7 +40,8 @@ $content = <<<'EOT'
                 <p id="approveReqSummary"></p>
                 <div id="approveReqJustificationWrap" class="d-none">
                     <label class="form-label">Justification (required — over budget)</label>
-                    <textarea id="approveReqJustification" class="form-control" rows="2"></textarea>
+                    <textarea id="approveReqJustification" class="form-control" rows="2" maxlength="500"></textarea>
+                    <div class="invalid-feedback" id="approveReqJustificationError"></div>
                 </div>
             </div>
             <div class="modal-footer">
@@ -57,7 +58,8 @@ $content = <<<'EOT'
             <div class="modal-header"><h5 class="modal-title">Request Revision</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
             <div class="modal-body">
                 <p class="text-muted small">Sends this back to the Store Manager with your reason -- they can change the suggested supplier/items and resubmit.</p>
-                <textarea id="rejectReqReason" class="form-control" rows="3" placeholder="What should the Store Manager change?"></textarea>
+                <textarea id="rejectReqReason" class="form-control" rows="3" placeholder="What should the Store Manager change?" maxlength="500"></textarea>
+                <div class="invalid-feedback" id="rejectReqReasonError"></div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
@@ -85,7 +87,8 @@ $content = <<<'EOT'
                 </div>
                 <div id="payReferenceWrap" class="mb-2">
                     <label class="form-label">Reference number (optional)</label>
-                    <input type="text" id="payReferenceInput" class="form-control" placeholder="e.g. bank transaction #">
+                    <input type="text" id="payReferenceInput" class="form-control" placeholder="e.g. bank transaction #" maxlength="50">
+                    <div class="invalid-feedback" id="payReferenceInputError"></div>
                 </div>
                 <div id="paySimulatedNotice" class="alert alert-warning small d-none mb-0">
                     <strong>Demo notice:</strong> ShelfSense has no registered business behind it, so PayMongo's real
@@ -121,7 +124,10 @@ $content = <<<'EOT'
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header"><h5 class="modal-title">Reject Payment Request</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-            <div class="modal-body"><textarea id="rejectPoPaymentReason" class="form-control" rows="3" placeholder="Reason..."></textarea></div>
+            <div class="modal-body">
+                <textarea id="rejectPoPaymentReason" class="form-control" rows="3" placeholder="Reason..." maxlength="500"></textarea>
+                <div class="invalid-feedback" id="rejectPoPaymentReasonError"></div>
+            </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                 <button class="btn btn-danger btn-sm" id="confirmRejectPoPaymentBtn">Reject</button>

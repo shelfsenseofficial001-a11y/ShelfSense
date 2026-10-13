@@ -373,22 +373,44 @@ function renderBoardTraineeList() {
     if (!list.length) {
         container.innerHTML = `<p class="text-muted small p-2 mb-0">No ${TR_BOARD_MODE === 'history' ? 'past' : 'active'} trainees.</p>`;
     } else {
-        container.innerHTML = list.map(t => `
+        container.innerHTML = list.map(t => {
+            const weeks = t.weeks || [];
+            const needCount = weeks.filter(w => w.actionable_by_me).length;
+            const finalized = weeks.filter(w => w.status === 'hr_reviewed').length;
+            const totalWeeks = weeks.length || 12;
+            // Right-aligned marker: for active trainees, an amber "needs you"
+            // counter takes priority so reviewers can triage the list at a
+            // glance; otherwise fall back to the finalized x/N progress. Past
+            // trainees show their accepted/failed outcome instead.
+            let marker = '';
+            if (t.outcome) {
+                marker = `<span class="tr-board-outcome ${t.outcome}">${t.outcome === 'accepted' ? 'Accepted' : 'Failed'}</span>`;
+            } else if (needCount > 0) {
+                marker = `<span class="tr-trainee-need" title="${needCount} week${needCount === 1 ? '' : 's'} need your action">${needCount} to review</span>`;
+            } else {
+                marker = `<span class="tr-trainee-progress">${finalized}/${totalWeeks}</span>`;
+            }
+            return `
             <button type="button" class="tr-board-trainee-row list-group-item ${TR_BOARD_SELECTED_TRAINEE === t.trainee_id ? 'active' : ''}" data-trainee-id="${t.trainee_id}">
                 <div class="d-flex justify-content-between align-items-center">
                     <span>${escapeHtml(t.name)}</span>
-                    ${t.outcome ? `<span class="tr-board-outcome ${t.outcome}">${t.outcome === 'accepted' ? 'Accepted' : 'Failed'}</span>` : ''}
+                    ${marker}
                 </div>
                 <div class="text-muted small">${escapeHtml(t.target_role)}</div>
             </button>
-        `).join('');
+        `;
+        }).join('');
     }
 
     container.querySelectorAll('.tr-board-trainee-row').forEach(btn => {
         btn.addEventListener('click', () => selectBoardTrainee(parseInt(btn.dataset.traineeId, 10)));
     });
 
-    document.getElementById('trBoardHistoryToggle').textContent = TR_BOARD_MODE === 'history' ? 'Back to Active' : 'View History';
+    const histToggle = document.getElementById('trBoardHistoryToggle');
+    const histLabel = histToggle.querySelector('.tr-history-toggle-label');
+    const histIcon = histToggle.querySelector('i');
+    if (histLabel) histLabel.textContent = TR_BOARD_MODE === 'history' ? 'Back to Active' : 'View History';
+    if (histIcon) histIcon.className = (TR_BOARD_MODE === 'history' ? 'bi bi-arrow-left' : 'bi bi-clock-history') + ' me-1';
 }
 
 function selectBoardTrainee(traineeId) {
@@ -400,7 +422,7 @@ function selectBoardTrainee(traineeId) {
     document.getElementById('trBoardContent').innerHTML =
         renderTrainerPanel(trainee) +
         renderEligibilityPanel(trainee) +
-        '<p class="text-muted small mb-0">Select a week to view the report.</p>';
+        '<div class="tr-content-placeholder"><i class="bi bi-calendar-week"></i><p class="small mb-0">Pick a week on the left to view its report.</p></div>';
 }
 
 // Reassign Trainer: open to any HR role that can manage trainees (not just
@@ -576,6 +598,18 @@ function findBoardTrainee(traineeId) {
     return currentBoardList().find(t => t.trainee_id === traineeId);
 }
 
+// Short per-status label shown at the right edge of a week row. Kept terse
+// so it fits the narrow week column.
+function trWeekStateLabel(status) {
+    switch (status) {
+        case 'submitted': return 'Submitted';
+        case 'forwarded': return 'Forwarded';
+        case 'hr_staff_reviewed': return 'Screened';
+        case 'hr_reviewed': return '<i class="bi bi-check-lg"></i> Done';
+        default: return '&mdash;';
+    }
+}
+
 function renderBoardWeekTabs() {
     const wrap = document.getElementById('trBoardWeekTabs');
     const trainee = findBoardTrainee(TR_BOARD_SELECTED_TRAINEE);
@@ -583,14 +617,44 @@ function renderBoardWeekTabs() {
         wrap.innerHTML = '';
         return;
     }
-    wrap.innerHTML = trainee.weeks.map(w => {
+
+    const weeks = trainee.weeks;
+    const total = weeks.length || 12;
+    const finalized = weeks.filter(w => w.status === 'hr_reviewed').length;
+    const needCount = weeks.filter(w => w.actionable_by_me).length;
+    const pct = total ? Math.round((finalized / total) * 100) : 0;
+
+    const rows = weeks.map(w => {
         const classes = ['tr-week-tab'];
         if (w.status !== 'not_submitted') classes.push('tr-week-clickable');
         if (w.actionable_by_me) classes.push('tr-week-actionable');
         if (w.status === 'hr_reviewed') classes.push('tr-week-done');
         if (TR_BOARD_SELECTED_WEEK === w.week_number) classes.push('tr-week-selected');
-        return `<div class="${classes.join(' ')}" data-week="${w.week_number}">Week ${w.week_number}</div>`;
+        const dotClass = w.actionable_by_me ? 'actionable' : w.status;
+        return `<div class="${classes.join(' ')}" data-week="${w.week_number}">
+            <span class="tr-week-dot ${dotClass}"></span>
+            <span class="tr-week-label">Week ${w.week_number}</span>
+            <span class="tr-week-state">${trWeekStateLabel(w.status)}</span>
+        </div>`;
     }).join('');
+
+    wrap.innerHTML = `
+        <div class="tr-week-progress">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="tr-week-progress-label">Progress</span>
+                <span class="tr-week-progress-count">${finalized}/${total}</span>
+            </div>
+            <div class="tr-week-bar"><span style="width:${pct}%"></span></div>
+            ${needCount > 0 ? `<div class="mt-2"><span class="tr-week-need-pill"><i class="bi bi-bell-fill"></i> ${needCount} need${needCount === 1 ? 's' : ''} you</span></div>` : ''}
+        </div>
+        <div class="tr-week-scroll">${rows}</div>
+        <div class="tr-week-legend">
+            <span class="tr-week-legend-item"><span class="tr-week-dot actionable"></span>Needs you</span>
+            <span class="tr-week-legend-item"><span class="tr-week-dot submitted"></span>In review</span>
+            <span class="tr-week-legend-item"><span class="tr-week-dot hr_reviewed"></span>Done</span>
+            <span class="tr-week-legend-item"><span class="tr-week-dot"></span>Not submitted</span>
+        </div>
+    `;
 
     wrap.querySelectorAll('.tr-week-tab.tr-week-clickable').forEach(tab => {
         tab.addEventListener('click', () => selectBoardWeek(parseInt(tab.dataset.week, 10)));
@@ -767,7 +831,7 @@ document.addEventListener('DOMContentLoaded', function () {
             TR_BOARD_SELECTED_WEEK = null;
             renderBoardTraineeList();
             document.getElementById('trBoardWeekTabs').innerHTML = '';
-            document.getElementById('trBoardContent').innerHTML = '<p class="text-muted small mb-0">Select a trainee, then a week, to view their report.</p>';
+            document.getElementById('trBoardContent').innerHTML = '<div class="tr-content-placeholder"><i class="bi bi-clipboard2-check"></i><p class="small mb-0">Select a trainee, then a week,<br>to view their report.</p></div>';
         });
     }
 });

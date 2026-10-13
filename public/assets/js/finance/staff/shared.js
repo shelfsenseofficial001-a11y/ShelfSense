@@ -179,3 +179,82 @@ function fnBudgetBox(bs) {
         </div>
     `;
 }
+
+// ============================================
+// SHARED INPUT VALIDATION (all Finance pages)
+// Loaded by views/layouts/finance.php for every Finance role.
+// ============================================
+
+// Keeps a field's error text in sync with Bootstrap's .is-invalid styling.
+// The feedback node is toggled with d-block because some of these fields
+// are not an immediate sibling of their input (e.g. an amount inside an
+// .input-group), so Bootstrap's .is-invalid ~ .invalid-feedback rule
+// never matches on its own.
+function fnSetFieldError(input, feedbackId, message) {
+    const feedback = document.getElementById(feedbackId);
+    if (input) input.classList.toggle('is-invalid', !!message);
+    if (feedback) {
+        feedback.textContent = message || '';
+        feedback.classList.toggle('d-block', !!message);
+    }
+}
+
+// Stops the characters a number input would otherwise accept but that are
+// never valid for money or percentages -- the exponent form (1e5) and any
+// sign, so a negative can't even be typed.
+function fnBlockInvalidNumberKeys(input, allowDecimal) {
+    if (!input) return;
+    input.addEventListener('keydown', function (e) {
+        if (e.ctrlKey || e.metaKey || e.altKey) return;
+        const blocked = ['e', 'E', '+', '-'];
+        if (!allowDecimal) blocked.push('.', ',');
+        if (blocked.includes(e.key)) e.preventDefault();
+    });
+    input.addEventListener('paste', function (e) {
+        const text = (e.clipboardData || window.clipboardData).getData('text');
+        const ok = allowDecimal ? /^\d*\.?\d*$/.test(text.trim()) : /^\d+$/.test(text.trim());
+        if (!ok) e.preventDefault();
+    });
+}
+
+// Validates one numeric field against a min/max range and 2-decimal money
+// precision. Returns the error string ('' when valid) so callers can
+// aggregate several fields before deciding whether to enable submit.
+function fnValidateNumber(raw, opts) {
+    const o = opts || {};
+    const text = (raw || '').trim();
+    if (!text) return o.required ? (o.label || 'This field') + ' is required.' : '';
+    if (!/^\d+(\.\d{1,2})?$/.test(text)) return 'Use a number with at most 2 decimal places.';
+    const value = parseFloat(text);
+    if (!isFinite(value)) return 'Enter a valid number.';
+    if (o.min !== undefined && value < o.min) return 'Cannot be less than ' + o.min + '.';
+    if (o.max !== undefined && value > o.max) return 'Cannot be more than ' + o.max.toLocaleString() + '.';
+    return '';
+}
+
+// Validates a free-text field (reasons, justifications, references).
+// opts: {required, min, max, pattern, patternMessage, label}
+function fnValidateText(raw, opts) {
+    const o = opts || {};
+    const text = (raw || '').trim();
+    if (!text) return o.required ? (o.label || 'This field') + ' is required.' : '';
+    if (o.min && text.length < o.min) return 'Use at least ' + o.min + ' characters.';
+    if (o.max && text.length > o.max) return 'Keep it under ' + o.max + ' characters.';
+    if (o.pattern && !o.pattern.test(text)) return o.patternMessage || 'Contains characters that are not allowed.';
+    return '';
+}
+
+// Wires a field for live validation: marks it touched on first input, runs
+// `validate` on every change, and keeps a submit button disabled while the
+// form is invalid. Returns the validate function for direct calls.
+function fnWireLiveValidation(inputIds, validate) {
+    inputIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        ['input', 'blur', 'change'].forEach(evt => el.addEventListener(evt, () => {
+            el.dataset.touched = '1';
+            validate();
+        }));
+    });
+    return validate;
+}

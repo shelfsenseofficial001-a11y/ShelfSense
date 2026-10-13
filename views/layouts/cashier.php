@@ -29,7 +29,7 @@ $showTraineeReportTab = hasActiveTraineeAsTrainer(Auth::userId());
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/ShelfSense/public/assets/css/app.css?v=20260918270000">
-    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20260921110000">
+    <link rel="stylesheet" href="/ShelfSense/public/assets/css/dashboard-theme.css?v=20261013160000">
     <?= $additional_css ?? '' ?>
 </head>
 <body class="dashboard-theme">

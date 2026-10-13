@@ -20,6 +20,35 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('addDeptBtn').addEventListener('click', addDepartment);
     document.getElementById('confirmSetBudgetBtn').addEventListener('click', confirmSetBudget);
     document.getElementById('saveToleranceBtn').addEventListener('click', saveTolerance);
+
+    // Live validation: block the keystrokes that are never valid, and show
+    // the error as soon as a field is touched rather than on submit.
+    const amountInput = document.getElementById('setBudgetAmount');
+    fnBlockInvalidNumberKeys(amountInput, true);
+    ['input', 'blur'].forEach(evt => amountInput.addEventListener(evt, () => {
+        amountInput.dataset.touched = '1';
+        validateSetBudget();
+    }));
+
+    FH_TOLERANCE_FIELDS.forEach(f => {
+        const input = document.getElementById(f.id);
+        if (!input) return;
+        fnBlockInvalidNumberKeys(input, true);
+        ['input', 'blur'].forEach(evt => input.addEventListener(evt, () => {
+            input.dataset.touched = '1';
+            validateTolerance();
+        }));
+    });
+
+    ['newDeptName', 'newDeptCode'].forEach(id => {
+        const input = document.getElementById(id);
+        if (!input) return;
+        ['input', 'blur'].forEach(evt => input.addEventListener(evt, () => {
+            input.dataset.touched = '1';
+            validateNewDepartment();
+        }));
+    });
+    validateNewDepartment();
 });
 
 function renderOverviewTable(statuses, periodKey) {
@@ -58,18 +87,33 @@ async function loadOverview(periodKey) {
     }
 }
 
+function validateSetBudget() {
+    const input = document.getElementById('setBudgetAmount');
+    const error = fnValidateNumber(input.value, { required: true, min: 0, max: 99999999.99, label: 'Allocated amount' });
+    fnSetFieldError(input, 'setBudgetAmountError', input.dataset.touched ? error : '');
+    const btn = document.getElementById('confirmSetBudgetBtn');
+    if (btn) btn.disabled = !!error;
+    return !error;
+}
+
 function openSetBudget(departmentId, periodKey, name, currentAmount) {
     fhBudgetSetTarget = { departmentId, periodKey };
     document.getElementById('setBudgetDeptLabel').textContent = `${name} — ${periodKey}`;
-    document.getElementById('setBudgetAmount').value = currentAmount;
+    const input = document.getElementById('setBudgetAmount');
+    input.value = currentAmount;
+    delete input.dataset.touched;
+    fnSetFieldError(input, 'setBudgetAmountError', '');
     document.getElementById('setBudgetReason').value = '';
+    validateSetBudget();
     new bootstrap.Modal(document.getElementById('setBudgetModal')).show();
 }
 
 async function confirmSetBudget() {
-    const amount = parseFloat(document.getElementById('setBudgetAmount').value);
+    const amountInput = document.getElementById('setBudgetAmount');
+    amountInput.dataset.touched = '1';
+    if (!validateSetBudget()) { amountInput.focus(); return; }
+    const amount = parseFloat(amountInput.value);
     const reason = document.getElementById('setBudgetReason').value.trim();
-    if (isNaN(amount) || amount < 0) { Swal.fire('Invalid amount', '', 'warning'); return; }
     try {
         const res = await fetch('?page=api_fh_set_budget', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -105,10 +149,42 @@ async function loadDepartments() {
     }
 }
 
+// Department code is optional, but when given it is an identifier used in
+// reports -- restrict it to letters/digits/dashes rather than letting any
+// free text through.
+function validateNewDepartment() {
+    const nameInput = document.getElementById('newDeptName');
+    const codeInput = document.getElementById('newDeptCode');
+    const name = nameInput.value.trim();
+    const code = codeInput.value.trim();
+
+    let nameError = '';
+    if (!name) nameError = 'Department name is required.';
+    else if (name.length < 2) nameError = 'Use at least 2 characters.';
+    else if (!/^[A-Za-z0-9 &().,'\-]+$/.test(name)) nameError = 'Letters, numbers and basic punctuation only.';
+
+    let codeError = '';
+    if (code && !/^[A-Za-z0-9-]+$/.test(code)) codeError = 'Letters, numbers and dashes only -- no spaces.';
+
+    fnSetFieldError(nameInput, 'newDeptNameError', nameInput.dataset.touched ? nameError : '');
+    fnSetFieldError(codeInput, 'newDeptCodeError', codeInput.dataset.touched ? codeError : '');
+
+    const btn = document.getElementById('addDeptBtn');
+    if (btn) btn.disabled = !!(nameError || codeError);
+    return !nameError && !codeError;
+}
+
 async function addDepartment() {
-    const name = document.getElementById('newDeptName').value.trim();
-    const code = document.getElementById('newDeptCode').value.trim();
-    if (!name) { Swal.fire('Name required', '', 'warning'); return; }
+    const nameInput = document.getElementById('newDeptName');
+    const codeInput = document.getElementById('newDeptCode');
+    nameInput.dataset.touched = '1';
+    codeInput.dataset.touched = '1';
+    if (!validateNewDepartment()) {
+        (document.querySelector('#deptTab .is-invalid') || nameInput).focus();
+        return;
+    }
+    const name = nameInput.value.trim();
+    const code = codeInput.value.trim();
     try {
         const res = await fetch('?page=api_departments', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -172,14 +248,47 @@ async function loadTolerance() {
     }
 }
 
+// The three tolerance fields. Percentages are capped at 100 -- a tolerance
+// above that would accept any invoice price at all, silently disabling the
+// variance check these settings exist to enforce.
+const FH_TOLERANCE_FIELDS = [
+    { id: 'tolPricePercent', errorId: 'tolPricePercentError', max: 100, label: 'Price tolerance' },
+    { id: 'tolPriceAmount', errorId: 'tolPriceAmountError', max: 999999.99, label: 'Price tolerance' },
+    { id: 'tolQtyPercent', errorId: 'tolQtyPercentError', max: 100, label: 'Quantity tolerance' },
+];
+
+function validateTolerance() {
+    let valid = true;
+    FH_TOLERANCE_FIELDS.forEach(f => {
+        const input = document.getElementById(f.id);
+        if (!input) return;
+        const error = fnValidateNumber(input.value, { required: true, min: 0, max: f.max, label: f.label });
+        if (error) valid = false;
+        fnSetFieldError(input, f.errorId, input.dataset.touched ? error : '');
+    });
+    const btn = document.getElementById('saveToleranceBtn');
+    if (btn) btn.disabled = !valid;
+    return valid;
+}
+
 async function saveTolerance() {
+    let firstBad = null;
+    FH_TOLERANCE_FIELDS.forEach(f => {
+        const input = document.getElementById(f.id);
+        if (input) input.dataset.touched = '1';
+    });
+    if (!validateTolerance()) {
+        firstBad = document.querySelector('#toleranceTab .is-invalid');
+        if (firstBad) firstBad.focus();
+        return;
+    }
     try {
         const res = await fetch('?page=api_variance_tolerance', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                price_tolerance_percent: parseFloat(document.getElementById('tolPricePercent').value) || 0,
-                price_tolerance_amount: parseFloat(document.getElementById('tolPriceAmount').value) || 0,
-                quantity_tolerance_percent: parseFloat(document.getElementById('tolQtyPercent').value) || 0,
+                price_tolerance_percent: parseFloat(document.getElementById('tolPricePercent').value),
+                price_tolerance_amount: parseFloat(document.getElementById('tolPriceAmount').value),
+                quantity_tolerance_percent: parseFloat(document.getElementById('tolQtyPercent').value),
             }),
         });
         const data = await res.json();

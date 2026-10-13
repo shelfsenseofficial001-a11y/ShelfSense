@@ -798,6 +798,53 @@ body.dashboard-theme .btn-sm.w-100 {
 }
 
 /* ==========================================================================
+   4b. MODALS -- brand the plain default Bootstrap modal
+   Without this, Bootstrap's own dark-mode modal background is a cool
+   blue-grey slate, which clashes with this app's warm palette (the page
+   and its cards are warm brown-greys). Mirrors the same treatment
+   hr-theme.css already applies on the HR side.
+   ========================================================================== */
+
+/* Deliberately NOT overflow:hidden. The tinted header/footer are rounded
+   individually below instead, because these portals open searchable-select
+   dropdowns inside modals -- those render in-flow, always downward, at up
+   to 200px tall and with no flip-up logic, so clipping the modal would cut
+   off the options list for any select sitting near the modal's bottom. */
+body.dashboard-theme .modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.18);
+}
+
+body.dashboard-theme .modal-header {
+    background: var(--bg-card-subtle);
+    border-bottom: 1px solid var(--border-color);
+    border-top-left-radius: 17px;
+    border-top-right-radius: 17px;
+}
+
+body.dashboard-theme .modal-title {
+    font-weight: 700;
+}
+
+body.dashboard-theme .modal-footer {
+    background: var(--bg-card-subtle);
+    border-top: 1px solid var(--border-color);
+    border-bottom-left-radius: 17px;
+    border-bottom-right-radius: 17px;
+}
+
+/* The ₱ prefix on a currency input group, and any other input-group
+   addon -- Bootstrap's default is a cool grey that reads blue-ish next
+   to the warm field it sits against. */
+body.dashboard-theme .input-group-text {
+    background: var(--bg-card-subtle);
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+}
+
+/* ==========================================================================
    5. FORM CONTROLS / BADGES / TABLES
    ========================================================================== */
 
@@ -1906,16 +1953,22 @@ body.dashboard-theme.dash-edit-mode .dash-widget {
 }
 body.dashboard-theme.dash-edit-mode .dash-widget > .modern-card,
 body.dashboard-theme.dash-edit-mode .dash-widget > .sm-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget > .fn-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget > .stat-card,
 body.dashboard-theme.dash-edit-mode .dash-widget > .sp-stat-card {
     animation: dash-shake 0.28s ease-in-out infinite;
 }
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .modern-card,
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .sm-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .fn-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .stat-card,
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(2n) > .sp-stat-card {
     animation-delay: -0.09s;
 }
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .modern-card,
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .sm-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .fn-stat-card,
+body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .stat-card,
 body.dashboard-theme.dash-edit-mode .dash-widget:nth-child(3n) > .sp-stat-card {
     animation-delay: -0.16s;
 }
@@ -1933,6 +1986,8 @@ body.dashboard-theme.dash-edit-mode .dash-widget-handle {
    drop target under the cursor gets a highlighted outline */
 body.dashboard-theme .dash-widget.dash-dragging > .modern-card,
 body.dashboard-theme .dash-widget.dash-dragging > .sm-stat-card,
+body.dashboard-theme .dash-widget.dash-dragging > .fn-stat-card,
+body.dashboard-theme .dash-widget.dash-dragging > .stat-card,
 body.dashboard-theme .dash-widget.dash-dragging > .sp-stat-card {
     animation: none !important;
 }
