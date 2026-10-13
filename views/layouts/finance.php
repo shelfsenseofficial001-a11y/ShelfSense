@@ -101,6 +101,10 @@ $showTraineeReportTab = $isFinanceHead || $isSuperAdmin || hasActiveTraineeAsTra
                 </a>
                 <?php endif; ?>
 
+                <a href="?page=finance_procurement_history" class="nav-item <?= $activePage === 'procurement_history' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-search"></i></span> <span class="nav-label">Procurement History</span>
+                </a>
+
                 <div class="sidebar-divider"><hr><span class="sidebar-divider-label">Personal</span></div>
                 <?php if ($showTraineeReportTab): ?>
                 <a href="?page=trainee_report" class="nav-item <?= $activePage === 'trainee_report' ? 'active' : '' ?>">

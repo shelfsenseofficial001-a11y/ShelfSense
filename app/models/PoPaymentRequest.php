@@ -92,7 +92,9 @@ class PoPaymentRequest
             JOIN suppliers s ON po.supplier_id = s.id
             JOIN users u ON ppr.requested_by = u.user_id
             LEFT JOIN users approver ON ppr.approved_by = approver.user_id
-            LEFT JOIN payments pay ON pay.payment_request_id = ppr.id
+            LEFT JOIN payments pay ON pay.id = (
+                SELECT p2.id FROM payments p2 WHERE p2.payment_request_id = ppr.id ORDER BY p2.id DESC LIMIT 1
+            )
             WHERE $where
             ORDER BY ppr.created_at DESC
             LIMIT ? OFFSET ?

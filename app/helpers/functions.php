@@ -1070,22 +1070,31 @@ function getShiftTime($shift)
 function calculateAndSavePayrollEntry($userId, $startDate, $endDate, $cycleId) {
     $db = \App\Core\Database::getInstance()->getConnection();
 
-    // Get contract salary
+    // Get contract salary -- trainees don't run through payroll at all (see
+    // create_payroll_cycle.php, which only calls this for non-trainee users).
     $stmt = $db->prepare("SELECT salary FROM contracts WHERE user_id = ? AND status = 'accepted' ORDER BY created_at DESC LIMIT 1");
     $stmt->execute([$userId]);
     $contract = $stmt->fetch();
     if (!$contract) return null;
     $monthlySalary = $contract['salary'];
 
-    // Get attendance summary
+    // Hourly rate off the standard full-time annualized conversion
+    // (52 weeks x 40 hours = 2080 hours/year), not actual working days this
+    // cutoff -- e.g. a contract salary of 1850/month is always 10.67/hour,
+    // regardless of how many working days land in a given period.
+    $hourlyRate = round(($monthlySalary * 12) / 2080, 4);
+    $dailyRate = round($hourlyRate * 8, 2);
+
+    // Get attendance summary. Rest days never count toward payroll at all
+    // (not attended, not deducted) -- they're simply excluded from every
+    // bucket below. Late/overtime are computed per-day further down from
+    // actual clock times vs. the effective schedule, not from this summary.
     $stmt = $db->prepare("
-        SELECT 
+        SELECT
             COUNT(*) as total_days,
             SUM(CASE WHEN status IN ('present','late','leave_paid','holiday_work') THEN 1 ELSE 0 END) as attended_days,
             SUM(CASE WHEN status IN ('absent','leave_unpaid') THEN 1 ELSE 0 END) as absent_days,
-            SUM(overtime_hours) as total_overtime,
-            SUM(CASE WHEN status = 'holiday_work' THEN 1 ELSE 0 END) as holiday_work_days,
-            SUM(CASE WHEN status = 'late' THEN 1 ELSE 0 END) as late_days
+            SUM(CASE WHEN status = 'holiday_work' THEN 1 ELSE 0 END) as holiday_work_days
         FROM attendance
         WHERE user_id = ? AND date BETWEEN ? AND ?
     ");
@@ -1094,11 +1103,10 @@ function calculateAndSavePayrollEntry($userId, $startDate, $endDate, $cycleId) {
 
     $attendedDays = $att['attended_days'] ?? 0;
     $absentDays = $att['absent_days'] ?? 0;
-    $overtimeHours = $att['total_overtime'] ?? 0;
     $holidayWorkDays = $att['holiday_work_days'] ?? 0;
-    $lateDays = $att['late_days'] ?? 0;
 
-    // Calculate working days (excluding rest days)
+    // Calculate working days (excluding rest days) -- reporting figure only
+    // now (total_working_days column); no longer drives the rate itself.
     $stmt = $db->prepare("
         SELECT COUNT(*) as working_days
         FROM (
@@ -1123,24 +1131,62 @@ function calculateAndSavePayrollEntry($userId, $startDate, $endDate, $cycleId) {
     $stmt->execute([$startDate, $startDate, $endDate, $userId]);
     $workingDays = $stmt->fetchColumn() ?: 22;
 
-    $dailyRate = $workingDays > 0 ? $monthlySalary / $workingDays : $monthlySalary / 22;
-    $hourlyRate = $dailyRate / 8;
-
     $regularPay = $attendedDays * $dailyRate;
+
+    // Late minutes and overtime hours: computed per day directly from the
+    // actual clock punch vs. that day's effective schedule (baseline +
+    // any cutoff override), not from a manually-set status/estimate.
+    $stmt = $db->prepare("SELECT date, time_in, time_out, status FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status IN ('present','late','holiday_work')");
+    $stmt->execute([$userId, $startDate, $endDate]);
+    $workedRows = $stmt->fetchAll();
+
+    $lateMinutes = 0;
+    $overtimeMinutes = 0;
+    if ($workedRows) {
+        $scheduleModel = new \App\Models\Schedule();
+        $scheduleCache = []; // period_key => day_of_week => schedule row
+        foreach ($workedRows as $row) {
+            $periodKey = \App\Core\CutoffPeriod::getKeyForDate($row['date']);
+            if (!isset($scheduleCache[$periodKey])) {
+                $byDay = [];
+                foreach ($scheduleModel->getEffectiveSchedule($userId, $periodKey) as $s) {
+                    $byDay[$s['day_of_week']] = $s;
+                }
+                $scheduleCache[$periodKey] = $byDay;
+            }
+            $dayOfWeek = strtolower(date('D', strtotime($row['date'])));
+            $sched = $scheduleCache[$periodKey][$dayOfWeek] ?? null;
+            if (!$sched || $sched['is_rest_day'] || !$sched['time_in'] || !$sched['time_out']) {
+                continue; // no schedule to compare against -- can't be late or OT
+            }
+
+            if ($row['time_in']) {
+                $scheduledIn = strtotime($row['date'] . ' ' . $sched['time_in']);
+                $actualIn = strtotime($row['date'] . ' ' . $row['time_in']);
+                if ($actualIn > $scheduledIn) {
+                    $lateMinutes += round(($actualIn - $scheduledIn) / 60);
+                }
+            }
+            if ($row['time_out']) {
+                $scheduledOut = strtotime($row['date'] . ' ' . $sched['time_out']);
+                $actualOut = strtotime($row['date'] . ' ' . $row['time_out']);
+                if ($actualOut > $scheduledOut) {
+                    $overtimeMinutes += round(($actualOut - $scheduledOut) / 60);
+                }
+            }
+        }
+    }
+    $overtimeHours = round($overtimeMinutes / 60, 2);
+
     $overtimePay = $overtimeHours * $hourlyRate * 1.25;
     $holidayPay = $holidayWorkDays * 8 * $hourlyRate * 2.0;
-
-    $lateMinutes = $lateDays * 30; // estimate
     $lateDeduction = ($lateMinutes / 60) * $hourlyRate;
 
-    $stmt = $db->prepare("SELECT COUNT(*) FROM attendance WHERE user_id = ? AND date BETWEEN ? AND ? AND status = 'holiday_no_work'");
-    $stmt->execute([$userId, $startDate, $endDate]);
-    $holidayNoWork = $stmt->fetchColumn();
-    $absentDaysEffective = max(0, $absentDays - $holidayNoWork);
-    $unpaidLeaveDeduction = $absentDaysEffective * $dailyRate;
-
+    // Absent / unpaid-leave days are already excluded from $attendedDays
+    // above, so they simply earn nothing for that day (net zero) -- no
+    // further deduction on top of that non-payment.
     $grossPay = $regularPay + $overtimePay + $holidayPay;
-    $totalDeductions = $lateDeduction + $unpaidLeaveDeduction;
+    $totalDeductions = $lateDeduction;
     $netPay = $grossPay - $totalDeductions;
 
     // Insert or update entry
@@ -1161,7 +1207,7 @@ function calculateAndSavePayrollEntry($userId, $startDate, $endDate, $cycleId) {
         'holiday_pay' => $holidayPay,
         'late_deduction' => $lateDeduction,
         'absent_deduction' => 0,
-        'unpaid_leave_deduction' => $unpaidLeaveDeduction,
+        'unpaid_leave_deduction' => 0,
         'other_deductions' => 0,
         'gross_pay' => $grossPay,
         'total_deductions' => $totalDeductions,

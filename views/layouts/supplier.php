@@ -68,6 +68,9 @@ use App\Core\Auth;
                 <a href="?page=supplier_requisitions" class="nav-item <?= $activePage === 'requisitions' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-clipboard-check"></i></span> <span class="nav-label">Purchase Orders</span>
                 </a>
+                <a href="?page=supplier_shipping" class="nav-item <?= $activePage === 'shipping' ? 'active' : '' ?>">
+                    <span class="nav-icon-wrap"><i class="bi bi-truck"></i></span> <span class="nav-label">Shipping</span>
+                </a>
                 <a href="?page=supplier_invoices" class="nav-item <?= $activePage === 'invoices' ? 'active' : '' ?>">
                     <span class="nav-icon-wrap"><i class="bi bi-receipt"></i></span> <span class="nav-label">Invoices</span>
                 </a>

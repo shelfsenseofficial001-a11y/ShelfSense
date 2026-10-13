@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', function () {
     loadProducts();
     loadMineList();
     loadPoList();
+    loadGrList();
     loadDiscrepancies();
     setDefaultOrderDate();
     setNeededByBounds();
@@ -20,6 +21,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('mineStatusFilter').addEventListener('change', () => { minePage = 1; loadMineList(); });
     document.getElementById('addItemRowBtn').addEventListener('click', () => addItemRow());
     document.getElementById('submitRequisitionBtn').addEventListener('click', submitRequisition);
+    document.getElementById('createNeededBy').addEventListener('change', () => { if (smSelectedSupplierId) selectSupplier(smSelectedSupplierId); });
 
     document.getElementById('mineCreateFab').addEventListener('click', function (e) {
         e.preventDefault();
@@ -63,6 +65,7 @@ async function submitSupplierRating() {
         bootstrap.Modal.getInstance(document.getElementById('rateSupplierModal'))?.hide();
         Swal.fire('Thanks!', data.message, 'success');
         loadPoList();
+        loadGrList();
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     } finally {
@@ -223,8 +226,7 @@ async function doRefreshEligibleSuppliers() {
                 ${s.items.map(item => {
                     const storeName = smProducts.find(p => p.store_product_id === item.store_product_id)?.name || '';
                     const sameName = storeName.trim().toLowerCase() === (item.supplier_product_name || '').trim().toLowerCase();
-                    const stockLabel = `<span class="text-muted small">(${item.available_quantity} in stock at this supplier)</span>`;
-                    return `<li>${prEscapeHtml(storeName)}${!sameName && item.supplier_product_name ? ` <span class="text-muted">(${prEscapeHtml(item.supplier_product_name)} at ${prEscapeHtml(s.supplier_name)})</span>` : ''} &times; ${item.quantity} ${stockLabel}</li>`;
+                    return `<li>${prEscapeHtml(storeName)}${!sameName && item.supplier_product_name ? ` <span class="text-muted">(${prEscapeHtml(item.supplier_product_name)} at ${prEscapeHtml(s.supplier_name)})</span>` : ''} &times; ${item.quantity}</li>`;
                 }).join('')}
             </ul>
         `;
@@ -238,7 +240,7 @@ function selectSupplier(supplierId) {
     smSelectedSupplierId = supplierId;
     const supplier = smEligibleSuppliers.find(s => s.supplier_id === supplierId);
     document.getElementById('createSubtotal').textContent = prCurrency(supplier ? supplier.total : 0);
-    document.getElementById('submitRequisitionBtn').disabled = !supplier;
+    document.getElementById('submitRequisitionBtn').disabled = !supplier || !document.getElementById('createNeededBy').value;
     document.querySelectorAll('#eligibleSuppliersPanel .sm-supplier-option').forEach(el => {
         el.classList.toggle('selected', el.querySelector('input').value == supplierId);
     });
@@ -250,6 +252,10 @@ async function submitRequisition() {
     const items = collectItems();
     if (items.length === 0) {
         Swal.fire('No items', 'Add at least one item.', 'warning');
+        return;
+    }
+    if (!document.getElementById('createNeededBy').value) {
+        Swal.fire('Needed By is required', 'Enter the date these items are needed by.', 'warning');
         return;
     }
     if (!smSelectedSupplierId) {
@@ -297,8 +303,8 @@ async function submitRequisition() {
 }
 
 /** Finance Head sent this requisition back -- pre-fill the create form from
- *  its existing items/supplier/notes so the Store Manager can adjust and
- *  resubmit, rather than starting over from scratch. */
+ *  its existing items/notes so the Store Manager can adjust and resubmit,
+ *  rather than starting over from scratch. */
 async function reviseRequisition(id) {
     try {
         const req = await prFetchJson(`?page=api_get_requisition&id=${id}`);
@@ -366,6 +372,7 @@ async function openRequisitionDetail(reqId) {
         const budgetHtml = r.budget_status ? `
             <p><strong>Budget Available:</strong> ${prCurrency(r.budget_status.available)} ${r.budget_status.exceeded ? '<span class="badge bg-danger">Exceeded</span>' : ''}</p>
         ` : '';
+
         body.innerHTML = `
             <p><strong>Supplier:</strong> ${prEscapeHtml(r.supplier_name)} &nbsp; <strong>Department:</strong> ${prEscapeHtml(r.department_name)} &nbsp; <strong>Status:</strong> ${prStatusBadge(r.status)}</p>
             <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead><tbody>${itemsHtml}</tbody></table>
@@ -400,6 +407,27 @@ async function loadPoList() {
                 </td>
             </tr>
         `).join('') : prEmptyRow(5, 'No purchase orders need attention right now.');
+    } catch (e) {
+        tbody.innerHTML = prErrorRow(5, e.message);
+    }
+}
+
+async function loadGrList() {
+    const tbody = document.getElementById('grTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading...</td></tr>';
+    try {
+        const data = await prFetchJson('?page=api_sm_list_pos&limit=20&statuses=shipped,partially_received,discrepancy_logged');
+        const rows = data.purchase_orders || [];
+        prSetTabBadge('gr-tab', rows.length);
+        tbody.innerHTML = rows.length ? rows.map(po => `
+            <tr>
+                <td>${prEscapeHtml(po.po_number)}</td>
+                <td>${prEscapeHtml(po.supplier_name)}</td>
+                <td>${prCurrency(po.total)}</td>
+                <td>${prStatusBadge(po.status)}</td>
+                <td><button class="btn btn-sm btn-yellow-primary" onclick="openGrLog(${po.id})"><i class="bi bi-box-seam"></i> Log Receipt</button></td>
+            </tr>
+        `).join('') : prEmptyRow(5, 'Nothing waiting on a goods receipt right now.');
     } catch (e) {
         tbody.innerHTML = prErrorRow(5, e.message);
     }
@@ -490,34 +518,29 @@ async function openPoDetail(poId) {
             `;
         }
 
-        let grHtml = '';
-        if (['shipped', 'partially_received', 'discrepancy_logged'].includes(po.status)) {
-            grHtml = `
-                <hr><h6>Log Goods Receipt</h6>
-                <p class="text-muted small">Enter how many of each remaining unit arrived in each condition. Splitting across Good/Damaged/Missing is logged in one submission.</p>
-                <table class="table table-sm" id="grItemsTable"><thead><tr><th>Product</th><th>Ordered</th><th>Received So Far</th><th style="width:90px">Good</th><th style="width:90px">Damaged</th><th style="width:90px">Missing</th><th style="width:70px">Remaining</th></tr></thead>
-                <tbody>
-                ${po.items.map(i => {
-                    const outstanding = i.outstanding_discrepancy_quantity || 0;
-                    const remaining = Math.max(i.quantity - i.received_quantity_total, 0) + outstanding;
-                    // A line with an open RMA/Backorder already on file can only
-                    // take the replacement as Good here -- Damaged/Missing are
-                    // tracked by that existing record, not re-raised on top of it.
-                    const lockBadCondition = outstanding > 0;
-                    return `
-                    <tr data-po-item-id="${i.id}" data-remaining="${remaining}">
-                        <td>${prEscapeHtml(i.store_product_name)}</td>
-                        <td>${i.quantity}</td>
-                        <td>${i.received_quantity_total}</td>
-                        <td><input type="number" class="form-control form-control-sm gr-qty-good" min="0" max="${remaining}" value="0"></td>
-                        <td><input type="number" class="form-control form-control-sm gr-qty-damaged" min="0" max="${remaining}" value="0" ${lockBadCondition ? 'disabled title="Already tracked via RMA -- log the replacement as Good"' : ''}></td>
-                        <td><input type="number" class="form-control form-control-sm gr-qty-missing" min="0" max="${remaining}" value="0" ${lockBadCondition ? 'disabled title="Already tracked via Backorder -- log the arrival as Good"' : ''}></td>
-                        <td class="gr-remaining-display text-muted">${remaining}</td>
+        const excessItems = po.excess_items || [];
+        let excessHtml = '';
+        if (excessItems.length) {
+            excessHtml = `
+                <hr><h6>Excess Received</h6>
+                <p class="text-muted small">Units received beyond the ordered quantity. Accept into inventory at an agreed price, or mark for return to the supplier.</p>
+                <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Status</th><th>Detail</th><th></th></tr></thead><tbody>
+                ${excessItems.map(e => `
+                    <tr>
+                        <td>${prEscapeHtml(e.store_product_name)}</td>
+                        <td>${e.quantity}</td>
+                        <td>${prStatusBadge(e.status === 'open' ? 'discrepancy_logged' : e.status)}</td>
+                        <td class="small text-muted">${e.status === 'accepted'
+                            ? `Accepted at ${prCurrency(e.accepted_unit_price)} each`
+                            : (e.status === 'returned' ? 'Marked for return to supplier' : 'Awaiting decision')}
+                        </td>
+                        <td>${e.status === 'open' ? `
+                            <button class="btn btn-sm btn-success" onclick="openAcceptExcess(${e.id}, '${prEscapeHtml(e.store_product_name)}', ${e.quantity})">Accept</button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="returnExcess(${e.id}, this)">Return</button>
+                        ` : ''}</td>
                     </tr>
-                `;
-                }).join('')}
+                `).join('')}
                 </tbody></table>
-                <button class="btn btn-yellow-primary btn-sm" onclick="submitGoodsReceipt(${po.id}, this)"><i class="bi bi-box-seam"></i> Log Receipt</button>
             `;
         }
 
@@ -527,13 +550,64 @@ async function openPoDetail(poId) {
             <p class="fw-bold text-end">Total: ${prCurrency(po.total)}</p>
             ${counterHtml}
             ${discrepancyHtml}
-            ${grHtml}
+            ${excessHtml}
+            <hr><h6>Goods Receipts</h6>
+            ${prRenderGoodsReceipts(po.goods_receipts)}
             <hr><h6>History</h6>
             ${prRenderTimeline(po.events)}
         `;
-        wireGoodsReceiptRows();
     } catch (e) {
         document.getElementById('poDetailBody').innerHTML = `<div class="alert alert-danger">${prEscapeHtml(e.message)}</div>`;
+    }
+}
+
+// ============================================
+// GOODS RECEIPT LOGGING (separate modal from PO Detail)
+// ============================================
+
+async function openGrLog(poId) {
+    const modal = new bootstrap.Modal(document.getElementById('grLogModal'));
+    document.getElementById('grLogBody').innerHTML = 'Loading...';
+    modal.show();
+    try {
+        const po = await prFetchJson(`?page=api_get_purchase_order&id=${poId}`);
+
+        if (!['shipped', 'partially_received', 'discrepancy_logged'].includes(po.status)) {
+            document.getElementById('grLogBody').innerHTML = `<div class="alert alert-warning">This purchase order isn't ready for a goods receipt. Current status: ${prStatusBadge(po.status)}</div>`;
+            return;
+        }
+
+        const rowsHtml = po.items.map(i => {
+            const outstanding = i.outstanding_discrepancy_quantity || 0;
+            const remaining = Math.max(i.quantity - i.received_quantity_total, 0) + outstanding;
+            // A line with an open RMA/Backorder already on file can only
+            // take the replacement as Good here -- Damaged/Missing are
+            // tracked by that existing record, not re-raised on top of it.
+            const lockBadCondition = outstanding > 0;
+            return `
+                <tr data-po-item-id="${i.id}" data-remaining="${remaining}">
+                    <td>${prEscapeHtml(i.store_product_name)}</td>
+                    <td>${i.quantity}</td>
+                    <td>${i.received_quantity_total}</td>
+                    <td><input type="number" class="form-control form-control-sm gr-qty-good" min="0" max="${remaining}" value="0"></td>
+                    <td><input type="number" class="form-control form-control-sm gr-qty-damaged" min="0" max="${remaining}" value="0" ${lockBadCondition ? 'disabled title="Already tracked via RMA -- log the replacement as Good"' : ''}></td>
+                    <td><input type="number" class="form-control form-control-sm gr-qty-missing" min="0" max="${remaining}" value="0" ${lockBadCondition ? 'disabled title="Already tracked via Backorder -- log the arrival as Good"' : ''}></td>
+                    <td class="gr-remaining-display text-muted">${remaining}</td>
+                    <td><input type="number" class="form-control form-control-sm gr-qty-excess" min="0" value="0" title="Received beyond the ordered quantity"></td>
+                </tr>
+            `;
+        }).join('');
+
+        document.getElementById('grLogBody').innerHTML = `
+            <p><strong>Supplier:</strong> ${prEscapeHtml(po.supplier_name)} &nbsp; <strong>Status:</strong> ${prStatusBadge(po.status)}</p>
+            <p class="text-muted small">Enter how many of each remaining unit arrived in each condition. Splitting across Good/Damaged/Missing is logged in one submission. Use Excess for anything received beyond the ordered quantity.</p>
+            <table class="table table-sm" id="grItemsTable"><thead><tr><th>Product</th><th>Ordered</th><th>Received So Far</th><th style="width:90px">Good</th><th style="width:90px">Damaged</th><th style="width:90px">Missing</th><th style="width:70px">Remaining</th><th style="width:90px">Excess</th></tr></thead>
+            <tbody>${rowsHtml}</tbody></table>
+            <button class="btn btn-yellow-primary btn-sm" onclick="submitGoodsReceipt(${po.id}, this)"><i class="bi bi-box-seam"></i> Log Receipt</button>
+        `;
+        wireGoodsReceiptRows();
+    } catch (e) {
+        document.getElementById('grLogBody').innerHTML = `<div class="alert alert-danger">${prEscapeHtml(e.message)}</div>`;
     }
 }
 
@@ -542,12 +616,20 @@ function wireGoodsReceiptRows() {
         const inputs = tr.querySelectorAll('.gr-qty-good, .gr-qty-damaged, .gr-qty-missing');
         const remaining = parseInt(tr.dataset.remaining) || 0;
         const display = tr.querySelector('.gr-remaining-display');
-        const recalc = () => {
+        const recalc = (changedEl) => {
+            // Clamp the field being edited so the row total can't exceed what's
+            // left -- the HTML `max` attribute alone doesn't stop typed/pasted input.
+            if (changedEl) {
+                const othersUsed = Array.from(inputs).reduce((sum, el) => el === changedEl ? sum : sum + (parseInt(el.value) || 0), 0);
+                const allowedForThis = Math.max(remaining - othersUsed, 0);
+                const value = parseInt(changedEl.value) || 0;
+                if (value > allowedForThis) changedEl.value = allowedForThis;
+            }
             const used = Array.from(inputs).reduce((sum, el) => sum + (parseInt(el.value) || 0), 0);
             display.textContent = remaining - used;
             display.classList.toggle('text-danger', used > remaining);
         };
-        inputs.forEach(el => el.addEventListener('input', recalc));
+        inputs.forEach(el => el.addEventListener('input', () => recalc(el)));
     });
 }
 
@@ -564,6 +646,7 @@ async function respondToCounter(proposalId, action, btn) {
         Swal.fire('Done', data.message, 'success');
         bootstrap.Modal.getInstance(document.getElementById('poDetailModal'))?.hide();
         loadPoList();
+        loadGrList();
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     } finally {
@@ -591,6 +674,11 @@ async function submitGoodsReceipt(poId, btn) {
             }
         });
         if (rowTotal > remaining) overRemaining = true;
+
+        const excessQty = parseInt(tr.querySelector('.gr-qty-excess').value) || 0;
+        if (excessQty > 0) {
+            items.push({ po_item_id: poItemId, quantity_received: excessQty, condition: 'excess' });
+        }
     });
     if (items.length === 0) {
         Swal.fire('Nothing to receive', 'Enter a quantity for at least one item.', 'warning');
@@ -610,8 +698,61 @@ async function submitGoodsReceipt(poId, btn) {
         const data = await res.json();
         if (!data.success) throw new Error(data.message);
         Swal.fire('Received', data.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('grLogModal'))?.hide();
+        loadPoList();
+        loadGrList();
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    } finally {
+        unlock();
+    }
+}
+
+async function openAcceptExcess(excessId, productName, quantity) {
+    const { value: unitPrice } = await Swal.fire({
+        title: `Accept ${quantity}x ${productName}`,
+        html: 'Enter the agreed unit price to accept this excess stock into inventory.',
+        input: 'number',
+        inputAttributes: { min: 0, step: '0.01' },
+        inputPlaceholder: 'Unit price',
+        showCancelButton: true,
+        confirmButtonText: 'Accept into Inventory',
+        confirmButtonColor: '#198754',
+        inputValidator: (value) => {
+            if (value === '' || parseFloat(value) < 0) return 'Enter a valid, non-negative unit price.';
+        },
+    });
+    if (unitPrice === undefined) return;
+
+    try {
+        const res = await fetch('?page=api_sm_resolve_excess', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ excess_id: excessId, action: 'accept', unit_price: parseFloat(unitPrice) }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        Swal.fire('Accepted', data.message, 'success');
         bootstrap.Modal.getInstance(document.getElementById('poDetailModal'))?.hide();
         loadPoList();
+        loadGrList();
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    }
+}
+
+async function returnExcess(excessId, btn) {
+    const unlock = prLockButton(btn);
+    try {
+        const res = await fetch('?page=api_sm_resolve_excess', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ excess_id: excessId, action: 'return' }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        Swal.fire('Marked for Return', data.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('poDetailModal'))?.hide();
+        loadPoList();
+        loadGrList();
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     } finally {

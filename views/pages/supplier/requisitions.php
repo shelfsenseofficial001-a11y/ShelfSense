@@ -8,6 +8,18 @@ $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.j
 $content = <<<'EOT'
 <div class="modern-card p-3">
     <h6 class="fw-bold mb-3"><i class="bi bi-clipboard-check text-yellow me-2"></i>Purchase Orders</h6>
+    <ul class="nav nav-tabs sm-tabs mb-3" id="spPoTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" data-tab-key="active" type="button" role="tab" onclick="spSwitchPoTab('active')">
+                <i class="bi bi-hourglass-split"></i> Active
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" data-tab-key="history" type="button" role="tab" onclick="spSwitchPoTab('history')">
+                <i class="bi bi-clock-history"></i> History
+            </button>
+        </li>
+    </ul>
     <div class="table-responsive">
         <table class="table table-hover align-middle mb-3">
             <thead><tr><th>PO #</th><th>Order Date</th><th>Total</th><th>Status</th><th></th></tr></thead>

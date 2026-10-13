@@ -12,12 +12,22 @@ class GoodsReceipt
         $this->db = Database::getInstance()->getConnection();
     }
 
+    public function generateNumber()
+    {
+        $year = date('Y');
+        $stmt = $this->db->prepare("SELECT COUNT(*) as count FROM goods_receipts WHERE YEAR(created_at) = ?");
+        $stmt->execute([$year]);
+        $count = $stmt->fetch()['count'] + 1;
+        return 'GR-' . $year . '-' . str_pad($count, 4, '0', STR_PAD_LEFT);
+    }
+
     public function create($poId, $receivedBy, $receiptDate, $notes, $items)
     {
         $this->db->beginTransaction();
         try {
-            $stmt = $this->db->prepare("INSERT INTO goods_receipts (po_id, received_by, receipt_date, notes) VALUES (?, ?, ?, ?)");
-            $stmt->execute([$poId, $receivedBy, $receiptDate, $notes]);
+            $grNumber = $this->generateNumber();
+            $stmt = $this->db->prepare("INSERT INTO goods_receipts (gr_number, po_id, received_by, receipt_date, notes) VALUES (?, ?, ?, ?, ?)");
+            $stmt->execute([$grNumber, $poId, $receivedBy, $receiptDate, $notes]);
             $grId = (int)$this->db->lastInsertId();
 
             $itemStmt = $this->db->prepare("
@@ -40,8 +50,14 @@ class GoodsReceipt
                     'condition' => $item['condition'] ?? 'good',
                 ];
 
-                $upd = $this->db->prepare("UPDATE purchase_order_items SET received_quantity = received_quantity + ? WHERE id = ?");
-                $upd->execute([$item['quantity_received'], $item['po_item_id']]);
+                // 'excess' is beyond what was ordered -- it never counts toward
+                // the ordered quantity being fulfilled, and it's never auto-added
+                // to sellable stock; it sits in po_excess_items until the Store
+                // Manager accepts it into inventory or returns it to the supplier.
+                if (($item['condition'] ?? 'good') !== 'excess') {
+                    $upd = $this->db->prepare("UPDATE purchase_order_items SET received_quantity = received_quantity + ? WHERE id = ?");
+                    $upd->execute([$item['quantity_received'], $item['po_item_id']]);
+                }
 
                 // Only 'good' condition stock actually becomes sellable inventory --
                 // damaged/missing items were never usable, so they shouldn't inflate
@@ -58,7 +74,7 @@ class GoodsReceipt
             }
 
             $this->db->commit();
-            return ['gr_id' => $grId, 'items' => $insertedItems];
+            return ['gr_id' => $grId, 'gr_number' => $grNumber, 'items' => $insertedItems];
         } catch (\Exception $e) {
             $this->db->rollBack();
             throw $e;

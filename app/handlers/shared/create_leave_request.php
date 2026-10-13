@@ -15,8 +15,18 @@ if (!Auth::check()) {
     Response::unauthorized('Please login to access this resource');
 }
 
-// All authenticated users (including Employees) can apply
-// No restriction — employees can apply for leave
+// Leave is a benefit of an accepted (hired) contract -- trainees run under
+// a Trainee Contract instead and don't accrue or take leave.
+$db = \App\Core\Database::getInstance()->getConnection();
+$stmt = $db->prepare("SELECT contract_type FROM contracts WHERE user_id = ? AND status = 'accepted' ORDER BY created_at DESC LIMIT 1");
+$stmt->execute([Auth::userId()]);
+$latestContract = $stmt->fetch();
+if (!$latestContract) {
+    Response::forbidden('Leave requires an accepted employment contract.');
+}
+if ($latestContract['contract_type'] === 'trainee') {
+    Response::forbidden('Leave is not available under a Trainee Contract.');
+}
 
 $input = json_decode(file_get_contents('php://input'), true);
 $leaveType = $input['leave_type'] ?? '';

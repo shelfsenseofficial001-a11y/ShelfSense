@@ -3,7 +3,8 @@ $title = 'Requisitions - Store Manager';
 $pageTitle = 'Requisitions';
 $activePage = 'requisitions';
 $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
-    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20261013000004"></script>';
+    . '<script src="/ShelfSense/public/assets/js/store_manager/requisitions.js?v=20261013000004"></script>'
+    . '<script src="/ShelfSense/public/assets/js/shared/budget-request.js?v=20261014000001"></script>';
 
 $content = <<<'EOT'
 <ul class="nav nav-tabs sm-tabs mb-3" id="requisitionTabs" role="tablist">
@@ -23,8 +24,18 @@ $content = <<<'EOT'
         </button>
     </li>
     <li class="nav-item" role="presentation">
+        <button class="nav-link" id="gr-tab" data-bs-toggle="tab" data-bs-target="#grTab" data-tab-key="gr" type="button" role="tab">
+            <i class="bi bi-box-seam"></i> Goods Receipt
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
         <button class="nav-link" id="disc-tab" data-bs-toggle="tab" data-bs-target="#discTab" data-tab-key="discrepancies" type="button" role="tab">
             <i class="bi bi-exclamation-triangle"></i> Backorders &amp; RMA
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link" id="budget-tab" data-bs-toggle="tab" data-bs-target="#budgetTab" data-tab-key="budget" type="button" role="tab">
+            <i class="bi bi-cash-stack"></i> Budget
         </button>
     </li>
 </ul>
@@ -75,8 +86,8 @@ $content = <<<'EOT'
                             <input type="text" id="createOrderDate" class="form-control" disabled readonly tabindex="-1">
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label">Needed By (optional)</label>
-                            <input type="date" id="createNeededBy" class="form-control">
+                            <label class="form-label">Needed By</label>
+                            <input type="date" id="createNeededBy" class="form-control" required>
                         </div>
                     </div>
                     <div class="mt-3">
@@ -130,6 +141,19 @@ $content = <<<'EOT'
         </div>
     </div>
 
+    <div class="tab-pane fade" id="grTab" role="tabpanel">
+        <div class="modern-card p-3 sm-po-card">
+            <h6><i class="bi bi-box-seam"></i> Goods Receipt</h6>
+            <p class="text-muted small">Purchase orders shipped and ready to log what actually arrived -- separate from the full Purchase Orders list so the receiving queue doesn't get lost among everything else.</p>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>
+                    <tbody id="grTableBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div class="tab-pane fade" id="discTab" role="tabpanel">
         <div class="modern-card p-3">
             <h6><i class="bi bi-exclamation-triangle"></i> Backorders &amp; RMA</h6>
@@ -144,6 +168,49 @@ $content = <<<'EOT'
                     <thead><tr><th>PO #</th><th>Supplier</th><th>Product</th><th>Type</th><th>Qty</th><th>Status</th><th>Detail</th><th></th></tr></thead>
                     <tbody id="discTableBody"><tr><td colspan="8" class="text-center py-4">Loading...</td></tr></tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="budgetTab" role="tabpanel">
+        <div class="modern-card p-3 mb-3">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h6 class="mb-0"><i class="bi bi-cash-stack"></i> Procurement Budget</h6>
+                <div class="d-flex align-items-center gap-2">
+                    <select id="bdgPeriodSelect" class="form-select form-select-sm" style="max-width:200px;"></select>
+                    <button class="btn btn-yellow-primary btn-sm" id="requestBudgetBtn">Request Allocation</button>
+                </div>
+            </div>
+            <div id="bdgStatusCard"></div>
+        </div>
+        <div class="modern-card p-3">
+            <h6 class="mb-3">My Requests</h6>
+            <div class="table-responsive">
+                <table class="table table-sm align-middle mb-0">
+                    <thead><tr><th>Period</th><th>Requested</th><th>Reason</th><th>Status</th><th>Detail</th></tr></thead>
+                    <tbody id="bdgMyRequestsBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="bdgRequestModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Request Budget Allocation</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label">Amount</label>
+                <div class="input-group mb-2">
+                    <span class="input-group-text">&#8369;</span>
+                    <input type="number" id="bdgRequestAmount" class="form-control" min="0" step="0.01">
+                </div>
+                <label class="form-label">Reason</label>
+                <textarea id="bdgRequestReason" class="form-control" rows="3" maxlength="500"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-yellow-primary btn-sm" id="bdgSubmitRequestBtn">Submit</button>
             </div>
         </div>
     </div>
@@ -198,6 +265,18 @@ $content = <<<'EOT'
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" id="poDetailBody">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="grLogModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-box-seam"></i> Log Goods Receipt</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="grLogBody">Loading...</div>
         </div>
     </div>
 </div>

@@ -72,7 +72,7 @@ function sm_dashboard_build_data(PDO $db): array {
             (SELECT COUNT(*) FROM requisition_items ri WHERE ri.requisition_id = r.id) as item_count,
             (SELECT MAX(gr.receipt_date) FROM purchase_orders po2 JOIN goods_receipts gr ON gr.po_id = po2.id WHERE po2.requisition_id = r.id) as actual_delivery_date
         FROM requisitions r
-        JOIN suppliers s ON r.preferred_supplier_id = s.id
+        LEFT JOIN suppliers s ON r.preferred_supplier_id = s.id
         ORDER BY r.created_at DESC
         LIMIT 5
     ");

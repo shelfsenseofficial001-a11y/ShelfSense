@@ -34,7 +34,7 @@ const PR_STATUS_LABELS = {
 
 function prStatusBadge(status) {
     const label = PR_STATUS_LABELS[status] || (status || 'Unknown').replace(/_/g, ' ');
-    const positive = ['approved', 'converted_to_po', 'confirmed', 'received', 'matched', 'closed', 'disbursed', 'supplier_accepted', 'resolved'];
+    const positive = ['approved', 'converted_to_po', 'confirmed', 'received', 'matched', 'reconciled', 'closed', 'disbursed', 'supplier_accepted', 'resolved', 'accepted'];
     const negative = ['rejected', 'budget_rejected', 'cancelled', 'price_hold', 'quantity_hold', 'discrepancy_logged'];
     let cls = 'bg-secondary';
     if (positive.includes(status)) cls = 'bg-success';
@@ -175,6 +175,32 @@ function prRenderTimeline(events) {
             `).join('')}
         </ul>
     `;
+}
+
+/**
+ * Itemized Goods Receipt log for a PO -- every batch actually logged by the
+ * Store Manager (date, who logged it, line items per condition), not just
+ * the running totals or a one-line "fully/partially received" timeline
+ * entry. Shared across Store Manager + both Finance roles; never shown to
+ * the Supplier (see get_purchase_order.php's $canSeeGoodsReceipt).
+ */
+function prRenderGoodsReceipts(goodsReceipts) {
+    if (!goodsReceipts || goodsReceipts.length === 0) {
+        return '<p class="text-muted small mb-0">No goods receipts logged yet.</p>';
+    }
+    const conditionLabels = { good: 'Good', damaged: 'Damaged', missing: 'Missing', excess: 'Excess' };
+    return goodsReceipts.map(gr => `
+        <div class="mb-2 pb-2 border-bottom">
+            <div class="d-flex justify-content-between">
+                <strong class="small">${prEscapeHtml(gr.gr_number)} &mdash; ${prFormatDate(gr.receipt_date)}</strong>
+                <small class="text-muted">by ${prEscapeHtml(gr.received_by_name)}</small>
+            </div>
+            <table class="table table-sm mb-1"><tbody>
+                ${gr.items.map(i => `<tr><td>${prEscapeHtml(i.store_product_name)}</td><td class="text-end">${i.quantity_received}x ${conditionLabels[i.condition] || i.condition}</td></tr>`).join('')}
+            </tbody></table>
+            ${gr.notes ? `<p class="text-muted small mb-0">${prEscapeHtml(gr.notes)}</p>` : ''}
+        </div>
+    `).join('');
 }
 
 /**

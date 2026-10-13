@@ -8,6 +8,7 @@ $additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.j
 $content = <<<'EOT'
 <ul class="nav nav-tabs mb-3" id="fsTabs" role="tablist">
     <li class="nav-item"><button class="nav-link active" id="tabDispatch" data-bs-toggle="tab" data-bs-target="#dispatchTab" type="button">Pending Dispatch</button></li>
+    <li class="nav-item"><button class="nav-link" id="tabAwaitingSupplier" data-bs-toggle="tab" data-bs-target="#awaitingSupplierTab" type="button">Awaiting Supplier</button></li>
     <li class="nav-item"><button class="nav-link" id="tabRequestPayment" data-bs-toggle="tab" data-bs-target="#requestPaymentTab" type="button">Request Payment</button></li>
     <li class="nav-item"><button class="nav-link" id="tabHolds" data-bs-toggle="tab" data-bs-target="#holdsTab" type="button">Reconciliation Holds</button></li>
     <li class="nav-item"><button class="nav-link" id="tabMyPayments" data-bs-toggle="tab" data-bs-target="#myPaymentsTab" type="button">My Payment Requests</button></li>
@@ -20,6 +21,16 @@ $content = <<<'EOT'
             <table class="table table-hover align-middle">
                 <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th></th></tr></thead>
                 <tbody id="dispatchTableBody"><tr><td colspan="4" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="tab-pane fade" id="awaitingSupplierTab">
+        <p class="text-muted">Dispatched Purchase Orders waiting on the supplier to confirm, or that came back with a counter-proposal. View-only here — the supplier accepts/responds from their portal, and the Store Manager decides on any counter-proposal.</p>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead><tr><th>PO #</th><th>Supplier</th><th>Total</th><th>Status</th><th></th></tr></thead>
+                <tbody id="awaitingSupplierTableBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
             </table>
         </div>
     </div>

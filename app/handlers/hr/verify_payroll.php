@@ -2,10 +2,14 @@
 // app/handlers/hr/verify_payroll.php
 
 require_once __DIR__ . '/../../models/PayrollCycle.php';
+require_once __DIR__ . '/../../models/Budget.php';
+require_once __DIR__ . '/../../core/CutoffPeriod.php';
 
 use App\Core\Auth;
 use App\Core\Response;
+use App\Core\CutoffPeriod;
 use App\Models\PayrollCycle;
+use App\Models\Budget;
 
 header('Content-Type: application/json');
 
@@ -22,6 +26,7 @@ $input = json_decode(file_get_contents('php://input'), true);
 $cycleId = intval($input['cycle_id'] ?? 0);
 $action = $input['action'] ?? 'verify';
 $reason = $input['reason'] ?? '';
+$justification = isset($input['justification']) ? trim($input['justification']) : '';
 
 if ($cycleId <= 0) {
     Response::error('Invalid cycle ID', 400);
@@ -36,8 +41,40 @@ try {
     }
 
     if ($action === 'verify') {
+        // Payroll is company-wide, not per-department like Procurement --
+        // it draws against a single 'hr' department budget for whichever
+        // cutoff half the cycle's start date falls in.
+        $budgetModel = new Budget();
+        $hrDepartment = $budgetModel->getDepartmentByName('hr');
+        if (!$hrDepartment) {
+            $newId = $budgetModel->createDepartment('hr', 'HR');
+            $hrDepartment = $budgetModel->getDepartmentById($newId);
+        }
+        $periodKey = CutoffPeriod::getKeyForDate($cycle['start_date']);
+        $amount = (float)$cycle['total_net'];
+        $budgetStatus = $budgetModel->getBudgetStatus($hrDepartment['id'], $periodKey, $amount, 'payroll_cycle', $cycleId);
+
+        if ($budgetStatus['exceeded'] && $justification === '') {
+            Response::error(
+                'This payroll cycle exceeds the available HR budget (short by ₱' . number_format($budgetStatus['shortfall'], 2) . '). A justification is required to verify over budget.',
+                400,
+                ['justification' => 'Justification is required for over-budget verification.']
+            );
+        }
+
+        $budgetModel->postTransaction(
+            $hrDepartment['id'],
+            $periodKey,
+            'reservation',
+            $amount,
+            'payroll_cycle',
+            $cycleId,
+            Auth::userId(),
+            $justification !== '' ? $justification : null
+        );
+
         $result = $cycleModel->updateStatus($cycleId, 'verified', Auth::userId());
-        $cycleModel->addLog($cycleId, 'verify', Auth::userId(), 'Payroll verified');
+        $cycleModel->addLog($cycleId, 'verify', Auth::userId(), 'Payroll verified' . ($justification !== '' ? " (over budget: $justification)" : ''));
         $message = 'Payroll verified.';
         $status = 'verified';
     } elseif ($action === 'reject') {

@@ -38,7 +38,7 @@ try {
         SELECT r.*, s.company_name as supplier_name, d.name as department_name,
                CONCAT(u.first_name, ' ', u.last_name) as requested_by_name
         FROM requisitions r
-        JOIN suppliers s ON r.preferred_supplier_id = s.id
+        LEFT JOIN suppliers s ON r.preferred_supplier_id = s.id
         JOIN departments d ON r.department_id = d.id
         JOIN users u ON r.requested_by = u.user_id
         WHERE r.status = 'pending_budget_check'

@@ -5,7 +5,10 @@ use App\Models\PayrollCycle;
 $title = 'Payroll - ShelfSense HR';
 $pageTitle = 'Payroll Management';
 $activePage = 'payroll';
-$additional_js = '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20261013000001"></script>';
+$additional_js = '<script src="/ShelfSense/public/assets/js/procurement/shared.js?v=20261013000002"></script>'
+    . '<script src="/ShelfSense/public/assets/js/shared/budget-request.js?v=20261014000001"></script>'
+    . '<script src="/ShelfSense/public/assets/js/hr/payroll.js?v=20261013000001"></script>'
+    . '<script>document.addEventListener("DOMContentLoaded", function () { document.getElementById("openBudgetBtn")?.addEventListener("click", function () { new bootstrap.Modal(document.getElementById("budgetModal")).show(); }); });</script>';
 
 $currentMonth = date('m');
 $currentYear = date('Y');
@@ -34,6 +37,62 @@ for ($y = $cy - 1; $y <= $cy + 1; $y++) {
     $selected = ($y == $cy) ? 'selected' : '';
     $yearOptions .= "<option value=\"$y\" $selected>$y</option>";
 }
+
+$canRequestBudget = Auth::isHRHead();
+$budgetButtonHtml = $canRequestBudget ? '
+        <button class="btn btn-outline-secondary btn-sm" id="openBudgetBtn">
+            <i class="bi bi-cash-stack"></i> Budget
+        </button>' : '';
+
+$budgetModalHtml = $canRequestBudget ? '
+<div class="modal fade" id="budgetModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-cash-stack me-2"></i>HR Budget</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">This Period</h6>
+                    <div class="d-flex align-items-center gap-2">
+                        <select id="bdgPeriodSelect" class="form-select form-select-sm" style="max-width:200px;"></select>
+                        <button class="btn btn-yellow-primary btn-sm" id="requestBudgetBtn">Request Allocation</button>
+                    </div>
+                </div>
+                <div id="bdgStatusCard" class="mb-4"></div>
+                <h6 class="mb-3">My Requests</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead><tr><th>Period</th><th>Requested</th><th>Reason</th><th>Status</th><th>Detail</th></tr></thead>
+                        <tbody id="bdgMyRequestsBody"><tr><td colspan="5" class="text-center py-4">Loading...</td></tr></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="bdgRequestModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Request Budget Allocation</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label">Amount</label>
+                <div class="input-group mb-2">
+                    <span class="input-group-text">&#8369;</span>
+                    <input type="number" id="bdgRequestAmount" class="form-control" min="0" step="0.01">
+                </div>
+                <label class="form-label">Reason</label>
+                <textarea id="bdgRequestReason" class="form-control" rows="3" maxlength="500"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-yellow-primary btn-sm" id="bdgSubmitRequestBtn">Submit</button>
+            </div>
+        </div>
+    </div>
+</div>' : '';
 
 $canEditHolidays = Auth::isOwner() || Auth::isSuperAdmin();
 $holidayFormHtml = $canEditHolidays ? '
@@ -121,6 +180,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';window.__
         </button>
     </div>
     <div class="col-md-3 text-end d-flex align-items-end justify-content-end gap-2">
+        $budgetButtonHtml
         <button class="btn btn-outline-secondary btn-sm" id="manageHolidaysBtn">
             <i class="bi bi-calendar-x"></i> Holidays
         </button>
@@ -256,6 +316,8 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';window.__
         </div>
     </div>
 </div>
+
+$budgetModalHtml
 
 <!-- Manage Holidays Modal -->
 <div class="modal fade" id="holidaysModal" tabindex="-1">

@@ -1138,6 +1138,19 @@ if ($page === 'store_manager_requisitions') {
     exit;
 }
 
+if ($page === 'store_manager_procurement_history') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isStoreManager() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/store_manager/procurement_history.php';
+    exit;
+}
+
 if ($page === 'store_manager_schedules') {
     if (!Auth::check()) {
         Response::redirect('?page=login');
@@ -1218,6 +1231,11 @@ if ($page === 'api_sm_list_eligible_suppliers') {
 
 if ($page === 'api_get_requisition') {
     require_once __DIR__ . '/../app/handlers/shared/get_requisition.php';
+    exit;
+}
+
+if ($page === 'api_search_procurement_history') {
+    require_once __DIR__ . '/../app/handlers/shared/search_procurement_history.php';
     exit;
 }
 
@@ -1460,6 +1478,19 @@ if ($page === 'supplier_requisitions') {
     exit;
 }
 
+if ($page === 'supplier_shipping') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isSupplier() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/supplier/shipping.php';
+    exit;
+}
+
 if ($page === 'supplier_invoices') {
     if (!Auth::check()) {
         Response::redirect('?page=login');
@@ -1609,6 +1640,19 @@ if ($page === 'finance_staff_requisitions') {
     exit;
 }
 
+if ($page === 'finance_procurement_history') {
+    if (!Auth::check()) {
+        Response::redirect('?page=login');
+        exit;
+    }
+    if (!Auth::isFinanceStaff() && !Auth::isFinanceHead() && !Auth::isSuperAdmin()) {
+        Response::redirect('?page=dashboard');
+        exit;
+    }
+    require_once __DIR__ . '/../views/pages/finance/procurement_history.php';
+    exit;
+}
+
 if ($page === 'api_fh_list_requisitions_pending') {
     require_once __DIR__ . '/../app/handlers/finance/head/requisitions/list_pending.php';
     exit;
@@ -1724,6 +1768,16 @@ if ($page === 'api_fs_dispatch_po') {
     exit;
 }
 
+if ($page === 'api_fs_list_pos_awaiting_supplier') {
+    require_once __DIR__ . '/../app/handlers/finance/staff/purchase_orders/list_awaiting_supplier.php';
+    exit;
+}
+
+if ($page === 'api_sm_resolve_excess') {
+    require_once __DIR__ . '/../app/handlers/store_manager/excess/resolve.php';
+    exit;
+}
+
 if ($page === 'api_fs_list_invoices') {
     require_once __DIR__ . '/../app/handlers/finance/staff/invoices/list.php';
     exit;
@@ -1802,6 +1856,31 @@ if ($page === 'api_fh_approve_po_payment') {
 
 if ($page === 'api_fh_set_budget') {
     require_once __DIR__ . '/../app/handlers/finance/head/budget/set.php';
+    exit;
+}
+
+if ($page === 'api_budget_request_my_department_status') {
+    require_once __DIR__ . '/../app/handlers/shared/budget_requests/get_my_department_status.php';
+    exit;
+}
+
+if ($page === 'api_budget_request_create') {
+    require_once __DIR__ . '/../app/handlers/shared/budget_requests/create.php';
+    exit;
+}
+
+if ($page === 'api_budget_request_list_mine') {
+    require_once __DIR__ . '/../app/handlers/shared/budget_requests/list_mine.php';
+    exit;
+}
+
+if ($page === 'api_fh_budget_request_list') {
+    require_once __DIR__ . '/../app/handlers/finance/head/budget_requests/list.php';
+    exit;
+}
+
+if ($page === 'api_fh_budget_request_review') {
+    require_once __DIR__ . '/../app/handlers/finance/head/budget_requests/review.php';
     exit;
 }
 

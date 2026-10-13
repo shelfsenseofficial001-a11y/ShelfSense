@@ -5,6 +5,12 @@
 let spPoPage = 1;
 let spCounterPoId = null;
 let spDiscrepancyTarget = null;
+let spPoTab = 'active';
+
+// "Active" = still awaiting a supplier decision (dispatch/accept/counter-propose).
+// Everything from acceptance onward moves to "History".
+const SP_PO_ACTIVE_STATUSES = ['pending_dispatch', 'pending_confirmation', 'supplier_counter_proposed'];
+const SP_PO_HISTORY_STATUSES = ['confirmed', 'supplier_accepted', 'pending_payment', 'paid', 'shipped', 'partially_received', 'received', 'cancelled', 'closed', 'discrepancy_logged'];
 
 document.addEventListener('DOMContentLoaded', function () {
     loadPoList();
@@ -12,11 +18,20 @@ document.addEventListener('DOMContentLoaded', function () {
     document.getElementById('spSubmitDiscrepancyBtn').addEventListener('click', submitDiscrepancyResolution);
 });
 
+function spSwitchPoTab(tabKey) {
+    if (spPoTab === tabKey) return;
+    spPoTab = tabKey;
+    spPoPage = 1;
+    document.querySelectorAll('#spPoTabs .nav-link').forEach(btn => btn.classList.toggle('active', btn.dataset.tabKey === tabKey));
+    loadPoList();
+}
+
 async function loadPoList() {
     const tbody = document.getElementById('spPoTableBody');
     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading...</td></tr>';
     try {
-        const data = await prFetchJson(`?page=api_supplier_list_pos&page_num=${spPoPage}&limit=15`);
+        const statuses = (spPoTab === 'history' ? SP_PO_HISTORY_STATUSES : SP_PO_ACTIVE_STATUSES).join(',');
+        const data = await prFetchJson(`?page=api_supplier_list_pos&page_num=${spPoPage}&limit=15&statuses=${encodeURIComponent(statuses)}`);
         const rows = data.purchase_orders || [];
         tbody.innerHTML = rows.length ? rows.map(po => `
             <tr>

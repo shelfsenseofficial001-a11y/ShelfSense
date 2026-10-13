@@ -128,9 +128,13 @@ $content = <<<'EOT'
     <div class="col-12">
         <div class="modern-card p-3">
             <div class="d-flex flex-wrap gap-2 align-items-center">
+                <?php if ($role === 'trainee'): ?>
+                <span class="text-muted small"><i class="bi bi-info-circle"></i> Leave is available once you're under a Hiring Contract.</span>
+                <?php else: ?>
                 <button class="btn btn-yellow-primary btn-sm" id="applyLeaveBtn">
                     <i class="bi bi-plus-circle"></i> Apply for Leave
                 </button>
+                <?php endif; ?>
                 <div class="ms-auto">
                     <span class="text-muted small" id="leaveTableInfo">Loading...</span>
                 </div>

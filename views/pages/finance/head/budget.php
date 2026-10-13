@@ -26,6 +26,7 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
 <ul class="nav nav-tabs mb-3" id="budgetTabs" role="tablist">
     <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#overviewTab" type="button">Overview</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#deptTab" type="button">Departments</button></li>
+    <li class="nav-item"><button class="nav-link" id="budgetRequestsTabBtn" data-bs-toggle="tab" data-bs-target="#requestsTab" type="button">Requests <span class="badge bg-danger" id="budgetRequestsBadge" style="display:none;">0</span></button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#historyTab" type="button">Transaction History</button></li>
     <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#toleranceTab" type="button">Match Tolerance</button></li>
 </ul>
@@ -54,6 +55,15 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
             <div class="col-md-2"><button class="btn btn-yellow-primary" id="addDeptBtn">Add</button></div>
         </div>
         <table class="table table-sm" id="deptTable"><thead><tr><th>Name</th><th>Code</th><th>Status</th><th></th></tr></thead><tbody id="deptTableBody"></tbody></table>
+    </div>
+
+    <div class="tab-pane fade" id="requestsTab">
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Department</th><th>Period</th><th>Requested</th><th>Reason</th><th>By</th><th>Status</th><th></th></tr></thead>
+                <tbody id="budgetRequestsTableBody"><tr><td colspan="7" class="text-center py-4">Loading...</td></tr></tbody>
+            </table>
+        </div>
     </div>
 
     <div class="tab-pane fade" id="historyTab">
@@ -85,6 +95,22 @@ $content = '<script>window.__INITIAL_DATA__ = ' . $initialDataJson . ';</script>
         </div>
         <p class="text-muted small mt-2">An invoice line passes the price check if it's within EITHER the percent OR the flat amount (whichever is looser).</p>
         <button class="btn btn-yellow-primary btn-sm" id="saveToleranceBtn">Save</button>
+    </div>
+</div>
+
+<div class="modal fade" id="rejectBudgetRequestModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header"><h5 class="modal-title">Reject Budget Request</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <label class="form-label">Reason</label>
+                <textarea id="rejectBudgetRequestReason" class="form-control" rows="3" maxlength="500"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button class="btn btn-danger btn-sm" id="confirmRejectBudgetRequestBtn">Reject</button>
+            </div>
+        </div>
     </div>
 </div>
 

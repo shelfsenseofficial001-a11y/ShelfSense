@@ -32,6 +32,9 @@ $filters = ['supplier_id' => $supplierId];
 if (!empty($_GET['status'])) {
     $filters['status'] = $_GET['status'];
 }
+if (!empty($_GET['statuses'])) {
+    $filters['statuses'] = array_filter(array_map('trim', explode(',', $_GET['statuses'])));
+}
 
 try {
     $poModel = new PurchaseOrder();

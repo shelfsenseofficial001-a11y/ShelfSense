@@ -11,6 +11,7 @@ require_once __DIR__ . '/../../models/PoCounterProposal.php';
 require_once __DIR__ . '/../../models/PoPaymentRequest.php';
 require_once __DIR__ . '/../../models/PoEvent.php';
 require_once __DIR__ . '/../../models/PoDiscrepancy.php';
+require_once __DIR__ . '/../../models/PoExcessItem.php';
 
 use App\Core\Auth;
 use App\Core\Database;
@@ -22,6 +23,7 @@ use App\Models\PoCounterProposal;
 use App\Models\PoPaymentRequest;
 use App\Models\PoEvent;
 use App\Models\PoDiscrepancy;
+use App\Models\PoExcessItem;
 
 header('Content-Type: application/json');
 
@@ -64,7 +66,15 @@ try {
         unset($item);
 
         $grModel = new GoodsReceipt();
-        $po['goods_receipts'] = $grModel->getByPoId($id);
+        $goodsReceipts = $grModel->getByPoId($id);
+        foreach ($goodsReceipts as &$gr) {
+            $gr['items'] = $grModel->getItems($gr['id']);
+        }
+        unset($gr);
+        $po['goods_receipts'] = $goodsReceipts;
+
+        $excessModel = new PoExcessItem();
+        $po['excess_items'] = $excessModel->getByPo($id);
     }
 
     // Discrepancies (and the good-condition quantity ceiling they drive) are

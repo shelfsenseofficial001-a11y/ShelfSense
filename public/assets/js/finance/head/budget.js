@@ -15,11 +15,13 @@ document.addEventListener('DOMContentLoaded', function () {
     loadDepartments();
     loadHistory();
     loadTolerance();
+    loadBudgetRequests();
 
     document.getElementById('monthFilter').addEventListener('change', function () { loadOverview(this.value); });
     document.getElementById('addDeptBtn').addEventListener('click', addDepartment);
     document.getElementById('confirmSetBudgetBtn').addEventListener('click', confirmSetBudget);
     document.getElementById('saveToleranceBtn').addEventListener('click', saveTolerance);
+    document.getElementById('confirmRejectBudgetRequestBtn').addEventListener('click', confirmRejectBudgetRequest);
 
     // Live validation: block the keystrokes that are never valid, and show
     // the error as soon as a field is touched rather than on submit.
@@ -297,4 +299,74 @@ async function saveTolerance() {
     } catch (e) {
         Swal.fire('Error', e.message, 'error');
     }
+}
+
+// ============================================
+// BUDGET REQUESTS (Store Manager / HR Head -> Finance Head)
+// ============================================
+
+let fhRejectBudgetRequestId = null;
+
+async function loadBudgetRequests() {
+    const tbody = document.getElementById('budgetRequestsTableBody');
+    tbody.innerHTML = '<tr><td colspan="7" class="text-center py-4">Loading...</td></tr>';
+    try {
+        const data = await prFetchJson('?page=api_fh_budget_request_list&status=pending');
+        const rows = data.requests || [];
+        const badge = document.getElementById('budgetRequestsBadge');
+        badge.textContent = rows.length;
+        badge.style.display = rows.length ? 'inline-block' : 'none';
+
+        tbody.innerHTML = rows.length ? rows.map(r => `
+            <tr>
+                <td>${prEscapeHtml(r.department_name)}</td>
+                <td>${prEscapeHtml(r.period_key)}</td>
+                <td>${prCurrency(r.requested_amount)}</td>
+                <td>${prEscapeHtml(r.reason)}</td>
+                <td>${prEscapeHtml(r.requested_by_name)}</td>
+                <td>${prStatusBadge(r.status)}</td>
+                <td>
+                    <button class="btn btn-sm btn-success" onclick="reviewBudgetRequest(${r.id}, 'approve', this)"><i class="bi bi-check"></i> Approve</button>
+                    <button class="btn btn-sm btn-danger" onclick="openRejectBudgetRequest(${r.id})"><i class="bi bi-x"></i> Reject</button>
+                </td>
+            </tr>
+        `).join('') : prEmptyRow(7, 'No pending budget requests.');
+    } catch (e) {
+        tbody.innerHTML = prErrorRow(7, e.message);
+    }
+}
+
+async function reviewBudgetRequest(id, action, btn) {
+    const unlock = btn ? prLockButton(btn) : () => {};
+    try {
+        const res = await fetch('?page=api_fh_budget_request_review', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ request_id: id, action, rejection_reason: fhRejectBudgetRequestId === id ? document.getElementById('rejectBudgetRequestReason').value.trim() : undefined }),
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        Swal.fire(action === 'approve' ? 'Approved' : 'Rejected', data.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('rejectBudgetRequestModal'))?.hide();
+        loadBudgetRequests();
+        loadOverview(document.getElementById('monthFilter').value);
+    } catch (e) {
+        Swal.fire('Error', e.message, 'error');
+    } finally {
+        unlock();
+    }
+}
+
+function openRejectBudgetRequest(id) {
+    fhRejectBudgetRequestId = id;
+    document.getElementById('rejectBudgetRequestReason').value = '';
+    new bootstrap.Modal(document.getElementById('rejectBudgetRequestModal')).show();
+}
+
+function confirmRejectBudgetRequest() {
+    const reason = document.getElementById('rejectBudgetRequestReason').value.trim();
+    if (!reason) {
+        Swal.fire('Reason required', 'Please provide a rejection reason.', 'warning');
+        return;
+    }
+    reviewBudgetRequest(fhRejectBudgetRequestId, 'reject', document.getElementById('confirmRejectBudgetRequestBtn'));
 }

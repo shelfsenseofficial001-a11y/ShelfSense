@@ -4,6 +4,7 @@
 
 document.addEventListener('DOMContentLoaded', function () {
     loadDispatch();
+    loadAwaitingSupplier();
     loadRequestPayment();
     loadHolds();
     loadMyPayments();
@@ -68,6 +69,27 @@ async function loadDispatch() {
         `).join('') : prEmptyRow(4, 'No purchase orders pending dispatch.');
     } catch (e) {
         tbody.innerHTML = prErrorRow(4, e.message);
+    }
+}
+
+async function loadAwaitingSupplier() {
+    const tbody = document.getElementById('awaitingSupplierTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4">Loading...</td></tr>';
+    try {
+        const data = await prFetchJson('?page=api_fs_list_pos_awaiting_supplier&limit=20');
+        const rows = data.purchase_orders || [];
+        prSetTabBadge('tabAwaitingSupplier', rows.length);
+        tbody.innerHTML = rows.length ? rows.map(po => `
+            <tr>
+                <td>${prEscapeHtml(po.po_number)}</td>
+                <td>${prEscapeHtml(po.supplier_name)}</td>
+                <td>${prCurrency(po.total)}</td>
+                <td>${prStatusBadge(po.status)}</td>
+                <td><button class="btn btn-sm btn-outline-secondary" onclick="openPoDetail(${po.id})" title="View details"><i class="bi bi-eye"></i></button></td>
+            </tr>
+        `).join('') : prEmptyRow(5, 'No purchase orders awaiting the supplier right now.');
+    } catch (e) {
+        tbody.innerHTML = prErrorRow(5, e.message);
     }
 }
 
@@ -251,6 +273,8 @@ async function openPoDetail(poId) {
             <table class="table table-sm"><thead><tr><th>Product</th><th>Qty</th><th>Price</th><th>Total</th><th>Received</th></tr></thead><tbody>${itemsHtml}</tbody></table>
             <p class="fw-bold text-end">Total: ${prCurrency(po.total)}</p>
             ${invoicesHtml}
+            <hr><h6>Goods Receipts</h6>
+            ${prRenderGoodsReceipts(po.goods_receipts)}
             <hr><h6>History</h6>
             ${prRenderTimeline(po.events)}
         `;
